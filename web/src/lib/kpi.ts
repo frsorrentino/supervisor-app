@@ -145,6 +145,12 @@ export const outcomeType = (raw: string | null | undefined): OutcomeType => (raw
 /** `open` (app-tabellone-frazioni-13-11, Franz 13/11 14:10: «sessioni aperte oltre alla master»): le sessioni aperte adesso senza la master, come «N aperte» in testata; è il denominatore delle frazioni, e ferme e al lavoro si contano fra le stesse, così x/N non supera mai N. */
 export type Head = { waiting: number; oldestWaitS: number | null; busy: number; outcomes: number | null; red: number | null; open?: number }
 
+/**
+ * Al lavoro per il tabellone (app-tabellone-awaiting-15-11, Franz 15/11 07:58: joy lavorava e la casella segnava 0/5): il relay dà
+ * `awaiting` prima di `busy` quando Franz ha scritto alla sessione, ed è al lavoro come per il glifo (badge.ts) e il Feed.
+ */
+const atWork = (s: Pick<Session, 'state'>) => s.state === 'busy' || s.state === 'awaiting'
+
 export function head(st: State, page: TimelinePage | null, now: number, timeZone?: string): Head {
   const live = st.sessions.filter(s => s.state !== 'gone' && s.name !== 'master')
   const waits = live.map(waitingSince).filter((x): x is number => x != null)
@@ -152,7 +158,7 @@ export function head(st: State, page: TimelinePage | null, now: number, timeZone
   const today = page ? page.sessions.flatMap(s => s.events).filter(e => e.at >= from && e.at <= now) : null
   const counted = page?.since === from ? page.outcomes_settled_n : undefined
   return {
-    open: live.length, waiting: waits.length, oldestWaitS: waits.length ? now - Math.min(...waits) : null, busy: live.filter(s => s.state === 'busy' && waitingSince(s) == null).length,
+    open: live.length, waiting: waits.length, oldestWaitS: waits.length ? now - Math.min(...waits) : null, busy: live.filter(s => atWork(s) && waitingSince(s) == null).length,
     outcomes: counted ?? (today ? today.filter(e => e.kind === 'outcome' && outcomeType(e.type) !== 'running').length : null), red: today ? today.filter(e => e.kind === 'task' && e.ok === false).length : null,
   }
 }
@@ -166,7 +172,7 @@ export function head(st: State, page: TimelinePage | null, now: number, timeZone
  */
 export type BoardFilter = 'aspetta' | 'lavoro'
 export const boardCount = (h: Head, f: BoardFilter): number => (f === 'aspetta' ? h.waiting : h.busy)
-export const boardMatch = (s: Session, f: BoardFilter): boolean => s.state !== 'gone' && s.name !== 'master' && (f === 'aspetta' ? waitingSince(s) != null : s.state === 'busy' && waitingSince(s) == null)
+export const boardMatch = (s: Session, f: BoardFilter): boolean => s.state !== 'gone' && s.name !== 'master' && (f === 'aspetta' ? waitingSince(s) != null : atWork(s) && waitingSince(s) == null)
 export const boardTap = (cur: BoardFilter | null, f: BoardFilter, h: Head): BoardFilter | null => (boardCount(h, f) === 0 ? cur : cur === f ? null : f)
 export const boardShown = (cur: BoardFilter | null, h: Head): BoardFilter | null => (cur && boardCount(h, cur) > 0 ? cur : null)
 
@@ -192,7 +198,7 @@ export type Working = { session: string; goal: string | null; tool: string | nul
  * «Al lavoro adesso»: le sessioni con un turno in corso, il turno più lungo prima. Chi lavora e intanto aspetta te sta solo
  * in «Ti aspettano», come in `head` (app-home-riordino-29-10: una sessione non conta in due box).
  */
-export const workingRows = (st: State, now: number): Working[] => st.sessions.filter(s => s.state === 'busy' && waitingSince(s) == null).map(s => ({
+export const workingRows = (st: State, now: number): Working[] => st.sessions.filter(s => atWork(s) && waitingSince(s) == null).map(s => ({
   session: s.name, goal: s.goal?.text?.trim() || null, tool: s.tool ?? null, toolNote: s.tool_note?.trim() || null,
   turnS: s.turn_started != null ? Math.max(0, now - s.turn_started) : null, model: s.model ? s.model.label ?? s.model.id : null, context: s.context ?? null,
 })).sort((a, b) => (b.turnS ?? -1) - (a.turnS ?? -1))
@@ -201,7 +207,7 @@ export const workingRows = (st: State, now: number): Working[] => st.sessions.fi
 export type Still = { session: string; outcome: string | null; at: number | null }
 
 /** Sotto «Al lavoro adesso»: le ferme senza niente per Franz, l'esito più nuovo prima. */
-export const stillRows = (st: State): Still[] => st.sessions.filter(s => s.state !== 'gone' && s.state !== 'busy' && waitingSince(s) == null)
+export const stillRows = (st: State): Still[] => st.sessions.filter(s => s.state !== 'gone' && !atWork(s) && waitingSince(s) == null)
   .map(s => ({ session: s.name, outcome: (s.outcome?.preview?.short ?? s.outcome?.short)?.trim() || null, at: s.outcome?.at ?? null }))
   .sort((a, b) => (b.at ?? -1) - (a.at ?? -1))
 

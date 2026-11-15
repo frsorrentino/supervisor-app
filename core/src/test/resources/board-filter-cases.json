@@ -39,6 +39,26 @@
     }
    },
    {
+    "id": "scritta",
+    "name": "scritta",
+    "account": "a",
+    "project": "p",
+    "state": "awaiting",
+    "since": 0
+   },
+   {
+    "id": "scritta-ma-ferma",
+    "name": "scritta-ma-ferma",
+    "account": "a",
+    "project": "p",
+    "state": "awaiting",
+    "since": 0,
+    "needs_you": {
+     "reason": "serve il login",
+     "at": 100
+    }
+   },
+   {
     "id": "quieta",
     "name": "quieta",
     "account": "a",
@@ -70,10 +90,21 @@
  },
  "aspetta": [
   "ferma",
-  "lavora-ma-ferma"
+  "lavora-ma-ferma",
+  "scritta-ma-ferma"
  ],
  "lavoro": [
-  "lavora"
+  "lavora",
+  "scritta"
+ ],
+ "_awaiting": "app-tabellone-awaiting-15-11: una sessione awaiting (Franz le ha scritto e lavora) è al lavoro come una busy: nelle righe al lavoro, mai fra le ferme senza niente per te.",
+ "workingRows": [
+  "lavora",
+  "scritta",
+  "master"
+ ],
+ "stillRows": [
+  "quieta"
  ],
  "taps": [
   {

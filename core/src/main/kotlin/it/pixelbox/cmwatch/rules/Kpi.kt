@@ -168,9 +168,15 @@ object Kpi {
      * rimasto senza sessioni cade da solo. Gli stessi casi in kpi.ts (board-filter-cases.json).
      */
     enum class BoardFilter { WAITING, BUSY }
+
+    /**
+     * Al lavoro per il tabellone (app-tabellone-awaiting-15-11, Franz 15/11 07:58: joy lavorava e la casella segnava 0/5): il relay dà
+     * AWAITING prima di BUSY quando Franz ha scritto alla sessione, ed è al lavoro come per il glifo (Badge) e il Feed. Lo stesso in kpi.ts.
+     */
+    private fun atWork(s: Session): Boolean = s.state == SessionState.BUSY || s.state == SessionState.AWAITING
     fun boardCount(h: Head, f: BoardFilter): Int = if (f == BoardFilter.WAITING) h.waiting else h.busy
     fun boardMatch(s: Session, f: BoardFilter): Boolean = s.state != SessionState.GONE && s.name != ContextActions.MASTER &&
-        (if (f == BoardFilter.WAITING) waitingSince(s) != null else s.state == SessionState.BUSY && waitingSince(s) == null)
+        (if (f == BoardFilter.WAITING) waitingSince(s) != null else atWork(s) && waitingSince(s) == null)
     fun boardTap(cur: BoardFilter?, f: BoardFilter, h: Head): BoardFilter? = if (boardCount(h, f) == 0) cur else if (cur == f) null else f
     fun boardShown(cur: BoardFilter?, h: Head): BoardFilter? = cur?.takeIf { boardCount(h, it) > 0 }
 
@@ -181,7 +187,7 @@ object Kpi {
         val today = page?.sessions?.flatMap { it.events }?.filter { it.at in from..now }
         val counted = page?.takeIf { it.since == from }?.outcomesSettledN
         return Head(
-            waiting = waits.size, oldestWaitS = waits.minOrNull()?.let { now - it }, busy = live.count { it.state == SessionState.BUSY && waitingSince(it) == null },
+            waiting = waits.size, oldestWaitS = waits.minOrNull()?.let { now - it }, busy = live.count { atWork(it) && waitingSince(it) == null },
             outcomes = counted ?: today?.count { it.kind == "outcome" && OutcomeType.of(it.type) != OutcomeType.RUNNING }, red = today?.count { it.kind == "task" && it.ok == false },
             open = live.size,
         )
@@ -211,7 +217,7 @@ object Kpi {
     data class Working(val session: String, val goal: String?, val tool: String?, val toolNote: String?, val turnS: Long?, val model: String?, val context: Int?)
 
     /** «Al lavoro adesso»: le sessioni con un turno in corso, il turno più lungo prima. */
-    fun workingRows(state: State, now: Long): List<Working> = state.sessions.filter { it.state == SessionState.BUSY && waitingSince(it) == null }.map { s ->
+    fun workingRows(state: State, now: Long): List<Working> = state.sessions.filter { atWork(it) && waitingSince(it) == null }.map { s ->
         Working(s.name, s.goal?.text?.takeIf { it.isNotBlank() }, s.tool, s.toolNote?.takeIf { it.isNotBlank() }, s.turnStarted?.let { maxOf(0L, now - it) }, s.model?.let { it.label ?: it.id }, s.context)
     }.sortedByDescending { it.turnS ?: -1L }
 
@@ -220,7 +226,7 @@ object Kpi {
 
     /** Sotto «Al lavoro adesso»: le ferme senza niente per Franz, l'esito più nuovo prima. */
     fun stillRows(state: State): List<Still> = state.sessions
-        .filter { it.state != SessionState.GONE && it.state != SessionState.BUSY && waitingSince(it) == null }
+        .filter { it.state != SessionState.GONE && !atWork(it) && waitingSince(it) == null }
         .map { s -> Still(s.name, (s.outcome?.preview?.short ?: s.outcome?.short)?.takeIf { it.isNotBlank() }, s.outcome?.at) }
         .sortedByDescending { it.at ?: -1L }
 

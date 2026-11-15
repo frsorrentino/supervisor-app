@@ -27,6 +27,13 @@ class BoardFilterTest {
         assertEquals(listOf(names("aspetta").size, names("lavoro").size), listOf(h.waiting, h.busy))
     }
 
+    // app-tabellone-awaiting-15-11: una awaiting sta nelle righe al lavoro, mai fra le ferme senza niente per te.
+    @Test fun anAwaitingSessionWorksLikeABusyOne() {
+        val st = state("state")
+        assertEquals(names("workingRows"), Kpi.workingRows(st, 1000).map { it.session })
+        assertEquals(names("stillRows"), Kpi.stillRows(st).map { it.session })
+    }
+
     @Test fun taps() {
         for ((list, st) in listOf("taps" to "state", "quietTaps" to "quiet")) {
             val h = Kpi.head(state(st), null, 1000, zone)

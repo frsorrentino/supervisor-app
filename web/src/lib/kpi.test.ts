@@ -201,7 +201,7 @@ describe('tabellone_filtri', async () => {
   const { boardMatch, boardShown, boardTap } = await import('./kpi')
   type F = 'aspetta' | 'lavoro'
   const c = JSON.parse(readFileSync(new URL('../../../core/src/test/resources/board-filter-cases.json', import.meta.url), 'utf8')) as {
-    state: unknown; quiet: unknown; aspetta: string[]; lavoro: string[]
+    state: unknown; quiet: unknown; aspetta: string[]; lavoro: string[]; workingRows: string[]; stillRows: string[]
     taps: { name: string; cur: F | null; tap: F; out: F | null }[]; quietTaps: { name: string; cur: F | null; tap: F; out: F | null }[]; quietShown: { name: string; cur: F | null; out: F | null }[]
   }
   const st = decodeState(JSON.stringify(c.state)), quiet = decodeState(JSON.stringify(c.quiet))
@@ -210,6 +210,11 @@ describe('tabellone_filtri', async () => {
     const h = head(st, null, 1000)
     expect(names('aspetta')).toEqual(c.aspetta); expect(names('lavoro')).toEqual(c.lavoro)
     expect([h.waiting, h.busy]).toEqual([c.aspetta.length, c.lavoro.length])
+  })
+  // app-tabellone-awaiting-15-11: una awaiting sta nelle righe al lavoro, mai fra le ferme senza niente per te.
+  it('una sessione awaiting è al lavoro come una busy', () => {
+    expect(workingRows(st, 1000).map(r => r.session)).toEqual(c.workingRows)
+    expect(stillRows(st).map(r => r.session)).toEqual(c.stillRows)
   })
   for (const x of c.taps) it(x.name, () => expect(boardTap(x.cur, x.tap, head(st, null, 1000))).toBe(x.out))
   for (const x of c.quietTaps) it(x.name, () => expect(boardTap(x.cur, x.tap, head(quiet, null, 1000))).toBe(x.out))
