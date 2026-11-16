@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chiarezza della sessione</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;1,400&family=Barlow+Semi+Condensed:wght@500;600;700&family=Geist+Mono:wght@400;500&family=Material+Symbols+Rounded:opsz,wght,FILL@24,400,0" rel="stylesheet">
+<style>
+  /* app-analisi-chiarezza-16-11 (Franz 16/11 17:44 e 17:50): le informazioni aggiuntive di una sessione in due posti che si rimandano,
+     con gli stessi dati. Tavolozze e forme dei mockup del 12/11 (formato unico). Telefono 360 × 800, largo 1280 × 800, a grandezza
+     vera (PNG a 2x). `?p=<id>` mostra una tavola sola, `?day` il giorno; senza, tutte. */
+  :root { --bg:#0B0B0B; --s1:#111111; --s2:#181818; --s3:#222222; --line:#2A2A2A; --tx:#EEEEEE; --tx2:#9B9B9B; --tx3:#6E6E6E;
+          --wait:#FFB23F; --good:#71D083; --busy:#8AA9DB; --red:#FF6B5E; --waitbg:#1d1609; --waitline:#4a3412; --act:#EEEEEE; --onact:#0B0B0B; --mark:#FF6B5E; }
+  body.day { --bg:#F4F4F4; --s1:#FFFFFF; --s2:#FFFFFF; --s3:#EDEDED; --line:#E4E4E4; --tx:#141414; --tx2:#5B5B5B; --tx3:#656565;
+          --wait:#9A5700; --good:#2A7E3B; --busy:#4A6A9C; --red:#C9302F; --waitbg:#FFF6E5; --waitline:#F2D7A2; --act:#141414; --onact:#FFFFFF; --mark:#C9302F; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--tx); font-family: Barlow, "DejaVu Sans", sans-serif; }
+  .ms { font-family: "Material Symbols Rounded"; font-weight: normal; font-style: normal; font-size: 22px; line-height: 1; letter-spacing: normal;
+        text-transform: none; display: inline-block; white-space: nowrap; direction: ltr; -webkit-font-smoothing: antialiased; }
+  .panel { display: none; position: relative; width: 360px; height: 800px; overflow: hidden; background: var(--bg); }
+  .panel.wide { width: 1280px; }
+  .panel.on { display: block; }
+  body.all { display: flex; flex-wrap: wrap; gap: 24px; padding: 24px; }
+  body.all .panel { display: block; }
+  .tag { position: absolute; top: 6px; right: 8px; z-index: 9; font-family: "Barlow Semi Condensed", sans-serif; font-weight: 700;
+         font-size: 13px; padding: 3px 10px; border-radius: 999px; background: #3a2a17; color: #f5c27a; }
+  body.day .tag { background: #FFE7BF; color: #7a4600; }
+
+  /* La testata della sessione, come SessionSheet. */
+  .head { display: flex; align-items: center; gap: 8px; padding: 34px 8px 6px; }
+  .head .back { width: 40px; height: 40px; display: grid; place-items: center; color: var(--tx); }
+  .head .nm { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 700; font-size: 20px; line-height: 22px; }
+  .head .st { font-size: 13px; color: var(--tx2); white-space: nowrap; overflow: hidden; }
+  .head .st.w { color: var(--wait); }
+  .head .sp { flex: 1; }
+  .head .ib { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; color: var(--tx2); }
+  .head .badge { display: flex; align-items: center; gap: 4px; padding: 6px 11px 6px 9px; border-radius: 999px; background: var(--waitbg); border: 1px solid var(--waitline);
+                 color: var(--wait); font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 14.5px; white-space: nowrap; }
+  .head .badge .ms { font-size: 18px; }
+  .meter { display: flex; gap: 6px; padding: 0 12px 8px; flex-wrap: nowrap; }
+  .meter > span { display: flex; align-items: center; gap: 4px; font-size: 13px; color: var(--tx); padding: 5px 10px; border-radius: 999px; background: var(--s2); border: 1px solid var(--line); white-space: nowrap; }
+  .meter > span .ms { font-size: 16px; color: var(--tx2); }
+  .meter > span.w { color: var(--wait); border-color: var(--waitline); background: var(--waitbg); }
+  .meter > span.w .ms { color: var(--wait); }
+  .rule { border-top: 1px solid var(--line); }
+
+  /* Oggi: i blocchi in cima e in fondo alla chat. */
+  .pill { display: flex; align-items: center; gap: 10px; margin: 8px 10px 0; padding: 10px 12px; border-radius: 14px; background: var(--s1); border: 1px solid var(--line); }
+  .pill .ms { color: var(--wait); }
+  .pill b { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 16px; flex: 1; }
+  .pill .r { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 15px; }
+  .strip { display: flex; align-items: center; gap: 8px; margin: 8px 10px 0; padding: 8px 10px 8px 12px; border-radius: 12px; background: var(--s1); border: 1px solid var(--line); }
+  .strip .ms { font-size: 19px; color: var(--tx2); }
+  .strip b { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 15px; white-space: nowrap; }
+  .strip .n { font-size: 13px; color: var(--tx2); }
+  .strip .first { flex: 1; min-width: 0; font-size: 13.5px; color: var(--tx2); white-space: nowrap; overflow: hidden; }
+  .strip .chev { color: var(--tx3); font-size: 20px; }
+  .strip.amb { background: var(--waitbg); border-color: var(--waitline); }
+  .strip.amb .ms, .strip.amb .n { color: var(--wait); }
+  .chat { padding: 10px 14px 0; }
+  .msg { font-size: 15px; line-height: 21px; margin-bottom: 8px; }
+  .turn { margin: 0 0 8px; padding: 12px 14px; border-radius: 18px; background: var(--s1); border: 1px solid var(--line); }
+  .turn .msg:last-child { margin-bottom: 0; }
+  .out { margin: 10px -14px -12px; padding: 10px 14px 12px; border-top: 1px solid var(--line); border-radius: 0 0 18px 18px; background: var(--s2); }
+  .k { font-family: "Geist Mono", monospace; font-size: 11.5px; letter-spacing: .12em; color: var(--tx3); margin-bottom: 4px; }
+  .out .e { font-family: "Geist Mono", monospace; font-size: 13.5px; line-height: 19px; }
+  .nx { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .nx span { font-size: 14px; padding: 6px 12px; border-radius: 999px; background: var(--s3); position: relative; }
+  .nx span.old { color: var(--tx3); text-decoration: line-through; background: transparent; border: 1px dashed var(--line); }
+  .meta { display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--tx3); margin: 2px 0 8px; }
+  .acts { margin: 8px 10px 0; border-radius: 14px; background: var(--s1); border: 1px solid var(--line); overflow: hidden; }
+  .acts .h { display: flex; align-items: center; gap: 8px; padding: 9px 12px; font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 15px; }
+  .acts .h .ms { font-size: 19px; color: var(--tx2); }
+  .acts .h .ms:last-child { margin-left: auto; }
+  .acts .r { display: flex; align-items: center; padding: 9px 12px; border-top: 1px solid var(--line); font-size: 15px; position: relative; }
+  .acts .r .ms { margin-left: auto; font-size: 18px; color: var(--tx2); }
+  .nudge { display: flex; align-items: center; gap: 10px; margin: 8px 10px 0; padding: 10px 12px; border-radius: 14px; background: var(--s2); border: 1px solid var(--line); }
+  .nudge .ms { color: var(--wait); }
+  .nudge .t { flex: 1; } .nudge .t b { display: block; font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 15px; } .nudge .t small { font-size: 12.5px; color: var(--tx2); }
+  .nudge .go { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 15px; }
+  .field { position: absolute; left: 0; right: 0; bottom: 0; padding: 8px 10px 16px; background: var(--bg); }
+  .field .row { display: flex; gap: 8px; align-items: center; }
+  .field .in { flex: 1; display: flex; align-items: center; gap: 8px; padding: 11px 14px; border-radius: 24px; background: var(--s2); border: 1px solid var(--line); color: var(--tx3); font-size: 15px; position: relative; }
+  .field .in i { flex: 1; font-style: italic; }
+  .field .in b { color: var(--tx); font-weight: 500; font-size: 14px; }
+  .field .ms { color: var(--tx2); }
+  .field .nx { margin: 0 0 8px; flex-wrap: nowrap; overflow: hidden; }
+  .field .nx span { white-space: nowrap; font-size: 13.5px; padding: 5px 11px; background: var(--s1); border: 1px solid var(--line); }
+  /* I segni delle copie di una stessa voce. */
+  .copy { position: absolute; top: -7px; right: -7px; width: 18px; height: 18px; border-radius: 50%; background: var(--mark); color: #fff; font: 700 11px/18px "Barlow Semi Condensed", sans-serif; text-align: center; z-index: 3; }
+  .gauge { position: absolute; right: 2px; width: 6px; border-radius: 3px; background: color-mix(in srgb, var(--good) 55%, transparent); z-index: 4; }
+  .gaugel { position: absolute; right: 12px; z-index: 4; font: 600 12px "Barlow Semi Condensed", sans-serif; color: var(--good); background: var(--bg); padding: 1px 5px; border-radius: 6px; }
+
+  /* La voce, nel formato unico (12/11): icona, titolo, una riga di contesto, il tasto principale. Uguale nei due posti. */
+  .list { margin: 8px 10px 0; border-radius: 16px; background: var(--s1); border: 1px solid var(--line); overflow: hidden; }
+  .list .h { display: flex; align-items: center; gap: 8px; padding: 9px 12px 7px; }
+  .list .h .ms { font-size: 19px; color: var(--wait); }
+  .list .h b { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 15.5px; color: var(--wait); }
+  .list .h small { margin-left: auto; font-size: 12.5px; color: var(--tx2); display: flex; align-items: center; gap: 2px; }
+  .list .h small .ms { font-size: 17px; color: var(--tx3); }
+  .item { display: grid; grid-template-columns: 30px 1fr auto; column-gap: 9px; align-items: center; padding: 8px 10px 8px 12px; border-top: 1px solid var(--line); }
+  .item .ic { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; background: var(--s3); color: var(--tx2); }
+  .item .ic.w { background: var(--waitbg); color: var(--wait); border: 1px solid var(--waitline); }
+  .item .ic .ms { font-size: 18px; }
+  .item .tx { min-width: 0; }
+  .item .ti { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 15.5px; line-height: 19px; white-space: nowrap; overflow: hidden; }
+  .item .cx { font-size: 12.5px; line-height: 16px; color: var(--tx2); white-space: nowrap; overflow: hidden; }
+  .item .cx .adv { color: var(--wait); }
+  .mini { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 14px; padding: 6px 12px; border-radius: 999px; background: var(--s3); color: var(--tx); white-space: nowrap; }
+  .mini.w { background: var(--waitbg); color: var(--wait); border: 1px solid var(--waitline); }
+  .grp { display: flex; align-items: center; gap: 8px; padding: 9px 12px 7px; border-top: 1px solid var(--line); background: var(--s2); }
+  .grp:first-child { border-top: 0; }
+  .grp .g { width: 10px; height: 10px; border-radius: 50%; background: var(--wait); }
+  .grp .g.b { background: var(--busy); } .grp .g.i { background: var(--tx3); }
+  .grp b { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 15px; }
+  .grp small { font-size: 12.5px; color: var(--tx2); }
+  .grp .go { margin-left: auto; display: flex; align-items: center; gap: 2px; font-size: 13px; color: var(--tx2); }
+  .grp .go .ms { font-size: 18px; color: var(--tx3); }
+  .grp.on { background: color-mix(in srgb, var(--wait) 10%, var(--s2)); }
+
+  /* Home. */
+  .apphead { display: flex; align-items: center; gap: 10px; padding: 34px 14px 10px; }
+  .apphead b { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 700; font-size: 22px; }
+  .apphead small { font-family: "Geist Mono", monospace; font-size: 12.5px; color: var(--tx2); }
+  .cat { display: flex; align-items: center; gap: 8px; padding: 12px 16px 6px; font-family: "Geist Mono", monospace; font-size: 12.5px; letter-spacing: .14em; color: var(--wait); }
+  .cat .ms { font-size: 18px; }
+  .sec { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-top: 1px solid var(--line); }
+  .sec .ms { color: var(--tx2); font-size: 20px; }
+  .sec b { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 700; font-size: 18px; }
+  .sec .n { font-size: 14px; color: var(--tx2); }
+  .sec small { margin-left: auto; font-size: 13px; color: var(--tx2); }
+  .note { margin: 10px 10px 0; padding: 8px 10px; border-radius: 10px; background: var(--s2); border: 1px dashed var(--line); color: var(--tx2); font-size: 12.5px; line-height: 16px; }
+  .note b { color: var(--tx); font-weight: 500; }
+
+  /* Largo: sessioni, la chat, Dalla master. */
+  .wcols { display: grid; grid-template-columns: 290px 1fr 400px; height: 800px; }
+  .wcols > div { position: relative; overflow: hidden; }
+  .wcols .side { border-right: 1px solid var(--line); padding: 30px 10px 10px; }
+  .wcols .side .t { font-family: "Geist Mono", monospace; font-size: 12px; letter-spacing: .12em; color: var(--tx2); padding: 0 6px 8px; }
+  .srow { display: grid; grid-template-columns: 12px 1fr auto; gap: 9px; align-items: center; padding: 10px 8px; border-radius: 12px; }
+  .srow.on { background: var(--s2); }
+  .srow .g { width: 10px; height: 10px; border-radius: 50%; background: var(--wait); } .srow .g.b { background: var(--busy); } .srow .g.i { background: var(--tx3); }
+  .srow b { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; font-size: 16px; }
+  .srow small { display: block; font-size: 12.5px; color: var(--tx2); white-space: nowrap; overflow: hidden; }
+  .srow .c { font-size: 12.5px; padding: 3px 8px; border-radius: 999px; background: var(--waitbg); color: var(--wait); border: 1px solid var(--waitline); white-space: nowrap; }
+  .wcols .main { border-right: 1px solid var(--line); }
+  .wcols .main .field { padding: 8px 18px 18px; }
+  .wcols .main .chat { padding: 10px 18px 0; }
+  .wcols .mast { padding: 30px 0 0; }
+  .wcols .mast .list { margin: 0 12px; }
+
+  /* B: il cassetto. */
+  .tray { position: absolute; left: 0; right: 0; bottom: 70px; padding: 0 10px 8px; }
+  .tray .bar { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: 14px; background: var(--s1); border: 1px solid var(--line); font-size: 14px; color: var(--tx2); }
+  .tray .bar b { font-family: "Barlow Semi Condensed", sans-serif; font-weight: 600; color: var(--wait); font-size: 15px; }
+  .tray .bar .ms { margin-left: auto; color: var(--tx3); }
+  .scrim { position: absolute; inset: 0; background: rgba(0,0,0,.45); z-index: 5; }
+  body.day .scrim { background: rgba(0,0,0,.25); }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; height: 470px; z-index: 6; background: var(--bg); border-top-left-radius: 24px; border-top-right-radius: 24px; border-top: 1px solid var(--line); }
+  .sheet .grab { width: 40px; height: 4px; border-radius: 2px; background: var(--tx3); margin: 10px auto 8px; }
+  .tabs { display: flex; gap: 6px; padding: 0 12px 8px; }
+  .tabs span { font-size: 14px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); color: var(--tx2); }
+  .tabs span.on { background: var(--waitbg); color: var(--wait); border-color: var(--waitline); }
+  .sheet .list { margin: 0 10px; }
+
+  /* C: in fondo al turno. */
+  .out .list { margin: 8px -6px 0; }
+  .out .list .ti { font-size: 15px; } .out .list .cx { font-size: 12px; }
+</style>
+</head>
+<body>
+
+<!-- Le tre voci di win:supervisor-app, le stesse in tutte le tavole: una prova, un ok col consiglio, una domanda. -->
+<template id="voci">
+  <div class="item"><span class="ic"><span class="ms">science</span></span><span class="tx"><div class="ti">Prova 1293 · consiglio sulle carte</div><div class="cx">Prova · apri una carta di scelta · 20 min</div></span><span class="mini">Ok</span></div>
+  <div class="item"><span class="ic w"><span class="ms">gavel</span></span><span class="tx"><div class="ti">Uscite uniformi delle schede</div><div class="cx"><span class="adv">consigliata: approvare</span> · si annulla</div></span><span class="mini w">Approva</span></div>
+  <div class="item"><span class="ic w"><span class="ms">help</span></span><span class="tx"><div class="ti">Prove intere anche in Dalla master?</div><div class="cx">Domanda · <span class="adv">consigliata: 1 · sì</span></div></span><span class="mini w">1 · sì</span></div>
+</template>
+<template id="voci-storefront">
+  <div class="item"><span class="ic w"><span class="ms">help</span></span><span class="tx"><div class="ti">Pubblico la 2.4 in produzione?</div><div class="cx">Domanda · <span class="adv">consigliata: 1 · sì</span> · 7 min</div></span><span class="mini w">1 · sì</span></div>
+  <div class="item"><span class="ic"><span class="ms">checklist</span></span><span class="tx"><div class="ti">Rapporto dei test dei pagamenti</div><div class="cx">Da guardare · documento · 1 h</div></span><span class="mini">Visto</span></div>
+</template>
+<template id="voci-fuori">
+  <div class="item"><span class="ic w"><span class="ms">key</span></span><span class="tx"><div class="ti">Login di work scade fra 2 giorni</div><div class="cx">Account · rifallo dalla master</div></span><span class="mini">Apri</span></div>
+</template>
+<template id="field"><div class="field"><div class="row"><span class="ms">add</span><span class="in">Scrivi a win:supervisor-app</span><span class="ms">send</span></div></div></template>
+
+<!-- Oggi: la master del 16/11 alle 18:07, come nello screenshot di Franz. «Prova 1293 ok» c'è tre volte, la chat ha meno di metà schermo. -->
+<section class="panel" id="oggi"><span class="tag">Oggi · la master alle 18:07</span>
+  <div class="head"><span class="back ms">expand_more</span><div><div class="nm">Master</div><div class="st">18:05 · due compiti di interfaccia in pausa</div></div><span class="sp"></span><span class="ib ms">menu</span></div>
+  <div class="meter"><span>Opus 5.5 · max</span><span>5h 2%</span><span class="w">ctx 65%</span></div>
+  <div class="rule"></div>
+  <div class="strip"><span class="ms">visibility</span><b>Risultati</b><span class="n">22</span><span class="first"></span><span class="ms chev">expand_more</span></div>
+  <div class="chat">
+    <div class="turn">
+      <div class="msg">Ho fermato i due compiti di interfaccia fino all'analisi e avviato la correzione di claude-observe; il passo successivo va a una sessione Pixelfarm.</div>
+      <div class="out"><div class="k">ESITO</div><div class="e">due compiti di interfaccia in pausa fino all'analisi; correzione di claude-observe avviata</div>
+        <div class="k" style="margin-top:10px">PROSSIMI</div><div class="nx"><span>Prova 1293 ok<i class="copy">1</i></span><span>Prova 1292 ok</span><span>Prova 1291 ok</span></div></div>
+    </div>
+    <div class="meta"><span class="ms" style="font-size:16px">content_copy</span><span class="ms" style="font-size:16px">play_arrow</span><span style="margin-left:auto">1 m · 4844 token scritti · 18:05</span></div>
+  </div>
+  <div class="acts"><div class="h"><span class="ms">bolt</span>Azioni <span style="color:var(--tx2);font-weight:500">2</span><span class="ms">expand_less</span></div><div class="r">Prova 1292 ok<i class="copy" style="top:3px;right:40px">2</i><span class="ms">north_east</span></div><div class="r">Prova 1291 ok<i class="copy" style="top:3px;right:40px">2</i><span class="ms">north_east</span></div></div>
+  <div class="nudge"><span class="ms">layers</span><span class="t"><b>Contesto al 65%</b><small>Handoff, poi /clear</small></span><span class="go">Fallo</span><span class="ms" style="color:var(--tx2)">close</span></div>
+  <div class="field"><div class="row"><span class="ms">add</span><span class="in"><i>Prova 1293 ok</i><b>Usa</b><i class="copy" style="top:-6px;right:44px">3</i></span><span class="ms">send</span></div></div>
+  <div class="gauge" style="top:170px;height:330px"></div><span class="gaugel" style="top:325px">chat 43%</span>
+</section>
+
+<!-- Direzione A, nella sessione: la testata, una sola lista «Per te» con le voci di questa sessione, la chat; i Prossimi in un posto solo, sopra il campo. -->
+<section class="panel" id="a-sessione"><span class="tag">A · nella sessione</span>
+  <div class="head"><span class="back ms">arrow_back</span><div><div class="nm">win:supervisor-app</div><div class="st w">ti aspetta · da 20 min</div></div><span class="sp"></span><span class="ib ms">more_vert</span></div>
+  <div class="meter"><span>Opus 5.5 · max</span><span>5h 2%</span><span class="w"><span class="ms">layers</span>ctx 65%</span><span><span class="ms">visibility</span>22</span></div>
+  <div class="rule"></div>
+  <div class="list"><div class="h"><span class="ms">front_hand</span><b>Per te · 3</b><small>anche in Dalla master<span class="ms">chevron_right</span></small></div><div data-voci=""></div></div>
+  <div class="chat">
+    <div class="turn">
+      <div class="msg">Sul telefono Verifica ha la riga della sessione: le prove di una sessione aperta stanno nella sua scheda, e la riga porta lì.</div>
+      <div class="out"><div class="k">ESITO</div><div class="e">Verifica non dice più «Niente da provare» sotto un 5</div></div>
+    </div>
+  </div>
+  <div class="field"><div class="nx"><span>apri la PR</span><span>prova sul telefono</span></div><div class="row"><span class="ms">add</span><span class="in">Scrivi a win:supervisor-app</span><span class="ms">send</span></div></div>
+  <div class="gauge" style="top:336px;height:364px"></div><span class="gaugel" style="top:508px">chat 48%</span>
+</section>
+
+<!-- Direzione A, in Dalla master: il contenitore unico, per sessione, con le stesse voci e lo stesso tasto; il titolo del gruppo porta alla sessione. -->
+<section class="panel" id="a-master"><span class="tag">A · in Dalla master</span>
+  <div class="apphead"><b>Supervisor</b><small>0.2.2198 · 6 aperte</small></div>
+  <div class="cat"><span class="ms">assignment_late</span>DALLA MASTER · PER TE 6</div>
+  <div class="list" style="margin-top:4px">
+    <div class="grp"><span class="g"></span><b>win:supervisor-app</b><small>ti aspetta</small><span class="go">apri<span class="ms">chevron_right</span></span></div>
+    <div data-voci=""></div>
+    <div class="grp"><span class="g"></span><b>storefront</b><small>domanda · 7 min</small><span class="go">apri<span class="ms">chevron_right</span></span></div>
+    <div data-voci="storefront"></div>
+    <div class="grp"><span class="g i"></span><b>Senza sessione</b></div>
+    <div data-voci="fuori"></div>
+  </div>
+  <div class="sec"><span class="ms">history</span><b>Riprendi</b><span class="n">4</span><small>3 indietro · 1 promemoria</small></div>
+  <div class="sec"><span class="ms">auto_awesome</span><b>Suggerimenti</b><span class="n">6</span><small>ultimo 08:16</small></div>
+  <div class="sec"><span class="ms">monitoring</span><b>Monitoraggi</b><span class="n">5</span><small>1 da guardare</small></div>
+  <div class="note"><b>Decidi e Verifica diventano questa lista:</b> il numero sono le righe. Una voce risolta qui sparisce anche nella sessione, e viceversa.</div>
+</section>
+
+<!-- Direzione A sul largo: le sessioni libere, Dalla master sempre accanto, col gruppo della sessione aperta acceso. -->
+<section class="panel wide" id="a-largo"><span class="tag">A · schermo largo</span>
+  <div class="wcols">
+    <div class="side"><div class="t">SESSIONI</div>
+      <div class="srow on"><span class="g"></span><span><b>win:supervisor-app</b><small>ti aspetta · 20 min</small></span><span class="c">3</span></div>
+      <div class="srow"><span class="g"></span><span><b>storefront</b><small>domanda · 7 min</small></span><span class="c">2</span></div>
+      <div class="srow"><span class="g b"></span><span><b>admin-panel</b><small>al lavoro · Bash npm test</small></span><span></span></div>
+      <div class="srow"><span class="g i"></span><span><b>rendicontazione-ak</b><small>ferma · 17:52</small></span><span></span></div>
+    </div>
+    <div class="main">
+      <div class="head"><div style="padding-left:10px"><div class="nm">win:supervisor-app</div><div class="st w">ti aspetta · da 20 min</div></div><span class="sp"></span><span class="badge"><span class="ms">front_hand</span>Per te 3</span><span class="ib ms">more_vert</span></div>
+      <div class="meter" style="padding-left:18px"><span>Opus 5.5 · max</span><span>5h 2%</span><span class="w"><span class="ms">layers</span>ctx 65%</span><span><span class="ms">visibility</span>22</span></div>
+      <div class="rule"></div>
+      <div class="chat">
+        <div class="msg">Ho trovato la causa: il 5 è il conto unico del relay, che conta anche le prove delle sessioni aperte; dal 06/11 quelle prove stanno nella scheda della loro sessione, e l'elenco di Verifica le toglieva.</div>
+        <div class="turn">
+          <div class="msg">Sul telefono Verifica ha la riga della sessione: le prove di una sessione aperta stanno nella sua scheda, e la riga porta lì.</div>
+          <div class="out"><div class="k">ESITO</div><div class="e">Verifica non dice più «Niente da provare» sotto un 5</div></div>
+        </div>
+      </div>
+      <div class="field"><div class="nx"><span>apri la PR</span><span>prova sul telefono</span></div><div class="row"><span class="ms">add</span><span class="in">Scrivi a win:supervisor-app</span><span class="ms">send</span></div></div>
+    </div>
+    <div class="mast">
+      <div class="cat" style="padding-top:0">DALLA MASTER · PER TE 6</div>
+      <div class="list">
+        <div class="grp on"><span class="g"></span><b>win:supervisor-app</b><small>questa</small></div>
+        <div data-voci=""></div>
+        <div class="grp"><span class="g"></span><b>storefront</b><small>domanda · 7 min</small><span class="go">apri<span class="ms">chevron_right</span></span></div>
+        <div data-voci="storefront"></div>
+        <div class="grp"><span class="g i"></span><b>Senza sessione</b></div>
+        <div data-voci="fuori"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Direzione B: un cassetto. Sopra il campo una barra sola; il tocco apre il foglio con Per te, Prossimi e Risultati. -->
+<section class="panel" id="b"><span class="tag">B · un cassetto</span>
+  <div class="head"><span class="back ms">arrow_back</span><div><div class="nm">win:supervisor-app</div><div class="st w">ti aspetta · da 20 min</div></div><span class="sp"></span><span class="ib ms">more_vert</span></div>
+  <div class="meter"><span>Opus 5.5 · max</span><span>5h 2%</span><span class="w">ctx 65%</span></div>
+  <div class="rule"></div>
+  <div class="chat">
+    <div class="turn"><div class="msg">Sul telefono Verifica ha la riga della sessione: le prove di una sessione aperta stanno nella sua scheda, e la riga porta lì.</div>
+      <div class="out"><div class="k">ESITO</div><div class="e">Verifica non dice più «Niente da provare» sotto un 5</div></div></div>
+  </div>
+  <div class="tray"><div class="bar"><b>Per te 3</b>· Prossimi 2 · Risultati 22<span class="ms">expand_less</span></div></div>
+  <div data-field=""></div>
+  <div class="scrim"></div>
+  <div class="sheet"><div class="grab"></div>
+    <div class="tabs"><span class="on">Per te 3</span><span>Prossimi 2</span><span>Risultati 22</span></div>
+    <div class="list"><div data-voci=""></div></div>
+    <div class="note"><b>B:</b> la chat resta intera, ma per leggere che cosa aspetta serve un tocco: nella sessione non si legge in una riga.</div>
+  </div>
+</section>
+
+<!-- Direzione C: in fondo al turno. Le voci stanno nella risposta che le chiede; quelle di un turno vecchio restano lì, superate. -->
+<section class="panel" id="c"><span class="tag">C · in fondo al turno</span>
+  <div class="head"><span class="back ms">arrow_back</span><div><div class="nm">win:supervisor-app</div><div class="st w">ti aspetta · da 20 min</div></div><span class="sp"></span><span class="badge"><span class="ms">arrow_downward</span>3</span><span class="ib ms">more_vert</span></div>
+  <div class="meter"><span>Opus 5.5 · max</span><span>5h 2%</span><span class="w">ctx 65%</span></div>
+  <div class="rule"></div>
+  <div class="chat">
+    <div class="turn"><div class="msg">Le uscite delle schede ora sono una sola, come Da provare.</div>
+      <div class="out"><div class="k">PROSSIMI</div><div class="nx"><span class="old">Uscite uniformi: sì</span><span class="old">Prova 1291 ok</span></div></div></div>
+    <div class="turn"><div class="msg">Sul telefono Verifica ha la riga della sessione: le prove di una sessione aperta stanno nella sua scheda.</div>
+      <div class="out"><div class="k">ESITO</div><div class="e">Verifica non dice più «Niente da provare» sotto un 5</div>
+        <div class="k" style="margin-top:10px">PER TE · 3</div>
+        <div class="list"><div data-voci=""></div></div></div>
+    </div>
+  </div>
+  <div data-field=""></div>
+</section>
+
+<script>
+  const tpl = id => document.getElementById(id).innerHTML
+  document.querySelectorAll('[data-voci]').forEach(e => { e.outerHTML = tpl('voci' + (e.dataset.voci ? '-' + e.dataset.voci : '')) })
+  document.querySelectorAll('[data-field]').forEach(e => { e.outerHTML = tpl('field') })
+  const q = new URLSearchParams(location.search)
+  if (q.has('day')) document.body.classList.add('day')
+  const p = q.get('p')
+  if (p) document.getElementById(p).classList.add('on'); else document.body.classList.add('all')
+</script>
+</body>
+</html>
