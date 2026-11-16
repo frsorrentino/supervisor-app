@@ -2040,6 +2040,7 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="per_te_no_session">Senza sessione</string>
     <string name="per_te_group_open">apri</string>
     <string name="per_te_group_this">questa</string>
+    <string name="lavori_to_voce">aspetta il tuo ok ›</string>
     <string name="cat_sig_for_you">Per te %1$d</string>
     <string name="per_te_version">versione %1$d</string>
 </resources>

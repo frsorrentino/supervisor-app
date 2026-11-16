@@ -20,7 +20,9 @@
   import { t } from './t'
   import Icon from './Icon.svelte'
 
-  let { st, agenda = null, events = [], now, timeZone = null, header = 'bar', part = 'all', today = null, onBack = () => {}, onApprove = () => {}, onAgendaEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, onAddNight = () => {}, onRemoveNight = () => {}, onNight = () => {}, onSession = () => {}, donePages = {}, onLoadDay = () => {}, onSpeak = null, suggestions, kpi = null }: {
+  let { onWait = null, st, agenda = null, events = [], now, timeZone = null, header = 'bar', part = 'all', today = null, onBack = () => {}, onApprove = () => {}, onAgendaEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, onAddNight = () => {}, onRemoveNight = () => {}, onNight = () => {}, onSession = () => {}, donePages = {}, onLoadDay = () => {}, onSpeak = null, suggestions, kpi = null }: {
+    /** app-riall-3-doppioni-16-11: con la lista unica, la voce di un ok (`wid`) si apre in «Ti aspetta» invece di approvare qui. */
+    onWait?: ((id: string) => void) | null
     /** Contratto 1.84 (scheda A): nel cruscotto i suggerimenti della master in cima a «Cosa serve da te». */
     suggestions?: import('svelte').Snippet
     /** Contratto 1.96: le cifre dell'op `kpi`; 8 in cima a «In corso», 9 in fondo a «Fatto» (compito app-kpi-dati-relay-25-10). */
@@ -104,7 +106,7 @@
 
 {#snippet row(r: ForYou, button: string | null, filled: boolean, onClick: () => void)}
   <!-- Una scelta che aspetta è la sua scheda compatta, come nella home (app-scheda-scelta-12-11, punto 3). -->
-  {#if choiceCard(r.approval)}<div class="row pin"><SceltaCards ids={[r.approval.wid]} flat /></div>{:else}
+  {#if choiceCard(r.approval) && !onWait}<div class="row pin"><SceltaCards ids={[r.approval.wid]} flat /></div>{:else}
   <!-- Franz 24/10 18:35: con le opzioni la domanda intera a tutta larghezza e i tasti interi sotto, come nella home (e8afbe1c). -->
   <div class="row" class:stack={!!r.approval && choices(r.approval).length > 0}>
     {#if r.agenda}<span class="mark {mark(r.agenda.scope)}"></span>
@@ -150,7 +152,8 @@
     {#if !fy.total}<p class="expl bright">{t.lavoriNothing}</p>{/if}
     {#if fy.ok.length}
       <h4 class="gh" style="--t:var(--primary)"><span>{t.lavoriOk.toUpperCase()} · {fy.ok.length}</span><i></i></h4>
-      {#each fy.ok as r, i (`ok-${i}`)}{@render row(r, r.approval ? t.approve : null, true, () => r.approval && ask(r.approval))}{/each}
+      <!-- Con la lista unica (app-riall-3-doppioni-16-11) l'ok si dà dalla voce, in «Per te»: qui «aspetta il tuo ok ›» porta lì. -->
+      {#each fy.ok as r, i (`ok-${i}`)}{#if onWait && r.approval?.wid}{@const wid = r.approval.wid}{@render row(r, t.lavoriToVoce, false, () => onWait(wid))}{:else}{@render row(r, r.approval ? t.approve : null, true, () => r.approval && ask(r.approval))}{/if}{/each}
     {/if}
     {#if later}{@render fold(t.lavoriLater(later), !!open.later, () => toggle('later'))}{/if}
     {#if fy.outside.length && open.later}<div class="fb" in:foldIn out:foldIn={{ ms: 150 }}><div class="foldin">

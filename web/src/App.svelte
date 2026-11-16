@@ -2260,7 +2260,7 @@
         onLaunch={(pr, first) => { cmd(pr.name)('launch', pr.path, first || undefined); openPage(null) }}
         onNewProject={st.ops?.includes('project_new') && st.project_parents?.length ? newProject : null} />
     {:else if p === 'lavori'}
-      <Lavori onSpeak={(x) => toggle(x)} st={stShown} agenda={agenda.page} {events} {now} header="none" kpi={kpiData} onApprove={approve} onAgendaEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
+      <Lavori onSpeak={(x) => toggle(x)} onWait={unified ? openWait : null} st={stShown} agenda={agenda.page} {events} {now} header="none" kpi={kpiData} onApprove={approve} onAgendaEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
         onAddNight={() => nightDlg?.showModal()} onRemoveNight={(id) => cmd('')('night_remove', id)} onNight={() => openPage('night')} onSession={(n) => { openPage(null); pick(n) }} {donePages} onLoadDay={loadDone} />
     {:else if p === 'night'}
       <NightPage model={nightModel} error={night.error} loading={night.loading} onRefresh={() => loadNight('user')}
@@ -2317,9 +2317,9 @@
 {/snippet}
 
 {#snippet sugCard()}{#if sug.shown.length}<SuggestionsCard shown={sug.shown} onAnswer={suggest} />{/if}{/snippet}
-{#snippet lavoriLeft()}<Lavori onSpeak={(x) => toggle(x)} st={stShown} agenda={agenda.page} {events} {now} header="desk" part="left" suggestionsAt={sug.shown[0]?.at} suggestions={sugCard} onApprove={approve} onAgendaEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
+{#snippet lavoriLeft()}<Lavori onSpeak={(x) => toggle(x)} onWait={unified ? openWait : null} st={stShown} agenda={agenda.page} {events} {now} header="desk" part="left" suggestionsAt={sug.shown[0]?.at} suggestions={sugCard} onApprove={approve} onAgendaEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
   onAddNight={() => nightDlg?.showModal()} onRemoveNight={(id) => cmd('')('night_remove', id)} onNight={() => openPage('night')} onSession={(n) => pick(n)} {donePages} onLoadDay={loadDone} />{/snippet}
-{#snippet lavoriRight()}<Lavori onSpeak={(x) => toggle(x)} st={stShown} agenda={agenda.page} {events} {now} header="none" part="right" kpi={kpiData} onApprove={approve} onAgendaEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
+{#snippet lavoriRight()}<Lavori onSpeak={(x) => toggle(x)} onWait={unified ? openWait : null} st={stShown} agenda={agenda.page} {events} {now} header="none" part="right" kpi={kpiData} onApprove={approve} onAgendaEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
   onNight={() => openPage('night')} onSession={(n) => pick(n)} {donePages} onLoadDay={loadDone} />{/snippet}
 {#snippet deskTasks()}<DeskWork part="progress" st={stShown} agenda={agenda.page} {now} {events} {donePages} onLavori={() => openPage('lavori')} />{/snippet}
 <!-- La master nella plancia (pwa2): la barra in fondo, fuori dalla griglia; a metà o aperta un pannello a destra, alto quanto lo

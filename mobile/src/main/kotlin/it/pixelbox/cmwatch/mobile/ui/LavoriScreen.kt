@@ -96,6 +96,8 @@ fun LavoriScreen(
     onBack: () -> Unit, onApprove: (task: String, note: String, choice: String?) -> Unit, onAgendaEdit: (RecapAgenda.Edit) -> Unit,
     onStart: (RecapActions.Action) -> Unit, onDoneForPerson: (Commitment) -> Unit,
     onAddNight: () -> Unit, onRemoveNight: (String) -> Unit, onNight: () -> Unit, onSession: (String) -> Unit,
+    /** app-riall-3-doppioni-16-11: con la lista unica la voce di un ok si apre in «Ti aspetta»; null senza. */
+    onWait: ((String) -> Unit)? = null,
     /** BAR = ← e titolo; NONE = la testata la dà la shell del telefono; DESK = nel cruscotto del tablet, il titolo come le sezioni. */
     header: LavoriHeader = LavoriHeader.BAR, part: LavoriPart = LavoriPart.ALL,
     today: LocalDate = LocalDate.now(), zone: ZoneId = ZoneId.systemDefault(),
@@ -139,7 +141,12 @@ fun LavoriScreen(
             if (fy.ok.isNotEmpty()) {
                 item("grp-ok") { GroupHeader(stringResource(R.string.lavori_ok) + " · " + fy.ok.size, Cm.primary) }
                 fy.ok.forEachIndexed { i, r ->
-                    item("fy-ok-$i-${r.approval?.task ?: r.commitment?.task}") { ForYouCard(r, zone, stringResource(R.string.approve).takeIf { r.approval != null }, filled = true) { note, choice -> r.approval?.let { a -> onApprove(a.task, note, choice) } } }
+                    // Con la lista unica (app-riall-3-doppioni-16-11) l'ok si dà dalla voce, in «Per te»: qui «aspetta il tuo ok ›» porta lì.
+                    val wid = r.approval?.wid?.takeIf { onWait != null }
+                    item("fy-ok-$i-${r.approval?.task ?: r.commitment?.task}") {
+                        if (wid != null) ForYouCard(r, zone, stringResource(R.string.lavori_to_voce), filled = false, onTap = { onWait?.invoke(wid) }) { _, _ -> }
+                        else ForYouCard(r, zone, stringResource(R.string.approve).takeIf { r.approval != null }, filled = true) { note, choice -> r.approval?.let { a -> onApprove(a.task, note, choice) } }
+                    }
                 }
             }
             val later = fy.outside.size + fy.claude.size
@@ -256,7 +263,11 @@ private fun Fold(text: String, open: Boolean?, onClick: () -> Unit) {
 /** Una riga di «Per te»: il segno (ok, agenda, pausa), il titolo, chi e quando, e il suo tasto. */
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
-internal fun ForYouCard(r: Lavori.ForYou, zone: ZoneId, button: String?, filled: Boolean, onClick: (note: String, choice: String?) -> Unit) {
+internal fun ForYouCard(
+    r: Lavori.ForYou, zone: ZoneId, button: String?, filled: Boolean,
+    /** app-riall-3-doppioni-16-11: con la lista unica il tasto apre la voce, senza opzioni né finestra. */
+    onTap: (() -> Unit)? = null, onClick: (note: String, choice: String?) -> Unit,
+) {
     var ask by rememberSaveable(r.title) { mutableStateOf(false) }
     var choice by rememberSaveable(r.title) { mutableStateOf<String?>(null) }
     val a = r.approval; val who = r.who; val at = r.at; val ag = r.agenda; val cm = r.commitment
@@ -272,7 +283,7 @@ internal fun ForYouCard(r: Lavori.ForYou, zone: ZoneId, button: String?, filled:
     }
     // Contratto 1.81: un tasto per opzione quando l'ok chiede una scelta; la domanda intera a tutta larghezza e i tasti interi
     // sotto, che vanno a capo fra loro, come nella home (Franz 24/10 18:35, regola di e8afbe1c).
-    val opts = a?.let { x -> it.pixelbox.cmwatch.rules.Approvals.choices(x) }.orEmpty()
+    val opts = if (onTap != null) emptyList() else a?.let { x -> it.pixelbox.cmwatch.rules.Approvals.choices(x) }.orEmpty()
     Column(
         Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(14.dp)).background(Cm.surfaceLow).padding(start = 16.dp, end = 12.dp, top = 12.dp, bottom = 12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -292,7 +303,7 @@ internal fun ForYouCard(r: Lavori.ForYou, zone: ZoneId, button: String?, filled:
             }
         }) {
             if (opts.isEmpty() && button != null) {
-                val click = { if (a != null) ask = true else onClick("", null) }
+                val click = onTap ?: { if (a != null) ask = true else onClick("", null) }
                 if (filled) Button(onClick = click, colors = ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary)) { Text(button) }
                 else FilledTonalButton(onClick = click) { Text(button) }
             }

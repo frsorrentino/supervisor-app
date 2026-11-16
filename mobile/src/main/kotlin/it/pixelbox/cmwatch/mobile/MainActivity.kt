@@ -2630,7 +2630,7 @@ class MainActivity : ComponentActivity() {
         val lavoriPage: @Composable (it.pixelbox.cmwatch.mobile.ui.LavoriHeader) -> Unit = { header ->
             stateShown?.let { st ->
                 it.pixelbox.cmwatch.mobile.ui.LavoriScreen(
-                    st, agenda, events, now,
+                    st, agenda, events, now, onWait = if (uItems != null) ({ id -> waitOpen = id }) else null,
                     onBack = { tab = StartRoute.Tab.OVERVIEW }, onApprove = approveTask, onAgendaEdit = editAgenda,
                     onStart = { a -> sendPrompt(a.to, a.send) }, onDoneForPerson = doneForPerson,
                     onAddNight = { nightAdding = true }, onRemoveNight = { id -> scope.launch { app.repo.command(CmdOp.NIGHT_REMOVE, null, id) } },
