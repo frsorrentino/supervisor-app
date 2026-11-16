@@ -466,6 +466,12 @@ fun SessionSheet(
         val ime = androidx.compose.foundation.layout.WindowInsets.ime.getBottom(androidx.compose.ui.platform.LocalDensity.current) > 0
         // Tutto quello che sta sopra il campo in una sessione: barra, intestazione, avviso, conversazione, consigli.
         val masterVoice = home != null && LocalMasterLook.current.voice
+        // Contratto 1.37: oltre il 60 % di contesto, a sessione ferma, la proposta «handoff, poi /clear»; chiusa torna a 70 e 80. Dal
+        // 16/11 è una pillola nella riga dei riquadri sopra il campo (app-riquadri-chiusi-16-11).
+        var ctxDismissed by rememberSaveable(s.name) { mutableStateOf<Int?>(null) }
+        val nudge = if (home != null && homeOpen) null else it.pixelbox.cmwatch.rules.ContextActions.nudge(s, ctxDismissed)
+        val goHandoff = actions.handoff
+        val sb2 = LocalSessionBoxes.current
         val chatArea: @Composable ColumnScope.() -> Unit = { androidx.compose.runtime.CompositionLocalProvider(LocalVoiceAccent provides masterVoice, LocalBubble provides (if (home != null) MasterHighest else if (V3.day && LocalPageBg.current != null) V3.S3 else null)) {
             // Fissa sopra la chat e compatta (Franz, 30/09 22:01: scorreva con la chat ed era troppo grande).
             bar?.invoke()
@@ -482,13 +488,28 @@ fun SessionSheet(
                     onChanges = if (actions.changes != null) ({ changesOpen = true }) else null,
                 )
             }
-            elsewhere?.let { ElsewherePill(it, onElsewhere, onElsewhereDismiss) }
-            // Contratto 1.146: l'avviso su /logout nelle sessioni lanciate con --bg, fisso sotto l'intestazione.
-            Box(Modifier.padding(horizontal = 12.dp, vertical = if (it.pixelbox.cmwatch.rules.BgSession.warns(s)) 6.dp else 0.dp)) { BgNoteRow(s) }
-            Box(Modifier.padding(horizontal = 12.dp)) { HeadsUpNoteRow(s, now) }
-            // I blocchi in cima alla chat, ognuno ridotto a una riga (app-formato-unico-12-11): «Per te», poi «Risultati».
-            perTe?.let { r -> Box(Modifier.padding(start = 12.dp, end = 12.dp, top = 4.dp)) { r() } }
-            results?.let { r -> Box(Modifier.padding(start = 12.dp, end = 12.dp, top = 4.dp)) { r() } }
+            // app-riquadri-chiusi-16-11 (Franz 16/11 20:02): i riquadri della sessione in una riga di pillole col numero, aperti al tocco;
+            // da solo si apre soltanto «Per te» con una voce che aspetta. Lo stato resta per sessione; un riquadro aperto prende la riga.
+            // Gli avvisi (--bg, contratto 1.146, e la nota di Claude Code) stanno in una pillola sola, col loro numero.
+            val sb = LocalSessionBoxes.current
+            val heads = LocalHeadsUp.current?.let { a -> it.pixelbox.cmwatch.rules.HeadsUpNote.visible(s, a.dismissed) }
+            val notesN = (if (it.pixelbox.cmwatch.rules.BgSession.warns(s)) 1 else 0) + (if (heads != null) 1 else 0)
+            if (perTe != null || results != null || elsewhere != null || notesN > 0) RiquadriRow(Modifier.padding(top = 6.dp)) {
+                perTe?.invoke()
+                if (notesN > 0) ChatBlock(
+                    BlockIcon.WARN, stringResource(R.string.box_notes), notesN, null, sb.isOpen(s.name, it.pixelbox.cmwatch.rules.Riquadri.Kind.AVVISI),
+                    { sb.toggle(s.name, it.pixelbox.cmwatch.rules.Riquadri.Kind.AVVISI) }, amber = true, tag = "chat-avvisi", pill = true,
+                ) { Column(Modifier.padding(start = 12.dp, end = 12.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { BgNoteRow(s); HeadsUpNoteRow(s, now) } }
+                elsewhere?.let { a ->
+                    val waiting = a is it.pixelbox.cmwatch.rules.Elsewhere.Waiting
+                    ChatBlock(
+                        if (waiting) BlockIcon.HAND else BlockIcon.FLAG, stringResource(R.string.box_others), (a as? it.pixelbox.cmwatch.rules.Elsewhere.Waiting)?.sessions?.size ?: 1, null,
+                        sb.isOpen(s.name, it.pixelbox.cmwatch.rules.Riquadri.Kind.ALTRE), { sb.toggle(s.name, it.pixelbox.cmwatch.rules.Riquadri.Kind.ALTRE) },
+                        amber = waiting, tag = "chat-altre", pill = true,
+                    ) { ElsewherePill(a, onElsewhere, onElsewhereDismiss) }
+                }
+                results?.invoke()
+            }
             // Nascosto mentre si scrive (con la tastiera la chat e la barra non avrebbero spazio) e mentre si rilegge; mai più
             // alto di 300 dp, con lo scorrimento dentro (revisione finale 02/10).
             top?.let { block ->
@@ -644,13 +665,24 @@ fun SessionSheet(
             // Il box «Prossimi» (variante A del 03/10 15:20, rivista il 04/10 20:21): sopra la barra con la sessione ferma,
             // anche scrivendo; il tocco porta la riga nel campo, accodata con «e poi» se c'è già testo, ↗ la manda subito a
             // campo vuoto. Si chiude a una riga, e resta chiuso finché non lo si riapre.
-            if (stepsSplit.fresh.isNotEmpty() || stepsSplit.old.isNotEmpty()) PromptBox(
-                stringResource(R.string.next_steps), stepsSplit.fresh.map { PromptRow(it, it, direct = true, blocking = it in stepsBlocking) },
-                old = stepsSplit.old.map { PromptRow(it, it, direct = true, blocking = it in stepsBlocking) }, onDismiss = { r -> dismissStep(r.text) },
-                open = boxes.stepsOpen, onOpen = boxes::steps, draftBlank = draftBlank,
-                onPick = { r -> draft = NextSteps.append(draft, r.text, then) },
-                onSend = { r -> actions.send(PhonePrimary.Target.PROMPT, r.text); follow = true },
-            )
+            // app-riquadri-chiusi-16-11: «Azioni» e l'avviso del contesto in una riga di pillole sopra il campo, aperte al tocco e
+            // ricordate per sessione.
+            val stepsOn = stepsSplit.fresh.isNotEmpty() || stepsSplit.old.isNotEmpty()
+            val nudgeOn = nudge != null && goHandoff != null
+            if (stepsOn || nudgeOn) RiquadriRow(Modifier.padding(top = 6.dp, bottom = 2.dp)) {
+                if (stepsOn) PromptBox(
+                    stringResource(R.string.next_steps), stepsSplit.fresh.map { PromptRow(it, it, direct = true, blocking = it in stepsBlocking) },
+                    old = stepsSplit.old.map { PromptRow(it, it, direct = true, blocking = it in stepsBlocking) }, onDismiss = { r -> dismissStep(r.text) },
+                    open = sb2.isOpen(s.name, it.pixelbox.cmwatch.rules.Riquadri.Kind.AZIONI), onOpen = { _ -> sb2.toggle(s.name, it.pixelbox.cmwatch.rules.Riquadri.Kind.AZIONI) },
+                    draftBlank = draftBlank, pill = true,
+                    onPick = { r -> draft = NextSteps.append(draft, r.text, then) },
+                    onSend = { r -> actions.send(PhonePrimary.Target.PROMPT, r.text); follow = true },
+                )
+                if (nudgeOn) ChatBlock(
+                    BlockIcon.LAYERS, stringResource(R.string.box_context), nudge!!, null, sb2.isOpen(s.name, it.pixelbox.cmwatch.rules.Riquadri.Kind.CONTESTO),
+                    { sb2.toggle(s.name, it.pixelbox.cmwatch.rules.Riquadri.Kind.CONTESTO) }, amber = true, tag = "chat-contesto", pill = true, count = "${s.context ?: nudge}%",
+                ) { ContextNudge(s.context ?: nudge, onGo = goHandoff!!, onDismiss = { ctxDismissed = nudge }, inBox = true) }
+            }
             }
         } }
         if (home == null) { chatArea(); dock?.invoke() } else if (halfStops) {
@@ -798,11 +830,6 @@ fun SessionSheet(
             onSend = { r -> boxes.recurring(false); actions.send(PhonePrimary.Target.PROMPT, r.text); follow = true },
             modifier = Modifier.padding(top = 6.dp),
         )
-        // Contratto 1.37: oltre il 60 % di contesto, a sessione ferma, la proposta «handoff, poi /clear»; chiusa torna a 70 e 80.
-        var ctxDismissed by rememberSaveable(s.name) { mutableStateOf<Int?>(null) }
-        val nudge = if (home != null && homeOpen) null else it.pixelbox.cmwatch.rules.ContextActions.nudge(s, ctxDismissed)
-        val goHandoff = actions.handoff
-        if (nudge != null && goHandoff != null) ContextNudge(s.context ?: nudge, onGo = goHandoff, onDismiss = { ctxDismissed = nudge })
         // Il controller sta sopra la fine della conversazione, non in una fascia sua (Franz, 08/10 20:31: «elemento
         // sovrapposto, il resto mantiene i colori suoi»): qui solo il segno di dove posarlo, sopra il campo.
         // Con la home aperta il segno sta sopra la barra della master, non qui (Franz, 09/10 16:50: il controller la copriva
@@ -1139,12 +1166,14 @@ private fun PromptBox(
     onPick: (PromptRow) -> Unit, onSend: (PromptRow) -> Unit, modifier: Modifier = Modifier,
     /** Le azioni vecchie, chiuse in «+N vecchie» in fondo; `onDismiss` toglie un'azione trascinandola o tenendola premuta. */
     old: List<PromptRow> = emptyList(), onDismiss: ((PromptRow) -> Unit)? = null,
+    /** app-riquadri-chiusi-16-11: chiuso è una pillola col numero, nella riga dei riquadri (che ha già i suoi margini). */
+    pill: Boolean = false,
 ) {
     var showOld by remember(old) { mutableStateOf(false) }
     // Dal formato unico (app-formato-unico-12-11, blocchi B): ridotto è una riga con la prima voce, come «Per te» e «Risultati».
     ChatBlock(
         BlockIcon.BOLT, title, rows.size + old.size, (rows.firstOrNull() ?: old.firstOrNull())?.label, open, { onOpen(!open) },
-        modifier.padding(horizontal = 12.dp), tag = "chat-box", bg = Cm.surfaceLow,
+        if (pill) modifier else modifier.padding(horizontal = 12.dp), tag = "chat-box", bg = Cm.surfaceLow, pill = pill,
     ) {
         // Con poco spazio (una colonna del tablet con la tastiera aperta) le righe scorrono dentro il box.
         if (open) Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) {
@@ -2400,9 +2429,11 @@ private fun SheetHeader(
 
 /** La proposta del contesto pieno sopra il campo (contratto 1.37): «Contesto al 64%», «Fallo», ×. */
 @Composable
-private fun ContextNudge(pct: Int, onGo: () -> Unit, onDismiss: () -> Unit) {
+private fun ContextNudge(pct: Int, onGo: () -> Unit, onDismiss: () -> Unit, inBox: Boolean = false) {
     Row(
-        Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 6.dp).clip(RoundedCornerShape(14.dp)).background(Cm.surfaceHigh).padding(start = 14.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
+        // Dentro il riquadro «Contesto» (app-riquadri-chiusi-16-11) senza una scheda sua: lo sfondo è quello del riquadro.
+        if (inBox) Modifier.fillMaxWidth().padding(start = 14.dp, end = 4.dp, top = 2.dp, bottom = 6.dp)
+        else Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 6.dp).clip(RoundedCornerShape(14.dp)).background(Cm.surfaceHigh).padding(start = 14.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Icon(Icons.Rounded.Layers, null, tint = Cm.briefWarn, modifier = Modifier.size(22.dp))

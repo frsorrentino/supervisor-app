@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import type { ResultGroup, WaitAction, WaitItem } from './contract'
-import { groupOf, mainOf, parseBlocks, voci } from './perTe'
+import { groupOf, mainOf, voci } from './perTe'
 
 // Gli stessi casi di PerTeTest.kt.
 const file = JSON.parse(readFileSync(new URL('../../../core/src/test/resources/per-te-cases.json', import.meta.url), 'utf8')) as {
@@ -31,9 +31,4 @@ describe('formato unico: le voci della sessione', () => {
   it('le etichette', () => expect(['reply', 'decide', 'choose', 'verify', 'altro'].map(groupOf)).toEqual(['aspetta', 'decidi', 'decidi', 'prova', 'decidi']))
 })
 
-describe('i blocchi ridotti', () => {
-  it('chi non ha mai scelto, o una memoria rotta: niente di aperto', () => {
-    expect(parseBlocks(null)).toEqual({}); expect(parseBlocks('x')).toEqual({}); expect(parseBlocks('[1]')).toEqual({})
-    expect(parseBlocks('{"perte":true}')).toEqual({ perte: true })
-  })
-})
+// Lo stato aperto o chiuso dei blocchi ora è per sessione: riquadri.test.ts (app-riquadri-chiusi-16-11).

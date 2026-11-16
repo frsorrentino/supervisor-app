@@ -59,6 +59,9 @@ object PerTe {
     private fun one(s: String?): String = s.orEmpty().replace(Regex("\\s+"), " ").trim()
 
     /** Le voci della sessione: le richieste ancora aperte e i lavori con l'ultima versione non vista. */
+    /** app-riquadri-chiusi-16-11: le voci che aspettano la persona (non i risultati da guardare); «Per te» si apre da solo per queste. */
+    fun waitingKeys(items: List<Voce>): List<String> = items.filter { it.group != Group.VERIFICA }.map { it.key }
+
     fun voci(waits: List<WaitItem>, results: List<ResultGroup>, session: String): List<Voce> {
         val out = mutableListOf<Voce>()
         for (w in waits) {

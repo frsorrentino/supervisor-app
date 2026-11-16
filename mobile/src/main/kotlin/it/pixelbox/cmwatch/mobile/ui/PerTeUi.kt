@@ -18,6 +18,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Bolt
+import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material.icons.outlined.Layers
+import androidx.compose.material.icons.rounded.WarningAmber
 import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.Gavel
 import androidx.compose.material.icons.outlined.Science
@@ -61,19 +64,33 @@ import it.pixelbox.cmwatch.rules.TiAspetta
  *   apre la scheda. Titolo e contesto su una riga, tagliati senza «…».
  * - [PerTeBlock]: «Per te» in cima alla chat di una sessione, una voce per tutto ciò che aspetta la persona.
  */
-enum class BlockIcon { HAND, BOLT, EYE }
+enum class BlockIcon { HAND, BOLT, EYE, WARN, LAYERS, FLAG }
 
-/** I blocchi della chat aperti o ridotti, ricordati dall'app: chi non ha mai scelto li trova ridotti. */
-class ChatBlocks(perTe: Boolean, results: Boolean, private val save: (String, Boolean) -> Unit) {
-    var perTe by mutableStateOf(perTe)
-        private set
-    var results by mutableStateOf(results)
-        private set
-    fun perTe(open: Boolean) { perTe = open; save(PER_TE, open) }
-    fun results(open: Boolean) { results = open; save(RESULTS, open) }
-    companion object { const val PER_TE = "block_per_te_open"; const val RESULTS = "block_results_open" }
+/**
+ * I riquadri della sessione aperti o chiusi, per sessione (app-riquadri-chiusi-16-11, Franz 16/11 20:02): la regola è in
+ * [it.pixelbox.cmwatch.rules.Riquadri], qui lo stato di tutte le sessioni, ricordato dall'app con [save]. Chi non ha mai scelto li
+ * trova chiusi, tranne «Per te» con una voce che aspetta.
+ */
+class SessionBoxes(initial: Map<String, it.pixelbox.cmwatch.rules.Riquadri.State>, private val save: (String, it.pixelbox.cmwatch.rules.Riquadri.State) -> Unit) {
+    private val all = androidx.compose.runtime.mutableStateMapOf<String, it.pixelbox.cmwatch.rules.Riquadri.State>().apply { putAll(initial) }
+    fun isOpen(session: String, kind: it.pixelbox.cmwatch.rules.Riquadri.Kind, waiting: List<String> = emptyList()): Boolean =
+        it.pixelbox.cmwatch.rules.Riquadri.isOpen(all[session] ?: it.pixelbox.cmwatch.rules.Riquadri.State(), kind, waiting)
+    fun toggle(session: String, kind: it.pixelbox.cmwatch.rules.Riquadri.Kind, waiting: List<String> = emptyList()) {
+        val next = it.pixelbox.cmwatch.rules.Riquadri.toggle(all[session] ?: it.pixelbox.cmwatch.rules.Riquadri.State(), kind, waiting)
+        all[session] = next
+        save(session, next)
+    }
 }
-val LocalChatBlocks = androidx.compose.runtime.staticCompositionLocalOf { ChatBlocks(false, false) { _, _ -> } }
+val LocalSessionBoxes = androidx.compose.runtime.staticCompositionLocalOf { SessionBoxes(emptyMap()) { _, _ -> } }
+
+/** La riga dei riquadri (app-riquadri-chiusi-16-11): le pillole in fila, che vanno a capo; un riquadro aperto prende la riga intera. */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@Composable
+internal fun RiquadriRow(modifier: Modifier = Modifier, content: @Composable androidx.compose.foundation.layout.FlowRowScope.() -> Unit) =
+    androidx.compose.foundation.layout.FlowRow(
+        modifier.fillMaxWidth().padding(horizontal = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp), content = content,
+    )
 
 /** Il velo ambra sopra il fondo: il blocco e i tasti di ciò che aspetta (i Tasti B). */
 private fun veil(alpha: Float, on: Color) = V3.Wait.copy(alpha = alpha).compositeOver(on)
@@ -82,8 +99,12 @@ private fun veil(alpha: Float, on: Color) = V3.Wait.copy(alpha = alpha).composit
 fun ChatBlock(
     icon: BlockIcon, title: String, n: Int, first: String?, open: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier,
     amber: Boolean = false, hint: String? = null, tag: String? = null, bg: Color = V3.S1,
-    extra: (@Composable RowScope.() -> Unit)? = null, content: @Composable ColumnScope.() -> Unit,
+    extra: (@Composable RowScope.() -> Unit)? = null,
+    /** app-riquadri-chiusi-16-11: chiuso è una pillola con icona, nome e numero; [count] al posto del numero («65%»). */
+    pill: Boolean = false, count: String? = null,
+    content: @Composable ColumnScope.() -> Unit,
 ) {
+    if (pill && !open) return BlockPill(icon, title, count ?: n.toString(), amber, onToggle, modifier, tag)
     val lit = amber && !open
     val shape = RoundedCornerShape(14.dp)
     val label = stringResource(if (open) R.string.box_close else R.string.box_open, title)
@@ -96,18 +117,44 @@ fun ChatBlock(
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             val tint = if (amber) V3.Wait else V3.Tx2
-            when (icon) {
-                BlockIcon.HAND -> Icon(painterResource(R.drawable.ic_hand), null, tint = tint, modifier = Modifier.size(20.dp))
-                BlockIcon.BOLT -> Icon(Icons.Outlined.Bolt, null, tint = tint, modifier = Modifier.size(20.dp))
-                BlockIcon.EYE -> Icon(Icons.Outlined.Visibility, null, tint = tint, modifier = Modifier.size(20.dp))
-            }
+            BlockGlyph(icon, tint, 20)
             Text(title, style = V3.Name.copy(fontSize = 16.sp), maxLines = 1, softWrap = false)
-            Text(n.toString(), style = V3.Small.copy(fontSize = 13.sp, color = tint), maxLines = 1)
+            Text(count ?: n.toString(), style = V3.Small.copy(fontSize = 13.sp, color = tint), maxLines = 1)
             Text((if (open) hint else first).orEmpty(), style = V3.Small, maxLines = 1, softWrap = false, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f))
             extra?.invoke(this)
             Icon(if (open) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, null, tint = V3.Tx3, modifier = Modifier.size(20.dp))
         }
         if (open) content()
+    }
+}
+
+@Composable
+private fun BlockGlyph(icon: BlockIcon, tint: Color, size: Int) {
+    val m = Modifier.size(size.dp)
+    when (icon) {
+        BlockIcon.HAND -> Icon(painterResource(R.drawable.ic_hand), null, tint = tint, modifier = m)
+        BlockIcon.BOLT -> Icon(Icons.Outlined.Bolt, null, tint = tint, modifier = m)
+        BlockIcon.EYE -> Icon(Icons.Outlined.Visibility, null, tint = tint, modifier = m)
+        BlockIcon.WARN -> Icon(androidx.compose.material.icons.Icons.Rounded.WarningAmber, null, tint = tint, modifier = m)
+        BlockIcon.LAYERS -> Icon(androidx.compose.material.icons.Icons.Outlined.Layers, null, tint = tint, modifier = m)
+        BlockIcon.FLAG -> Icon(androidx.compose.material.icons.Icons.Outlined.Flag, null, tint = tint, modifier = m)
+    }
+}
+
+/** Un riquadro chiuso (app-riquadri-chiusi-16-11): una pillola con icona, nome e numero; il tocco lo apre. 40 dp per il dito. */
+@Composable
+private fun BlockPill(icon: BlockIcon, title: String, count: String, amber: Boolean, onToggle: () -> Unit, modifier: Modifier, tag: String?) {
+    val tint = if (amber) V3.Wait else V3.Tx2
+    Row(
+        modifier.clip(CircleShape).background(if (amber) veil(0.09f, V3.S1) else V3.S1).border(1.dp, if (amber) veil(0.38f, V3.Line) else V3.Line, CircleShape)
+            .handCursor().clickable(onClickLabel = stringResource(R.string.box_open, title), role = Role.Button, onClick = onToggle)
+            .then(if (tag != null) Modifier.testTag(tag) else Modifier)
+            .heightIn(min = 40.dp).padding(start = 10.dp, end = 13.dp, top = 4.dp, bottom = 4.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        BlockGlyph(icon, tint, 19)
+        Text(title, style = V3.Name.copy(fontSize = 15.sp), maxLines = 1, softWrap = false)
+        Text(count, style = V3.Small.copy(fontSize = 13.sp, color = tint), maxLines = 1, softWrap = false)
     }
 }
 
@@ -184,7 +231,7 @@ private fun groupWord(g: PerTe.Group) = stringResource(when (g) {
 })
 
 /**
- * «Per te» in cima alla chat: ridotto, una riga con la prima voce e il suo tasto; aperto, l'elenco. `onMain` è il tasto di una
+ * «Per te» in cima alla chat: chiuso, una pillola col numero (app-riquadri-chiusi-16-11); aperto, l'elenco. `onMain` è il tasto di una
  * voce (chi lo riceve manda il comando, segna visto o apre la scheda se il tasto chiede un testo), `onOpen` il tocco sulla voce.
  */
 @Composable
@@ -197,8 +244,7 @@ fun PerTeBlock(
     val label: (PerTe.Voce) -> String? = { v -> if (v.result != null) seen else v.main?.label }
     ChatBlock(
         BlockIcon.HAND, stringResource(R.string.fy_title), items.size, top.title, open, onToggle, modifier, amber = true,
-        hint = stringResource(R.string.per_te_hint), tag = "chat-per-te",
-        extra = { if (!open) label(top)?.let { l -> VoceButton(l, hot = true, tag = "chat-per-te-tasto") { onMain(top) } } },
+        hint = stringResource(R.string.per_te_hint), tag = "chat-per-te", pill = true,
     ) {
         items.forEach { v ->
             HorizontalDivider(color = V3.Line)

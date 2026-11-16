@@ -3,12 +3,11 @@
   import { headsUpKey, visibleHeadsUp } from './decide'
   import { since } from './durations'
   import { t } from './t'
+  import { huSeen, markKnown } from './headsUpSeen.svelte'
   // La nota di Claude Code (contratto 1.99, heads_up), nello stile di «Non provato». Nessun tasto mandato al terminale; «Già lo so» vale su questo dispositivo.
   let { s, now, onPropose }: { s: Session; now: number; onPropose: (text: string) => void } = $props()
-  const KEY = 'cm.heads_up_seen'
-  let seen = $state(new Set<string>((() => { try { return JSON.parse(localStorage.getItem(KEY) ?? '[]') as string[] } catch { return [] } })()))
-  const n = $derived(visibleHeadsUp(s, seen))
-  function known() { seen = new Set([...seen, headsUpKey(s.name, n!.text)]); try { localStorage.setItem(KEY, JSON.stringify([...seen])) } catch { /* resta per questa visita */ } }
+  const n = $derived(visibleHeadsUp(s, huSeen.set))
+  const known = () => markKnown(headsUpKey(s.name, n!.text))
 </script>
 
 {#if n}

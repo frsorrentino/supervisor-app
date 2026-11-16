@@ -1,0 +1,19 @@
+{
+ "_": "app-riquadri-chiusi-16-11 (Franz 16/11 20:02, primo pezzo del passo 3 del riallineamento): i riquadri della sessione (Per te, Risultati, Azioni, Contesto, Altre sessioni, Avvisi) nascono chiusi come pillole col numero e si aprono al tocco. Da solo si apre soltanto «Per te» quando ha una voce che aspetta la persona; chiuso a mano resta chiuso finché non arriva una voce nuova. Lo stato resta per sessione. `waiting` sono le chiavi delle voci di Per te che aspettano (non i risultati da guardare). Letti da riquadri.test.ts e RiquadriTest.kt.",
+ "cases": [
+  {"name": "tutti chiusi di partenza", "st": {}, "waiting": [], "open": {"perte": false, "risultati": false, "azioni": false, "contesto": false, "altre": false, "avvisi": false}},
+  {"name": "Per te si apre da solo con una voce che aspetta, gli altri no", "st": {}, "waiting": ["w1"], "open": {"perte": true, "risultati": false, "azioni": false, "contesto": false, "altre": false, "avvisi": false}},
+  {"name": "chiuso a mano, resta chiuso con le stesse voci", "st": {"open": {"perte": false}, "keys": ["w1"]}, "waiting": ["w1"], "open": {"perte": false}},
+  {"name": "chiuso a mano, resta chiuso anche quando una voce se ne va", "st": {"open": {"perte": false}, "keys": ["w1", "w2"]}, "waiting": ["w2"], "open": {"perte": false}},
+  {"name": "una voce nuova lo riapre", "st": {"open": {"perte": false}, "keys": ["w1"]}, "waiting": ["w1", "w2"], "open": {"perte": true}},
+  {"name": "aperto a mano resta aperto anche senza voci che aspettano", "st": {"open": {"perte": true}}, "waiting": [], "open": {"perte": true}},
+  {"name": "un riquadro aperto a mano resta aperto, gli altri chiusi", "st": {"open": {"azioni": true}}, "waiting": [], "open": {"azioni": true, "risultati": false, "contesto": false}},
+  {"name": "chiuso a mano resta chiuso", "st": {"open": {"risultati": false}}, "waiting": ["w1"], "open": {"risultati": false, "perte": true}}
+ ],
+ "toggles": [
+  {"name": "chiudere Per te ricorda le voci che aspettavano", "st": {}, "kind": "perte", "waiting": ["w1"], "out": {"open": {"perte": false}, "keys": ["w1"]}},
+  {"name": "aprire Per te chiuso", "st": {"open": {"perte": false}, "keys": ["w1"]}, "kind": "perte", "waiting": ["w1"], "out": {"open": {"perte": true}, "keys": ["w1"]}},
+  {"name": "aprire Azioni", "st": {}, "kind": "azioni", "waiting": [], "out": {"open": {"azioni": true}}},
+  {"name": "chiudere Azioni lascia gli altri come sono", "st": {"open": {"azioni": true, "risultati": true}}, "kind": "azioni", "waiting": [], "out": {"open": {"azioni": false, "risultati": true}}}
+ ]
+}

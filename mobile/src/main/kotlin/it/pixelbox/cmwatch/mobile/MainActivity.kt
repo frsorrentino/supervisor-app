@@ -653,12 +653,13 @@ class MainActivity : ComponentActivity() {
                 tabletPrefs.getBoolean(it.pixelbox.cmwatch.mobile.ui.PromptBoxes.RECURRING, false),
             ) { k, v -> tabletPrefs.edit().putBoolean(k, v).apply() }
         }
-        // I blocchi in cima alla chat (app-formato-unico-12-11, blocchi B): ridotti finché non li si apre, poi come lasciati.
-        val chatBlocks = remember {
-            it.pixelbox.cmwatch.mobile.ui.ChatBlocks(
-                tabletPrefs.getBoolean(it.pixelbox.cmwatch.mobile.ui.ChatBlocks.PER_TE, false),
-                tabletPrefs.getBoolean(it.pixelbox.cmwatch.mobile.ui.ChatBlocks.RESULTS, false),
-            ) { k, v -> tabletPrefs.edit().putBoolean(k, v).apply() }
+        // I riquadri della sessione aperti o chiusi, per sessione (app-riquadri-chiusi-16-11): chiusi finché non li si apre, tranne
+        // «Per te» con una voce che aspetta; ricordati in un file loro.
+        val boxPrefs = remember { getSharedPreferences("riquadri", MODE_PRIVATE) }
+        val sessionBoxes = remember {
+            it.pixelbox.cmwatch.mobile.ui.SessionBoxes(
+                boxPrefs.all.mapNotNull { (k, v) -> it.pixelbox.cmwatch.rules.Riquadri.decode(v as? String)?.let { st -> k to st } }.toMap(),
+            ) { k, st -> boxPrefs.edit().putString(k, it.pixelbox.cmwatch.rules.Riquadri.encode(st)).apply() }
         }
         var pinned by remember { mutableStateOf(it.pixelbox.cmwatch.rules.Tablet.columnsFromPref(tabletPrefs.getString("tablet_columns", null))) }
         // Le colonne viste l'ultima volta, lette subito: prima del primo stato lo scheletro ha già la loro forma (app-avvio-senza-salto-04-11).
@@ -2150,11 +2151,14 @@ class MainActivity : ComponentActivity() {
                             results = it.pixelbox.cmwatch.rules.Guardare.ofSession(resultsPage, session.name).takeIf { l -> it.pixelbox.cmwatch.rules.Guardare.shown(l, resultsClosed[session.name]) }?.let { l -> {
                                 it.pixelbox.cmwatch.mobile.ui.ResultsChatRow(l, onClose = {
                                     it.pixelbox.cmwatch.rules.Guardare.lastKey(l)?.let { k -> resultsClosed[session.name] = k; resultsPrefs.edit().putString(session.name, k).apply() }
-                                }) { id -> val r = id?.let { x -> l.groups.flatMap { g -> g.items }.firstOrNull { i -> i.id == x } }; if (r != null) resultOpen = r else { watchSession = session.name; watchOpen = true } }
+                                }, open = sessionBoxes.isOpen(session.name, it.pixelbox.cmwatch.rules.Riquadri.Kind.RISULTATI),
+                                    onToggle = { sessionBoxes.toggle(session.name, it.pixelbox.cmwatch.rules.Riquadri.Kind.RISULTATI) },
+                                ) { id -> val r = id?.let { x -> l.groups.flatMap { g -> g.items }.firstOrNull { i -> i.id == x } }; if (r != null) resultOpen = r else { watchSession = session.name; watchOpen = true } }
                             } },
                             perTe = it.pixelbox.cmwatch.rules.PerTe.voci(waitOthers, resultsPage?.groups.orEmpty(), session.name).filterNot { v -> perTeSent[v.key] == true }.takeIf { l -> l.isNotEmpty() && attese }?.let { items -> {
                                 it.pixelbox.cmwatch.mobile.ui.PerTeBlock(
-                                    items, now, chatBlocks.perTe, { chatBlocks.perTe(!chatBlocks.perTe) },
+                                    items, now, sessionBoxes.isOpen(session.name, it.pixelbox.cmwatch.rules.Riquadri.Kind.PERTE, it.pixelbox.cmwatch.rules.PerTe.waitingKeys(items)),
+                                    { sessionBoxes.toggle(session.name, it.pixelbox.cmwatch.rules.Riquadri.Kind.PERTE, it.pixelbox.cmwatch.rules.PerTe.waitingKeys(items)) },
                                     onOpen = { v -> val r = v.result?.let { x -> resultsPage?.groups?.flatMap { g -> g.items }?.firstOrNull { i -> i.id == x.id } }; if (r != null) resultOpen = r else if (v.wait != null) waitOpen = v.key },
                                     onMain = { v ->
                                         val r = v.result?.let { x -> resultsPage?.groups?.flatMap { g -> g.items }?.firstOrNull { i -> i.id == x.id } }
@@ -2794,6 +2798,7 @@ class MainActivity : ComponentActivity() {
             LocalSpeechRate provides speechRate, LocalSetSpeechRate provides speech::setRateNow,
             it.pixelbox.cmwatch.mobile.ui.LocalFieldFocus provides fieldFocus,
             it.pixelbox.cmwatch.mobile.ui.LocalPromptBoxes provides promptBoxes,
+            it.pixelbox.cmwatch.mobile.ui.LocalSessionBoxes provides sessionBoxes,
             it.pixelbox.cmwatch.mobile.ui.LocalRecurring provides state?.recurring.orEmpty(),
             LocalChatZoom provides chatZoom, LocalSetChatZoom provides { z: Float -> chatZoom = z },
             it.pixelbox.cmwatch.mobile.ui.LocalCardsOnScreen provides cardsOnScreen,

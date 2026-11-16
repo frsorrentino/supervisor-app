@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { CmdResult, ResultsPage, ResultsSummary } from './contract'
   import { lastKey, line, ofSession, shown } from './guardare'
-  import { blockOpen, saveBlock } from './perTe'
+  import { boxOpen, boxToggle } from './riquadri.svelte'
   import { newCmd } from './transport'
   import { t } from './t'
   import Blocco from './Blocco.svelte'
@@ -27,14 +27,15 @@
     closed = { ...closed, [session]: k }
     try { localStorage.setItem(CLOSED, JSON.stringify(closed)) } catch { /* resta chiusa finché la pagina è aperta */ }
   }
-  let open = $state(blockOpen('risultati'))
-  const toggle = () => { open = !open; saveBlock('risultati', open) }
+  // app-riquadri-chiusi-16-11: chiuso di partenza come pillola, aperto al tocco; lo stato resta per sessione.
+  const open = $derived(boxOpen(session, 'risultati'))
+  const toggle = () => boxToggle(session, 'risultati')
   const name = (l: ReturnType<typeof line>) => (l.version != null ? t.watchTitleVersion(l.title, l.version) : l.title)
 </script>
 
 {#if shown(mine, closed[session])}
   {@const l = mine.latest ? line(mine.latest) : null}
-  <Blocco icon="eye" title={t.watchResults} n={mine.groups.length} first={l ? name(l) : null} {open} testid="chat-risultati" onToggle={toggle}>
+  <Blocco pill icon="eye" title={t.watchResults} n={mine.groups.length} first={l ? name(l) : null} {open} testid="chat-risultati" onToggle={toggle}>
     {#snippet extra()}
       {#if mine.groups.some(g => g.unseen)}<i class="dot"></i>{/if}
       <span class="x" role="button" tabindex="0" aria-label={t.watchResultsClose} title={t.watchResultsClose} onclick={close} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); close(e) } }}><span class="ms" aria-hidden="true">close</span></span>

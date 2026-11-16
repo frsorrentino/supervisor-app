@@ -2,7 +2,8 @@
   import type { CmdResult, ResultsPage, WaitItem } from './contract'
   import { decodeWaits, readPage } from './decideDecode'
   import { newCmd } from './transport'
-  import { blockOpen, saveBlock, voci, type Voce as Item } from './perTe'
+  import { voci, type Voce as Item } from './perTe'
+  import { boxOpen, boxToggle } from './riquadri.svelte'
   import { age, cmdOf } from './tiAspetta'
   import { t } from './t'
   import Blocco from './Blocco.svelte'
@@ -30,8 +31,11 @@
   // Le voci a cui è già partita la risposta da qui.
   let sent = $state<Record<string, true>>({})
   const items = $derived(voci(waits, page?.groups ?? [], session).filter(v => !sent[v.key]))
-  let open = $state(blockOpen('perte'))
-  const toggle = () => { open = !open; saveBlock('perte', open) }
+  // app-riquadri-chiusi-16-11: chiuso è una pillola; si apre da solo quando c'è una voce che aspetta la persona (non un risultato da
+  // guardare), e chiuso a mano resta chiuso finché non ne arriva una nuova. Lo stato resta per sessione.
+  const waiting = $derived(items.filter(v => v.group !== 'verifica').map(v => v.key))
+  const open = $derived(boxOpen(session, 'perte', waiting))
+  const toggle = () => boxToggle(session, 'perte', waiting)
 
   const mainLabel = (v: Item) => (v.result ? t.watchSeen : v.main?.label ?? null)
   const openOf = (v: Item) => (v.result ? onOpenResult(v.result.id) : onOpenWait(v.key))
@@ -54,16 +58,10 @@
 </script>
 
 {#if items.length}{@const top = items[0]}
-  <Blocco icon="hand" title={t.forYou} n={items.length} first={top.title} hint={t.perTeHint} {open} amber testid="chat-per-te" onToggle={toggle}>
-    {#snippet extra()}{#if !open && mainLabel(top)}<button class="mini" data-testid="chat-per-te-tasto" onclick={(e) => { e.stopPropagation(); void act(top) }}>{mainLabel(top)}</button>{/if}{/snippet}
+  <Blocco pill icon="hand" title={t.forYou} n={items.length} first={top.title} hint={t.perTeHint} {open} amber testid="chat-per-te" onToggle={toggle}>
     {#each items as v (v.key)}
       <Voce group={v.group} title={v.title} sub={sub(v)} ago={ago(v)} main={mainLabel(v)} testid="voce-{v.key}" onOpen={() => openOf(v)} onMain={() => void act(v)} />
     {/each}
   </Blocco>
 {/if}
 
-<style>
-  .mini { flex: none; font: 600 14.5px var(--display); min-height: 34px; padding: 5px 13px; border-radius: 999px; white-space: nowrap;
-    background: color-mix(in srgb, var(--wait) 12%, var(--s1)); color: var(--wait); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--wait) 45%, transparent); }
-  .mini:hover { filter: brightness(1.12); }
-</style>

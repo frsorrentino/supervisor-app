@@ -26,6 +26,10 @@
   import { append, box as boxOf, inDraft } from './composer'
   import Composer from './Composer.svelte'
   import PromptBox from './PromptBox.svelte'
+  import Blocco from './Blocco.svelte'
+  import { boxOpen, boxToggle } from './riquadri.svelte'
+  import { huSeen } from './headsUpSeen.svelte'
+  import { bgWarns, visibleHeadsUp } from './decide'
   import { blockingOf, parseSteps } from './nextSteps'
   import { t } from './t'
   import { waitingPc } from './durations'
@@ -150,8 +154,6 @@
   // I box sopra il campo, aperti o chiusi come li hai lasciati: Prossimi aperto, Ricorrenti chiuso.
   const saved = (k: string, d: boolean) => { try { const v = localStorage.getItem(k); return v == null ? d : v === '1' } catch { return d } }
   const save = (k: string, v: boolean) => { try { localStorage.setItem(k, v ? '1' : '0') } catch { /* senza memoria resta per la sessione */ } }
-  // Dal formato unico (app-formato-unico-12-11, blocchi B) chi non ha mai scelto trova «Azioni» ridotto a una riga.
-  let stepsOpen = $state(saved('cm.steps_open', false))
   let recurringOpen = $state(saved('cm.recurring_open', false))
   const idle = $derived(s.state === 'idle' && !s.question)
   const stepsBox = $derived(idle ? boxOf(steps, s.suggestion, draft) : { field: null, rows: [] })
@@ -161,6 +163,8 @@
   let dismissed = $state(loadDismissed())
   // Contratto 1.51: senza un comando di handoff la proposta non serve.
   const nudge = $derived(home || handoffPrompt(st, s, () => '') == null ? null : ctxNudge(s, dismissed[s.name] ?? null))
+  // app-riquadri-chiusi-16-11: gli avvisi della sessione (--bg, nota di Claude Code) in una pillola sola, col loro numero.
+  const notesN = $derived((bgWarns(s) ? 1 : 0) + (onHeadsUp && visibleHeadsUp(s, huSeen.set) ? 1 : 0))
   function dismissNudge() {
     dismissed = { ...dismissed, [s.name]: nudge! }
     try { localStorage.setItem('cm.ctx_dismissed', JSON.stringify(dismissed)) } catch { /* resta per la sessione */ }
@@ -253,15 +257,22 @@
   ondragover={(e) => { if (hasFiles(e)) { e.preventDefault(); hold.over() } }} ondragleave={(e) => hold.leave(leftColumn(e))} ondrop={onDrop}>
   {#if dragging}<div class="dropzone">{t.dropHere}</div>{/if}
   <Header {st} {s} wide={wide} {onBack} {onCmd} onPrompt={onSend} {onHandoff} {onUsage} {onGo} {onReopen} {appMenu} {menuMove} {onMine} onChanges={onChanges ? () => (changesOpen = true) : null} />
-  {#if elsewhere}<ElsewherePill alert={elsewhere} onOpen={onElsewhere} onDismiss={onElsewhereDismiss} away={elsewhereAway} now={st.ts} />{/if}
   <!-- Franz 24/10 18:58: la riga «Home» sopra la conversazione della master è tolta: l'intestazione resta più bassa. -->
 
   <!-- Contratto 1.146: l'avviso su /logout nelle sessioni lanciate con --bg, fisso sotto l'intestazione. -->
-  <BgNote {s} />
-  {#if onHeadsUp}<HeadsUpNote {s} now={st.ts} onPropose={onHeadsUp} />{/if}
   <!-- I blocchi in cima alla chat, ognuno ridotto a una riga (app-formato-unico-12-11): «Per te», poi «Risultati». -->
-  {#if perTe && !home}{@render perTe()}{/if}
-  {#if resultsRow}{@render resultsRow()}{/if}
+  <!-- app-riquadri-chiusi-16-11 (Franz 16/11 20:02): i riquadri della sessione in una riga di pillole col numero, aperti al tocco;
+       da solo si apre soltanto «Per te» con una voce che aspetta. Lo stato resta per sessione. Un riquadro aperto prende la riga intera. -->
+  <div class="riq" data-testid="chat-riquadri">
+    {#if perTe && !home}{@render perTe()}{/if}
+    {#if notesN}<Blocco pill icon="warn" title={t.boxNotes} n={notesN} amber open={boxOpen(s.name, 'avvisi')} testid="chat-avvisi" onToggle={() => boxToggle(s.name, 'avvisi')}>
+      <div class="inbox"><BgNote {s} />{#if onHeadsUp}<HeadsUpNote {s} now={st.ts} onPropose={onHeadsUp} />{/if}</div>
+    </Blocco>{/if}
+    {#if elsewhere}<Blocco pill icon={elsewhere.type === 'waiting' ? 'hand' : 'flag'} title={t.boxOthers} n={elsewhere.type === 'waiting' ? elsewhere.sessions.length : 1} amber={elsewhere.type === 'waiting'} open={boxOpen(s.name, 'altre')} testid="chat-altre" onToggle={() => boxToggle(s.name, 'altre')}>
+      <div class="inbox"><ElsewherePill alert={elsewhere} onOpen={onElsewhere} onDismiss={onElsewhereDismiss} away={elsewhereAway} now={st.ts} /></div>
+    </Blocco>{/if}
+    {#if resultsRow}{@render resultsRow()}{/if}
+  </div>
   <div class="lines" class:dots={home} bind:this={list}>
     {#if home}
       <MasterHome {st} master={s} {entries} onConversation={() => (conversation = true)} onStep={pick} onSendStep={onSend}
@@ -307,22 +318,25 @@
     {/if}
   </div>
 
-  {#if stepsBox.rows.length && !home}
-    <PromptBox title={t.next} rows={stepsBox.rows.map(x => ({ label: x, text: x, direct: true, blocking: stepsBlocking.has(x) }))} open={stepsOpen}
-      onOpen={(o) => { stepsOpen = o; save('cm.steps_open', o) }} draftBlank={!draft.trim()} onPick={(r) => pick(r.text)} onSend={(r) => onSend(r.text)} />
-  {/if}
-  {#if recurringOpen && recurringRows.length}
-    <PromptBox title={t.recurring} rows={recurringRows} open={true} onOpen={() => { recurringOpen = false; save('cm.recurring_open', false) }} draftBlank={!draft.trim()}
-      onPick={(r) => { draft = append(draft, r.direct ? r.text : r.text.trimEnd() + ' ', t.then); recurringOpen = false; save('cm.recurring_open', false); composer?.focus() }}
-      onSend={(r) => { recurringOpen = false; save('cm.recurring_open', false); onSend(r.text) }} />
-  {/if}
-  {#if nudge != null}
-    <div class="nudge" role="status">
+  <!-- Sopra il campo, «Azioni» e «Contesto» come pillole (app-riquadri-chiusi-16-11). -->
+  <div class="riq low" data-testid="chat-riquadri-sotto">
+    {#if stepsBox.rows.length && !home}
+      <PromptBox pill title={t.next} rows={stepsBox.rows.map(x => ({ label: x, text: x, direct: true, blocking: stepsBlocking.has(x) }))} open={boxOpen(s.name, 'azioni')}
+        onOpen={() => boxToggle(s.name, 'azioni')} draftBlank={!draft.trim()} onPick={(r) => pick(r.text)} onSend={(r) => onSend(r.text)} />
+    {/if}
+    {#if nudge != null}<Blocco pill icon="layers" title={t.boxContext} n={`${s.context ?? nudge}%`} amber open={boxOpen(s.name, 'contesto')} testid="chat-contesto" onToggle={() => boxToggle(s.name, 'contesto')}>
+      <div class="nudge" role="status">
       <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--b-warn)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" /></svg>
       <span class="nt"><b>{t.ctxNudge(s.context ?? nudge)}</b><span class="nsub">{t.ctxNudgeSub}</span></span>
       <button class="go" onclick={onHandoff}>{t.ctxNudgeGo}</button>
       <button class="x" aria-label={t.closeWord} title={t.closeWord} onclick={dismissNudge}><svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 6l12 12M18 6 6 18" stroke="var(--text2)" stroke-width="2" stroke-linecap="round" /></svg></button>
-    </div>
+      </div>
+    </Blocco>{/if}
+  </div>
+  {#if recurringOpen && recurringRows.length}
+    <PromptBox title={t.recurring} rows={recurringRows} open={true} onOpen={() => { recurringOpen = false; save('cm.recurring_open', false) }} draftBlank={!draft.trim()}
+      onPick={(r) => { draft = append(draft, r.direct ? r.text : r.text.trimEnd() + ' ', t.then); recurringOpen = false; save('cm.recurring_open', false); composer?.focus() }}
+      onSend={(r) => { recurringOpen = false; save('cm.recurring_open', false); onSend(r.text) }} />
   {/if}
   <ReadingPill onOpen={onPick} {slots} here={s.name} />
   <Composer bind:this={composer} {st} {s} bind:draft field={stepsBox.field} toMaster={s.name === MASTER} {onSend}
@@ -391,7 +405,13 @@
   .qway.filled { background: var(--primary); color: var(--on-primary); }
   .resolved { margin: 4px 4px 8px; font-size: 14px; color: var(--text2); display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .waitpc { margin: 0; text-align: center; font-size: 12.5px; color: var(--text2); }
-  .nudge { display: flex; align-items: center; gap: 12px; margin: 0 12px 8px; padding: 10px 6px 10px 14px; border-radius: 20px; background: var(--high); }
+  /* I riquadri della sessione (app-riquadri-chiusi-16-11): pillole in fila, un riquadro aperto a tutta larghezza. */
+  .riq { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px; flex: none; }
+  .riq:has(> :global(*)) { margin-bottom: 8px; }
+  .riq > :global(.blk) { flex: 1 0 100%; margin: 0; }
+  .inbox { display: flex; flex-direction: column; gap: 4px; padding: 0 0 6px; }
+  .inbox > :global(*) { margin: 0 8px; }
+  .nudge { display: flex; align-items: center; gap: 12px; padding: 6px 6px 10px 14px; border-top: 1px solid var(--line); }
   .nudge .nt { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: 14px; line-height: 1.3; color: var(--text2); }
   .nudge .nt b { font-weight: 500; font-size: 14px; color: var(--text); white-space: nowrap; }
   .nudge .nsub { white-space: nowrap; }

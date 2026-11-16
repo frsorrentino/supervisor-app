@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import app.cash.paparazzi.DeviceConfig
@@ -15,7 +14,7 @@ import it.pixelbox.cmwatch.contract.ResultGroup
 import it.pixelbox.cmwatch.contract.ResultItem
 import it.pixelbox.cmwatch.mobile.ui.BlockIcon
 import it.pixelbox.cmwatch.mobile.ui.ChatBlock
-import it.pixelbox.cmwatch.mobile.ui.ChatBlocks
+import it.pixelbox.cmwatch.mobile.ui.RiquadriRow
 import it.pixelbox.cmwatch.mobile.ui.CmPhoneTheme
 import it.pixelbox.cmwatch.mobile.ui.PerTeBlock
 import it.pixelbox.cmwatch.mobile.ui.ResultsChatRow
@@ -51,13 +50,20 @@ class PerTeScreenTest {
 
     @After fun night() { V3.day = false }
 
+    // app-riquadri-chiusi-16-11: i riquadri della sessione chiusi come pillole col numero, in una riga in alto e una sopra il campo;
+    // aperti prendono la riga intera.
     @Composable private fun blocks(open: Boolean) {
-        val closed = remember { ChatBlocks(false, false) { _, _ -> } }
-        Column(Modifier.fillMaxSize().background(V3.Bg).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            PerTeBlock(items, now, open, {}, {}, {})
-            ResultsChatRow(Guardare.SessionLine(results, results[0].items[0]), onClose = {}, blocks = remember { ChatBlocks(false, open) { _, _ -> } }) {}
-            ChatBlock(BlockIcon.BOLT, "Azioni", 2, "prova il checkout dal vivo", false, {}) {}
-            if (open) ResultsChatRow(Guardare.SessionLine(results, results[0].items[0]), blocks = closed) {}
+        Column(Modifier.fillMaxSize().background(V3.Bg).padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            RiquadriRow {
+                PerTeBlock(items, now, open, {}, {}, {})
+                ChatBlock(BlockIcon.WARN, "Avvisi", 1, null, false, {}, amber = true, pill = true) {}
+                ChatBlock(BlockIcon.HAND, "Altre sessioni", 2, null, false, {}, amber = true, pill = true) {}
+                ResultsChatRow(Guardare.SessionLine(results, results[0].items[0]), onClose = {}, open = open) {}
+            }
+            RiquadriRow {
+                ChatBlock(BlockIcon.BOLT, "Azioni", 2, "prova il checkout dal vivo", false, {}, pill = true) {}
+                ChatBlock(BlockIcon.LAYERS, "Contesto", 65, null, false, {}, amber = true, pill = true, count = "65%") {}
+            }
         }
     }
 

@@ -545,6 +545,9 @@
     <string name="recurring_open">Azioni ricorrenti</string>
     <string name="next_then">e poi</string>
     <string name="box_title">%1$s · %2$d</string>
+    <string name="box_notes">Avvisi</string>
+    <string name="box_others">Altre sessioni</string>
+    <string name="box_context">Contesto</string>
     <string name="box_open">Apri %1$s</string>
     <string name="box_close">Chiudi %1$s</string>
     <string name="box_append">Accoda nel campo</string>

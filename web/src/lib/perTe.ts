@@ -65,15 +65,3 @@ export function voci(waits: readonly WaitItem[], results: readonly ResultGroup[]
   }
   return out.sort((a, b) => ORDER.indexOf(a.group) - ORDER.indexOf(b.group) || a.since - b.since)
 }
-
-/**
- * I blocchi della chat (variante B): ognuno si riduce da sé a una riga col primo elemento, si apre sul posto e resta come lasciato.
- * Lo stato si ricorda per blocco, non per sessione; chi non ha mai scelto li trova ridotti.
- */
-export type Block = 'perte' | 'azioni' | 'risultati'
-const KEY = 'cm.blocks_open'
-export const parseBlocks = (raw: string | null): Partial<Record<Block, boolean>> => {
-  try { const o = JSON.parse(raw ?? '{}'); return o && typeof o === 'object' && !Array.isArray(o) ? o : {} } catch { return {} }
-}
-export const blockOpen = (b: Block): boolean => { try { return parseBlocks(localStorage.getItem(KEY))[b] === true } catch { return false } }
-export const saveBlock = (b: Block, open: boolean) => { try { localStorage.setItem(KEY, JSON.stringify({ ...parseBlocks(localStorage.getItem(KEY)), [b]: open })) } catch { /* resta per questa visita */ } }

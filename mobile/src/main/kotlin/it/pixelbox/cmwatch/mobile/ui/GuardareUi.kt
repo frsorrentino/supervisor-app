@@ -253,11 +253,11 @@ fun GuardareScreen(page: ResultsPage?, failed: Boolean, session: String?, a: Gua
  * lavoro apre quel risultato (`onOpen` col suo id), «Tutti i risultati» la pagina della sessione (null).
  */
 @Composable
-fun ResultsChatRow(line: Guardare.SessionLine, onClose: (() -> Unit)? = null, blocks: ChatBlocks = LocalChatBlocks.current, onOpen: (String?) -> Unit) {
+fun ResultsChatRow(line: Guardare.SessionLine, onClose: (() -> Unit)? = null, open: Boolean = false, onToggle: () -> Unit = {}, onOpen: (String?) -> Unit) {
     if (line.groups.isEmpty()) return
     val l = line.latest?.let { Guardare.line(it) }
     ChatBlock(
-        BlockIcon.EYE, stringResource(R.string.watch_results), line.groups.size, l?.let { titleOf(it) }, blocks.results, { blocks.results(!blocks.results) }, tag = "chat-risultati",
+        BlockIcon.EYE, stringResource(R.string.watch_results), line.groups.size, l?.let { titleOf(it) }, open, onToggle, tag = "chat-risultati", pill = true,
         extra = {
             if (line.groups.any { it.unseen }) Box(Modifier.size(8.dp).clip(CircleShape).background(V3.Wait))
             // La X la chiude fino al risultato successivo (app-risultati-x-05-11).

@@ -6,14 +6,15 @@
   // riga col numero delle voci, e si apre verso l'alto.
   /** `blocking`: un Prossimo che sblocca un lavoro fermo (contratto 1.38): riga ambra a sinistra e lucchetto. */
   export type Row = { label: string; text: string; direct: boolean; blocking?: boolean }
-  let { title, rows, open, onOpen, draftBlank, onPick, onSend }: {
-    title: string; rows: Row[]; open: boolean; onOpen: (open: boolean) => void; draftBlank: boolean
+  // `pill` (app-riquadri-chiusi-16-11): chiuso è una pillola col numero, nella riga dei riquadri sopra il campo.
+  let { title, rows, open, onOpen, draftBlank, onPick, onSend, pill = false }: {
+    title: string; rows: Row[]; open: boolean; onOpen: (open: boolean) => void; draftBlank: boolean; pill?: boolean
     onPick: (r: Row) => void; onSend: (r: Row) => void
   } = $props()
 </script>
 
 <!-- Dal formato unico (app-formato-unico-12-11, blocchi B): ridotto è una riga con la prima voce, come «Per te» e «Risultati». -->
-<Blocco icon="bolt" {title} n={rows.length} first={rows[0]?.label ?? null} {open} cls="box" testid="chat-box" onToggle={() => onOpen(!open)}>
+<Blocco icon="bolt" {pill} {title} n={rows.length} first={rows[0]?.label ?? null} {open} cls="box" testid="chat-box" onToggle={() => onOpen(!open)}>
     {#each rows as r (r.text)}
       <div class="row" class:unblock={r.blocking}>
         <button class="label" onclick={() => onPick(r)}>{#if r.blocking}<svg class="lock" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--wait)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 9.9-1" /></svg>{/if}{r.label}</button>
