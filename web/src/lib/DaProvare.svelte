@@ -7,11 +7,9 @@
   import { t } from './t'
   import LongText from './LongText.svelte'
   import Check from './Check.svelte'
-  import { toCounter } from './cardFx'
   import LoadFailed from './LoadFailed.svelte'
-  import { slide } from 'svelte/transition'
   import { confirmMs, leave } from './leave'
-  import { reducedMotion } from './motion'
+  import { leaveOut } from './motion'
   import ItemList from './ItemList.svelte'
   import ProvaFiles from './ProvaFiles.svelte'
   import { prove, proveKo, proveRed } from './itemRows'
@@ -50,13 +48,10 @@
   let picked = $state<Record<string, string>>({})
   // Le prove mandate restano via anche se la sezione si ridisegna (app-prova-ok-sparisce-04-11): partono da `proveSent`.
   let gone = $state<Record<string, true>>(Object.fromEntries([...proveSent].map(i => [i, true as const])))
-  const backs: Record<string, () => void> = {}
   const hooks = {
     pick: (ids: string[], v: string | null) => { const n = { ...picked }; for (const i of ids) { if (v) n[i] = v; else delete n[i] } picked = n },
     hide: (ids: string[], v: boolean) => {
-      // Un Ok va nel contatore di Tocca a te (app-effetti-movimenti-04-11, punto 4).
-      if (v) for (const i of ids) if (picked[i] === 'ok') { const back = toCounter(document.querySelector(`.ir[data-key="${CSS.escape(i)}"]`), reducedMotion()); if (back) backs[i] = back }
-      if (!v) for (const i of ids) { backs[i]?.(); delete backs[i] }
+      // La riga esce come le altre schede che si chiudono, in altezza (app-prove-chiusura-anim-16-11): niente più giro verso il contatore.
       const n = { ...gone }; for (const i of ids) { if (v) { n[i] = true; proveSent.add(i) } else { delete n[i]; proveSent.delete(i) } } gone = n
     },
   }
@@ -65,7 +60,6 @@
   // La lista si rilegge dopo ogni esito, anche un rifiuto.
   async function result(ids: string[], arg: string, res: 'ok' | 'ko', body?: string) { await leave(ids, res, () => send(arg, res, body), hooks); void load() }
   const shown = (g: ProvePage['groups'][number]) => g.prove.filter(p => !gone[String(p.id)] && (only?.(p) ?? true))
-  const outMs = () => (reducedMotion() ? 0 : 160)
   const koShown = $derived((page?.ko ?? []).filter(k => !gone[`ko-${k.id}`]))
   async function sendKo() { const p = ko!; const b = text.trim(), f = shot; ko = null; text = ''; shot = null; await result([String(p.id)], String(p.id), 'ko', b); if (f) onShot(f, t.proveKoShotNote(p.short ?? p.task)) }
 </script>
@@ -73,7 +67,7 @@
 <div class="dp" data-testid="da-provare">
   {#each cards.filter(c => rowsOf(c).length) as c (c.project)}
     {@const rows = rowsOf(c)}{@const busy = cardKeys(c).some(k => sentKeys[k])}
-    <div class="c fuse" data-testid="prova-fusa" out:slide={{ duration: outMs() }}>
+    <div class="c fuse" data-testid="prova-fusa" out:leaveOut>
       <b>{t.proveCardTitle(c.release ?? (c.web ? `web ${c.web}` : c.project.split('/').pop() ?? ''))}</b>
       <p class="m">{t.proveCardContains(rows.length)}</p>
       {#each more[c.project] ? rows : rows.slice(0, 3) as r (r.key)}<div class="row"><LongText text={r.text} /></div>{/each}
@@ -92,9 +86,9 @@
   {#if !page}{#if failed}<LoadFailed onRetry={() => void load()} />{:else}<p class="m">{t.proveLoading}</p>{/if}
   {:else if !page.groups.length && !page.ko.length && !page.red.length}<p class="m">{t.proveNone}</p>{/if}
   {#each (page?.groups ?? []).filter(g => shown(g).length) as g (g.build)}
-    <div class="h" out:slide={{ duration: outMs() }}><span>{g.build}</span>{#if shown(g).length > 1}<button class="tonal ck" class:done={g.prove.every(p => picked[String(p.id)] === 'ok')} onclick={() => result(g.prove.map(p => String(p.id)), allOk(g), 'ok')}><span class="lbl">{t.proveAllOk}</span>{#if g.prove.every(p => picked[String(p.id)] === 'ok')}<Check />{/if}</button>{/if}</div>
+    <div class="h" out:leaveOut><span>{g.build}</span>{#if shown(g).length > 1}<button class="tonal ck" class:done={g.prove.every(p => picked[String(p.id)] === 'ok')} onclick={() => result(g.prove.map(p => String(p.id)), allOk(g), 'ok')}><span class="lbl">{t.proveAllOk}</span>{#if g.prove.every(p => picked[String(p.id)] === 'ok')}<Check />{/if}</button>{/if}</div>
     <!-- Le prove come righe (app-richiede-te-righe-02-11): il tocco apre la scheda con Non va e Ok. Sul web la versione c'è sempre. -->
-    <ItemList rows={shown(g).map(p => prove(p, true))} testid={`prova-${g.build}`} {focus} onOpen={onWait ? (r) => { const w = g.prove.find(x => String(x.id) === r.key)?.wid; if (w) onWait(w); return !!w } : null}>{#snippet card(r)}{@const p = g.prove.find(x => String(x.id) === r.key)}{#if p}{@const pk = picked[String(p.id)]}
+    <ItemList rows={shown(g).map(p => prove(p, true))} testid={`prova-${g.build}`} {focus} leave onOpen={onWait ? (r) => { const w = g.prove.find(x => String(x.id) === r.key)?.wid; if (w) onWait(w); return !!w } : null}>{#snippet card(r)}{@const p = g.prove.find(x => String(x.id) === r.key)}{#if p}{@const pk = picked[String(p.id)]}
       <div class="in"><LongText text={p.fai} /><p class="m">{t.proveExpected(p.atteso)}</p>
         <!-- Le immagini di cosa guardare, dalla richiesta della prova (app-scheda-scelta-12-11). -->
         {#if p.wid}<ProvaFiles wid={p.wid} />{/if}
@@ -107,7 +101,7 @@
   {/each}
   <!-- Una prova segnalata si chiude con «Ora va» quando, riprovata, va (app-verifica-conto-elenco-12-11): è l'Ok di una prova, che il relay
        accetta anche dopo un «Non va». -->
-  {#if koShown.length}<div class="h"><span>{t.proveReported}</span></div><ItemList rows={koShown.map(proveKo)} testid="prova-ko">{#snippet card(r)}{@const k = koShown.find(x => `ko-${x.id}` === r.key)}{@const pk = picked[r.key]}<div class="in"><div class="m"><LongText text={k?.text ?? ''} /></div>
+  {#if koShown.length}<div class="h"><span>{t.proveReported}</span></div><ItemList rows={koShown.map(proveKo)} testid="prova-ko" leave>{#snippet card(r)}{@const k = koShown.find(x => `ko-${x.id}` === r.key)}{@const pk = picked[r.key]}<div class="in"><div class="m"><LongText text={k?.text ?? ''} /></div>
       {#if k}<div class="ac"><span class="sp"></span><button class="tonal ck" class:done={pk === 'ok'} disabled={!!pk} data-testid="prova-ora-va" onclick={() => result([r.key], String(k.id), 'ok')}><span class="lbl">{t.proveNowOk}</span>{#if pk === 'ok'}<Check />{/if}</button></div>{/if}</div>{/snippet}</ItemList>{/if}
   {#if page?.red.length}<div class="h"><span>{t.proveRed}</span></div><ItemList rows={page.red.map(proveRed)} testid="prova-rossa">{#snippet card(r)}<div class="r in"><LongText text={page?.red.find(x => `red-${x.task}` === r.key)?.reason ?? t.proveRedRunning} /></div>{/snippet}</ItemList>{/if}
   {#if (page?.groups ?? []).some(g => shown(g).length)}<p class="m small">{t.proveWeb}</p>{/if}

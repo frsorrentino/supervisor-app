@@ -37,6 +37,20 @@ export const finishScrollAllowed = (s: FinishScene): boolean =>
 
 const out = (t: number) => 1 - (1 - t) ** 4
 
+/**
+ * L'uscita di una riga o di una scheda chiusa da una conferma (app-prove-chiusura-anim-16-11, Franz 16/11 09:58: in «Da provare» la
+ * scheda approvata faceva un giro su se stessa e spesso si vedeva male): si chiude in altezza e sfuma in 160 ms, come le altre
+ * schede che si chiudono, e chi sta sotto sale. Con la riduzione del movimento solo la dissolvenza. `on: false` = nessuna uscita.
+ * Lo stesso in Fx.kt (`leaveExit`).
+ */
+export const LEAVE_MS = 160, LEAVE_FADE_MS = 120
+export const leaveOut = (node: Element, { on = true }: { on?: boolean } = {}) => {
+  if (!on) return { duration: 0 }
+  if (reducedMotion()) return { duration: LEAVE_FADE_MS, css: (t: number) => `opacity: ${t}` }
+  const h = (node as HTMLElement).offsetHeight
+  return { duration: LEAVE_MS, easing: out, css: (t: number) => `overflow: hidden; height: ${(h * t).toFixed(1)}px; opacity: ${t}` }
+}
+
 /** Voce 4: un solo passaggio per tutti i tasti che lavorano: tasto, conferma, attesa, esito. */
 export const pass = () => ({ duration: reducedMotion() ? 0 : 200, easing: out, css: (t: number) => `opacity: ${t}; transform: scale(${0.96 + 0.04 * t})` })
 

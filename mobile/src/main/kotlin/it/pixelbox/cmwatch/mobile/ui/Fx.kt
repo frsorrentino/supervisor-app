@@ -87,6 +87,15 @@ internal fun WorkEdge(working: Boolean, modifier: Modifier = Modifier) {
 }
 
 /**
+ * L'uscita di una riga chiusa da una conferma in «Da provare» (app-prove-chiusura-anim-16-11, Franz 16/11 09:58: l'uscita di prima
+ * spesso si vedeva male): si chiude in altezza e sfuma in 160 ms, come le altre schede che si chiudono; con le animazioni spente
+ * solo la dissolvenza. Lo stesso in motion.ts (`leaveOut`).
+ */
+internal fun leaveExit(off: Boolean): androidx.compose.animation.ExitTransition =
+    if (off) androidx.compose.animation.fadeOut(tween(120))
+    else androidx.compose.animation.shrinkVertically(tween(160)) + androidx.compose.animation.fadeOut(tween(160))
+
+/**
  * Punto 4: la scheda confermata esce girandosi, piegandosi in una striscia e salendo verso il contatore di «Tocca a te», che sta
  * sopra; al posto del solo restringersi in altezza.
  */

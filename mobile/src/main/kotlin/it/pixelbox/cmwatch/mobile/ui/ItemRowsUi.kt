@@ -141,7 +141,7 @@ internal fun ItemList(
             androidx.compose.runtime.key(r.key) {
                 // Divisore e riga in una colonna: dentro AnimatedVisibility, che li sovrapporrebbe come un Box, la riga perdeva il divisore
                 // (1 px più in alto da lì in giù nei golden di 9622c048).
-                androidx.compose.animation.AnimatedVisibility(r.key !in gone, enter = androidx.compose.animation.EnterTransition.None, exit = confirmedExit(off)) {
+                androidx.compose.animation.AnimatedVisibility(r.key !in gone, enter = androidx.compose.animation.EnterTransition.None, exit = leaveExit(off)) {
                     val row: @Composable () -> Unit = { Column(if (r.key == focused) Modifier.fillMaxWidth().focusFlash(off) else Modifier.fillMaxWidth()) {
                         ItemRowView(r, right(r), i == 0 || sub, openKey == r.key, name(r), "$tag-${r.key}", onClick = { if (onOpen?.invoke(r) != true) openKey = if (openKey == r.key) null else r.key }) { card(r) }
                     } }
