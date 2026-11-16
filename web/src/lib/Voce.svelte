@@ -4,9 +4,10 @@
   // Una voce del formato unico (app-formato-unico-12-11, variante A, tavola 2 del mockup): l'icona del tipo, il titolo, una riga di
   // contesto con da quanto aspetta, e a destra il tasto principale; il tocco sulla voce apre la sua scheda. Titolo e contesto stanno
   // ognuno su una riga, tagliati senza «…»: il testo intero è nella scheda. `hot`: la voce che aspetta una risposta, in ambra.
-  // `tone`: l'esito di una prova già chiusa, al posto del tasto.
-  let { group, title, sub, ago = null, main = null, tone = null, card = false, testid = undefined, onOpen, onMain = () => {} }: {
-    group: Group; title: string; sub: string; ago?: string | null; main?: string | null; tone?: 'good' | 'red' | null
+  // `tone`: l'esito di una prova già chiusa, al posto del tasto. `advice` (app-riall-2-viste-16-11): il consiglio di chi chiede, in
+  // ambra in testa alla riga di contesto; `rec`: il tasto è la scelta consigliata, in ambra.
+  let { group, title, sub, ago = null, advice = null, main = null, rec = false, tone = null, card = false, testid = undefined, onOpen, onMain = () => {} }: {
+    group: Group; title: string; sub: string; ago?: string | null; advice?: string | null; main?: string | null; rec?: boolean; tone?: 'good' | 'red' | null
     /** Da sola in una chat, fuori da un blocco: col suo bordo. */
     card?: boolean; testid?: string; onOpen: () => void; onMain?: () => void
   } = $props()
@@ -23,9 +24,9 @@
       {:else}<path d="m3 6.5 1.8 1.8L8 5M3 16.5l1.8 1.8L8 15M12 7h9M12 17h9" />{/if}
     </svg>
   </span>
-  <span class="tx"><span class="ti">{title}</span><span class="cx" class:good={tone === 'good'} class:red={tone === 'red'}>{sub}{#if ago}{sub ? ' · ' : ''}<span class="ago">{ago}</span>{/if}</span></span>
+  <span class="tx"><span class="ti">{title}</span><span class="cx" class:good={tone === 'good'} class:red={tone === 'red'}>{#if advice}<span class="adv">{advice}</span>{sub ? ' · ' : ''}{/if}{sub}{#if ago}{sub ? ' · ' : ''}<span class="ago">{ago}</span>{/if}</span></span>
   {#if main}
-    <button class="mini" onclick={(e) => { e.stopPropagation(); onMain() }}>{main}</button>
+    <button class="mini" class:rec onclick={(e) => { e.stopPropagation(); onMain() }}>{main}</button>
   {:else}
     <svg class="chev" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
   {/if}
@@ -45,6 +46,8 @@
   .mini { font: 600 14.5px var(--display); min-height: 36px; padding: 6px 14px; border-radius: 999px; background: var(--s3); color: var(--tx); white-space: nowrap; }
   .hot .mini { background: color-mix(in srgb, var(--wait) 12%, var(--s1)); color: var(--wait); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--wait) 45%, transparent); }
   .mini:hover { filter: brightness(1.12); }
+  .adv { color: var(--wait); }
+  .mini.rec { background: color-mix(in srgb, var(--wait) 14%, var(--s1)); color: var(--wait); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--wait) 45%, transparent); }
   .chev { color: var(--tx3); }
   .voce:focus-visible { outline: 2px solid var(--wait); outline-offset: -2px; }
 </style>

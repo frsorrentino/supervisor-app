@@ -29,6 +29,14 @@ class HomeFolds(card: String? = null) {
     var cardFocus by mutableStateOf(0)
     fun openCard(session: String) { card = session; cardFocus += 1 }
 
+    /**
+     * app-riall-2-viste-16-11: il rimando «anche in Dalla master ›» da una sessione. Dalla master e «Per te» si aprono, il gruppo della
+     * sessione viene in vista e si illumina un momento. [PerTeFocus.at]: un rimando vecchio (una lista rifatta più tardi) non si rifà.
+     */
+    data class PerTeFocus(val session: String, val n: Int, val at: Long)
+    var perTeFocus by mutableStateOf<PerTeFocus?>(null)
+    fun focusPerTe(session: String) { perTeFocus = PerTeFocus(session, (perTeFocus?.n ?: 0) + 1, System.currentTimeMillis()) }
+
     /** Una sezione richiudibile: la prima volta col suo valore di partenza, poi come l'ha lasciata il tocco. */
     fun state(key: String, start: Boolean): MutableState<Boolean> = states.getOrPut(key) { mutableStateOf(start) }
 

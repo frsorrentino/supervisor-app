@@ -83,6 +83,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.async
 
+/** La «sessione» dei riquadri per «Per te» in Dalla master (app-riall-2-viste-16-11): aperta o chiusa come «Per te» in una sessione. */
+private const val PER_TE_HOME = "·dalla-master"
+
 class MainActivity : ComponentActivity() {
     /** Un dito è sullo schermo: lo guarda la guardia del volo (Franz 31/10 22:15). Qui, prima di ogni gesto che può cancellarsi. */
     private val fingerDown = mutableStateOf(false)
@@ -1624,7 +1627,43 @@ class MainActivity : ComponentActivity() {
             }
         }
         // La testata di «Dalla master»: quello che Franz ha da fare fuori dalle sessioni aperte; i suggerimenti sono contesto.
-        val masterTodo = if (uItems != null) uItems.size else ((decHome?.groups.orEmpty().count { g -> !decOfSession(g) }) + (proveWhere { x -> x == null || x !in todoLive }?.n ?: 0) + (if (state?.primaRaccolta != null) 1 else 0))
+        // La riga di una voce di «Per te», uguale nella sessione e in Dalla master (app-riall-2-viste-16-11): il tocco e il tasto principale.
+        val perTeOpenVoce: (it.pixelbox.cmwatch.rules.PerTe.Voce) -> Unit = { v ->
+            val r = v.result?.let { x -> resultsPage?.groups?.flatMap { g -> g.items }?.firstOrNull { i -> i.id == x.id } }
+            if (r != null) resultOpen = r else if (v.wait != null) waitOpen = v.key
+        }
+        val perTeMain: (it.pixelbox.cmwatch.rules.PerTe.Voce) -> Unit = { v ->
+            val r = v.result?.let { x -> resultsPage?.groups?.flatMap { g -> g.items }?.firstOrNull { i -> i.id == x.id } }
+            val a = v.main?.takeIf { m -> m.direct }?.let { m -> v.wait?.actions?.getOrNull(m.index) }
+            when {
+                r != null -> { perTeSent[v.key] = true; guardare.seen(r); scope.launch { kotlinx.coroutines.delay(60_000); perTeSent.remove(v.key) } }
+                a != null -> { perTeSent[v.key] = true; scope.launch {
+                    // Dopo l'esito del PC le attese si rileggono; un rifiuto, o nessuna risposta, rimette la voce.
+                    val sentId = runCatching { app.repo.commandOf(a, null) }.getOrNull()
+                    val x = sentId?.let { i -> kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(i) }[i] } }
+                    if (x?.ok == true) { readWaits(); v.wait?.let { w -> waitRefresh { o -> o.id == w.id || (w.cardId != null && o.cardId == w.cardId) } } }
+                    perTeSent.remove(v.key)
+                } }
+                v.wait != null -> waitOpen = v.key
+            }
+        }
+        // Dalla master per sessione (direzione A): le stesse righe di «Per te», e il numero della sezione sono queste righe. Aperta da sola
+        // quando una voce aspetta la persona, chiusa a mano finché non ne arriva una nuova, come «Per te» nella sessione (Riquadri).
+        val perTeGroups = if (uItems != null) it.pixelbox.cmwatch.rules.PerTe.groupsOf(waitOthers, resultsPage?.groups.orEmpty(), perTeSent.keys) else emptyList()
+        val perTeRows = perTeGroups.sumOf { g -> g.voci.size }
+        val perTeWaitingNow by androidx.compose.runtime.rememberUpdatedState(perTeGroups.flatMap { g -> it.pixelbox.cmwatch.rules.PerTe.waitingKeys(g.voci) })
+        val perTeOpenState = remember(sessionBoxes) {
+            object : androidx.compose.runtime.MutableState<Boolean> {
+                override var value: Boolean
+                    get() = sessionBoxes.isOpen(PER_TE_HOME, it.pixelbox.cmwatch.rules.Riquadri.Kind.PERTE, perTeWaitingNow)
+                    set(x) { if (x != value) sessionBoxes.toggle(PER_TE_HOME, it.pixelbox.cmwatch.rules.Riquadri.Kind.PERTE, perTeWaitingNow) }
+                override fun component1(): Boolean = value
+                override fun component2(): (Boolean) -> Unit = { x -> value = x }
+            }
+        }
+        // «anche in Dalla master ›»: sul telefono la home, con Dalla master aperta e il gruppo in vista; sul tablet la home accanto.
+        val toMaster: (String) -> Unit = { name -> if (!wide) open = null; homeFolds.focusPerTe(name) }
+        val masterTodo = if (uItems != null) perTeRows else ((decHome?.groups.orEmpty().count { g -> !decOfSession(g) }) + (proveWhere { x -> x == null || x !in todoLive }?.n ?: 0) + (if (state?.primaRaccolta != null) 1 else 0))
         val sectionBodies: Map<String, @Composable () -> Unit> = mapOf(
             "da_guardare" to { Inline("da_guardare") { it.pixelbox.cmwatch.mobile.ui.GuardareBody(state?.results?.items.orEmpty().map(fullResult), guardare) { watchSession = null; watchOpen = true } } },
             "prima_raccolta" to { Inline("prima_raccolta") { it.pixelbox.cmwatch.mobile.ui.PrimaRaccoltaBody(primaPage, touch, goScreen) { featuresOpen = true } } },
@@ -1646,7 +1685,10 @@ class MainActivity : ComponentActivity() {
             } } },
             // Prima raccolta sta dentro Decidi finché c'è (app-sezioni-accorpate-03-11, scelta A).
             "decisioni" to { Inline("decisioni") { androidx.compose.foundation.layout.Column {
-                if (uItems != null) it.pixelbox.cmwatch.mobile.ui.VoceListBody(uItems.filter(it.pixelbox.cmwatch.rules.Attese::isDecide), now, "decidi-voci", { id -> waitOpen = id }, answerWait) else {
+                if (uItems != null) it.pixelbox.cmwatch.mobile.ui.PerTeGroupsBody(
+                    perTeGroups, now, if (!wide) emptySet() else if (tabletCols.size == 1) tabletCols.toSet() else setOfNotNull(homeFolds.perTeFocus?.session?.takeIf { n -> n in tabletCols }),
+                    homeFolds.perTeFocus, onSession = { n -> if (wide) saveCols(it.pixelbox.cmwatch.rules.Tablet.replace(tabletCols, n)) else open = n }, onOpen = perTeOpenVoce, onMain = perTeMain,
+                ) else {
                 if (state?.primaRaccolta != null) it.pixelbox.cmwatch.mobile.ui.PrimaRaccoltaBody(primaPage, touch, goScreen) { featuresOpen = true }
                 if ((state?.decisions?.n ?: 0) > 0) it.pixelbox.cmwatch.mobile.ui.CinqueMinutiBody(decHome?.let { p -> p.copy(groups = p.groups.filterNot(decOfSession)) }, decApprove, decDone, decNotNow, decDrop, onAsk = decAsk, rows = true, onWait = { w -> waitOpen = w })
                 }
@@ -2187,22 +2229,9 @@ class MainActivity : ComponentActivity() {
                                 it.pixelbox.cmwatch.mobile.ui.PerTeBlock(
                                     items, now, sessionBoxes.isOpen(session.name, it.pixelbox.cmwatch.rules.Riquadri.Kind.PERTE, it.pixelbox.cmwatch.rules.PerTe.waitingKeys(items)),
                                     { sessionBoxes.toggle(session.name, it.pixelbox.cmwatch.rules.Riquadri.Kind.PERTE, it.pixelbox.cmwatch.rules.PerTe.waitingKeys(items)) },
-                                    onOpen = { v -> val r = v.result?.let { x -> resultsPage?.groups?.flatMap { g -> g.items }?.firstOrNull { i -> i.id == x.id } }; if (r != null) resultOpen = r else if (v.wait != null) waitOpen = v.key },
-                                    onMain = { v ->
-                                        val r = v.result?.let { x -> resultsPage?.groups?.flatMap { g -> g.items }?.firstOrNull { i -> i.id == x.id } }
-                                        val a = v.main?.takeIf { m -> m.direct }?.let { m -> v.wait?.actions?.getOrNull(m.index) }
-                                        when {
-                                            r != null -> { perTeSent[v.key] = true; guardare.seen(r); scope.launch { kotlinx.coroutines.delay(60_000); perTeSent.remove(v.key) } }
-                                            a != null -> { perTeSent[v.key] = true; scope.launch {
-                                                // Dopo l'esito del PC le attese si rileggono; un rifiuto, o nessuna risposta, rimette la voce.
-                                                val sentId = runCatching { app.repo.commandOf(a, null) }.getOrNull()
-                                                val x = sentId?.let { i -> kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(i) }[i] } }
-                                                if (x?.ok == true) { readWaits(); v.wait?.let { w -> waitRefresh { o -> o.id == w.id || (w.cardId != null && o.cardId == w.cardId) } } }
-                                                perTeSent.remove(v.key)
-                                            } }
-                                            v.wait != null -> waitOpen = v.key
-                                        }
-                                    },
+                                    onOpen = perTeOpenVoce, onMain = perTeMain,
+                                    // app-riall-2-viste-16-11: il rimando a Dalla master; sul tablet con la home accanto solo il numero.
+                                    onMaster = if (uItems != null) ({ toMaster(session.name) }) else null, numberOnly = wide && home != null && homeOpen,
                                 )
                             } },
                             // Con l'ispettore obiettivo e bassa priorità stanno lì: in testata non si ripetono (revisione della master, 04/10).
@@ -2420,6 +2449,7 @@ class MainActivity : ComponentActivity() {
             val listPart: @Composable (List<String>?, (@Composable (String) -> Unit)?, (@Composable (String) -> Unit)?) -> Unit = { parts, partHead, partFoot ->
                 SummaryList(
                     summary, onQuota = goUsage, parts = parts, partHead = partHead, partFoot = partFoot, todo = sessTodo, sessionTodo = sessionTodo, folds = homeFolds,
+                    perTeRows = perTeRows, perTeOpen = perTeOpenState,
                     update = updateUi.takeIf { BuildConfig.SELF_UPDATE }, onInstallUpdate = { r -> app.updater.install(r) }, onDismissUpdate = { t -> app.updater.dismiss(t) },
                     // Aprire una sessione che ha finito la toglie da «Ha finito», come in «Per te».
                     onOpen = { n ->

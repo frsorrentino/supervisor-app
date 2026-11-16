@@ -260,6 +260,8 @@ export function world(now: number): World {
         { key: 'urgent', title: en ? 'Urgent' : 'Urgente', required: false, kind: 'boolean', default: false },
       ],
     }],
+    // La lista unica (contratto 1.151): con lei la demo mostra le viste di app-riall-2-viste-16-11, Dalla master per sessione.
+    attese: { rev: 'demo-1', n: waitsDemo(now).length },
     tocca: { n: 5, prove: 2, decidi: 3, today: { n: 3, items: [
       { task: 'shop-banner', short: en ? 'Banner on the home' : 'Banner in home', kind: 'prova', rule: 1, at: now - 5400 },
       { task: 'blog-feed', short: en ? 'RSS feed' : 'Feed RSS', kind: 'pause', rule: 2, at: now - 9000 },

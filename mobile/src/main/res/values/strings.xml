@@ -2032,5 +2032,14 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="per_te_prova">Prova</string>
     <string name="per_te_verifica">Verifica</string>
     <string name="per_te_hint">tocca una voce per i dettagli</string>
+    <!-- app-riall-2-viste-16-11: il consiglio sulla riga, il rimando a Dalla master e i gruppi per sessione. -->
+    <string name="per_te_advice_approve">consigliata: approvare</string>
+    <string name="per_te_advice_reject">consigliata: non approvare</string>
+    <string name="per_te_advice_option">consigliata: %1$s</string>
+    <string name="per_te_also_master">anche in Dalla master</string>
+    <string name="per_te_no_session">Senza sessione</string>
+    <string name="per_te_group_open">apri</string>
+    <string name="per_te_group_this">questa</string>
+    <string name="cat_sig_for_you">Per te %1$d</string>
     <string name="per_te_version">versione %1$d</string>
 </resources>

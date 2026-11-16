@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -83,5 +84,34 @@ class PerTeScreenTest {
     @Test fun tabletDay() {
         paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenWidth = 1640, screenHeight = 1200, density = com.android.resources.Density.XHIGH))
         paparazzi.snapshot { CmPhoneTheme(still = true, day = true) { blocks(open = true) } }
+    }
+
+    // app-riall-2-viste-16-11 (direzione A, Franz 16/11): Dalla master per sessione con le stesse righe di «Per te», il gruppo della
+    // sessione accanto acceso sul tablet («questa»), in fondo le voci senza sessione; il consiglio sulla riga e il tasto consigliato in
+    // ambra; «Per te» nella sessione col rimando «anche in Dalla master ›».
+    private val more = it.pixelbox.cmwatch.contract.ContractJson.decodeWaits("""{"at": $now, "items": [
+        {"id": "w4", "label": "decide", "session": "win:supervisor-app", "title": "Uscite uniformi delle schede", "text": "si annulla", "at": ${now - 1500},
+         "advice": {"text": "le prove sono verdi", "approve": true},
+         "actions": [{"label": "Approva", "style": "primary", "recommended": true, "cmd": {"op": "approve"}}, {"label": "Non ora", "style": "secondary", "cmd": {"op": "decisione"}}]},
+        {"id": "w5", "label": "decide", "title": "Login di work scade fra 2 giorni", "text": "rifallo dalla master", "at": ${now - 9000},
+         "actions": [{"label": "Apri", "style": "primary", "cmd": {"op": "login"}}]}
+    ]}""").items
+    private val groups = PerTe.groupsOf(waits + more, results)
+
+    @Composable private fun groupsView(current: Set<String> = emptySet(), width: Int? = null) {
+        Column(Modifier.fillMaxSize().background(V3.Bg).padding(12.dp)) {
+            Column(if (width != null) Modifier.width(width.dp) else Modifier) { it.pixelbox.cmwatch.mobile.ui.PerTeGroupsBody(groups, now, current, null, {}, {}, {}) }
+        }
+    }
+    @Test fun gruppi() = paparazzi.snapshot { CmPhoneTheme(still = true) { groupsView() } }
+    @Test fun gruppiGiorno() = paparazzi.snapshot { CmPhoneTheme(still = true, day = true) { groupsView() } }
+    @Test fun gruppiTablet() {
+        paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenWidth = 1640, screenHeight = 1200, density = com.android.resources.Density.XHIGH))
+        paparazzi.snapshot { CmPhoneTheme(still = true) { groupsView(setOf("storefront"), width = 420) } }
+    }
+    @Test fun apertoConRimando() = paparazzi.snapshot {
+        CmPhoneTheme(still = true) {
+            Column(Modifier.fillMaxSize().background(V3.Bg).padding(vertical = 12.dp)) { RiquadriRow { PerTeBlock(items, now, true, {}, {}, {}, onMaster = {}) } }
+        }
     }
 }

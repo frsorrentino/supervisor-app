@@ -91,7 +91,9 @@
   import ResultsRow from './lib/ResultsRow.svelte'
   import PerTe from './lib/PerTe.svelte'
   import VoceList from './lib/VoceList.svelte'
-  import { applyClosed, openWaits, readWaits } from './lib/attese.svelte'
+  import PerTeGruppi from './lib/PerTeGruppi.svelte'
+  import { boxOpen, boxToggle } from './lib/riquadri.svelte'
+  import { applyClosed, openWaits, perTeGroups, readResults, readWaits } from './lib/attese.svelte'
   import { closedIds, isDecide, isVerify, perSession } from './lib/attese'
   import AppBar, { type Page as PageName } from './lib/AppBar.svelte'
   import HomeBox from './lib/HomeBox.svelte'
@@ -1243,6 +1245,27 @@
   let askedRev: string | null = null
   $effect(() => { const rev = st.attese?.rev ?? null; if (!rev || rev === askedRev || !tr) return; askedRev = rev; untrack(() => void readWaits(run)) })
   $effect(() => { const ids = closedIds(st); if (ids.length) untrack(() => applyClosed(ids)) })
+  // app-riall-2-viste-16-11 (direzione A, Franz 16/11): i risultati da guardare letti una volta per tutte le viste quando lo stato dice
+  // che sono cambiati; Dalla master per sessione con le stesse righe di «Per te» nella sessione, e il numero sono quelle righe. Aperta
+  // da sola quando una voce aspetta la persona, chiusa a mano finché non ne arriva una nuova, come «Per te» nella sessione.
+  const resSig = $derived(`${st.results?.n_unseen ?? 0}|${(st.results?.items ?? []).map(r => r.id).join(',')}`)
+  let askedRes: string | null = null
+  $effect(() => { const sig = resSig; if (!unified || !st.ops?.includes('results') || !tr || sig === askedRes) return; askedRes = sig; untrack(() => void readResults(run)) })
+  const perTeG = $derived(unified ? perTeGroups() : [])
+  const perTeRows = $derived(perTeG.reduce((n, g) => n + g.voci.length, 0))
+  const perTeWaiting = $derived(perTeG.flatMap(g => g.voci.filter(v => v.group !== 'verifica').map(v => v.key)))
+  const PER_TE_HOME = '·dalla-master'
+  const perTeOpen = $derived(boxOpen(PER_TE_HOME, 'perte', perTeWaiting))
+  const perTeToggle = () => boxToggle(PER_TE_HOME, 'perte', perTeWaiting)
+  let perTeFocus = $state<{ session: string; n: number; at: number } | null>(null)
+  /** «anche in Dalla master ›» e il numero sullo schermo largo: il gruppo della sessione in Dalla master; false se lì non si vede. */
+  function toMaster(session: string): boolean {
+    if (wide && !document.querySelector('[data-testid="home-per-te"], [data-testid="per-te-gruppi"]')) return false
+    if (!wide) { openPage(null); smooth(() => { open = null }) }
+    if (!perTeOpen) perTeToggle()
+    perTeFocus = { session, n: (perTeFocus?.n ?? 0) + 1, at: Date.now() }
+    return true
+  }
   const todo = $derived.by(() => {
     if (uItems) return perSession(uItems.filter(w => !!w.session && liveSet.has(w.session)))
     const out: Record<string, { d: number; v: number }> = {}
@@ -1252,7 +1275,7 @@
   })
   const decOfSession = (g: DecisionGroup) => g.items.some(i => !!i.session && liveSet.has(i.session))
   // La testata di «Dalla master»: quello che Franz ha da fare fuori dalle sessioni aperte; i suggerimenti sono contesto.
-  const fromMaster = $derived({ todo: uItems ? uItems.length : todoDec.filter(g => !decOfSession(g)).length + todoProve.filter(p => { const s = provaSession(p); return !(s && liveSet.has(s)) }).length + (st.prima_raccolta ? 1 : 0), sug: sug.shown.length })
+  const fromMaster = $derived({ todo: uItems ? perTeRows : todoDec.filter(g => !decOfSession(g)).length + todoProve.filter(p => { const s = provaSession(p); return !(s && liveSet.has(s)) }).length + (st.prima_raccolta ? 1 : 0), sug: sug.shown.length })
   // Si rileggono quando cambia il loro riassunto nello stato, non a ogni stato (app-letture-leggere-11-11: 137 letture l'ora a testa con
   // uno stato ogni 30 s); `slowTick` le rilegge comunque ogni 5 minuti, con l'etag la risposta è corta se non è cambiato niente.
   const todoSig = $derived(JSON.stringify([st.decisions ?? null, st.prove ?? null]))
@@ -2133,7 +2156,7 @@
   {@const s = st.sessions.find(x => x.name === name) ?? ghost(name)}
   {#snippet resultsRow()}{#if st.ops?.includes('results')}<ResultsRow {run} session={name} summary={st.results} onOpen={(id) => { watchSession = name; watchOpenId = id; openPage('guardare') }} />{/if}{/snippet}
   <!-- «Per te» (app-formato-unico-12-11): le richieste e i risultati che aspettano la persona in questa sessione, riletti quando cambiano nello stato. -->
-  {#snippet perTe()}{#if st.ops?.includes('attese')}<PerTe {run} session={name} items={uItems} sig={`${openWids}|${st.results?.n_unseen ?? 0}|${(st.results?.items ?? []).map(r => r.id).join(',')}`} now={st.ts} results={!!st.ops?.includes('results')}
+  {#snippet perTe()}{#if st.ops?.includes('attese')}<PerTe {run} session={name} items={uItems} wide={wide && unified} onMaster={unified ? toMaster : null} sig={`${openWids}|${st.results?.n_unseen ?? 0}|${(st.results?.items ?? []).map(r => r.id).join(',')}`} now={st.ts} results={!!st.ops?.includes('results')}
     onOpenWait={openWait} onOpenResult={(id) => { watchSession = name; watchOpenId = id; openPage('guardare') }} onAnswered={(w) => waitCardsRefresh(w)} />{/if}{/snippet}
   <Chat {resultsRow} {perTe} focus={focusOf[name] ?? null} onMine={(k) => mineGo(name, k)} onHeadsUp={(text) => sendTo(name, text)} onTask={() => openPage('lavori')} {st} {s} entries={transcripts[name] ?? []} mine={mine.filter(([m]) => m.session === name)} onSend={(x) => sendTo(name, x)} onPick={pick} waitingSince={waitSince[name] ?? null}
     updating={!!tr && s.state !== 'gone' && !fresh[name] && behind(s, bgReads[name])}
@@ -2185,7 +2208,8 @@
   <!-- app-riall-1-dati-16-11: con la lista unica Verifica elenca le voci verify di tutte le sessioni, per intero. -->
   {:else if k === 'prove'}{#if uItems}<VoceList {run} items={uItems.filter(isVerify)} now={st.ts} testid="verifica-voci" onOpenWait={openWait} />{:else if st.prove && st.prove.n + st.prove.ko + st.prove.red > 0}<DaProvare {run} onWait={openWait} only={(p) => { const s = provaSession(p); return !(s && liveSet.has(s)) }} onScreen={(s) => openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName)} onShot={(file, note) => attach(MASTER, [file], note)} />{/if}{#if st.results?.n_unseen}{@render guardare('body')}{/if}
   <!-- Prima raccolta sta dentro Decidi finché c'è (app-sezioni-accorpate-03-11, scelta A). -->
-  {:else if k === 'decisioni'}{#if uItems}<VoceList {run} items={uItems.filter(isDecide)} now={st.ts} testid="decidi-voci" onOpenWait={openWait} />{:else}{#if st.prima_raccolta}<PrimaRaccolta {run} summary={st.prima_raccolta} onScreen={(s) => openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName)} onFeatures={() => openPage('features')} />{/if}{#if st.decisions?.n}{@render decisionsBody(true)}{/if}{/if}
+  {:else if k === 'decisioni'}{#if uItems}<PerTeGruppi {run} groups={perTeG} now={st.ts} current={wide ? (cols.length === 1 ? cols : perTeFocus && cols.includes(perTeFocus.session) ? [perTeFocus.session] : []) : []} focus={perTeFocus} onSession={(n) => { openPage(null); pick(n) }} onOpenWait={openWait}
+    onOpenResult={(id, s) => { watchSession = s; watchOpenId = id; openPage('guardare') }} reread={() => void readResults(run)} onAnswered={(w) => waitCardsRefresh(w)} />{:else}{#if st.prima_raccolta}<PrimaRaccolta {run} summary={st.prima_raccolta} onScreen={(s) => openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName)} onFeatures={() => openPage('features')} />{/if}{#if st.decisions?.n}{@render decisionsBody(true)}{/if}{/if}
   {:else if k === 'da_guardare'}{@render guardare('body')}{/if}
 {/snippet}
 <!-- Contratto 1.106 (app-da-guardare-02-11): i file consegnati dalle sessioni; i file arrivano con l'op `file`, a nome della sessione. -->
@@ -2193,7 +2217,7 @@
   getFile={(r, f, quiet) => getFile(r.session ?? '', f.path, `result:${r.id}:${f.path}`, quiet).then(x => x?.blob ?? null)}
   onExternal={(r) => fileAction(r.session ?? '', r.path, 'open', `result:${r.id}:${r.path}`)} onSession={(n) => { openPage(null); pick(n) }}
   onAll={() => { watchSession = null; watchOpenId = null; openPage('guardare') }} onOpen={(r) => { watchSession = null; watchOpenId = r.id; openPage('guardare') }} />{/snippet}
-{#snippet homeView(part: 'sessions' | 'you' | 'work' | 'out' | 'tools' | 'top' | null)}<Home st={stShown} {part} {monitors} monitorsSum={stShown.monitors ?? null} onMonitor={openMonitor} onNewMonitor={() => talk(t.monitorsNewDraft)} onMine={mineGo} onRestart={handoff} onHomeOrder={!part && st.ops?.includes('home_order') ? (a) => saveHomeOrder(a, false) : null} afterSessions={part === 'work' ? deskTasks : undefined} selected={[]} onPick={card} onAnswer={answer} onStep={(n, x) => { pick(n); sendTo(n, x) }} usage={quotaPanels} usageBlock={usageV3}
+{#snippet homeView(part: 'sessions' | 'you' | 'work' | 'out' | 'tools' | 'top' | null)}<Home st={stShown} {part} {perTeRows} {perTeOpen} onPerTeToggle={perTeToggle} {perTeFocus} perTeFirst={perTeG[0]?.voci[0]?.title ?? null} {monitors} monitorsSum={stShown.monitors ?? null} onMonitor={openMonitor} onNewMonitor={() => talk(t.monitorsNewDraft)} onMine={mineGo} onRestart={handoff} onHomeOrder={!part && st.ops?.includes('home_order') ? (a) => saveHomeOrder(a, false) : null} afterSessions={part === 'work' ? deskTasks : undefined} selected={[]} onPick={card} onAnswer={answer} onStep={(n, x) => { pick(n); sendTo(n, x) }} usage={quotaPanels} usageBlock={usageV3}
         night={nightBoxShown ? nightModel : undefined} {nightTitle} {justClosed} closing={leaving && !leaving.refused ? leaving.name : null} closeRefused={leaving?.refused ? { name: leaving.name, why: leaving.refused, armable: !!leaving.armable } : null} onCloseArm={arm} onCloseSeen={() => (leaving = null)} elicitations={openElicitations(st, now).filter(e => !elicitSent.has(e.id))} onElicit={elicit} newBody={sectionBody} suggestionNames={suggestionNamesOf(sug.all, k => t.sugKind[k] ?? t.sugKindOther)} suggestionsAt={sug.shown[0]?.at} suggestions={sugCard} suggestionsN={sug.shown.length} suggestionsTotal={sug.total} onClosePreview={st.ops?.includes('close_preview') && st.ops?.includes('close') ? closePreview : null} onCloseMany={closeMany} onSystem={tr && !demo ? sysAct : null} {kpiPage} {kpiData} onBox={(b) => openPage(`box-${b}`)} onQuota={() => openPage('overview')} pluginsLoad={tr && st.ops?.includes('plugins') ? pluginsLoad : null} pluginsRun={tr && st.ops?.includes('plugin_update') ? pluginsRun : null} onNight={() => openPage('night')}
         onApprove={approve} {todo} {sessionTodo} onApprovalClose={closeApproval} onDone={attentionDone} onOk={(n, x) => sendTo(n, x)} onClose={(n) => cmd(n)('slash', 'exit')} onSessionCmd={(n, op, arg) => cmd(n)(op, arg)} agenda={agenda.page} {donePages} onLavori={() => openPage('lavori')} onEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
         {usageFocus} onUsageFocused={() => (usageFocus = 0)} onSpeak={(x) => toggle(x)}

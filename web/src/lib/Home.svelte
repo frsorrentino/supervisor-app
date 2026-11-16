@@ -85,10 +85,17 @@
   import MonitorsList from './MonitorsList.svelte'
   import { looking as monitorsLooking, sectionOf as monitorsSection } from './monitors'
   import type { MonitorCard, MonitorsSummary } from './contract'
-  let { newBody, suggestionNames = [], suggestionsAt, onHomeOrder = null, st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, todo = {}, sessionTodo = null, onApprovalClose = null, onDone = () => {}, onOk = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, closeRefused = null, onCloseSeen = () => {}, onCloseArm = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0, suggestionsTotal, usageBlock, onMine = null, onRestart = null, monitors = null, monitorsSum = null, onMonitor = () => {}, onNewMonitor = () => {} }: {
+  let { perTeRows = 0, perTeOpen = false, onPerTeToggle = () => {}, perTeFirst = null, perTeFocus = null, newBody, suggestionNames = [], suggestionsAt, onHomeOrder = null, st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, todo = {}, sessionTodo = null, onApprovalClose = null, onDone = () => {}, onOk = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, closeRefused = null, onCloseSeen = () => {}, onCloseArm = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0, suggestionsTotal, usageBlock, onMine = null, onRestart = null, monitors = null, monitorsSum = null, onMonitor = () => {}, onNewMonitor = () => {} }: {
     suggestionNames?: string[]
     /** I corpi delle voci del programma del 01/11, gli stessi delle pagine: si aprono sul posto (Franz 02/11 08:05). */
     newBody?: Snippet<[string]>
+    /**
+     * app-riall-2-viste-16-11 (direzione A): con la lista unica Decidi e Verifica diventano «Per te», Dalla master per sessione. Le righe
+     * (anche i risultati da guardare), aperta o chiusa e la prima voce le calcola l'app, che le ha per tutte le viste.
+     */
+    perTeRows?: number; perTeOpen?: boolean; onPerTeToggle?: () => void; perTeFirst?: string | null
+    /** «anche in Dalla master ›» da una sessione: Dalla master si apre; il gruppo lo porta in vista PerTeGruppi. */
+    perTeFocus?: { session: string; n: number; at: number } | null
     /** Il blocco Utilizzo aperto, scelta D (30/10 20:11); le colonne della plancia tengono le schede (`usage`). */
     usageBlock?: Snippet
     /** La riga della quota nel tabellone apre il quadro (stile «Studio e Diretta», 30/10: era nella testata). */
@@ -383,16 +390,19 @@
     }
     if (id === 'you') {
       // Le voci che la accendono (app-richiede-te-righe-02-11): Da decidere, Da provare e, con voci, Suggerimenti (Franz 20:52).
-      const tc = tcu, d = up.includes('decisioni') ? 0 : tc.decidi, p = up.includes('prove') ? 0 : tc.prove
+      // Con la lista unica le righe di «Per te» al posto di decisioni e prove (app-riall-2-viste-16-11).
+      const tc = tcu, d = unified || up.includes('decisioni') ? 0 : tc.decidi, p = unified || up.includes('prove') ? 0 : tc.prove
+      const f = unified && !up.includes('decisioni') ? perTeRows : 0
       const s = up.includes('suggestions') || !suggestions || !suggestionsN ? 0 : (suggestionsTotal ?? suggestionsN)
       // Prima raccolta che aspetta te accende la riga anche lei (app-bug-notte-03-11).
-      const pr = !up.includes('decisioni') && primaAsking(st.prima_raccolta)
+      // Con la lista unica la prima raccolta è una voce senza sessione di «Per te» (contratto 1.151): niente pezzo a parte.
+      const pr = !unified && !up.includes('decisioni') && primaAsking(st.prima_raccolta)
       // I Monitoraggi solo quando uno è da guardare, in ambra; altrimenti non contano (app-monitoraggi-09-11).
       const mo = up.includes('monitors') || (!monitors && !monitorsSum) ? 0 : monitorsLooking(monitorsSum, monitors)
       // Le parti per importanza (Franz 03/11 08:07, variante 1): prima quel che ti chiede qualcosa adesso; Suggerimenti in grigio e per
       // ultimo, cade per primo quando non c'è posto (app-riassunti-una-riga-03-11).
-      const bits: { text: string; mute?: boolean }[] = [...(d ? [{ text: t.catSigDecide(d) }] : []), ...(p ? [{ text: t.catSigTest(p) }] : []), ...(pr ? [{ text: `${t.primaTitle} ${t.homePrima.ask}` }] : []), ...(mo ? [{ text: t.catSigMonitors(mo) }] : []), ...(s ? [{ text: t.catSigSuggestions(s), mute: true }] : [])]
-      return { bits: bits.length ? bits : none, amber: d + p + s + mo > 0 || pr }
+      const bits: { text: string; mute?: boolean }[] = [...(f ? [{ text: t.catSigForYou(f) }] : []), ...(d ? [{ text: t.catSigDecide(d) }] : []), ...(p ? [{ text: t.catSigTest(p) }] : []), ...(pr ? [{ text: `${t.primaTitle} ${t.homePrima.ask}` }] : []), ...(mo ? [{ text: t.catSigMonitors(mo) }] : []), ...(s ? [{ text: t.catSigSuggestions(s), mute: true }] : [])]
+      return { bits: bits.length ? bits : none, amber: f + d + p + s + mo > 0 || pr }
     }
     // Lavori chiusa (app-home-sessioni-a-se-08-11, tavola A): «N in corso · N esiti» nell'ordine della lista aperta; un rosso fra gli
     // esiti è rosso nella riga.
@@ -420,6 +430,14 @@
   }
   const slotTone = (w: { pct: number; stale: boolean; alarm: boolean }) => (w.stale ? 'var(--tx3)' : w.pct >= 90 ? 'var(--red)' : w.pct >= 75 || w.alarm ? 'var(--wait)' : 'var(--tx2)')
   const lowerFirst = (x: string | null) => (x ? x[0].toLowerCase() + x.slice(1) : x)
+  // app-riall-2-viste-16-11: il rimando da una sessione apre Dalla master se è chiusa; un rimando vecchio (una home ricreata) no.
+  let perTeSeen = 0
+  $effect(() => {
+    const f = perTeFocus
+    if (!f || f.n === perTeSeen || Date.now() - f.at > 1500) return
+    perTeSeen = f.n
+    untrack(() => { if (cats.some(c => c.id === 'you' && !c.open)) setCats(toggleCat(cats, 'you')) })
+  })
   let usageEl: HTMLElement | undefined = $state()
   let usageFlash = $state(false)
   $effect(() => {
@@ -1034,12 +1052,14 @@
   {#if newBody && (!part || part === catFor(k))}
     {#if k === 'seguiti' && seguitiN > 0}{@render sec('seguiti', t.homeSecFollow, 'event_list', String(seguitiN), 'home-seguiti', !open['seguiti'] ? rightOf('seguiti') : null)}{@render nuovaBody(k)}
     <!-- Verifica: le prove e i lavori da guardare in una voce sola (app-tocca-sezioni-06-11). -->
-    {:else if k === 'prove' && (hasProve || st.results?.n_unseen)}{@render sec('prove', t.homeSecVerify, 'checklist', String(tcu.prove + (st.results?.n_unseen ?? 0)), 'home-da-provare', !open['prove'] ? rightOf('prove') : null, { hot: tcu.prove > 0 })}{@render nuovaBody(k)}
-    {:else if k === 'decisioni' && (unified ? tcu.decidi > 0 : (st.decisions?.n || st.prima_raccolta))}{@render sec('decisioni', t.homeSecDecide, 'timer', tcu.decidi ? String(tcu.decidi) : null, 'home-da-decidere', !open['decisioni'] ? rightOf('decisioni') : null, { hot: true })}{@render nuovaBody(k)}
+    {:else if k === 'prove' && !unified && (hasProve || st.results?.n_unseen)}{@render sec('prove', t.homeSecVerify, 'checklist', String(tcu.prove + (st.results?.n_unseen ?? 0)), 'home-da-provare', !open['prove'] ? rightOf('prove') : null, { hot: tcu.prove > 0 })}{@render nuovaBody(k)}
+    <!-- Con la lista unica (app-riall-2-viste-16-11) Decidi è «Per te», Dalla master per sessione: tutte le voci, il numero sono le righe. -->
+    {:else if k === 'decisioni' && unified && perTeRows > 0}{@render sec('decisioni', t.forYou, 'svg:hand', String(perTeRows), 'home-per-te', perTeOpen ? null : perTeFirst, { hot: true, isOpen: perTeOpen, onclick: onPerTeToggle })}{@render nuovaBody(k)}
+    {:else if k === 'decisioni' && !unified && (st.decisions?.n || st.prima_raccolta)}{@render sec('decisioni', t.homeSecDecide, 'timer', tcu.decidi ? String(tcu.decidi) : null, 'home-da-decidere', !open['decisioni'] ? rightOf('decisioni') : null, { hot: true })}{@render nuovaBody(k)}
     {/if}
   {/if}
 {/snippet}
-{#snippet nuovaBody(k: HomeSection)}{#if open[k]}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="newbody" data-testid={`corpo-${k}`}>{@render newBody?.(k)}{#if k === 'prove' && !unified}{@render proveElsewhere()}{/if}</div></div>{/if}{/snippet}
+{#snippet nuovaBody(k: HomeSection)}{#if k === 'decisioni' && unified ? perTeOpen : open[k]}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="newbody" data-testid={`corpo-${k}`}>{@render newBody?.(k)}{#if k === 'prove' && !unified}{@render proveElsewhere()}{/if}</div></div>{/if}{/snippet}
 <!-- Le prove delle sessioni aperte stanno nelle loro schede: qui una riga per sessione col numero, e il tocco apre la sua scheda (app-verifica-conto-elenco-12-11). -->
 {#snippet proveElsewhere()}
   {#each proveInSessions(todo) as r (r.session)}

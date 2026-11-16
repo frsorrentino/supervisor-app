@@ -18,8 +18,11 @@ object PerTe {
     /** Il gruppo di una richiesta dalla sua etichetta: reply, verify, e ogni altra (decide, choose) è una decisione. */
     fun groupOf(label: String): Group = when (label) { "reply" -> Group.ASPETTA; "verify" -> Group.PROVA; else -> Group.DECIDI }
 
-    /** Il tasto sulla voce: `index` nei tasti della richiesta; `direct` false = chiede un testo, quindi apre la scheda. */
-    data class Main(val index: Int, val label: String, val direct: Boolean)
+    /**
+     * Il tasto sulla voce: `index` nei tasti della richiesta; `direct` false = chiede un testo, quindi apre la scheda; `recommended`: è
+     * la scelta consigliata, e la riga lo mostra in ambra (app-riall-2-viste-16-11).
+     */
+    data class Main(val index: Int, val label: String, val direct: Boolean, val recommended: Boolean = false)
 
     /** Il tasto sta sulla voce accanto al titolo: al massimo questi caratteri, tagliato a una parola intera; l'etichetta intera è nella scheda. */
     const val MAIN_MAX = 16
@@ -44,7 +47,20 @@ object PerTe {
         if (i < 0) return null
         val a = acts[i]
         val num = if (TiAspetta.lookOf(a) == TiAspetta.Look.OPTION) acts.take(i + 1).count { TiAspetta.lookOf(it) == TiAspetta.Look.OPTION } else null
-        return Main(i, short(if (num != null) "$num · ${a.label}" else a.label), a.textField == null)
+        return Main(i, short(if (num != null) "$num · ${a.label}" else a.label), a.textField == null, a.recommended)
+    }
+
+    /**
+     * Il consiglio di chi chiede, sulla riga (app-riall-2-viste-16-11, direzione A: «consigliata: approvare»; contratto 1.149): approvare
+     * o no su un ok; su una scelta l'opzione consigliata, col suo numero come sul tasto quando il tasto è lei. Senza consiglio, niente.
+     */
+    data class Advice(val approve: Boolean?, val option: String?)
+    fun adviceOf(w: WaitItem, main: Main?): Advice? {
+        val a = w.advice ?: return null
+        a.approve?.let { x -> return Advice(x, null) }
+        if (main?.recommended == true) return Advice(null, main.label)
+        val o = one(a.option)
+        return if (o.isEmpty()) null else Advice(null, short(o))
     }
 
     /** Il risultato da guardare di una verifica, col tipo e la versione per la riga di contesto. */
@@ -53,7 +69,7 @@ object PerTe {
     /** `wait`: la richiesta (con `main` il suo tasto); `result`: il risultato da segnare visto. */
     data class Voce(
         val key: String, val group: Group, val title: String, val context: String?, val since: Long,
-        val wait: WaitItem? = null, val main: Main? = null, val result: Result? = null,
+        val wait: WaitItem? = null, val main: Main? = null, val result: Result? = null, val advice: Advice? = null,
     )
 
     private fun one(s: String?): String = s.orEmpty().replace(Regex("\\s+"), " ").trim()
@@ -66,7 +82,8 @@ object PerTe {
     fun voceOf(w: WaitItem): Voce {
         val title = one(w.title).ifEmpty { one(w.text) }
         val context = listOf(one(w.text), one(w.description)).firstOrNull { it.isNotEmpty() && it != title }
-        return Voce(w.id, groupOf(w.label), title, context, w.at, wait = w, main = mainOf(w.actions))
+        val main = mainOf(w.actions)
+        return Voce(w.id, groupOf(w.label), title, context, w.at, wait = w, main = main, advice = adviceOf(w, main))
     }
 
     fun voci(waits: List<WaitItem>, results: List<ResultGroup>, session: String): List<Voce> {
@@ -81,6 +98,27 @@ object PerTe {
             val l = Guardare.line(top)
             out += Voce(top.id, Group.VERIFICA, l.title, null, top.at, result = Result(top.id, Guardare.kind(top.kind), l.version))
         }
-        return out.sortedWith(compareBy<Voce> { it.group.ordinal }.thenBy { it.since })
+        return out.sortedWith(byOrder)
+    }
+
+    private val byOrder = compareBy<Voce> { it.group.ordinal }.thenBy { it.since }
+
+    /** Un gruppo di Dalla master: le voci di una sessione, o quelle senza sessione (`session` null). */
+    data class Gruppo(val session: String?, val voci: List<Voce>)
+
+    /**
+     * Dalla master (app-riall-2-viste-16-11, direzione A scelta da Franz il 16/11): le stesse voci di «Per te» di ogni sessione, una
+     * sessione per gruppo; prima quella che aspetta da più tempo, in fondo le voci senza sessione (la prima raccolta). Le voci già
+     * risposte ([answered]) restano fuori, e un gruppo senza voci non c'è. La stessa regola di groupsOf in perTe.ts.
+     */
+    fun groupsOf(waits: List<WaitItem>, results: List<ResultGroup>, answered: Set<String> = emptySet()): List<Gruppo> {
+        fun open(w: WaitItem) = (w.state ?: "open") == "open"
+        val names = LinkedHashSet<String>()
+        waits.forEach { w -> w.session?.takeIf { s -> s.isNotEmpty() && open(w) }?.let { s -> names += s } }
+        results.forEach { g -> g.session?.takeIf { s -> s.isNotEmpty() && g.unseen && g.items.isNotEmpty() }?.let { s -> names += s } }
+        val out = names.map { s -> Gruppo(s, voci(waits, results, s).filter { v -> v.key !in answered }) }.filter { g -> g.voci.isNotEmpty() }
+            .sortedWith(compareBy<Gruppo> { g -> g.voci.minOf { v -> v.since } }.thenBy { g -> g.session.orEmpty() })
+        val loose = waits.filter { w -> w.session.isNullOrEmpty() && open(w) }.map(::voceOf).filter { v -> v.key !in answered }.sortedWith(byOrder)
+        return if (loose.isEmpty()) out else out + Gruppo(null, loose)
     }
 }

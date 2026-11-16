@@ -127,6 +127,11 @@ internal val LocalNameWhole = androidx.compose.runtime.staticCompositionLocalOf<
 fun SummaryList(
     model: Summary.Model, onOpen: (String) -> Unit, onAnswer: (String, Int) -> Unit, onStep: (String, String) -> Unit,
     onService: (MasterHome.Row) -> Unit, onClosed: () -> Unit, initiallyOpen: String? = null,
+    /**
+     * app-riall-2-viste-16-11 (direzione A): con la lista unica Decidi e Verifica diventano «Per te», Dalla master per sessione. Le righe
+     * (anche i risultati da guardare) e l'aperto o chiuso li tiene l'Activity, che ha le voci per tutte le viste.
+     */
+    perTeRows: Int = 0, perTeOpen: androidx.compose.runtime.MutableState<Boolean>? = null,
     /** Cosa è aperto, tenuto dall'Activity perché resti quando la lista si rifà (app-frecce-plancia-tablet-07-11). */
     folds: HomeFolds? = null,
     /** Il tablet (Franz, 04/10 14:31): nell'altezza in più, sotto, le schede di «Utilizzo e limiti». */
@@ -360,14 +365,17 @@ fun SummaryList(
             "prima_raccolta" -> st.primaRaccolta?.let { p -> NewRow(R.string.prima_title, icons.Checklist, "${p.done}/${p.total}", "home-prima-raccolta", open, it.pixelbox.cmwatch.rules.PrimaRaccolta.asking(p)) }
             "seguiti" -> it.pixelbox.cmwatch.rules.Seguiti.total(st.seguiti).takeIf { n -> n > 0 }?.let { n -> NewRow(R.string.home_sec_follow, icons.Update, n.toString(), "home-seguiti", open) }
             // Verifica (app-tocca-sezioni-06-11): le prove e i lavori consegnati da guardare in una voce sola.
-            "prove" -> {
+            // Con la lista unica le prove e i risultati da guardare stanno in «Per te» (app-riall-2-viste-16-11).
+            "prove" -> if (st.attese != null) null else {
                 val n = it.pixelbox.cmwatch.rules.ToccaRules.counts(st).prove
                 val look = st.results?.nUnseen ?: 0
                 // Con la lista unica (contratto 1.151) Verifica c'è quando ha voci, come le conta (app-riall-1-dati-16-11).
                 if ((if (st.attese != null) n > 0 else st.prove?.let { p -> p.n + p.ko + p.red > 0 } == true) || look > 0) NewRow(R.string.home_sec_verify, icons.Science, (n + look).toString(), "home-da-provare", open, n > 0) else null
             }
             // Prima raccolta sta dentro Decidi finché c'è (app-sezioni-accorpate-03-11, scelta A).
-            "decisioni" -> it.pixelbox.cmwatch.rules.ToccaRules.counts(st).decidi.takeIf { n -> n > 0 || st.primaRaccolta != null }?.let { n -> NewRow(R.string.home_sec_decide, icons.Timer, if (n > 0) n.toString() else "", "home-da-decidere", open, true) }
+            // Con la lista unica Decidi è «Per te», Dalla master per sessione: tutte le voci, il numero sono le righe (app-riall-2-viste-16-11).
+            "decisioni" -> if (st.attese != null) perTeRows.takeIf { n -> n > 0 }?.let { n -> NewRow(R.string.fy_title, icons.PanTool, n.toString(), "home-per-te", perTeOpen ?: open, true) }
+                else it.pixelbox.cmwatch.rules.ToccaRules.counts(st).decidi.takeIf { n -> n > 0 || st.primaRaccolta != null }?.let { n -> NewRow(R.string.home_sec_decide, icons.Timer, if (n > 0) n.toString() else "", "home-da-decidere", open, true) }
             // Contratto 1.106 (app-da-guardare-02-11): c'è finché qualcosa di consegnato non è ancora visto.
             "da_guardare" -> st.results?.takeIf { x -> x.nUnseen > 0 }?.let { x -> NewRow(R.string.home_sec_look, icons.Visibility, x.nUnseen.toString(), "home-da-guardare", open) }
             else -> null
@@ -450,22 +458,26 @@ fun SummaryList(
                 // Le voci che la accendono (app-richiede-te-righe-02-11): Da decidere, Da provare e, con voci, Suggerimenti (Franz 20:52).
                 // Contratto 1.113: lo stesso conto del menu e del registro, dal relay (app-pulizia-tocca-03-11).
                 val tc = kpiState?.let(it.pixelbox.cmwatch.rules.ToccaRules::counts)
-                val d = if ("decisioni" in up) 0 else tc?.decidi ?: 0
-                val p = if ("prove" in up) 0 else tc?.prove ?: 0
+                // Con la lista unica le righe di «Per te» al posto di decisioni e prove (app-riall-2-viste-16-11).
+                val uni = kpiState?.attese != null
+                val fy = if (!uni || "decisioni" in up) 0 else perTeRows
+                val d = if (uni || "decisioni" in up) 0 else tc?.decidi ?: 0
+                val p = if (uni || "prove" in up) 0 else tc?.prove ?: 0
                 val s = if ("suggestions" in up) 0 else suggestions?.takeIf { x -> x.shown.isNotEmpty() }?.total ?: 0
                 // Prima raccolta che aspetta te accende la riga anche lei (app-bug-notte-03-11).
-                val pr = kpiState?.primaRaccolta?.takeIf { x -> it.pixelbox.cmwatch.rules.PrimaRaccolta.asking(x) && "decisioni" !in up }
+                val pr = kpiState?.primaRaccolta?.takeIf { x -> !uni && it.pixelbox.cmwatch.rules.PrimaRaccolta.asking(x) && "decisioni" !in up }
                 // I Monitoraggi solo quando uno è da guardare, in ambra; altrimenti non contano (app-monitoraggi-09-11).
                 val mo = if ("monitors" in up || (monitors == null && kpiState?.monitors == null)) 0 else it.pixelbox.cmwatch.rules.Monitors.looking(kpiState?.monitors, monitors)
                 // Le parti per importanza (Franz 03/11 08:07, variante 1): prima quel che ti chiede qualcosa adesso; Suggerimenti in grigio e
                 // per ultimo, cade per primo quando non c'è posto (app-riassunti-una-riga-03-11).
                 listOfNotNull(
+                    fy.takeIf { n -> n > 0 }?.let { n -> CatBit(stringResource(R.string.cat_sig_for_you, n)) },
                     d.takeIf { n -> n > 0 }?.let { n -> CatBit(stringResource(R.string.cat_sig_decide, n)) },
                     p.takeIf { n -> n > 0 }?.let { n -> CatBit(stringResource(R.string.cat_sig_test, n)) },
                     pr?.let { CatBit("${stringResource(R.string.prima_title)} ${stringResource(R.string.home_prima_ask)}") },
                     mo.takeIf { n -> n > 0 }?.let { n -> CatBit(pluralStringResource(R.plurals.cat_sig_monitors, n, n)) },
                     s.takeIf { n -> n > 0 }?.let { n -> CatBit(pluralStringResource(R.plurals.cat_sig_suggestions, n, n), V3.Tx2) },
-                ).ifEmpty { none } to (d + p + s + mo > 0 || pr != null)
+                ).ifEmpty { none } to (fy + d + p + s + mo > 0 || pr != null)
             }
             else -> {
                 // Lavori chiusa (app-home-sessioni-a-se-08-11, tavola A): «N in corso · N esiti» nell'ordine della lista aperta; un
@@ -650,6 +662,13 @@ fun SummaryList(
     val finishScope = androidx.compose.runtime.rememberCoroutineScope()
     // app-verifica-vuota-16-11: dalla riga «N prove nella sua scheda» di Verifica la scheda della sessione si apre con le sue prove e viene
     // in vista, come sul web (app-verifica-conto-elenco-12-11). Solo nella lista che ha le sessioni: sulla plancia le altre colonne stanno ferme.
+    // app-riall-2-viste-16-11: il rimando «anche in Dalla master ›» apre Dalla master e «Per te»; il gruppo lo porta in vista PerTeGroupsBody.
+    androidx.compose.runtime.LaunchedEffect(f.perTeFocus?.n) {
+        val fx = f.perTeFocus ?: return@LaunchedEffect
+        if (System.currentTimeMillis() - fx.at > 1500) return@LaunchedEffect
+        if (catsNow.any { c -> c.id == "you" && !c.open }) setCats(it.pixelbox.cmwatch.rules.HomeCats.toggle(catsNow, "you"))
+        perTeOpen?.let { o -> if (!o.value) o.value = true }
+    }
     if (parts == null || "sessions" in parts) androidx.compose.runtime.LaunchedEffect(f.cardFocus) {
         if (f.cardFocus == 0) return@LaunchedEffect
         val name = f.card ?: return@LaunchedEffect
