@@ -322,7 +322,8 @@ fun SessionSheet(
         NextSteps.parse(c?.entry?.text.orEmpty()).blocking + s.nextSteps.orEmpty().filter { it.blocking }.map { it.text }
     }
     val stepsBox by remember(steps, s.suggestion, idle, draftHolder) {
-        derivedStateOf { if (idle) NextSteps.box(steps, s.suggestion, draftHolder.value) else NextSteps.Box(null, emptyList()) }
+        // app-riall-3-doppioni-16-11 (direzione A): in una sessione i Prossimi stanno solo sopra il campo, non nel campo né nel turno.
+        derivedStateOf { if (idle) NextSteps.box(steps, s.suggestion, draftHolder.value, unite = s.name != it.pixelbox.cmwatch.rules.ContextActions.MASTER) else NextSteps.Box(null, emptyList()) }
     }
     // Le azioni tolte a mano e quelle vecchie (Franz, 08/10 20:50): le tolte non tornano per questa sessione, quelle ripetute
     // in tre risposte di fila vanno in fondo, chiuse in una riga.
@@ -565,7 +566,7 @@ fun SessionSheet(
                             is it.pixelbox.cmwatch.rules.ChatTurns.Row.Sep -> Box(Modifier.flashed(flash != null && row.item.entry.id == flash)) { SeparatorBar(row.item, now) }
                             is it.pixelbox.cmwatch.rules.ChatTurns.Row.Turn -> TurnRow(
                                 row, flash, focus, ttsMinChars, actions, reasonOf = { id -> reasons[id] }, onRetried = { r -> retried = r }, onEdit = { t -> draft = t },
-                                onStep = { step -> draft = NextSteps.append(draft, step, then) },
+                                onStep = { step -> draft = NextSteps.append(draft, step, then) }, showSteps = s.name == it.pixelbox.cmwatch.rules.ContextActions.MASTER,
                             )
                         }
                         }
@@ -2805,7 +2806,7 @@ private fun requestStyle(text: String): androidx.compose.ui.text.TextStyle =
 @Composable
 private fun TurnRow(
     t: it.pixelbox.cmwatch.rules.ChatTurns.Row.Turn, flash: String?, focus: String?, ttsMinChars: Int, actions: SheetActions, reasonOf: (String) -> String?,
-    onRetried: (String) -> Unit, onEdit: (String) -> Unit, onStep: (String) -> Unit,
+    onRetried: (String) -> Unit, onEdit: (String) -> Unit, onStep: (String) -> Unit, showSteps: Boolean = true,
 ) {
     Column(Modifier.widthIn(max = 780.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         when (val q = t.request) {
@@ -2827,7 +2828,7 @@ private fun TurnRow(
             val shape = RoundedCornerShape(22.dp)
             Column(Modifier.fillMaxWidth().testTag("chat-scheda").clip(shape).then(if (V3.day) Modifier.border(1.dp, V3.Line, shape) else Modifier)) {
                 if (t.work.isNotEmpty()) WorkZone(t, flash, focus, actions)
-                t.answer?.let { AnswerZones(it, flash == it.id, actions, onStep) }
+                t.answer?.let { AnswerZones(it, flash == it.id, actions, onStep, showSteps) }
             }
             t.answer?.let { AnswerTail(it, actions) }
         }
@@ -3019,7 +3020,7 @@ private fun DocBody(text: String, index: Boolean, tone: androidx.compose.ui.grap
 
 /** La risposta: il documento coi suoi titoli e, sotto, il piede con Esito, Tipo e Prossimi; fra i due cambia solo il fondo. */
 @Composable
-private fun AnswerZones(e: TranscriptEntry, flashed: Boolean, actions: SheetActions, onStep: (String) -> Unit) {
+private fun AnswerZones(e: TranscriptEntry, flashed: Boolean, actions: SheetActions, onStep: (String) -> Unit, showSteps: Boolean = true) {
     val label = stringResource(R.string.outcome_label)
     val r = remember(e.text, label, actions.sessions) { readEntry(e.text.orEmpty(), label, actions.sessions) }
     val type = it.pixelbox.cmwatch.rules.Kpi.OutcomeType.of(e.outcomeType)
@@ -3041,7 +3042,8 @@ private fun AnswerZones(e: TranscriptEntry, flashed: Boolean, actions: SheetActi
         } else Quotable(r.waits.text, e.at) { SelectionContainer { DocBody(r.body, index = true, tone = Cm.text) } }
         EntryExtras(e, r, actions)
     }
-    if (r.outcome != null || r.tipo != null || r.steps.isNotEmpty()) Column(
+    // I PROSSIMI nel turno solo nella master: in una sessione stanno sopra il campo (app-riall-3-doppioni-16-11); l'ESITO resta.
+    if (r.outcome != null || r.tipo != null || (showSteps && r.steps.isNotEmpty())) Column(
         Modifier.fillMaxWidth().background(F3.foot(type)).padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 14.dp), verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         r.outcome?.let { FootHead(label, true); EsitoRow(it, type, strong = true) }
@@ -3053,7 +3055,7 @@ private fun AnswerZones(e: TranscriptEntry, flashed: Boolean, actions: SheetActi
                 modifier = Modifier.clip(CircleShape).background(tone.copy(alpha = .18f)).padding(horizontal = 11.dp, vertical = 1.dp),
             )
         }
-        if (r.steps.isNotEmpty()) {
+        if (showSteps && r.steps.isNotEmpty()) {
             FootHead(stringResource(R.string.chat_next_label), r.outcome == null && r.tipo == null)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 r.steps.forEach { step ->

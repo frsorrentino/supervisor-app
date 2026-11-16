@@ -52,7 +52,7 @@
 
   // La conversazione della scheda (SessionSheet.kt): i messaggi a destra con lo stato, Claude a tutta larghezza con Copia
   // e ▶, i passaggi raccolti in una card, i file come chip, il costo del turno, e in fondo la riga dal vivo.
-  let { flash = null, focus = null, onStep = null, s, items, now, onFile = () => {}, onFiles = () => {}, onDiff = null, sessions = [], onSession = () => {}, commitments = null, onTask = null }: { flash?: string | null
+  let { flash = null, focus = null, onStep = null, steps: showSteps = true, s, items, now, onFile = () => {}, onFiles = () => {}, onDiff = null, sessions = [], onSession = () => {}, commitments = null, onTask = null }: { /** app-riall-3-doppioni-16-11: i PROSSIMI nel turno; in una sessione stanno solo sopra il campo. */ steps?: boolean; flash?: string | null
     /** La voce che Cerca sta portando in vista: il lavoro che la contiene si apre. */
     focus?: string | null
     /** Una voce di «Prossimi» toccata nel piede: va nel campo. */
@@ -249,11 +249,11 @@
         {@render extras(e, r)}
       </section>
     {/if}
-    {#if r.es.outcome || r.tipo || r.steps.length}
+    {#if r.es.outcome || r.tipo || (showSteps && r.steps.length)}
       <section class="z zf z-{r.typed}">
         {#if r.es.outcome}<span class="k">{t.outcomeLabel}</span><div class="fesito" data-testid="chat-esito"><span class="gl t-{r.typed}"><Icon name={ESITO_ICON[r.typed]} size={20} /></span><p><Md text={outcomeText(r.es.outcome, t.outcomeLabel)} {onTask} /></p></div>{/if}
         {#if r.tipo}<span class="k">{t.typeLabel}</span><span class="tipo t-{r.typed}">{r.tipo}</span>{/if}
-        {#if r.steps.length}<span class="k">{t.nextLabel}</span><div class="nx">{#each r.steps as x}<button disabled={!onStep} onclick={() => onStep?.(x)}>{x}</button>{/each}</div>{/if}
+        {#if showSteps && r.steps.length}<span class="k">{t.nextLabel}</span><div class="nx">{#each r.steps as x}<button disabled={!onStep} onclick={() => onStep?.(x)}>{x}</button>{/each}</div>{/if}
       </section>
     {/if}
   </div>

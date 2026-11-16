@@ -41,11 +41,17 @@ export type Box = { field: string | null; rows: string[] }
  * I consigli prima del suggerito del terminale, che spesso ne copia uno: il primo fa da suggerimento nel campo vuoto, gli
  * altri stanno nel box senza doppioni, il suggerito del terminale entra solo se diverso. Una riga già nel campo esce dal box.
  */
-export function box(steps: string[], terminal: string | null | undefined, draft: string, max = 3): Box {
+export function box(steps: string[], terminal: string | null | undefined, draft: string, max = 3, unite = false): Box {
   const t = terminal?.trim() || null
   if (!steps.length) return { field: t && !draft.trim() ? t : null, rows: [] }
   const seen = new Set<string>()
   const all = [...steps, ...(t ? [t] : [])].filter(x => { const k = norm(x); if (seen.has(k)) return false; seen.add(k); return true })
+  // `unite` (app-riall-3-doppioni-16-11, direzione A): i Prossimi in un posto solo, sopra il campo; nel campo resta il suggerito del
+  // terminale quando non è già uno dei Prossimi.
+  if (unite) {
+    const own = t && !steps.some(x => norm(x) === norm(t)) ? t : null
+    return { field: own && !draft.trim() ? own : null, rows: steps.filter(x => all.includes(x) && !inDraft(draft, x)).slice(0, max) }
+  }
   const field = draft.trim() ? null : all[0]
   return { field, rows: all.filter(x => x !== field && !inDraft(draft, x)).slice(0, max) }
 }

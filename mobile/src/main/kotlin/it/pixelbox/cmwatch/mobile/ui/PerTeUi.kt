@@ -1,5 +1,7 @@
 package it.pixelbox.cmwatch.mobile.ui
 
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -290,6 +292,24 @@ fun PerTeBlock(
             HorizontalDivider(color = V3.Line)
             VoceItem(v, now, onOpen, onMain)
         }
+    }
+}
+
+/**
+ * La scheda di una sessione in Home (app-riall-3-doppioni-16-11, direzione A): niente tasti di risposta, la mano di «Per te» col numero
+ * delle sue voci, compatta perché il nome resti intero; il tocco apre la sessione.
+ */
+@Composable
+fun PerTeCardChip(n: Int, onClick: () -> Unit) {
+    val label = "${stringResource(R.string.fy_title)} $n"
+    Row(
+        Modifier.clip(CircleShape).background(veil(0.12f, V3.S1)).border(1.dp, V3.Wait.copy(alpha = 0.45f), CircleShape).handCursor()
+            .clickable(role = Role.Button, onClickLabel = label, onClick = onClick)
+            .semantics { contentDescription = label }.testTag("scheda-per-te").heightIn(min = 32.dp).padding(start = 9.dp, end = 11.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp),
+    ) {
+        Icon(painterResource(R.drawable.ic_hand), null, tint = V3.Wait, modifier = Modifier.size(17.dp))
+        Text(n.toString(), style = V3.Name.copy(fontSize = 14.sp, color = V3.Wait), maxLines = 1)
     }
 }
 

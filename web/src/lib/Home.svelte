@@ -85,7 +85,7 @@
   import MonitorsList from './MonitorsList.svelte'
   import { looking as monitorsLooking, sectionOf as monitorsSection } from './monitors'
   import type { MonitorCard, MonitorsSummary } from './contract'
-  let { perTeRows = 0, perTeOpen = false, onPerTeToggle = () => {}, perTeFirst = null, perTeFocus = null, newBody, suggestionNames = [], suggestionsAt, onHomeOrder = null, st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, todo = {}, sessionTodo = null, onApprovalClose = null, onDone = () => {}, onOk = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, closeRefused = null, onCloseSeen = () => {}, onCloseArm = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0, suggestionsTotal, usageBlock, onMine = null, onRestart = null, monitors = null, monitorsSum = null, onMonitor = () => {}, onNewMonitor = () => {} }: {
+  let { perTeRows = 0, perTeOpen = false, onPerTeToggle = () => {}, perTeFirst = null, perTeFocus = null, perTeBySession = {}, newBody, suggestionNames = [], suggestionsAt, onHomeOrder = null, st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, todo = {}, sessionTodo = null, onApprovalClose = null, onDone = () => {}, onOk = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, closeRefused = null, onCloseSeen = () => {}, onCloseArm = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0, suggestionsTotal, usageBlock, onMine = null, onRestart = null, monitors = null, monitorsSum = null, onMonitor = () => {}, onNewMonitor = () => {} }: {
     suggestionNames?: string[]
     /** I corpi delle voci del programma del 01/11, gli stessi delle pagine: si aprono sul posto (Franz 02/11 08:05). */
     newBody?: Snippet<[string]>
@@ -96,6 +96,8 @@
     perTeRows?: number; perTeOpen?: boolean; onPerTeToggle?: () => void; perTeFirst?: string | null
     /** «anche in Dalla master ›» da una sessione: Dalla master si apre; il gruppo lo porta in vista PerTeGruppi. */
     perTeFocus?: { session: string; n: number; at: number } | null
+    /** app-riall-3-doppioni-16-11: le righe di «Per te» di ogni sessione, per «Per te N ›» sulla sua scheda. */
+    perTeBySession?: Record<string, number>
     /** Il blocco Utilizzo aperto, scelta D (30/10 20:11); le colonne della plancia tengono le schede (`usage`). */
     usageBlock?: Snippet
     /** La riga della quota nel tabellone apre il quadro (stile «Studio e Diretta», 30/10: era nella testata). */
@@ -510,6 +512,8 @@
   // legge tutto e si sceglie. Niente si approva o si risponde dalla riga.
   function verbOf(r: Row, group: Group, c: ReturnType<typeof cleanupOf>): string | null {
     const s = r.session
+    // Con la lista unica (app-riall-3-doppioni-16-11, direzione A) la scheda non risponde: «Per te N ›» porta alla sessione. Resta Chiudi.
+    if (unified) return c?.canClose && !(perTeBySession[s.name] ?? 0) ? t.cleanupCloseShort : null
     if (group === 'waiting' && s.question) return s.question.options?.length ? t.cmpChoose : t.cmpReply
     if (r.approvals.length) return t.approve
     if (group === 'waiting' && okOf(s)) return t.attentionOk
@@ -1223,6 +1227,9 @@
         {#if group !== 'waiting' && lastRed.get(s.name)}<span class="redtag"><StateGlyph kind="red" size={14} />{hhmm(lastRed.get(s.name)!)}</span>{/if}
         {#if part === 'sessions'}<button class="apri" onclick={(e) => { e.stopPropagation(); onPick(s.name) }}>{t.deskOpen}</button>{/if}
         {#if verb}<button class="verb" class:wait={group === 'waiting'} data-testid="scheda-scelta" onclick={(e) => { e.stopPropagation(); expanded = s.name }}>{verb}</button>{/if}
+        <!-- app-riall-3-doppioni-16-11 (direzione A): quello che la sessione aspetta sta in «Per te»; la scheda lo dice e porta lì. -->
+        <!-- Compatta, la mano di «Per te» col numero: il nome della sessione resta intero. -->
+        {#if unified && (perTeBySession[s.name] ?? 0) > 0}<button class="verb wait ptn" data-testid="scheda-per-te" aria-label="{t.forYou} {perTeBySession[s.name]}" title="{t.forYou} {perTeBySession[s.name]}" onclick={(e) => { e.stopPropagation(); onPick(s.name) }}><CatIcon name="hand" size={17} />{perTeBySession[s.name]}</button>{/if}
         <button class="chev" aria-label={open ? t.close : t.open} onclick={(e) => { e.stopPropagation(); expanded = open ? null : s.name }}>
           <svg viewBox="0 0 24 24" width="22" height="22"><path d={open ? 'M7 14l5-5 5 5' : 'M7 10l5 5 5-5'} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
         </button>
@@ -1232,12 +1239,12 @@
         <!-- Chiusa, una sessione al lavoro è una riga: lo strumento, da quanto dura il turno, il contesto (app-home-riordino-29-10). -->
         {@const [tool, ...rest] = s.tool.split(' ')}
         <p class="meta mono2"><span class="tool">{tool}</span>{rest.join(' ')}</p>
-      {:else if x.body}{@const old = staleHours(r, now)}<p class="body" class:full={open} class:one={!open} class:strong={group === 'waiting' || open} class:stale={old != null}>{#if !open && (todo[s.name]?.d || todo[s.name]?.v)}<span class="tdchips">{#if todo[s.name].d}<span class="tdc w">{t.todoChips.d(todo[s.name].d)}</span>{/if}{#if todo[s.name].v}<span class="tdc">{t.todoChips.v(todo[s.name].v)}</span>{/if}</span>{/if}{x.body}{#if old != null}<span class="ago">{t.staleAgo(old)}</span>{/if}</p>{/if}
-      {#if open && sessionTodo && (todo[s.name]?.d || todo[s.name]?.v)}<div class="tdbody" role="presentation" onclick={(e) => e.stopPropagation()}>{@render sessionTodo(s.name)}</div>{/if}
+      {:else if x.body}{@const old = staleHours(r, now)}<p class="body" class:full={open} class:one={!open} class:strong={group === 'waiting' || open} class:stale={old != null}>{#if !open && !unified && (todo[s.name]?.d || todo[s.name]?.v)}<span class="tdchips">{#if todo[s.name].d}<span class="tdc w">{t.todoChips.d(todo[s.name].d)}</span>{/if}{#if todo[s.name].v}<span class="tdc">{t.todoChips.v(todo[s.name].v)}</span>{/if}</span>{/if}{x.body}{#if old != null}<span class="ago">{t.staleAgo(old)}</span>{/if}</p>{/if}
+      {#if open && !unified && sessionTodo && (todo[s.name]?.d || todo[s.name]?.v)}<div class="tdbody" role="presentation" onclick={(e) => e.stopPropagation()}>{@render sessionTodo(s.name)}</div>{/if}
       {#if open && group === 'waiting' && askedFor(s)}{@const a = askedFor(s)!}<p class="asked mono2">{a.task ? t.askedForTask(a.from, a.task) : t.askedFor(a.from)}</p>{/if}
       {#if open && dt.doing}<p class="doing" data-testid="scheda-sta-facendo"><small>{t.detailDoing}</small><span class="mono2">{dt.doing}</span></p>{/if}
       {#if open && dt.said}<div class="said" data-testid="scheda-ultimo-messaggio"><small>{t.detailSaid(hhmm(dt.saidAt!))}</small><p>{dt.said.replace(/\*\*|__|`/g, '')}</p></div>{/if}
-      {#if open && group === 'waiting' && !s.question}
+      {#if open && !unified && group === 'waiting' && !s.question}
         {@const d = doneOf(s)}
         {@const ok = okOf(s)}
         {@const wp = wPicked[wKey(s)]}
@@ -1247,8 +1254,8 @@
         {:else if d}<div class="oks"><div class="ok"><span class="okt mono2">{s.needs_you?.expires_at ? expiryText(s.needs_you.expires_at) : ''}</span><button class={s.name === primary && !s.needs_you?.until ? 'approve mini' : 'tonal mini'} class:done={wp === 'done'} disabled={!!wp} onclick={(e) => { e.stopPropagation(); wAct(s, 'done', () => onDone(d)) }}>{#if wp === 'done'}✓ {/if}{t.attentionDone}</button></div></div>{/if}
       {/if}
       <!-- Aperta, una ferma mostra anche le altre voci di «Prossimi:» come tasti, subito sotto l'Ok (app-attesa-dettagli-02-11). -->
-      {#if open && steps.length && group === 'waiting'}{@render chipRow(s, steps, x.blocking)}{/if}
-      {#if open && r.approvals.length}
+      {#if open && !unified && steps.length && group === 'waiting'}{@render chipRow(s, steps, x.blocking)}{/if}
+      {#if open && !unified && r.approvals.length}
         <!-- Franz 23/10 19:34: gli ok del registro che questa sessione chiede, ognuno col suo Approva, qui e non in schede a parte. -->
         <div class="oks">
           {#each r.approvals as a (a.task)}
@@ -1292,10 +1299,10 @@
           {/each}
         </div>
       {/if}
-      {#if open && group === 'waiting' && s.question}
+      {#if open && !unified && group === 'waiting' && s.question}
         <Options q={s.question} onAnswer={(n) => onAnswer(s.name, n)} firstFilled={s.name === primary} tonal="color-mix(in srgb, var(--primary) 12%, var(--surface))" />
       {/if}
-      {#if open && steps.length && group !== 'waiting'}{@render chipRow(s, steps, x.blocking)}{/if}
+      {#if open && !unified && steps.length && group !== 'waiting'}{@render chipRow(s, steps, x.blocking)}{/if}
       {#if c && (open || closing === s.name || confirming === s.name)}
         <div class="clean">
           <!-- Chi ha finito o è un doppione resta qui e dice di essere aperta (Franz, 06/10 10:57). -->
@@ -1759,6 +1766,7 @@
   .superata { align-self: flex-start; margin-left: 28px; min-height: 32px; padding: 0 6px; border-radius: 8px; font: 600 14px var(--display); color: var(--tx2); }
   .superata:hover { background: var(--surface); }
   .verb { flex: none; height: 32px; padding: 0 14px; border-radius: 16px; font: 600 14px var(--display); color: var(--tx); background: var(--s2, var(--surface)); white-space: nowrap; }
+  .verb.ptn { display: inline-flex; align-items: center; gap: 5px; padding: 0 11px 0 9px; }
   .verb.wait { color: var(--wait); border: 1px solid color-mix(in srgb, var(--wait) 60%, transparent); background: color-mix(in srgb, var(--wait) 12%, transparent); }
   .meta { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: clip; }
   .meta .tool { color: var(--busy); }

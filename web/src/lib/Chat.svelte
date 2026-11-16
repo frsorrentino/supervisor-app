@@ -157,7 +157,8 @@
   const save = (k: string, v: boolean) => { try { localStorage.setItem(k, v ? '1' : '0') } catch { /* senza memoria resta per la sessione */ } }
   let recurringOpen = $state(saved('cm.recurring_open', false))
   const idle = $derived(s.state === 'idle' && !s.question)
-  const stepsBox = $derived(idle ? boxOf(steps, s.suggestion, draft) : { field: null, rows: [] })
+  // app-riall-3-doppioni-16-11 (direzione A): in una sessione i Prossimi stanno solo sopra il campo, non nel campo né nel turno.
+  const stepsBox = $derived(idle ? (s.name === MASTER ? boxOf(steps, s.suggestion, draft) : boxOf(steps, s.suggestion, draft, 4, true)) : { field: null, rows: [] })
   const recurringRows = $derived(s.name === MASTER ? (st.recurring ?? []).filter(r => !inDraft(draft, r.prompt)).map(r => ({ label: r.label, text: r.prompt, direct: !r.param && idle })) : [])
   // Contratto 1.37: la proposta del contesto pieno sopra il campo; chiusa, torna alla fascia dopo (70, 80).
   const loadDismissed = (): Record<string, number> => { try { return JSON.parse(localStorage.getItem('cm.ctx_dismissed') ?? '{}') } catch { return {} } }
@@ -282,7 +283,7 @@
         {onAnswer} onSession={onPick} onSpeak={(x) => toggle(x, s.name)} {events} {sent} {read} {onRead} onPrompt={onPromptTo} {onCmd} />
     {:else}
     {#if onOlder}<button class="older" onclick={() => { atEnd = false; onOlder() }}>{t.loadOlder}</button>{/if}
-    {#key s.name}<Feed {flash} {focus} onStep={pick} {s} {items} now={st.ts} {onFile} {onFiles} {onDiff} sessions={st.sessions} onSession={onPick} commitments={st.commitments} onTask={onTask} />{/key}
+    {#key s.name}<Feed {flash} {focus} onStep={pick} steps={s.name === MASTER} {s} {items} now={st.ts} {onFile} {onFiles} {onDiff} sessions={st.sessions} onSession={onPick} commitments={st.commitments} onTask={onTask} />{/key}
     {#if onNewer}<button class="older" data-testid="chat-successivi" onclick={() => { atEnd = false; onNewer() }}>{t.loadNewer}</button>{/if}
     <!-- A chat già piena la rotella non c'è: una riga sottile dice da quanto la lettura aspetta il PC. -->
     <!-- Senza messaggi, esito, domanda e lavoro in corso una riga, invece di una pagina che sembra rotta (SessionSheet). -->

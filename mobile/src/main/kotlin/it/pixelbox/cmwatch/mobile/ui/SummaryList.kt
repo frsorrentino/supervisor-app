@@ -132,6 +132,8 @@ fun SummaryList(
      * (anche i risultati da guardare) e l'aperto o chiuso li tiene l'Activity, che ha le voci per tutte le viste.
      */
     perTeRows: Int = 0, perTeOpen: androidx.compose.runtime.MutableState<Boolean>? = null,
+    /** app-riall-3-doppioni-16-11: le righe di «Per te» di ogni sessione, per la chip sulla sua scheda; null senza la lista unica. */
+    perTeBySession: Map<String, Int>? = null,
     /** Cosa è aperto, tenuto dall'Activity perché resti quando la lista si rifà (app-frecce-plancia-tablet-07-11). */
     folds: HomeFolds? = null,
     /** Il tablet (Franz, 04/10 14:31): nell'altezza in più, sotto, le schede di «Utilizzo e limiti». */
@@ -804,7 +806,7 @@ fun SummaryList(
                 onFollow = { f -> onFollow(s.name, f) }, onAskMaster = onAskMaster?.let { ask -> { ask(s.name) } },
                 menuState = menuState, mine = mineOf(s.name), onMine = onMine?.let { m -> { k -> m(s.name, k) } },
                 onOpenInClaude = onOpenInClaude?.let { o -> { o(s.name) } }, onRestartClean = onRestartClean?.let { o -> { o(s.name) } },
-                onApprove = onApprove, todo = todo[r.session.name], sessionTodo = sessionTodo, onDone = onDone,
+                onApprove = onApprove, todo = todo[r.session.name], sessionTodo = sessionTodo, onDone = onDone, perTe = perTeBySession?.let { m -> m[s.name] ?: 0 } ?: -1,
                 works = placed?.inCards?.get(s.name).orEmpty(), services = outsidePlaced.inCards[s.name].orEmpty(), onService = onService,
                 kpiEvents = kpiEvents?.let { m -> m[s.name].orEmpty() },
                 kpiTurns = kpiData?.let { d -> it.pixelbox.cmwatch.rules.Kpi.turnsOf(d, s.name) },
@@ -1242,6 +1244,11 @@ private fun SummaryCard(
     /** L'ok a un compito del registro che questa sessione chiede (Franz 23/10: «Approva» nella scheda della sessione). */
     onApprove: (task: String, note: String, choice: String?) -> Unit = { _, _, _ -> },
     todo: Pair<Int, Int>? = null, sessionTodo: (@Composable (String) -> Unit)? = null,
+    /**
+     * app-riall-3-doppioni-16-11 (direzione A): con la lista unica (≥ 0) la scheda non risponde: la mano di «Per te» col numero porta
+     * alla sessione, e spariscono i tasti, le domande, gli ok e i Prossimi. -1: senza la lista unica, come prima.
+     */
+    perTe: Int = -1,
     /** Contratto 1.80: il tasto «Fatto» di una ferma (op `attention_done`). */
     onDone: (AttentionQueue.Done) -> Unit = {},
     /** Strada B (23/10): i lavori di questa sessione che aspettano te, ognuno col suo tasto (Fatto o Avvia). */
@@ -1314,8 +1321,11 @@ private fun SummaryCard(
     // scelta, che la apre come la freccia; aperta, tutto il resto e la misura del contenuto. Gli stati di passaggio (chiusura,
     // conferma, rifiuto) si vedono sempre.
     val compact = !open && !closing && !closeAsk && !menuClose && refused == null
-    val okStep0 = if (waiting && s.question == null) AttentionQueue.okOf(s) else null
-    val verb = if (!compact) null else when {
+    val okStep0 = if (waiting && s.question == null && perTe < 0) AttentionQueue.okOf(s) else null
+    val verb = if (!compact) null else if (perTe >= 0) {
+        // Resta «Chiudi», che non è una voce di «Per te», e solo quando la sessione non aspetta niente.
+        if (perTe == 0 && it.pixelbox.cmwatch.rules.MasterService.cleanup(s, canExit, now)?.canClose == true) stringResource(R.string.cleanup_close_short) else null
+    } else when {
         waiting && s.question != null -> stringResource(if (s.question!!.options.isNotEmpty()) R.string.card_choose else R.string.card_reply)
         r.approvals.isNotEmpty() -> stringResource(R.string.approve)
         okStep0 != null -> stringResource(R.string.attention_ok)
@@ -1400,6 +1410,7 @@ private fun SummaryCard(
             if (openKey) androidx.compose.material3.Surface(onClick = onOpen, shape = CircleShape, color = V3.S3, modifier = Modifier.handCursor().testTag("apri-${s.name}")) {
                 Text(stringResource(R.string.desk_open), style = V3.Small.copy(color = V3.Tx, fontWeight = FontWeight.SemiBold), modifier = Modifier.padding(horizontal = 14.dp, vertical = 5.dp))
             }
+            if (perTe > 0) PerTeCardChip(perTe, onOpen)
             verb?.let { v -> V3Pill(v, filled = waiting, onClick = onToggle) }
             IconButton(onClick = onToggle, modifier = Modifier.size(32.dp)) {
                 androidx.compose.material3.Icon(
@@ -1436,7 +1447,7 @@ private fun SummaryCard(
         val old = Summary.staleHours(r, now)
         // Chiusa, una sessione al lavoro è una riga: lo strumento in mono (app-home-riordino-29-10).
         val toolLine = s.tool?.takeIf { r.group == Summary.Group.WORKING && !open }
-        val chips = todo?.takeIf { compact && (it.first > 0 || it.second > 0) }
+        val chips = todo?.takeIf { perTe < 0 && compact && (it.first > 0 || it.second > 0) }
         if (chips != null) Row(Modifier.fillMaxWidth().fadeEnd(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             // Le richieste della sessione in testa alla riga: la scheda chiusa resta della sua misura (app-sessioni-compatte-06-11).
             if (chips.first > 0) TodoChip(stringResource(R.string.todo_decide, chips.first), true)
@@ -1457,7 +1468,7 @@ private fun SummaryCard(
         // Contratto 1.84: la richiesta di un'altra sessione per un compito di questa dice chi la fa.
         // Le sottoschede partono dal bordo del contenuto della scheda, non dalla colonna del titolo (app-superfici-plancia-07-11):
         // si allargano a sinistra sopra il binario, a 12 dp dal bordo.
-        if (open && sessionTodo != null && todo != null && (todo.first > 0 || todo.second > 0)) Box(Modifier.padding(top = 4.dp).bleedStart(V3.Rail + 8.dp - 12.dp)) {
+        if (open && perTe < 0 && sessionTodo != null && todo != null && (todo.first > 0 || todo.second > 0)) Box(Modifier.padding(top = 4.dp).bleedStart(V3.Rail + 8.dp - 12.dp)) {
             androidx.compose.runtime.CompositionLocalProvider(LocalSubCard provides true) { sessionTodo(s.name) }
         }
         if (waiting && !compact) Summary.askedFor(s)?.let { a ->
@@ -1477,7 +1488,7 @@ private fun SummaryCard(
         }
         // Franz 23/10 19:34: gli ok del registro che questa sessione chiede, ognuno col suo Approva, qui e non in schede a parte.
         if (!compact) {
-        r.approvals.forEach { a -> ApprovalLine(a, onApprove) }
+        if (perTe < 0) r.approvals.forEach { a -> ApprovalLine(a, onApprove) }
         // Strada B (Franz 23/10 23:08): i lavori di questa sessione che aspettano te, qui come gli ok.
         HeadsUpNoteRow(s, now)
         works.forEach { w -> WorkLine(w, onDone = { onWorkDone(w) }, onStart = { onWorkStart(w) }) }
@@ -1489,14 +1500,14 @@ private fun SummaryCard(
         if (okStep != null) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.End) {
             V3Pill(stringResource(R.string.attention_ok), filled = doneFilled, confirmed = wPick == "ok") { wAct("ok") { onStep(okStep) } }
         }
-        else if (waiting && s.question == null && !compact) AttentionQueue.doneOf(s)?.let { d ->
+        else if (perTe < 0 && waiting && s.question == null && !compact) AttentionQueue.doneOf(s)?.let { d ->
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(s.needsYou?.expiresAt?.let { expiryText(it, now) } ?: "", style = MonoSmall, color = Cm.text2, modifier = Modifier.weight(1f))
                 V3Pill(stringResource(R.string.attention_done), filled = doneFilled, confirmed = wPick == "done") { wAct("done") { onDone(d) } }
             }
         }
         // Le opzioni della domanda subito, anche a card chiusa: rispondere è il motivo per cui la card è in cima.
-        if (waiting && !compact) s.question?.let { q ->
+        if (waiting && !compact && perTe < 0) s.question?.let { q ->
             var holdHint by rememberSaveable(q.id) { mutableStateOf(false) }
             // Sul fondo della card il tonale di sempre quasi spariva (provini 03/10): un velo del colore primario.
             QuestionOptions(q, firstFilled = firstFilled, holdHint = holdHint, onHold = { holdHint = true }, onAnswer = onAnswer, tonal = if (V3.day) V3.S1 else V3.S3, v3 = true)
@@ -1504,13 +1515,13 @@ private fun SummaryCard(
         // I consigli come tasti, sempre visibili (Franz, 03/10 17:27): il tocco li manda subito a quella sessione, che li
         // prende a fine turno se sta lavorando.
         // Aperta, una ferma mostra anche le altre voci di «Prossimi:» come tasti (app-attesa-dettagli-02-11).
-        if (waiting && open && detail.steps.isNotEmpty()) androidx.compose.foundation.layout.FlowRow(
+        if (perTe < 0 && waiting && open && detail.steps.isNotEmpty()) androidx.compose.foundation.layout.FlowRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             val blocking = s.nextSteps.orEmpty().filter { it.blocking }.map { it.text.trim() }
             detail.steps.forEach { step -> StepChip(step, step in blocking, sent = step in sentSteps) { sentSteps = sentSteps + step; onStep(step) } }
         }
-        if (!waiting && !compact && parsed.steps.isNotEmpty()) androidx.compose.foundation.layout.FlowRow(
+        if (perTe < 0 && !waiting && !compact && parsed.steps.isNotEmpty()) androidx.compose.foundation.layout.FlowRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             // Contratto 1.38, variante 2: chi sblocca ha il filo ambra e il lucchetto (dal «!» o da `next_steps`).

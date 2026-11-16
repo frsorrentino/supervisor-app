@@ -46,10 +46,16 @@ object NextSteps {
      * è diverso da tutti. Una riga già portata nel campo esce dal box e ci torna se il testo la perde; scrivendo altro,
      * anche quella del campo torna nel box. Senza consigli resta il suggerito del terminale nel campo, come prima.
      */
-    fun box(steps: List<String>, terminal: String?, draft: String): Box {
+    fun box(steps: List<String>, terminal: String?, draft: String, unite: Boolean = false): Box {
         val t = terminal?.trim()?.takeIf { it.isNotEmpty() }
         if (steps.isEmpty()) return Box(t?.takeIf { draft.isBlank() }, emptyList())
         val all = (steps + listOfNotNull(t)).distinctBy(::norm)
+        // [unite] (app-riall-3-doppioni-16-11, direzione A): i Prossimi in un posto solo, sopra il campo; nel campo resta il suggerito del
+        // terminale quando non è già uno dei Prossimi. Come box() di composer.ts.
+        if (unite) {
+            val own = t?.takeIf { x -> steps.none { s -> norm(s) == norm(x) } }
+            return Box(own?.takeIf { draft.isBlank() }, steps.filter { s -> s in all && !inDraft(draft, s) }.take(MAX + 1))
+        }
         val field = all.first().takeIf { draft.isBlank() }
         return Box(field, all.filter { it != field && !inDraft(draft, it) }.take(MAX))
     }

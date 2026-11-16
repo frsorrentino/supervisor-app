@@ -2450,6 +2450,7 @@ class MainActivity : ComponentActivity() {
                 SummaryList(
                     summary, onQuota = goUsage, parts = parts, partHead = partHead, partFoot = partFoot, todo = sessTodo, sessionTodo = sessionTodo, folds = homeFolds,
                     perTeRows = perTeRows, perTeOpen = perTeOpenState,
+                    perTeBySession = if (uItems != null) perTeGroups.mapNotNull { g -> g.session?.let { n -> n to g.voci.size } }.toMap() else null,
                     update = updateUi.takeIf { BuildConfig.SELF_UPDATE }, onInstallUpdate = { r -> app.updater.install(r) }, onDismissUpdate = { t -> app.updater.dismiss(t) },
                     // Aprire una sessione che ha finito la toglie da «Ha finito», come in «Per te».
                     onOpen = { n ->

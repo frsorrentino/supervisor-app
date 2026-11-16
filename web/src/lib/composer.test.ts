@@ -39,6 +39,10 @@ describe('box Prossimi', () => {
   it('senza consigli il suggerito resta nel campo', () => {
     expect(box([], 'Committa', '')).toEqual({ field: 'Committa', rows: [] })
     expect(box([], 'Committa', 'scrivo altro')).toEqual({ field: null, rows: [] })
+    // app-riall-3-doppioni-16-11: nelle sessioni i Prossimi stanno tutti sopra il campo; nel campo solo il suggerito del terminale diverso.
+    expect(box(['Prova dal vivo', 'Apri la CI'], 'prova dal vivo.', '', 4, true)).toEqual({ field: null, rows: ['Prova dal vivo', 'Apri la CI'] })
+    expect(box(['Prova dal vivo', 'Apri la CI'], 'Committa', '', 4, true)).toEqual({ field: 'Committa', rows: ['Prova dal vivo', 'Apri la CI'] })
+    expect(box(['Prova dal vivo', 'Apri la CI'], null, 'Fai il merge e apri la CI', 4, true)).toEqual({ field: null, rows: ['Prova dal vivo'] })
   })
   it('una riga nel campo esce dal box e quella del campo torna', () =>
     expect(box(['Prova dal vivo', 'Apri la CI', 'Scrivi il piano'], null, 'Fai il merge e poi apri la CI')).toEqual({ field: null, rows: ['Prova dal vivo', 'Scrivi il piano'] }))

@@ -63,6 +63,10 @@ class NextStepsTest {
     @Test fun withoutStepsTheTerminalSuggestionStaysInTheField() {
         assertEquals(NextSteps.Box("Committa", emptyList()), NextSteps.box(emptyList(), "Committa", ""))
         assertEquals(NextSteps.Box(null, emptyList()), NextSteps.box(emptyList(), "Committa", "scrivo altro"))
+        // app-riall-3-doppioni-16-11: nelle sessioni i Prossimi stanno tutti sopra il campo; nel campo solo il suggerito del terminale diverso.
+        assertEquals(NextSteps.Box(null, listOf("Prova dal vivo", "Apri la CI")), NextSteps.box(listOf("Prova dal vivo", "Apri la CI"), "prova dal vivo.", "", unite = true))
+        assertEquals(NextSteps.Box("Committa", listOf("Prova dal vivo", "Apri la CI")), NextSteps.box(listOf("Prova dal vivo", "Apri la CI"), "Committa", "", unite = true))
+        assertEquals(NextSteps.Box(null, listOf("Prova dal vivo")), NextSteps.box(listOf("Prova dal vivo", "Apri la CI"), null, "Fai il merge e apri la CI", unite = true))
     }
 
     @Test fun aStepInTheFieldLeavesTheBoxAndTheFieldOneComesBack() {
