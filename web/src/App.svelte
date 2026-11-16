@@ -1945,6 +1945,12 @@
   // Un file aperto in chat è visto anche in Risultati (app-risultati-visti-03-11, Franz: «rimangono presenti anche se li vedo altrove»).
   // Il menu unico della sessione (app-menu-sessione-03-11): una voce di Tocca a te apre la sua pagina; Guarda solo i lavori di quella sessione.
   function mineGo(name: string, kind: MenuKind) {
+    // Con la lista unica (app-riall-3-doppioni-16-11) prove e decisioni della sessione stanno nel suo «Per te»: la sessione si apre con lui.
+    if (unified && (kind === 'prove' || kind === 'decidi')) {
+      const w = perTeG.find(g => g.session === name)?.voci.filter(v => v.group !== 'verifica').map(v => v.key) ?? []
+      if (!boxOpen(name, 'perte', w)) boxToggle(name, 'perte', w)
+      openPage(null); pick(name); return
+    }
     if (kind === 'guarda') { watchSession = name; watchOpenId = null; openPage('guardare') }
     else if (kind === 'prove') openPage('prove')
     else if (kind === 'decidi') openPage('decisions')
@@ -2280,7 +2286,10 @@
     {:else if p === 'prove'}
       <DaProvare {run} focus={proveFocus} onScreen={(s) => openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName)} onShot={(file, note) => attach(MASTER, [file], note)} />
     {:else if p === 'decisions'}
-      {@render decisionsBody()}
+      <!-- Con la lista unica la pagina è «Per te» con le sole decisioni, con le stesse righe (app-riall-3-doppioni-16-11). -->
+      {#if unified}<PerTeGruppi {run} groups={perTeG.map(g => ({ ...g, voci: g.voci.filter(v => v.group === 'decidi') })).filter(g => g.voci.length)} now={st.ts}
+        onSession={(n) => { openPage(null); pick(n) }} onOpenWait={openWait} onOpenResult={(id, s) => { watchSession = s; watchOpenId = id; openPage('guardare') }} reread={() => void readResults(run)} onAnswered={(w) => waitCardsRefresh(w)} />
+      {:else}{@render decisionsBody()}{/if}
     {:else if p === 'features'}
       <Features onRoute={(r) => openPage(r === 'usage' ? 'overview' : r as PageName)} />
     {:else if p === 'homeorder'}

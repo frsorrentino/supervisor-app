@@ -1894,8 +1894,12 @@ class MainActivity : ComponentActivity() {
         }
         val openMine: (String, it.pixelbox.cmwatch.rules.SessionMenu.Kind) -> Unit = { n, k ->
             when (k) {
-                it.pixelbox.cmwatch.rules.SessionMenu.Kind.PROVE -> proveOpen = true
-                it.pixelbox.cmwatch.rules.SessionMenu.Kind.DECIDI -> decisionsOpen = true
+                // Con la lista unica (app-riall-3-doppioni-16-11) prove e decisioni della sessione stanno nel suo «Per te»: la sessione si apre con lui.
+                it.pixelbox.cmwatch.rules.SessionMenu.Kind.PROVE, it.pixelbox.cmwatch.rules.SessionMenu.Kind.DECIDI -> if (uItems != null) {
+                    val w = perTeGroups.firstOrNull { g -> g.session == n }?.voci?.let(it.pixelbox.cmwatch.rules.PerTe::waitingKeys).orEmpty()
+                    if (!sessionBoxes.isOpen(n, it.pixelbox.cmwatch.rules.Riquadri.Kind.PERTE, w)) sessionBoxes.toggle(n, it.pixelbox.cmwatch.rules.Riquadri.Kind.PERTE, w)
+                    if (!wide) open = n else if (n !in tabletCols) saveCols(it.pixelbox.cmwatch.rules.Tablet.replace(tabletCols, n))
+                } else if (k == it.pixelbox.cmwatch.rules.SessionMenu.Kind.PROVE) proveOpen = true else decisionsOpen = true
                 it.pixelbox.cmwatch.rules.SessionMenu.Kind.GUARDA -> { watchSession = n; watchOpen = true }
                 it.pixelbox.cmwatch.rules.SessionMenu.Kind.SEGUITI -> seguitiOpen = true
                 else -> Unit
