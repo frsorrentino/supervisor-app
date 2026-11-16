@@ -112,7 +112,7 @@ internal fun ItemRowView(r: ItemRows.Row, right: String, first: Boolean, open: B
 @Composable
 internal fun ItemList(
     rows: List<ItemRows.Row>, tag: String, right: @Composable (ItemRows.Row) -> String = { itemRight(it) }, name: @Composable (ItemRows.Row) -> String = { it.name },
-    /** Le righe confermate che escono (app-effetti-movimenti-04-11, punto 4): restano nella lista e se ne vanno con confirmedExit. */
+    /** Le righe confermate che escono (app-effetti-movimenti-04-11, punto 4): restano nella lista e se ne vanno con leaveExit. */
     gone: Set<String> = emptySet(),
     /** Quante cose dicono le righe nascoste in «altre N»: di solito le righe, per Decidi le decisioni dei gruppi (web-plancia-j2-ripasso-06-11). */
     more: (List<ItemRows.Row>) -> Int = { it.size },

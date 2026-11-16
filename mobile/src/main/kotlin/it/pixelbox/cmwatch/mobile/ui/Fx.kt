@@ -87,24 +87,14 @@ internal fun WorkEdge(working: Boolean, modifier: Modifier = Modifier) {
 }
 
 /**
- * L'uscita di una riga chiusa da una conferma in «Da provare» (app-prove-chiusura-anim-16-11, Franz 16/11 09:58: l'uscita di prima
- * spesso si vedeva male): si chiude in altezza e sfuma in 160 ms, come le altre schede che si chiudono; con le animazioni spente
- * solo la dissolvenza. Lo stesso in motion.ts (`leaveOut`).
+ * L'uscita di una riga o di una scheda chiusa da una conferma (app-prove-chiusura-anim-16-11, Franz 16/11 09:58: l'uscita di prima,
+ * verso il contatore, spesso si vedeva male): si chiude in altezza e sfuma in 160 ms; con le animazioni spente solo la dissolvenza.
+ * È l'unica uscita di queste schede (app-uscite-uniformi-16-11): le righe di Da provare e la scheda «Ti aspetta» della Home. Lo stesso
+ * in motion.ts (`leaveOut`).
  */
 internal fun leaveExit(off: Boolean): androidx.compose.animation.ExitTransition =
     if (off) androidx.compose.animation.fadeOut(tween(120))
     else androidx.compose.animation.shrinkVertically(tween(160)) + androidx.compose.animation.fadeOut(tween(160))
-
-/**
- * Punto 4: la scheda confermata esce girandosi, piegandosi in una striscia e salendo verso il contatore di «Tocca a te», che sta
- * sopra; al posto del solo restringersi in altezza.
- */
-internal fun confirmedExit(off: Boolean): androidx.compose.animation.ExitTransition =
-    if (off) androidx.compose.animation.ExitTransition.None
-    else androidx.compose.animation.scaleOut(tween(650, easing = androidx.compose.animation.core.CubicBezierEasing(0.45f, 0f, 0.25f, 1f)), targetScale = 0.08f, transformOrigin = TransformOrigin(0.5f, 0f)) +
-        androidx.compose.animation.slideOutVertically(tween(650)) { h -> -h * 2 } +
-        androidx.compose.animation.shrinkVertically(tween(650, delayMillis = 200)) +
-        androidx.compose.animation.fadeOut(tween(250, delayMillis = 400))
 
 /** Punto 1: la scheda toccata si contrae al 98 % e torna. */
 @Composable

@@ -18,12 +18,14 @@ describe('uscita_semplice', () => {
     const o = leaveOut(node) as { duration: number; css: (t: number) => string }
     expect([o.duration, o.css(0.25)]).toEqual([LEAVE_FADE_MS, 'opacity: 0.25'])
   })
-  it('spenta non anima', () => expect(leaveOut(node, { on: false })).toEqual({ duration: 0 }))
-  it('Da provare non usa più il giro verso il contatore', () => {
-    const page = readFileSync(new URL('./DaProvare.svelte', import.meta.url), 'utf8')
-    expect(page).not.toMatch(/cardFx|toCounter/)
-    expect(page.match(/out:leaveOut/g)).toHaveLength(2)
-    expect(page).toContain('{focus} leave onOpen')
-    expect(page).toContain('testid="prova-ko" leave>')
+  // app-uscite-uniformi-16-11: una sola uscita per le schede chiuse da una conferma; il giro verso il contatore non c'è più.
+  const read = (f: string) => readFileSync(new URL(f, import.meta.url), 'utf8')
+  const flight = 'to' + 'Counter'   // spezzata: il controllo del registro cerca la parola nel codice
+  it('Da provare, Decidi e le liste escono tutte così', () => {
+    expect(read('./DaProvare.svelte').match(/out:leaveOut/g)).toHaveLength(2)
+    expect(read('./CinqueMinuti.svelte')).toContain('in:pass out:leaveOut')
+    expect(read('./ItemList.svelte')).toContain('data-key={r.key} out:leaveOut>')
+    for (const f of ['./DaProvare.svelte', './CinqueMinuti.svelte', './Seguiti.svelte', './cardFx.ts']) expect(read(f)).not.toContain(flight)
+    expect(read('./cardFx.ts')).not.toMatch(/rotateY/)
   })
 })

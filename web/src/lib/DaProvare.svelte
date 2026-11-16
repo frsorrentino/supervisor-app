@@ -88,7 +88,7 @@
   {#each (page?.groups ?? []).filter(g => shown(g).length) as g (g.build)}
     <div class="h" out:leaveOut><span>{g.build}</span>{#if shown(g).length > 1}<button class="tonal ck" class:done={g.prove.every(p => picked[String(p.id)] === 'ok')} onclick={() => result(g.prove.map(p => String(p.id)), allOk(g), 'ok')}><span class="lbl">{t.proveAllOk}</span>{#if g.prove.every(p => picked[String(p.id)] === 'ok')}<Check />{/if}</button>{/if}</div>
     <!-- Le prove come righe (app-richiede-te-righe-02-11): il tocco apre la scheda con Non va e Ok. Sul web la versione c'è sempre. -->
-    <ItemList rows={shown(g).map(p => prove(p, true))} testid={`prova-${g.build}`} {focus} leave onOpen={onWait ? (r) => { const w = g.prove.find(x => String(x.id) === r.key)?.wid; if (w) onWait(w); return !!w } : null}>{#snippet card(r)}{@const p = g.prove.find(x => String(x.id) === r.key)}{#if p}{@const pk = picked[String(p.id)]}
+    <ItemList rows={shown(g).map(p => prove(p, true))} testid={`prova-${g.build}`} {focus} onOpen={onWait ? (r) => { const w = g.prove.find(x => String(x.id) === r.key)?.wid; if (w) onWait(w); return !!w } : null}>{#snippet card(r)}{@const p = g.prove.find(x => String(x.id) === r.key)}{#if p}{@const pk = picked[String(p.id)]}
       <div class="in"><LongText text={p.fai} /><p class="m">{t.proveExpected(p.atteso)}</p>
         <!-- Le immagini di cosa guardare, dalla richiesta della prova (app-scheda-scelta-12-11). -->
         {#if p.wid}<ProvaFiles wid={p.wid} />{/if}
@@ -101,7 +101,7 @@
   {/each}
   <!-- Una prova segnalata si chiude con «Ora va» quando, riprovata, va (app-verifica-conto-elenco-12-11): è l'Ok di una prova, che il relay
        accetta anche dopo un «Non va». -->
-  {#if koShown.length}<div class="h"><span>{t.proveReported}</span></div><ItemList rows={koShown.map(proveKo)} testid="prova-ko" leave>{#snippet card(r)}{@const k = koShown.find(x => `ko-${x.id}` === r.key)}{@const pk = picked[r.key]}<div class="in"><div class="m"><LongText text={k?.text ?? ''} /></div>
+  {#if koShown.length}<div class="h"><span>{t.proveReported}</span></div><ItemList rows={koShown.map(proveKo)} testid="prova-ko">{#snippet card(r)}{@const k = koShown.find(x => `ko-${x.id}` === r.key)}{@const pk = picked[r.key]}<div class="in"><div class="m"><LongText text={k?.text ?? ''} /></div>
       {#if k}<div class="ac"><span class="sp"></span><button class="tonal ck" class:done={pk === 'ok'} disabled={!!pk} data-testid="prova-ora-va" onclick={() => result([r.key], String(k.id), 'ok')}><span class="lbl">{t.proveNowOk}</span>{#if pk === 'ok'}<Check />{/if}</button></div>{/if}</div>{/snippet}</ItemList>{/if}
   {#if page?.red.length}<div class="h"><span>{t.proveRed}</span></div><ItemList rows={page.red.map(proveRed)} testid="prova-rossa">{#snippet card(r)}<div class="r in"><LongText text={page?.red.find(x => `red-${x.task}` === r.key)?.reason ?? t.proveRedRunning} /></div>{/snippet}</ItemList>{/if}
   {#if (page?.groups ?? []).some(g => shown(g).length)}<p class="m small">{t.proveWeb}</p>{/if}

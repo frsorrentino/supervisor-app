@@ -1582,7 +1582,7 @@ private fun SummaryCard(
     }
     }
     }
-    if (waiting) androidx.compose.animation.AnimatedVisibility(!wGone, enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(), exit = confirmedExit(offAnim)) { Column { cardBody() } }
+    if (waiting) androidx.compose.animation.AnimatedVisibility(!wGone, enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(), exit = leaveExit(offAnim)) { Column { cardBody() } }
     else cardBody()
 }
 
