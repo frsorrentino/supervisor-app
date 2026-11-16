@@ -61,6 +61,16 @@ html, body { overscroll-behavior: none; }
 /* iPhone con la tastiera (app-ios-scatti-tastiera-12-11): #app sta fisso sull'area visibile, anche quando Safari fa scorrere la
    pagina per mostrare il campo (--vvt, da main.ts); sulle altre piattaforme --vvt è 0 e non cambia niente. */
 #app { position: fixed; left: 0; right: 0; top: var(--vvt, 0px); }
+/* Con lo zoom delle dita l'inquadratura va anche di lato, fino ai bordi (app-zoom-pan-laterale-16-11, Franz 16/11 sul Chromebook:
+   andava solo in verticale). `html.zoomed` lo mette main.ts finché la pagina è ingrandita; senza zoom niente cambia.
+   - Nessun elemento trattiene lo scorrimento laterale: la chat lo tratteneva insieme al verticale (il rimbalzo di iPhone, che
+     resta), la striscia del telefono per non passarlo alla pagina. html e body restano senza rimbalzo: dal bordo niente «indietro».
+   - La striscia del telefono non cambia pagina: dito e rotella spostano l'inquadratura.
+   - Il dito sposta e ingrandisce dovunque parta (testate delle colonne, sezioni della home, maniglie), tranne nel visore delle
+     immagini, che ha il suo zoom. Le regole dei componenti valgono senza zoom: qui servono !important. */
+html.zoomed body * { overscroll-behavior-x: auto !important; }
+html.zoomed .strip { overflow-x: hidden !important; }
+html.zoomed body *:not(.ivbox) { touch-action: manipulation !important; }
 /* Installata su iPhone e iPad la pagina va fin sotto la tacca e la barra in basso: i bordi sicuri restano liberi. */
 #app { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
 /* A tastiera aperta il bordo sicuro in basso sta sotto la tastiera: il campo si attacca a lei. */

@@ -11,6 +11,7 @@
   import type { ChangesView, StepDiff } from './contract'
   import type { Load } from './diff'
   import { merge, group } from './chatFeed'
+  import { listEnd } from './viewport'
   import type { Sent, Status } from './chatRules'
   import { toggle } from './speech.svelte'
   import Feed from './Feed.svelte'
@@ -214,6 +215,8 @@
     onFocused()
   })
   let auto = false
+  // Il fondo vero della lista, non mezzo pixel oltre: con lo zoom delle dita il gesto laterale sposta l'inquadratura (viewport.ts).
+  const endOf = (el: HTMLElement) => listEnd(el.scrollHeight, parseFloat(getComputedStyle(el).height) || el.clientHeight)
   // Solo un cambio vero di sessione riporta in fondo: `s` è un oggetto nuovo a ogni stato del relay (Franz, 07/10 14:53).
   let shownName: string | undefined
   $effect.pre(() => { if (s.name !== shownName) { shownName = s.name; settled = false; atEnd = true; held = false } })
@@ -221,13 +224,13 @@
     items.length; s.question
     if (home || !list) return
     const el = list
-    if (!settled) { requestAnimationFrame(() => { if (held) return; el.scrollTop = el.scrollHeight; settled = true; atEnd = true }); return }
+    if (!settled) { requestAnimationFrame(() => { if (held) return; el.scrollTop = endOf(el); settled = true; atEnd = true }); return }
     if (!atEnd) return
     // Già in fondo non c'è scorrimento e quindi nemmeno `scrollend`: il segno «scorrimento nostro» non deve restare acceso.
     if (el.scrollHeight - el.scrollTop - el.clientHeight < 2) return
     auto = true
     setTimeout(() => { auto = false }, 1000)
-    el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
+    el.scrollTo({ top: endOf(el), behavior: 'smooth' })
   })
   // Una colonna che cambia larghezza fa andare a capo i testi: resta in fondo se lo era. Lo scorrimento animato nostro non
   // conta come «ha lasciato il fondo» finché non finisce.
@@ -245,7 +248,7 @@
       else if (dir > 0 && !auto && gap() < 40) atEnd = true
     }
     const onEnd = () => { lastTop = el.scrollTop; if (auto) { auto = false; if (gap() < 40) atEnd = true } }
-    const ro = new ResizeObserver(() => { if (atEnd && !home) el.scrollTop = el.scrollHeight })
+    const ro = new ResizeObserver(() => { if (atEnd && !home) el.scrollTop = endOf(el) })
     el.addEventListener('scroll', onScroll, { passive: true })
     el.addEventListener('scrollend', onEnd)
     ro.observe(el)
@@ -312,7 +315,7 @@
     <!-- Aperta sul punto di un risultato con voci più nuove dopo (contratto 1.127): il tasto c'è anche in fondo alla pagina e
          porta all'ultima voce vera, non al fondo di quello che è caricato. -->
     {#if (!atEnd || onLatest) && !home}
-      <div class="toend"><button aria-label={t.toLatest} title={t.toLatest} data-testid="chat-in-fondo" onclick={() => { if (!list) return; onLatest?.(); atEnd = true; auto = true; list.scrollTo({ top: list.scrollHeight, behavior: 'smooth' }) }}>
+      <div class="toend"><button aria-label={t.toLatest} title={t.toLatest} data-testid="chat-in-fondo" onclick={() => { if (!list) return; onLatest?.(); atEnd = true; auto = true; list.scrollTo({ top: endOf(list), behavior: 'smooth' }) }}>
         <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 5v14M6 13l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
       </button></div>
     {/if}

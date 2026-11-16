@@ -18,8 +18,10 @@ installDialogGrow()
 const vv = window.visualViewport
 const root = document.documentElement
 const fit = () => {
-  const { vvh, vvt, kb } = viewportVars(vv, innerHeight)
+  const { vvh, vvt, kb, zoomed } = viewportVars(vv, innerHeight)
   root.style.setProperty('--vvh', `${vvh}px`); root.style.setProperty('--vvt', `${vvt}px`); root.classList.toggle('kb', kb)
+  // Con lo zoom delle dita l'inquadratura va anche di lato (app-zoom-pan-laterale-16-11): le regole in app.css.
+  root.classList.toggle('zoomed', zoomed)
 }
 fit()
 vv?.addEventListener('resize', fit)
