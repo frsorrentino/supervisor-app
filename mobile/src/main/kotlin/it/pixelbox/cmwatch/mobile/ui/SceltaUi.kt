@@ -305,6 +305,7 @@ fun SceltaAperta(item: WaitItem, rows: List<Pair<Int, String>>, onSend: (Int, St
         }
         val title = item.title?.takeIf { it.isNotBlank() } ?: item.text
         if (item.text.isNotBlank() && item.text != title) Text(item.text, style = V3.Body.copy(fontSize = 17.sp, lineHeight = 24.sp))
+        AdviceLine(item.advice, "scelta-consiglio")
         item.description?.takeIf { it.isNotBlank() && it != item.text }?.let { Text(it, style = V3.Body.copy(color = V3.Tx2, lineHeight = 23.sp)) }
         if (rows.isNotEmpty()) Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
             rows.forEach { (k, v) ->

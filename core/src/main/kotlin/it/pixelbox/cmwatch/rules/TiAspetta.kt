@@ -44,6 +44,18 @@ object TiAspetta {
     )
 
     /**
+     * La riga del consiglio sotto la domanda (contratto 1.149, app-consiglio-carte-16-11, Franz 16/11 10:24 e 10:29: «il tuo
+     * suggerimento con consigliato» e «una breve motivazione»). [verdict] su una carta di ok: vero approvare, falso non approvare;
+     * null in una scelta, dove l'opzione consigliata porta già il suo segno. Senza testo niente riga. Come adviceOf in tiAspetta.ts.
+     */
+    data class Advice(val text: String, val verdict: Boolean?)
+    fun adviceOf(a: it.pixelbox.cmwatch.contract.WaitAdvice?): Advice? =
+        a?.text?.trim()?.takeIf { it.isNotEmpty() }?.let { Advice(it, a.approve) }
+    /** La riga scritta: «Consiglio: approvare · perché». [word], [yes] e [no] vengono dalle stringhe. */
+    fun adviceLine(a: Advice, word: String, yes: String, no: String): String =
+        "$word: " + listOfNotNull(a.verdict?.let { if (it) yes else no }, a.text).joinToString(" · ")
+
+    /**
      * Contratto 1.131: un tasto è una scelta numerata (option, o primary con recommended, come la consigliata di una scelta), il tasto
      * pieno (primary senza recommended) o un tasto tonale (secondary).
      */

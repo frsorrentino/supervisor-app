@@ -9,7 +9,7 @@
   import { locale } from './lang'
   import { decodeWait, decodeWaits, readPage } from './decideDecode'
   import { newCmd } from './transport'
-  import { cmdOf, lookOf, type Kind, type Page } from './tiAspetta'
+  import { adviceLine, adviceOf, cmdOf, lookOf, type Kind, type Page } from './tiAspetta'
   import { t } from './t'
   // La scheda «Ti aspetta» collegata al contratto 1.130-1.131 (app-scheda-ti-aspetta-07-11): legge la voce con `attesa` e le altre con
   // `attese`. La carta in alto ha i tasti del relay (`actions`, ognuno col suo comando già pronto); un relay senza `actions` mostra la
@@ -95,6 +95,8 @@
           <p class="k">{w.label_text}{#if w.card?.deploy}<span class="tag">{t.tiAspettaProduction}</span>{/if}</p>
           {#if w.title && w.title !== w.text}<p class="ttl">{w.title}</p>{/if}
           <p class="q">{w.text}</p>
+          <!-- Contratto 1.149: il consiglio di chi chiede, con la motivazione, sotto la domanda. -->
+          {#if adviceOf(w.advice)}<p class="adv" data-testid="ti-aspetta-consiglio">{adviceLine(adviceOf(w.advice)!, t.tiAspettaAdvice, t.tiAspettaAdviceYes, t.tiAspettaAdviceNo)}</p>{/if}
           {#if rows(w).length}<dl>{#each rows(w) as [k, v]}<dt>{k}</dt><dd>{v}</dd>{/each}</dl>{/if}
           {#if w.files?.length}<AttesaFiles files={w.files} {onFile} />{/if}
           {#if acts.some(a => lookOf(a) === 'option')}
@@ -136,6 +138,7 @@
   .wc { display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 16px; background: var(--s1); border: 1px solid color-mix(in srgb, var(--wait) 45%, transparent); }
   .k { font: 600 12px var(--sans, inherit); letter-spacing: .08em; text-transform: uppercase; color: var(--tx3); }
   .q { font-size: 16px; line-height: 23px; white-space: pre-wrap; }
+  .adv { font-size: 15px; line-height: 22px; color: var(--wait); overflow-wrap: anywhere; }
   .opts { display: flex; flex-direction: column; gap: 6px; }
   .opt { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 12px; background: var(--s2); text-align: left; }
   .opt.rec { background: color-mix(in srgb, var(--wait) 14%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--wait) 60%, transparent); }

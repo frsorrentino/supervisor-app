@@ -401,6 +401,8 @@ enum class CmdOp {
     @SerialName("requested_at") val requestedAt: Long = 0,
     /** Contratto 1.130: l'id della domanda che aspetta. */
     val wid: String? = null,
+    /** Contratto 1.149: il consiglio, solo quando c'è e lo stato sta negli 8 KB; la scheda lo legge da attese/attesa. */
+    val advice: WaitAdvice? = null,
     /** Contratto 1.81: le 2-4 etichette fra cui scegliere (un tasto per opzione al posto di «Approva»); assente = solo un ok. */
     val options: List<String>? = null,
     /** Contratto 1.99, ognuno solo se dichiarato: assente vuol dire «non dichiarato», il relay non li riempie mai. */
@@ -1197,6 +1199,8 @@ const val LEGACY_HANDOFF = "/fable-director:handoff --here"
      */
     val description: String? = null, val files: List<WaitFile>? = null, @SerialName("card_id") val cardId: String? = null,
     val state: String? = null, val answered: WaitAnswered? = null, val rounds: List<WaitRound>? = null,
+    /** Contratto 1.149: il consiglio di chi chiede, su una carta ok o choice; null sulle carte nate prima e sulle altre voci. */
+    val advice: WaitAdvice? = null,
 )
 /**
  * Contratto 1.137: un file di una richiesta. `kind` image, document (pdf, testo, markdown, html, office, svg) o other; `session` null =
@@ -1210,7 +1214,15 @@ const val LEGACY_HANDOFF = "/fable-director:handoff --here"
     val id: String, val at: Long = 0, val text: String = "", val description: String? = null, val options: List<WaitOption>? = null,
     val files: List<WaitFile>? = null, val state: String = "", val reason: String? = null, val by: String? = null,
     @SerialName("answered_at") val answeredAt: Long? = null, val choice: String? = null,
+    /** Contratto 1.149: il consiglio di quel giro, o null. */
+    val advice: WaitAdvice? = null,
 )
+/**
+ * Contratto 1.149 (app-consiglio-carte-16-11): il consiglio di chi chiede. `text` la motivazione, una riga, al più 200 caratteri;
+ * `option` in una scelta il `value` dell'opzione consigliata (in `/state.approvals` la sua etichetta); `approve` su una carta di ok
+ * vero = approvare, falso = non approvare. I segni «consigliata» li porta già `recommended` su opzioni e tasti.
+ */
+@Serializable data class WaitAdvice(val text: String = "", val option: String? = null, val approve: Boolean? = null)
 /**
  * Contratto 1.131: un tasto della carta. `style` primary, option o secondary; `cmd` il comando del relay già pronto (op, session, arg e i
  * campi dell'op), l'app aggiunge id, issued, by e device; `textField` il campo di `cmd` che la persona scrive prima di mandare.

@@ -1909,6 +1909,9 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="ti_aspetta_choose">Scegli</string>
     <string name="ti_aspetta_verify">Verifica</string>
     <string name="ti_aspetta_answer">Rispondi</string>
+    <string name="ti_aspetta_advice">Consiglio</string>
+    <string name="ti_aspetta_advice_yes">approvare</string>
+    <string name="ti_aspetta_advice_no">non approvare</string>
     <string name="ti_aspetta_recommended">consigliata</string>
     <string name="ti_aspetta_done">Fatto</string>
     <string name="ti_aspetta_by_master">La fa la master</string>

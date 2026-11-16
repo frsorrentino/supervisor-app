@@ -37,6 +37,27 @@ class TiAspettaTest {
         assertEquals(true, TiAspetta.marks(p.source!!.text, p.source!!.ask).any { it.on })
     }
 
+    /** Contratto 1.149 (app-consiglio-carte-16-11): il consiglio di chi chiede, con la motivazione; gli stessi casi di tiAspetta.test.ts. */
+    @Test fun theAdviceOfWhoAsks() {
+        val fake = it.pixelbox.cmwatch.transport.FakeTransport(load = { java.io.File("../contract/$it.json").readText() })
+        val all = it.pixelbox.cmwatch.contract.ContractJson.decodeWaits(fake.sampleText("attese")).items
+        val choice = all.first { w -> w.kind == "choice" }
+        assertEquals(it.pixelbox.cmwatch.contract.WaitAdvice("Tested on staging; a tag undoes it", "Release now", null), choice.advice)
+        // I segni li porta già recommended: l'opzione consigliata e il suo tasto, e nessun altro. Nella fixture il loro value finisce in
+    // « (recommended)» mentre advice.option no: l'app non abbina su advice.option, mostra solo il testo.
+        assertEquals(listOf("Release now (recommended)"), choice.options!!.filter { it.recommended }.map { it.value })
+        assertEquals(listOf("Release now (recommended)"), choice.actions!!.filter { it.recommended }.map { (it.cmd["choice"] as kotlinx.serialization.json.JsonPrimitive).content })
+        fun say(a: it.pixelbox.cmwatch.contract.WaitAdvice?) = TiAspetta.adviceOf(a)?.let { TiAspetta.adviceLine(it, "Consiglio", "approvare", "non approvare") }
+        assertEquals("Consiglio: Tested on staging; a tag undoes it", say(choice.advice))
+        // Le voci che non sono carte, e le carte nate prima, non hanno consiglio: niente riga.
+        assertEquals(true, all.filter { it.kind != "choice" && it.kind != "ok" }.all { say(it.advice) == null })
+        assertEquals(listOf(null, null), listOf(say(null), say(it.pixelbox.cmwatch.contract.WaitAdvice("  "))))
+        val ap = Json.parseToJsonElement(java.io.File("../contract/approvals-advice-sample.json").readText()).jsonObject["approvals"]!!.jsonArray
+            .map { e -> Json { ignoreUnknownKeys = true }.decodeFromJsonElement(it.pixelbox.cmwatch.contract.Approval.serializer(), e) }
+        assertEquals(listOf("Consiglio: approvare · Tested on staging; a tag undoes it", "Consiglio: Fewer steps to pay"), ap.map { say(it.advice) })
+        assertEquals("Consiglio: non approvare · Not tested on the phone yet", say(it.pixelbox.cmwatch.contract.WaitAdvice("Not tested on the phone yet", approve = false)))
+    }
+
     /** Contratto 1.131: i tasti della fixture, come si mostrano e il testo scritto nel campo giusto del comando. */
     @Test fun actionsOfTheFixture() {
         val fake = it.pixelbox.cmwatch.transport.FakeTransport(load = { java.io.File("../contract/$it.json").readText() })

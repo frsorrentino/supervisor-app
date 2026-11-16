@@ -219,6 +219,7 @@ fun WaitCardBody(item: it.pixelbox.cmwatch.contract.WaitItem, onSend: (it.pixelb
         }
         item.title?.takeIf { t -> t.isNotBlank() && t != item.text }?.let { t -> Text(t, style = V3.Name.copy(fontSize = 18.sp)) }
         Text(item.text, style = V3.Body.copy(color = V3.Tx))
+        AdviceLine(item.advice, "ti-aspetta-consiglio")
         item.card?.let { c ->
             listOfNotNull(
                 c.what?.let { R.string.ti_aspetta_what to it }, c.where?.let { R.string.ti_aspetta_where to it },
@@ -322,4 +323,14 @@ fun TiAspettaColumn(content: @Composable () -> Unit) {
     Box(Modifier.fillMaxSize().padding(vertical = 10.dp).clip(shape).background(V3.S1).border(1.dp, V3.Line, shape)) {
         androidx.compose.runtime.CompositionLocalProvider(LocalPageBg provides V3.S1) { content() }
     }
+}
+
+/** Contratto 1.149 (app-consiglio-carte-16-11): il consiglio di chi chiede, con la motivazione, sotto la domanda; senza consiglio niente. */
+@Composable
+internal fun AdviceLine(advice: it.pixelbox.cmwatch.contract.WaitAdvice?, tag: String) {
+    val a = TiAspetta.adviceOf(advice) ?: return
+    Text(
+        TiAspetta.adviceLine(a, stringResource(R.string.ti_aspetta_advice), stringResource(R.string.ti_aspetta_advice_yes), stringResource(R.string.ti_aspetta_advice_no)),
+        style = V3.Body.copy(fontSize = 15.sp, color = V3.Wait), modifier = Modifier.testTag(tag),
+    )
 }

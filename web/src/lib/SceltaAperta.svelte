@@ -8,6 +8,7 @@
   import { choiceOf, frameRatio, outcomeOf, REDO_MAX, redoReady, roundsOf, sizeText, waitFileKey, type Round } from './scelta'
   import { locale } from './lang'
   import { t } from './t'
+  import { adviceLine, adviceOf } from './tiAspetta'
   // La scheda di scelta aperta (app-scheda-scelta-12-11, descrizione approvata da Franz il 12/11 alle 15:10): la descrizione vera,
   // le opzioni una accanto all'altra, ognuna con la sua immagine, la riga di pro e contro e il suo tasto; le immagini si ingrandiscono
   // al tocco e nel visore si passa dall'una all'altra; in fondo «Nessuna, rifare» col motivo, obbligatorio. Un giro nuovo entra nella
@@ -78,6 +79,8 @@
     {/if}
   </header>
   {#if item.text && item.text !== (item.title || item.text)}<p class="q">{item.text}</p>{/if}
+  <!-- Contratto 1.149: il consiglio di chi chiede, con la motivazione; l'opzione consigliata ha già il suo segno. -->
+  {#if adviceOf(item.advice)}<p class="adv" data-testid="scelta-consiglio">{adviceLine(adviceOf(item.advice)!, t.tiAspettaAdvice, t.tiAspettaAdviceYes, t.tiAspettaAdviceNo)}</p>{/if}
   {#if item.description && item.description !== item.text}<p class="desc">{item.description}</p>{/if}
   {#if rows.length}<dl>{#each rows as [k, v]}<dt>{k}</dt><dd>{v}</dd>{/each}</dl>{/if}
 
@@ -166,6 +169,7 @@
   .st.chosen, .st.approved { color: var(--good); }
   .why { font-size: 15.5px; line-height: 23px; white-space: pre-wrap; overflow-wrap: anywhere; }
   .q { font-size: 17px; line-height: 24px; white-space: pre-wrap; overflow-wrap: anywhere; max-width: 70ch; }
+  .adv { font-size: 15.5px; line-height: 23px; color: var(--wait); overflow-wrap: anywhere; max-width: 70ch; }
   .desc { font-size: 15.5px; line-height: 23px; color: var(--tx2); white-space: pre-wrap; overflow-wrap: anywhere; max-width: 70ch; }
   dl { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 3px 10px; font-size: 14px; line-height: 20px; }
   dt { color: var(--tx3); }

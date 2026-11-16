@@ -80,7 +80,7 @@ export type Suggestion = { id: string; kind: SuggestionKind | string; key: strin
   url?: string | null }
 export type UsageToday = { session: string; account: string; tokens: number; share: number }
 /** Contratto 1.99: `untested`, `undo`, `undo_how`, `precedent`, `also`, ognuno solo se dichiarato: assente vuol dire «non dichiarato». */
-export type Approval = { task: string; title: string; what: string; where: string; deploy: boolean; requested_at: number; options?: string[]; untested?: string | null; undo?: string | null; undo_how?: string | null; precedent?: { task: string; short?: string | null; relation: string } | null; also?: { task: string; short?: string | null }[] | null; wid?: string | null }
+export type Approval = { task: string; title: string; what: string; where: string; deploy: boolean; requested_at: number; advice?: WaitAdvice | null; options?: string[]; untested?: string | null; undo?: string | null; undo_how?: string | null; precedent?: { task: string; short?: string | null; relation: string } | null; also?: { task: string; short?: string | null }[] | null; wid?: string | null }
 export type ProveSummary = { n: number; builds: number; red: number; ko: number }
 export type DecisionsSummary = { n: number; here: number; tasks: number; snoozed: number }
 /** Contratto 1.113: il conto unico di Tocca a te; `today` le voci chiuse da sole oggi (`kind` pause, prova, needs_you; `rule` 1-4). */
@@ -517,9 +517,16 @@ export type WaitMsg = { session?: string | null; session_id?: string | null; id?
 /** Contratto 1.137: com'è finita una scheda (`attesa` con `archive`): chi, quando, l'opzione scelta (il suo `value`) o il motivo. */
 export type WaitAnswered = { by?: string | null; at?: number | null; choice?: string | null; reason?: string | null }
 /** Contratto 1.137: un giro precedente della stessa scheda. `state` redo (col motivo), closed o replaced (richiesto di nuovo senza risposta). */
+/**
+ * Contratto 1.149 (app-consiglio-carte-16-11): il consiglio di chi chiede. `text` la motivazione, una riga; `option` in una scelta il
+ * `value` dell'opzione consigliata (in `/state.approvals` la sua etichetta); `approve` su una carta di ok vero = approvare, falso = non
+ * approvare. I segni «consigliata» li porta già `recommended` su opzioni e tasti.
+ */
+export type WaitAdvice = { text: string; option?: string | null; approve?: boolean | null }
 export type WaitRound = {
   id: string; at: number; text: string; description?: string | null; options?: WaitOption[] | null; files?: WaitFile[] | null
   state: 'redo' | 'closed' | 'replaced' | string; reason?: string | null; by?: string | null; answered_at?: number | null; choice?: string | null
+  advice?: WaitAdvice | null
 }
 export type WaitItem = {
   id: string; type: string; kind: string; label: string; label_text: string; session?: string | null; task?: string | null; text: string
@@ -534,6 +541,8 @@ export type WaitItem = {
    */
   description?: string | null; files?: WaitFile[] | null; card_id?: string | null
   state?: 'open' | 'chosen' | 'approved' | 'redo' | 'closed' | string | null; answered?: WaitAnswered | null; rounds?: WaitRound[] | null
+  /** Contratto 1.149: il consiglio di chi chiede, su una carta ok o choice; null sulle carte nate prima e sulle altre voci. */
+  advice?: WaitAdvice | null
 }
 export type WaitAction = { label: string; style: 'primary' | 'option' | 'secondary'; cmd: Record<string, unknown> & { op: string; session?: string | null; arg?: string | null }; text_field?: string | null; recommended?: boolean }
 export type WaitsPage = { at: number; items: WaitItem[] }

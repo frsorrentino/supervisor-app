@@ -1881,6 +1881,9 @@ It starts at your last message to the master.</string>
     <string name="ti_aspetta_choose">Choose</string>
     <string name="ti_aspetta_verify">Verify</string>
     <string name="ti_aspetta_answer">Reply</string>
+    <string name="ti_aspetta_advice">Advice</string>
+    <string name="ti_aspetta_advice_yes">approve</string>
+    <string name="ti_aspetta_advice_no">do not approve</string>
     <string name="ti_aspetta_recommended">recommended</string>
     <string name="ti_aspetta_done">Done</string>
     <string name="ti_aspetta_by_master">The master does it</string>

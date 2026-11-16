@@ -8,6 +8,17 @@ export type Other = { key: string; kind: Kind; title: string; session: string | 
 export type Page = { key: string; kind: Kind; session: string | null; since: number; source: Source | null; others: Other[] }
 export type Seg = { text: string; on: boolean }
 
+/**
+ * La riga del consiglio sotto la domanda (contratto 1.149, app-consiglio-carte-16-11, Franz 16/11 10:24 e 10:29: «il tuo suggerimento con
+ * consigliato» e «una breve motivazione»). `verdict` su una carta di ok: vero approvare, falso non approvare; null in una scelta, dove
+ * l'opzione consigliata porta già il suo segno. Senza testo niente riga. Come TiAspetta.adviceOf in Kotlin.
+ */
+export type Advice = { text: string; verdict: boolean | null }
+export const adviceOf = (a: { text?: string | null; approve?: boolean | null } | null | undefined): Advice | null =>
+  (a?.text?.trim() ? { text: a.text.trim(), verdict: a.approve ?? null } : null)
+export const adviceLine = (a: Advice, word: string, yes: string, no: string): string =>
+  `${word}: ${[a.verdict == null ? null : a.verdict ? yes : no, a.text].filter(Boolean).join(' · ')}`
+
 /** Contratto 1.131: una scelta numerata (option, o primary con recommended), il tasto pieno o un tasto tonale. Come TiAspetta.lookOf. */
 export type Look = 'option' | 'main' | 'tonal'
 export function lookOf(a: { style: string; recommended?: boolean }): Look {
