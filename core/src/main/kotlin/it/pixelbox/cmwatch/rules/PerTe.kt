@@ -62,13 +62,18 @@ object PerTe {
     /** app-riquadri-chiusi-16-11: le voci che aspettano la persona (non i risultati da guardare); «Per te» si apre da solo per queste. */
     fun waitingKeys(items: List<Voce>): List<String> = items.filter { it.group != Group.VERIFICA }.map { it.key }
 
+    /** La voce di una richiesta: titolo, contesto, gruppo e tasto principale. La stessa in «Per te» e in Dalla master (app-riall-1-dati-16-11). */
+    fun voceOf(w: WaitItem): Voce {
+        val title = one(w.title).ifEmpty { one(w.text) }
+        val context = listOf(one(w.text), one(w.description)).firstOrNull { it.isNotEmpty() && it != title }
+        return Voce(w.id, groupOf(w.label), title, context, w.at, wait = w, main = mainOf(w.actions))
+    }
+
     fun voci(waits: List<WaitItem>, results: List<ResultGroup>, session: String): List<Voce> {
         val out = mutableListOf<Voce>()
         for (w in waits) {
             if (w.session != session || (w.state ?: "open") != "open") continue
-            val title = one(w.title).ifEmpty { one(w.text) }
-            val context = listOf(one(w.text), one(w.description)).firstOrNull { it.isNotEmpty() && it != title }
-            out += Voce(w.id, groupOf(w.label), title, context, w.at, wait = w, main = mainOf(w.actions))
+            out += voceOf(w)
         }
         for (g in results) {
             val top = g.items.firstOrNull() ?: continue

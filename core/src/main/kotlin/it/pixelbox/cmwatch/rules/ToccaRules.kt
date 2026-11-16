@@ -14,6 +14,14 @@ object ToccaRules {
 
     fun counts(s: State): Counts = s.tocca?.let { Counts(it.decidi, it.prove) } ?: Counts(s.decisions?.n ?: 0, s.prove?.n ?: 0)
 
+    /**
+     * app-riall-1-dati-16-11 (contratto 1.151): lo stato coi conti delle voci come si vedono (le risposte da qui già fuori), così Decidi e
+     * Verifica contano quello che elencano. Senza la lista unica (relay precedente) lo stato resta com'è.
+     */
+    fun withItems(s: State, items: List<it.pixelbox.cmwatch.contract.WaitItem>?): State = if (items == null) s else Attese.counts(items).let { c ->
+        s.copy(tocca = (s.tocca ?: it.pixelbox.cmwatch.contract.ToccaState()).copy(n = c.n, prove = c.prove, decidi = c.decidi, rispondi = c.rispondi))
+    }
+
     /** Una sessione aperta con le sue prove: la riga di Verifica che porta alla sua scheda. */
     data class InSession(val session: String, val n: Int)
 

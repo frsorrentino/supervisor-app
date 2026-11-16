@@ -78,6 +78,7 @@
   import { total as seguitiTotal } from './seguiti'
   import { decisions as decBits, prove as proveBits, seguiti as seguitiBits, type Bit } from './homeRight'
   import { closedToday, proveInSessions, toccaCounts } from './toccaRules'
+  import { openWaits } from './attese.svelte'
   import { homeOpen, openSessionCard } from './homeOpen.svelte'
   import { boardFilter } from './boardFilter.svelte'
   import ToccaClosed from './ToccaClosed.svelte'
@@ -382,7 +383,7 @@
     }
     if (id === 'you') {
       // Le voci che la accendono (app-richiede-te-righe-02-11): Da decidere, Da provare e, con voci, Suggerimenti (Franz 20:52).
-      const tc = toccaCounts(st), d = up.includes('decisioni') ? 0 : tc.decidi, p = up.includes('prove') ? 0 : tc.prove
+      const tc = tcu, d = up.includes('decisioni') ? 0 : tc.decidi, p = up.includes('prove') ? 0 : tc.prove
       const s = up.includes('suggestions') || !suggestions || !suggestionsN ? 0 : (suggestionsTotal ?? suggestionsN)
       // Prima raccolta che aspetta te accende la riga anche lei (app-bug-notte-03-11).
       const pr = !up.includes('decisioni') && primaAsking(st.prima_raccolta)
@@ -733,7 +734,10 @@
   }
   const seguitiN = $derived(seguitiTotal(st.seguiti))
   // Il testo a destra delle voci nuove (Franz 02/11 09:41): quello che il numero non dice, come le altre voci.
-  const hasProve = $derived(!!st.prove && st.prove.n + st.prove.ko + st.prove.red > 0)
+  // app-riall-1-dati-16-11 (contratto 1.151): con la lista unica Decidi e Verifica contano le voci che elencano.
+  const unified = $derived(!!st.attese)
+  const tcu = $derived(toccaCounts(st, unified ? openWaits() : null))
+  const hasProve = $derived(unified ? tcu.prove > 0 : !!st.prove && st.prove.n + st.prove.ko + st.prove.red > 0)
   // Il progetto accanto al titolo di un compito cede il posto al titolo: se il titolo non ci sta intero, il progetto non si
   // vede (web-plancia-j2-ripasso-06-11: «Joy: lotto SE» sotto «joyconceptstore-com»; ctxRoom della scheda del tablet).
   function metaRoom(el: HTMLElement) {
@@ -1030,12 +1034,12 @@
   {#if newBody && (!part || part === catFor(k))}
     {#if k === 'seguiti' && seguitiN > 0}{@render sec('seguiti', t.homeSecFollow, 'event_list', String(seguitiN), 'home-seguiti', !open['seguiti'] ? rightOf('seguiti') : null)}{@render nuovaBody(k)}
     <!-- Verifica: le prove e i lavori da guardare in una voce sola (app-tocca-sezioni-06-11). -->
-    {:else if k === 'prove' && (hasProve || st.results?.n_unseen)}{@render sec('prove', t.homeSecVerify, 'checklist', String(toccaCounts(st).prove + (st.results?.n_unseen ?? 0)), 'home-da-provare', !open['prove'] ? rightOf('prove') : null, { hot: toccaCounts(st).prove > 0 })}{@render nuovaBody(k)}
-    {:else if k === 'decisioni' && (st.decisions?.n || st.prima_raccolta)}{@render sec('decisioni', t.homeSecDecide, 'timer', toccaCounts(st).decidi ? String(toccaCounts(st).decidi) : null, 'home-da-decidere', !open['decisioni'] ? rightOf('decisioni') : null, { hot: true })}{@render nuovaBody(k)}
+    {:else if k === 'prove' && (hasProve || st.results?.n_unseen)}{@render sec('prove', t.homeSecVerify, 'checklist', String(tcu.prove + (st.results?.n_unseen ?? 0)), 'home-da-provare', !open['prove'] ? rightOf('prove') : null, { hot: tcu.prove > 0 })}{@render nuovaBody(k)}
+    {:else if k === 'decisioni' && (unified ? tcu.decidi > 0 : (st.decisions?.n || st.prima_raccolta))}{@render sec('decisioni', t.homeSecDecide, 'timer', tcu.decidi ? String(tcu.decidi) : null, 'home-da-decidere', !open['decisioni'] ? rightOf('decisioni') : null, { hot: true })}{@render nuovaBody(k)}
     {/if}
   {/if}
 {/snippet}
-{#snippet nuovaBody(k: HomeSection)}{#if open[k]}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="newbody" data-testid={`corpo-${k}`}>{@render newBody?.(k)}{#if k === 'prove'}{@render proveElsewhere()}{/if}</div></div>{/if}{/snippet}
+{#snippet nuovaBody(k: HomeSection)}{#if open[k]}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="newbody" data-testid={`corpo-${k}`}>{@render newBody?.(k)}{#if k === 'prove' && !unified}{@render proveElsewhere()}{/if}</div></div>{/if}{/snippet}
 <!-- Le prove delle sessioni aperte stanno nelle loro schede: qui una riga per sessione col numero, e il tocco apre la sua scheda (app-verifica-conto-elenco-12-11). -->
 {#snippet proveElsewhere()}
   {#each proveInSessions(todo) as r (r.session)}

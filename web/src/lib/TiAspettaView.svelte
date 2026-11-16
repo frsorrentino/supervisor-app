@@ -10,6 +10,7 @@
   import { decodeWait, decodeWaits, readPage } from './decideDecode'
   import { newCmd } from './transport'
   import { adviceLine, adviceOf, cmdOf, lookOf, type Kind, type Page } from './tiAspetta'
+  import { markAnswered } from './attese.svelte'
   import { t } from './t'
   // La scheda «Ti aspetta» collegata al contratto 1.130-1.131 (app-scheda-ti-aspetta-07-11): legge la voce con `attesa` e le altre con
   // `attese`. La carta in alto ha i tasti del relay (`actions`, ognuno col suo comando già pronto); un relay senza `actions` mostra la
@@ -65,7 +66,9 @@
     if (sent != null || !w || !a) return
     sent = i; writing = null
     const c = cmdOf(a, a.text_field ? text : null)
-    void run({ ...newCmd(c.op as Parameters<typeof newCmd>[0], c.session ?? null, c.arg ?? null), ...c } as ReturnType<typeof newCmd>).then(() => onAnswered(w))
+    // La voce esce subito da ogni vista (app-riall-1-dati-16-11); se il PC rifiuta, torna.
+    markAnswered(w.id)
+    void run({ ...newCmd(c.op as Parameters<typeof newCmd>[0], c.session ?? null, c.arg ?? null), ...c } as ReturnType<typeof newCmd>).then(r => { if (!r?.ok) markAnswered(w.id, false); onAnswered(w) })
     onBack()
   }
   // Una scheda che non aspetta più (dall'archivio): la testata dice com'è finita e quando, non da quanto aspetta.

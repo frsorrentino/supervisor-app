@@ -90,6 +90,9 @@
   import Guardare from './lib/Guardare.svelte'
   import ResultsRow from './lib/ResultsRow.svelte'
   import PerTe from './lib/PerTe.svelte'
+  import VoceList from './lib/VoceList.svelte'
+  import { applyClosed, openWaits, readWaits } from './lib/attese.svelte'
+  import { closedIds, isDecide, isVerify, perSession } from './lib/attese'
   import AppBar, { type Page as PageName } from './lib/AppBar.svelte'
   import HomeBox from './lib/HomeBox.svelte'
   import Page from './lib/Page.svelte'
@@ -1233,7 +1236,15 @@
   const liveSet = $derived(new Set(live))
   const sessOfTask = (task: string) => st.commitments?.find(c => c.task === task)?.session ?? null
   const provaSession = (p: ProvaItem) => p.session ?? sessOfTask(p.task)
+  // app-riall-1-dati-16-11 (contratto 1.151): la lista unica di ciò che aspetta la persona, riletta quando `state.attese.rev` cambia;
+  // le voci chiuse altrove escono subito. Con un relay senza `state.attese` tutto resta come prima.
+  const unified = $derived(!!st.attese)
+  const uItems = $derived(unified ? openWaits() : null)
+  let askedRev: string | null = null
+  $effect(() => { const rev = st.attese?.rev ?? null; if (!rev || rev === askedRev || !tr) return; askedRev = rev; untrack(() => void readWaits(run)) })
+  $effect(() => { const ids = closedIds(st); if (ids.length) untrack(() => applyClosed(ids)) })
   const todo = $derived.by(() => {
+    if (uItems) return perSession(uItems.filter(w => !!w.session && liveSet.has(w.session)))
     const out: Record<string, { d: number; v: number }> = {}
     for (const g of todoDec) for (const i of g.items) if (i.session && liveSet.has(i.session)) (out[i.session] ??= { d: 0, v: 0 }).d++
     for (const p of todoProve) { const s = provaSession(p); if (s && liveSet.has(s)) (out[s] ??= { d: 0, v: 0 }).v++ }
@@ -1241,7 +1252,7 @@
   })
   const decOfSession = (g: DecisionGroup) => g.items.some(i => !!i.session && liveSet.has(i.session))
   // La testata di «Dalla master»: quello che Franz ha da fare fuori dalle sessioni aperte; i suggerimenti sono contesto.
-  const fromMaster = $derived({ todo: todoDec.filter(g => !decOfSession(g)).length + todoProve.filter(p => { const s = provaSession(p); return !(s && liveSet.has(s)) }).length + (st.prima_raccolta ? 1 : 0), sug: sug.shown.length })
+  const fromMaster = $derived({ todo: uItems ? uItems.length : todoDec.filter(g => !decOfSession(g)).length + todoProve.filter(p => { const s = provaSession(p); return !(s && liveSet.has(s)) }).length + (st.prima_raccolta ? 1 : 0), sug: sug.shown.length })
   // Si rileggono quando cambia il loro riassunto nello stato, non a ogni stato (app-letture-leggere-11-11: 137 letture l'ora a testa con
   // uno stato ogni 30 s); `slowTick` le rilegge comunque ogni 5 minuti, con l'etag la risposta è corta se non è cambiato niente.
   const todoSig = $derived(JSON.stringify([st.decisions ?? null, st.prove ?? null]))
@@ -2122,7 +2133,7 @@
   {@const s = st.sessions.find(x => x.name === name) ?? ghost(name)}
   {#snippet resultsRow()}{#if st.ops?.includes('results')}<ResultsRow {run} session={name} summary={st.results} onOpen={(id) => { watchSession = name; watchOpenId = id; openPage('guardare') }} />{/if}{/snippet}
   <!-- «Per te» (app-formato-unico-12-11): le richieste e i risultati che aspettano la persona in questa sessione, riletti quando cambiano nello stato. -->
-  {#snippet perTe()}{#if st.ops?.includes('attese')}<PerTe {run} session={name} sig={`${openWids}|${st.results?.n_unseen ?? 0}|${(st.results?.items ?? []).map(r => r.id).join(',')}`} now={st.ts} results={!!st.ops?.includes('results')}
+  {#snippet perTe()}{#if st.ops?.includes('attese')}<PerTe {run} session={name} items={uItems} sig={`${openWids}|${st.results?.n_unseen ?? 0}|${(st.results?.items ?? []).map(r => r.id).join(',')}`} now={st.ts} results={!!st.ops?.includes('results')}
     onOpenWait={openWait} onOpenResult={(id) => { watchSession = name; watchOpenId = id; openPage('guardare') }} onAnswered={(w) => waitCardsRefresh(w)} />{/if}{/snippet}
   <Chat {resultsRow} {perTe} focus={focusOf[name] ?? null} onMine={(k) => mineGo(name, k)} onHeadsUp={(text) => sendTo(name, text)} onTask={() => openPage('lavori')} {st} {s} entries={transcripts[name] ?? []} mine={mine.filter(([m]) => m.session === name)} onSend={(x) => sendTo(name, x)} onPick={pick} waitingSince={waitSince[name] ?? null}
     updating={!!tr && s.state !== 'gone' && !fresh[name] && behind(s, bgReads[name])}
@@ -2171,9 +2182,10 @@
   {#if k === 'seguiti'}<Seguiti {run} summary={st.seguiti} onLavori={() => openPage('lavori')} onMaster={() => { openPage(null); pick(MASTER) }} />
   {:else if k === 'prima_raccolta'}<PrimaRaccolta {run} summary={st.prima_raccolta} onScreen={(s) => openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName)} onFeatures={() => openPage('features')} />
   <!-- Verifica (app-tocca-sezioni-06-11): le prove, poi i lavori consegnati da guardare. -->
-  {:else if k === 'prove'}{#if st.prove && st.prove.n + st.prove.ko + st.prove.red > 0}<DaProvare {run} onWait={openWait} only={(p) => { const s = provaSession(p); return !(s && liveSet.has(s)) }} onScreen={(s) => openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName)} onShot={(file, note) => attach(MASTER, [file], note)} />{/if}{#if st.results?.n_unseen}{@render guardare('body')}{/if}
+  <!-- app-riall-1-dati-16-11: con la lista unica Verifica elenca le voci verify di tutte le sessioni, per intero. -->
+  {:else if k === 'prove'}{#if uItems}<VoceList {run} items={uItems.filter(isVerify)} now={st.ts} testid="verifica-voci" onOpenWait={openWait} />{:else if st.prove && st.prove.n + st.prove.ko + st.prove.red > 0}<DaProvare {run} onWait={openWait} only={(p) => { const s = provaSession(p); return !(s && liveSet.has(s)) }} onScreen={(s) => openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName)} onShot={(file, note) => attach(MASTER, [file], note)} />{/if}{#if st.results?.n_unseen}{@render guardare('body')}{/if}
   <!-- Prima raccolta sta dentro Decidi finché c'è (app-sezioni-accorpate-03-11, scelta A). -->
-  {:else if k === 'decisioni'}{#if st.prima_raccolta}<PrimaRaccolta {run} summary={st.prima_raccolta} onScreen={(s) => openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName)} onFeatures={() => openPage('features')} />{/if}{#if st.decisions?.n}{@render decisionsBody(true)}{/if}
+  {:else if k === 'decisioni'}{#if uItems}<VoceList {run} items={uItems.filter(isDecide)} now={st.ts} testid="decidi-voci" onOpenWait={openWait} />{:else}{#if st.prima_raccolta}<PrimaRaccolta {run} summary={st.prima_raccolta} onScreen={(s) => openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName)} onFeatures={() => openPage('features')} />{/if}{#if st.decisions?.n}{@render decisionsBody(true)}{/if}{/if}
   {:else if k === 'da_guardare'}{@render guardare('body')}{/if}
 {/snippet}
 <!-- Contratto 1.106 (app-da-guardare-02-11): i file consegnati dalle sessioni; i file arrivano con l'op `file`, a nome della sessione. -->

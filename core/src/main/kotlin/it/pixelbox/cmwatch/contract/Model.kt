@@ -330,7 +330,7 @@ enum class CmdOp {
 @Serializable data class Closing(val mode: String, val at: Long = 0, val deadline: Long? = null)
 
 /** Contratto 1.111, `sessions[].tocca`: contate come le pagine (prove comprende le pause con `prova`; guarda tutti i non visti). */
-@Serializable data class Tocca(val prove: Int = 0, val decidi: Int = 0, val guarda: Int = 0, val segui: Int = 0)
+@Serializable data class Tocca(val prove: Int = 0, val decidi: Int = 0, val guarda: Int = 0, val segui: Int = 0, val rispondi: Int = 0)
 
 @Serializable data class NeedsYou(
     val reason: String, val at: Long = 0,
@@ -488,7 +488,13 @@ enum class CmdOp {
  * Contratto 1.113: `state.tocca`, un solo conto di Tocca a te per home, menu e registro. `prove` = le prove più le decisioni con
  * `prova`; `decidi` = le altre decisioni; `n` la somma. `today`: le voci chiuse da sole dal riordino del relay da mezzanotte.
  */
-@Serializable data class ToccaState(val n: Int = 0, val prove: Int = 0, val decidi: Int = 0, val today: ToccaToday? = null)
+@Serializable data class ToccaState(val n: Int = 0, val prove: Int = 0, val decidi: Int = 0, val today: ToccaToday? = null, val rispondi: Int = 0)
+/**
+ * Contratto 1.151 (app-riall-1-dati-16-11): `attese` è la lista unica di ciò che aspetta la persona. [rev] cambia quando entra o
+ * esce una voce, o ne cambiano titolo o tasti; [closed] le voci chiuse negli ultimi 10 minuti, da chiunque (cade per prima sopra gli 8 KB).
+ */
+@Serializable data class AtteseState(val rev: String = "", val n: Int = 0, val closed: List<AtteseClosed>? = null)
+@Serializable data class AtteseClosed(val id: String, val at: Long = 0)
 @Serializable data class ToccaToday(val n: Int = 0, val items: List<ToccaClosed> = emptyList())
 /** `kind` = pause, prova o needs_you; `rule` 1-4: build più nuova, compito chiuso, richiesta doppia, ferma da 7 giorni. */
 @Serializable data class ToccaClosed(val task: String, val short: String? = null, val kind: String = "", val rule: Int = 0, val at: Long = 0)
@@ -644,6 +650,8 @@ enum class CmdOp {
     val prove: ProveSummary? = null, val decisions: DecisionsSummary? = null,
     /** Contratto 1.113: il conto unico di Tocca a te e le chiusure di oggi; null con un relay precedente. */
     val tocca: ToccaState? = null,
+    /** Contratto 1.151: la firma della lista unica; null con un relay precedente, che si legge come prima. */
+    val attese: AtteseState? = null,
     /** Contratto 1.100: la riga della prima raccolta nella home. */
     @SerialName("prima_raccolta") val primaRaccolta: PrimaRaccoltaSummary? = null,
     /** Contratto 1.102: la voce «Da seguire» nella home. */
@@ -1201,7 +1209,13 @@ const val LEGACY_HANDOFF = "/fable-director:handoff --here"
     val state: String? = null, val answered: WaitAnswered? = null, val rounds: List<WaitRound>? = null,
     /** Contratto 1.149: il consiglio di chi chiede, su una carta ok o choice; null sulle carte nate prima e sulle altre voci. */
     val advice: WaitAdvice? = null,
+    /** Contratto 1.151: il gruppo in Decidi, le prove di una verifica con la loro versione (la più nuova in [build]), il controllo rosso. */
+    val decision: WaitDecision? = null, val tests: List<WaitTest>? = null, val build: String? = null, val red: WaitRed? = null,
+    val asks: String? = null, val where: String? = null,
 )
+@Serializable data class WaitDecision(val key: String = "", val title: String? = null, val cause: String? = null, val where: String? = null, val weight: Double? = null, val unblocks: List<String>? = null, val note: String? = null, val since: Long? = null)
+@Serializable data class WaitTest(val id: Long = 0, val build: String = "", val dove: String? = null, val fai: String = "", val atteso: String = "", val state: String = "todo", val text: String? = null, val at: Long? = null)
+@Serializable data class WaitRed(val reason: String? = null, val running: Boolean = false)
 /**
  * Contratto 1.137: un file di una richiesta. `kind` image, document (pdf, testo, markdown, html, office, svg) o other; `session` null =
  * dichiarato nella richiesta, servito dall'op `file` solo finché la richiesta è aperta; con la sessione è un file di quella trascrizione.
@@ -1244,7 +1258,7 @@ const val LEGACY_HANDOFF = "/fable-director:handoff --here"
     val session: String? = null, @SerialName("session_id") val sessionId: String? = null, val id: String? = null, val uuid: String? = null,
     val text: String = "", val key: String? = null, val at: Long? = null,
 )
-@Serializable data class WaitsPage(val at: Long = 0, val items: List<WaitItem> = emptyList())
+@Serializable data class WaitsPage(val at: Long = 0, val items: List<WaitItem> = emptyList(), val rev: String? = null)
 
 /** Contratto 1.132: `/state.monitors`. */
 @Serializable data class MonitorsSummary(val n: Int = 0, val watch: Int = 0, val at: Long? = null)

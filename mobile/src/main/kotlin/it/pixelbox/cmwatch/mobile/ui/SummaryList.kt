@@ -363,7 +363,8 @@ fun SummaryList(
             "prove" -> {
                 val n = it.pixelbox.cmwatch.rules.ToccaRules.counts(st).prove
                 val look = st.results?.nUnseen ?: 0
-                if (st.prove?.let { p -> p.n + p.ko + p.red > 0 } == true || look > 0) NewRow(R.string.home_sec_verify, icons.Science, (n + look).toString(), "home-da-provare", open, n > 0) else null
+                // Con la lista unica (contratto 1.151) Verifica c'è quando ha voci, come le conta (app-riall-1-dati-16-11).
+                if ((if (st.attese != null) n > 0 else st.prove?.let { p -> p.n + p.ko + p.red > 0 } == true) || look > 0) NewRow(R.string.home_sec_verify, icons.Science, (n + look).toString(), "home-da-provare", open, n > 0) else null
             }
             // Prima raccolta sta dentro Decidi finché c'è (app-sezioni-accorpate-03-11, scelta A).
             "decisioni" -> it.pixelbox.cmwatch.rules.ToccaRules.counts(st).decidi.takeIf { n -> n > 0 || st.primaRaccolta != null }?.let { n -> NewRow(R.string.home_sec_decide, icons.Timer, if (n > 0) n.toString() else "", "home-da-decidere", open, true) }

@@ -45,8 +45,9 @@ describe('tiAspetta', () => {
     const choice = all.find(w => w.kind === 'choice')!
     expect(choice.title).toBe('Release 2.4'); expect(choice.card?.deploy).toBe(true)
     // Contratto 1.137: dopo le opzioni «None, redo» (`approval_redo`, col motivo in `text`), poi «Close without ok».
-    expect(choice.actions!.map(lookOf)).toEqual(['option', 'option', 'tonal', 'tonal'])
-    expect(choice.actions!.map(a => a.cmd.op)).toEqual(['approve', 'approve', 'approval_redo', 'approval_close'])
+    // Contratto 1.151: dopo «Close without ok» anche «Non ora» e «Lascia perdere» della decisione.
+    expect(choice.actions!.map(lookOf)).toEqual(['option', 'option', 'tonal', 'tonal', 'tonal', 'tonal'])
+    expect(choice.actions!.map(a => a.cmd.op)).toEqual(['approve', 'approve', 'approval_redo', 'approval_close', 'decisione', 'decisione'])
     expect(cmdOf(choice.actions![2], ' too big on the phone ').text).toBe('too big on the phone')
     expect(cmdOf(choice.actions![3], ' superseded by the hotfix ').text).toBe('superseded by the hotfix')
     const next = all.find(w => w.kind === 'prossimi')!.actions!

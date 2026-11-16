@@ -57,7 +57,7 @@ export type Session = {
   /** Contratto 1.51: il comando slash dell'handoff; null = nessuno, assente = relay vecchio (fable-director). */
   handoff?: string | null
   /** Contratto 1.111: le voci di Tocca a te di questa sessione; assente quando sono tutte 0 e con un relay precedente. */
-  tocca?: { prove: number; decidi: number; guarda: number; segui: number } | null
+  tocca?: { prove: number; decidi: number; guarda: number; segui: number; rispondi?: number } | null
   /** Contratto 1.37: assenti nello stato quando non valorizzati; la lettura mette null / false / null. */
   advice?: Advice | null; finished?: boolean; duplicate_of?: string | null
   /** Contratto 1.38: i Prossimi dell'ultimo esito, col «!» tolto; `blocking` = sblocca un lavoro fermo. */
@@ -85,7 +85,12 @@ export type ProveSummary = { n: number; builds: number; red: number; ko: number 
 export type DecisionsSummary = { n: number; here: number; tasks: number; snoozed: number }
 /** Contratto 1.113: il conto unico di Tocca a te; `today` le voci chiuse da sole oggi (`kind` pause, prova, needs_you; `rule` 1-4). */
 export type ToccaClosed = { task: string; short?: string | null; kind: string; rule: number; at: number }
-export type ToccaState = { n: number; prove: number; decidi: number; today?: { n: number; items: ToccaClosed[] } | null }
+export type ToccaState = { n: number; prove: number; decidi: number; rispondi?: number; today?: { n: number; items: ToccaClosed[] } | null }
+/**
+ * Contratto 1.151 (app-riall-1-dati-16-11): `attese` è la lista unica di ciò che aspetta la persona. `rev` cambia quando entra o
+ * esce una voce, o ne cambiano titolo o tasti; `closed` le voci chiuse negli ultimi 10 minuti, da chiunque (cade per prima sopra gli 8 KB).
+ */
+export type AtteseState = { rev: string; n: number; closed?: { id: string; at: number }[] | null }
 export type ProveItem = { id: number; task: string; short?: string | null; title?: string | null; session?: string | null; project?: string | null; build: string; dove?: string | null; fai: string; atteso: string; at: number; wid?: string | null }
 /** Contratto 1.106: un file consegnato da una sessione con SendUserFile; `caption`, `files`, `notes`, `replaced` solo nell'op `results`. */
 export type ResultItem = {
@@ -341,6 +346,8 @@ export type State = {
   prove?: ProveSummary | null; decisions?: DecisionsSummary | null
   /** Contratto 1.113: il conto unico di Tocca a te e le chiusure di oggi; assente con un relay precedente. */
   tocca?: ToccaState | null
+  /** Contratto 1.151: la firma della lista unica; assente con un relay precedente, che si legge come prima. */
+  attese?: AtteseState | null
   prima_raccolta?: PrimaRaccoltaSummary | null
   /** Contratto 1.102: la voce «Da seguire» nella home. */
   seguiti?: SeguitiSummary | null
@@ -541,11 +548,15 @@ export type WaitItem = {
    */
   description?: string | null; files?: WaitFile[] | null; card_id?: string | null
   state?: 'open' | 'chosen' | 'approved' | 'redo' | 'closed' | string | null; answered?: WaitAnswered | null; rounds?: WaitRound[] | null
+  /** Contratto 1.151: il gruppo in Decidi, le prove di una verifica con la loro versione (la più nuova in `build`), il controllo rosso. */
+  decision?: { key: string; title?: string | null; cause?: string | null; where?: string | null; weight?: number | null; unblocks?: string[] | null; note?: string | null; since?: number | null } | null
+  tests?: { id: number; build: string; dove?: string | null; fai: string; atteso: string; state: 'todo' | 'ko' | string; text?: string | null; at?: number | null }[] | null
+  build?: string | null; red?: { reason?: string | null; running?: boolean } | null; asks?: string | null; where?: string | null
   /** Contratto 1.149: il consiglio di chi chiede, su una carta ok o choice; null sulle carte nate prima e sulle altre voci. */
   advice?: WaitAdvice | null
 }
 export type WaitAction = { label: string; style: 'primary' | 'option' | 'secondary'; cmd: Record<string, unknown> & { op: string; session?: string | null; arg?: string | null }; text_field?: string | null; recommended?: boolean }
-export type WaitsPage = { at: number; items: WaitItem[] }
+export type WaitsPage = { at: number; items: WaitItem[]; rev?: string | null }
 
 /** Contratto 1.132: `/state.monitors`. */
 export type MonitorsSummary = { n: number; watch: number; at: number | null }

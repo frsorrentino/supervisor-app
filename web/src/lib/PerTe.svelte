@@ -3,6 +3,7 @@
   import { decodeWaits, readPage } from './decideDecode'
   import { newCmd } from './transport'
   import { voci, type Voce as Item } from './perTe'
+  import { markAnswered, waits as store } from './attese.svelte'
   import { boxOpen, boxToggle } from './riquadri.svelte'
   import { age, cmdOf } from './tiAspetta'
   import { t } from './t'
@@ -14,23 +15,24 @@
   // «Ti aspetta» per una richiesta, il risultato per una verifica. Un tasto che chiede un testo apre la scheda. Dopo un tasto la voce
   // esce subito, e torna se il PC rifiuta. Le richieste si leggono con `attese`, i risultati con `results`, e si rileggono quando lo
   // stato dice che sono cambiati (`sig`), non a ogni stato.
-  let { run, session, sig, now, results = true, onOpenWait, onOpenResult, onAnswered = () => {} }: {
+  // `items` (app-riall-1-dati-16-11, contratto 1.151): le voci dall'archivio unico; senza (relay precedente) «Per te» le legge da sé.
+  let { run, session, sig, now, results = true, items: given = null, onOpenWait, onOpenResult, onAnswered = () => {} }: {
     run: (c: ReturnType<typeof newCmd>) => Promise<CmdResult | null>; session: string; sig: string; now: number
     /** Il relay conosce `results` (contratto 1.106). */
     results?: boolean
+    items?: WaitItem[] | null
     onOpenWait: (id: string) => void; onOpenResult: (id: string) => void; onAnswered?: (w: WaitItem) => void
   } = $props()
   let waits = $state<WaitItem[]>([]), page = $state<ResultsPage | null>(null)
   let n = 0
   function read() {
     const mine = ++n
-    void run(newCmd('attese', null)).then(r => { const { page: p } = readPage(r, decodeWaits, null); if (p && mine === n) waits = p.items })
+    if (!given) void run(newCmd('attese', null)).then(r => { const { page: p } = readPage(r, decodeWaits, null); if (p && mine === n) waits = p.items })
     if (results) void run(newCmd('results', null)).then(r => { if (r?.ok && mine === n) try { page = JSON.parse(r.text) as ResultsPage } catch { /* resta com'era */ } })
   }
   $effect(() => { void session; void sig; read() })
-  // Le voci a cui è già partita la risposta da qui.
-  let sent = $state<Record<string, true>>({})
-  const items = $derived(voci(waits, page?.groups ?? [], session).filter(v => !sent[v.key]))
+  // Le voci a cui è già partita la risposta, da qui o da un'altra vista: l'insieme è uno solo (attese.svelte.ts).
+  const items = $derived(voci(given ?? waits, page?.groups ?? [], session).filter(v => !store.answered.has(v.key)))
   // app-riquadri-chiusi-16-11: chiuso è una pillola; si apre da solo quando c'è una voce che aspetta la persona (non un risultato da
   // guardare), e chiuso a mano resta chiuso finché non ne arriva una nuova. Lo stato resta per sessione.
   const waiting = $derived(items.filter(v => v.group !== 'verifica').map(v => v.key))
@@ -47,10 +49,10 @@
     if (await fire(v.key, { ...newCmd(c.op as Parameters<typeof newCmd>[0], c.session ?? null, c.arg ?? null), ...c } as ReturnType<typeof newCmd>)) onAnswered(w)
   }
   async function fire(key: string, c: ReturnType<typeof newCmd>): Promise<boolean> {
-    sent = { ...sent, [key]: true }
+    markAnswered(key)
     const r = await run(c)
     if (r?.ok) { read(); return true }
-    const { [key]: _gone, ...rest } = sent; sent = rest
+    markAnswered(key, false)
     return false
   }
   const sub = (v: Item) => [t.perTeGroup[v.group], v.result ? [t.watchKind[v.result.kind], v.result.version != null ? t.perTeVersion(v.result.version) : null].filter(Boolean).join(', ') : v.context].filter(Boolean).join(' · ')

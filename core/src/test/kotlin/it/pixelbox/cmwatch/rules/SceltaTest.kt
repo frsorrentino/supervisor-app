@@ -82,7 +82,8 @@ class SceltaTest {
             ),
             c.options.map { o -> listOf(o.letter, o.name, o.line, o.recommended, o.images.map { it.name }, o.docs.map { it.name }, o.action) },
         )
-        assertEquals(2, c.redo); assertEquals(listOf(3), c.rest); assertEquals(emptyList<WaitFile>(), c.extra)
+        // Contratto 1.151: dopo «Chiudi senza ok» anche «Non ora» e «Lascia perdere» della decisione.
+        assertEquals(2, c.redo); assertEquals(listOf(3, 4, 5), c.rest); assertEquals(emptyList<WaitFile>(), c.extra)
     }
 
     @Test fun theActionOfAnOptionByValueThenLabelThenPlace() {

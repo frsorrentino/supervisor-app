@@ -59,7 +59,8 @@ describe('scelta: la scheda della fixture', () => {
   it('«Nessuna, rifare» is the redo action, the rest stays below; the files of the options are not repeated', () => {
     const w = open(), c = choiceOf(w)
     expect(c.redo).toBe(2); expect(w.actions![c.redo!].cmd.op).toBe('approval_redo')
-    expect(c.rest).toEqual([3]); expect(c.extra).toEqual([])
+    // Contratto 1.151: dopo «Chiudi senza ok» anche «Non ora» e «Lascia perdere» della decisione.
+    expect(c.rest).toEqual([3, 4, 5]); expect(c.extra).toEqual([])
   })
   it('a file of the card that no option has stays apart', () => {
     const w = open()

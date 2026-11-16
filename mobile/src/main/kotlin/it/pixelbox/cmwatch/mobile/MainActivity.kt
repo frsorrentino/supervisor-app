@@ -408,7 +408,24 @@ class MainActivity : ComponentActivity() {
             r?.takeIf { x -> x.ok }?.let { x -> runCatching { ContractJson.decodeWaits(x.text) }.onSuccess { p -> waitOthers = p.items } }
         }
         val attese = snap.state?.ops?.contains("attese") == true
-        LaunchedEffect(openWids, attese) { if (attese) readWaits() }
+        // app-riall-1-dati-16-11 (contratto 1.151): la lista si rilegge anche quando `state.attese.rev` cambia, e le voci chiuse altrove
+        // escono subito da ogni vista. Con un relay senza `state.attese` tutto resta come prima.
+        LaunchedEffect(openWids, attese, snap.state?.attese?.rev) { if (attese) readWaits() }
+        val closedNow = snap.state?.let { st0 -> it.pixelbox.cmwatch.rules.Attese.closedIds(st0) }.orEmpty()
+        LaunchedEffect(closedNow) { closedNow.forEach { id -> perTeSent[id] = true } }
+        val unified = snap.state?.attese != null
+        val uItems = if (unified) it.pixelbox.cmwatch.rules.Attese.visible(waitOthers, perTeSent.keys) else null
+        // La risposta da una voce, uguale in ogni vista: esce subito da tutte; se il PC rifiuta, torna.
+        val answerWait: (it.pixelbox.cmwatch.contract.WaitItem, Int) -> Unit = { w, i ->
+            w.actions?.getOrNull(i)?.let { a ->
+                perTeSent[w.id] = true
+                scope.launch {
+                    val sentId = runCatching { app.repo.commandOf(a, null) }.getOrNull()
+                    val x = sentId?.let { id -> kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(id) }[id] } }
+                    if (x?.ok == true) readWaits() else perTeSent.remove(w.id)
+                }
+            }
+        }
         val monitorsSum = snap.state?.monitors
         val monitorsOp = snap.state?.ops?.contains("monitors") == true
         // La lettura delle schede riprova finché arrivano e usa anche una risposta arrivata tardi (PatientRead, app-monitoraggi-attesa-10-11).
@@ -1590,7 +1607,7 @@ class MainActivity : ComponentActivity() {
             val gs = p.groups.map { g -> g.copy(prove = g.prove.filter { x -> keep(proveSession(x)) }) }.filter { g -> g.prove.isNotEmpty() }
             p.copy(groups = gs, n = gs.sumOf { g -> g.prove.size })
         } }
-        val sessTodo: Map<String, Pair<Int, Int>> = buildMap {
+        val sessTodo: Map<String, Pair<Int, Int>> = if (uItems != null) it.pixelbox.cmwatch.rules.Attese.perSession(uItems).filterKeys { n -> n in todoLive } else buildMap {
             val d = mutableMapOf<String, Int>(); val v = mutableMapOf<String, Int>()
             decHome?.groups?.forEach { g -> g.items.forEach { i -> i.session?.takeIf { x -> x in todoLive }?.let { x -> d[x] = (d[x] ?: 0) + 1 } } }
             provePage?.groups?.forEach { g -> g.prove.forEach { x -> proveSession(x)?.takeIf { n -> n in todoLive }?.let { n -> v[n] = (v[n] ?: 0) + 1 } } }
@@ -1599,20 +1616,24 @@ class MainActivity : ComponentActivity() {
         val decNotNow: (String) -> Unit = { key -> decideCmd(CmdOp.DECISIONE, key, "not_now", 24, null, null) }
         val decDrop: (String, String) -> Unit = { key, reason -> decideCmd(CmdOp.DECISIONE, key, "drop", null, reason, null) }
         val sessionTodo: @Composable (String) -> Unit = { name ->
-            androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp)) {
+            if (uItems != null) it.pixelbox.cmwatch.mobile.ui.VoceListBody(uItems.filter { w -> w.session == name && !it.pixelbox.cmwatch.rules.Attese.isReply(w) }, now, "sessione-voci", { id -> waitOpen = id }, answerWait)
+            else androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp)) {
                 val gs = decHome?.groups.orEmpty().filter { g -> g.items.any { i -> i.session == name } }
                 if (gs.isNotEmpty()) it.pixelbox.cmwatch.mobile.ui.SessionDecisions(gs, decApprove, decDone, decNotNow, decDrop, decAsk)
                 if ((sessTodo[name]?.second ?: 0) > 0) it.pixelbox.cmwatch.mobile.ui.DaProvareBody(proveWhere { x -> x == name }?.copy(ko = emptyList(), red = emptyList()), { tag -> app.updater.buildOf(tag) }, { ids -> proveOkRun(ids) }, proveKo, goScreen)
             }
         }
         // La testata di «Dalla master»: quello che Franz ha da fare fuori dalle sessioni aperte; i suggerimenti sono contesto.
-        val masterTodo = ((decHome?.groups.orEmpty().count { g -> !decOfSession(g) }) + (proveWhere { x -> x == null || x !in todoLive }?.n ?: 0) + (if (state?.primaRaccolta != null) 1 else 0))
+        val masterTodo = if (uItems != null) uItems.size else ((decHome?.groups.orEmpty().count { g -> !decOfSession(g) }) + (proveWhere { x -> x == null || x !in todoLive }?.n ?: 0) + (if (state?.primaRaccolta != null) 1 else 0))
         val sectionBodies: Map<String, @Composable () -> Unit> = mapOf(
             "da_guardare" to { Inline("da_guardare") { it.pixelbox.cmwatch.mobile.ui.GuardareBody(state?.results?.items.orEmpty().map(fullResult), guardare) { watchSession = null; watchOpen = true } } },
             "prima_raccolta" to { Inline("prima_raccolta") { it.pixelbox.cmwatch.mobile.ui.PrimaRaccoltaBody(primaPage, touch, goScreen) { featuresOpen = true } } },
             "seguiti" to { Inline("seguiti") { it.pixelbox.cmwatch.mobile.ui.SeguitiBody(seguitiPage, seguitiFailed, act, { open = null; tab = StartRoute.Tab.LAVORI }, { open = null; masterChat = true }) } },
             // Contratto 1.107: sopra il banco, le prove che aspettano Franz fuse nella pre-release più nuova (app-sezioni-accorpate-03-11).
             "prove" to { Inline("prove") { androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp)) {
+                // app-riall-1-dati-16-11: con la lista unica Verifica elenca le voci verify di tutte le sessioni, per intero; poi i lavori da guardare.
+                if (uItems != null) it.pixelbox.cmwatch.mobile.ui.VoceListBody(uItems.filter(it.pixelbox.cmwatch.rules.Attese::isVerify), now, "verifica-voci", { id -> waitOpen = id }, answerWait)
+                else {
                 decisionsPage?.let { p -> it.pixelbox.cmwatch.mobile.ui.ProveFuseBody(it.pixelbox.cmwatch.rules.ProveFuse.cards(p), { keys -> keys.map { k -> decideRun(CmdOp.DECISIONE, k, "provato", null, null, null) }.all { ok -> ok } }, { k, why -> decideRun(CmdOp.DECISIONE, k, "non_va", null, why, null) }) }
                 // app-verifica-vuota-16-11: le prove delle sessioni aperte stanno nelle loro schede; qui una riga per sessione che porta lì, come
                 // il web dal 12/11 (app-verifica-conto-elenco-12-11). «Niente da provare» solo se nemmeno le sessioni ne hanno.
@@ -1620,12 +1641,15 @@ class MainActivity : ComponentActivity() {
                 if (state?.prove?.let { p -> p.n + p.ko + p.red > 0 } == true && (ver == null || !ver.outsideEmpty || ver.inSessions.isEmpty())) it.pixelbox.cmwatch.mobile.ui.DaProvareBody(ver?.outside, { tag -> app.updater.buildOf(tag) }, { ids -> proveOkRun(ids) }, proveKo, goScreen, onWait = { w -> waitOpen = w })
                 ver?.inSessions?.forEach { r -> it.pixelbox.cmwatch.mobile.ui.ProveInSessionRow(r.session, r.n) { homeFolds.openCard(r.session) } }
                 // Verifica porta anche i lavori consegnati da guardare (app-tocca-sezioni-06-11).
+                }
                 if ((state?.results?.nUnseen ?: 0) > 0) Inline("da_guardare") { it.pixelbox.cmwatch.mobile.ui.GuardareBody(state?.results?.items.orEmpty().map(fullResult), guardare) { watchSession = null; watchOpen = true } }
             } } },
             // Prima raccolta sta dentro Decidi finché c'è (app-sezioni-accorpate-03-11, scelta A).
             "decisioni" to { Inline("decisioni") { androidx.compose.foundation.layout.Column {
+                if (uItems != null) it.pixelbox.cmwatch.mobile.ui.VoceListBody(uItems.filter(it.pixelbox.cmwatch.rules.Attese::isDecide), now, "decidi-voci", { id -> waitOpen = id }, answerWait) else {
                 if (state?.primaRaccolta != null) it.pixelbox.cmwatch.mobile.ui.PrimaRaccoltaBody(primaPage, touch, goScreen) { featuresOpen = true }
                 if ((state?.decisions?.n ?: 0) > 0) it.pixelbox.cmwatch.mobile.ui.CinqueMinutiBody(decHome?.let { p -> p.copy(groups = p.groups.filterNot(decOfSession)) }, decApprove, decDone, decNotNow, decDrop, onAsk = decAsk, rows = true, onWait = { w -> waitOpen = w })
+                }
             } } },
         )
         resultOpen?.let { r ->
@@ -1667,10 +1691,14 @@ class MainActivity : ComponentActivity() {
             val answer = it.pixelbox.cmwatch.mobile.ui.WaitAnswer { if (waitOpen == wid) waitOpen = null }
             // Dopo l'esito del PC le schede compatte di questa richiesta (chat, home) si rileggono: «Scelto B» al posto di «Da scegliere».
             val send = answer.two<it.pixelbox.cmwatch.contract.WaitAction, String?> { a, written ->
+                // app-riall-1-dati-16-11: la voce esce subito da ogni vista; se il PC rifiuta, torna.
+                item?.let { x -> perTeSent[x.id] = true }
                 scope.launch {
                     val sentId = runCatching { app.repo.commandOf(a, written) }.getOrNull()
+                    if (sentId == null) item?.let { x -> perTeSent.remove(x.id) }
                     if (sentId != null && item != null) {
-                        kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(sentId) } }
+                        val res = kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(sentId) }[sentId] }
+                        if (res?.ok != true) perTeSent.remove(item.id)
                         waitRefresh { w -> w.id == item.id || (item.cardId != null && w.cardId == item.cardId) }
                     }
                 }
@@ -2447,7 +2475,7 @@ class MainActivity : ComponentActivity() {
                     // Contratto 1.90: la sezione «Sistema»; il tasto di un consiglio manda la sua op, il testo del relay dice com'è andata.
                     system = state?.system, ops = state?.ops,
                     sheetOpen = masterHalf,
-                    kpiPage = kpiPage, kpiState = state?.let { s -> decisionsPage?.let { p -> it.pixelbox.cmwatch.rules.ProveFuse.withoutTests(p) }?.let { d -> s.copy(decisions = s.decisions?.copy(n = d.n, here = d.here, tasks = d.tasks)) } ?: s }, kpiData = kpiData,
+                    kpiPage = kpiPage, kpiState = state?.let { s -> decisionsPage?.let { p -> it.pixelbox.cmwatch.rules.ProveFuse.withoutTests(p) }?.let { d -> s.copy(decisions = s.decisions?.copy(n = d.n, here = d.here, tasks = d.tasks)) } ?: s }?.let { s -> it.pixelbox.cmwatch.rules.ToccaRules.withItems(s, uItems) }, kpiData = kpiData,
                     onBox = { b -> boxOpen = b },
                     // Contratto 1.95: «Plugin e skill»; l'elenco è una lettura passiva, gli aggiornamenti mostrano il testo del relay.
                     plugins = state?.plugins?.takeIf { !demo && state.ops?.contains("plugins") == true && state.ops?.contains("plugin_update") == true },

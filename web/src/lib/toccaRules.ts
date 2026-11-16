@@ -1,9 +1,11 @@
 // Tocca a te con un conto solo (app-pulizia-tocca-03-11, contratto 1.113), come ToccaRules in Kotlin: home, menu e registro danno
 // lo stesso numero perché lo calcola il relay. Con un relay precedente restano i conti delle pagine.
-import type { State, ToccaState } from './contract'
+import type { State, ToccaState, WaitItem } from './contract'
+import { counts } from './attese'
 
-export const toccaCounts = (s: State): { decidi: number; prove: number } =>
-  s.tocca ? { decidi: s.tocca.decidi, prove: s.tocca.prove } : { decidi: s.decisions?.n ?? 0, prove: s.prove?.n ?? 0 }
+/** `items` (app-riall-1-dati-16-11, contratto 1.151): le voci dell'archivio unico, contate come si vedono; senza, i conti dello stato. */
+export const toccaCounts = (s: State, items: readonly WaitItem[] | null = null): { decidi: number; prove: number } =>
+  items ? (({ decidi, prove }) => ({ decidi, prove }))(counts(items)) : s.tocca ? { decidi: s.tocca.decidi, prove: s.tocca.prove } : { decidi: s.decisions?.n ?? 0, prove: s.prove?.n ?? 0 }
 
 /**
  * app-verifica-conto-elenco-12-11 (Franz 12/11 13:28: «segnala 30 verifiche da fare ma ne vedo solo 1»): le prove di una sessione aperta

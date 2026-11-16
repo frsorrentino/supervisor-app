@@ -231,6 +231,29 @@ private fun groupWord(g: PerTe.Group) = stringResource(when (g) {
 })
 
 /**
+ * Le voci di `attese` in Dalla master, di tutte le sessioni (app-riall-1-dati-16-11, contratto 1.151; Franz 16/11: le voci per intero,
+ * coi tasti): la stessa riga di «Per te», col nome della sessione davanti al contesto. Il tocco apre la scheda Ti aspetta; il tasto
+ * principale risponde ([onMain] col suo indice), e un tasto che chiede un testo apre la scheda.
+ */
+@Composable
+fun VoceListBody(items: List<it.pixelbox.cmwatch.contract.WaitItem>, now: Long, tag: String, onOpen: (String) -> Unit, onMain: (it.pixelbox.cmwatch.contract.WaitItem, Int) -> Unit) {
+    if (items.isEmpty()) return
+    val shape = RoundedCornerShape(14.dp)
+    Column(Modifier.fillMaxWidth().clip(shape).background(V3.S1).border(1.dp, V3.Line, shape).testTag(tag)) {
+        items.forEachIndexed { i, w ->
+            val v = PerTe.voceOf(w)
+            if (i > 0) HorizontalDivider(color = V3.Line)
+            val sub = listOfNotNull(w.session, groupWord(v.group), v.context).joinToString(" · ")
+            val age = TiAspetta.age(now - v.since)
+            VoceRow(
+                v.group, v.title, sub, if (v.group == PerTe.Group.ASPETTA) stringResource(R.string.ti_aspetta_since, age) else age, v.main?.label,
+                { onOpen(v.key) }, { val m = v.main; if (m == null || !m.direct) onOpen(v.key) else onMain(w, m.index) }, tag = "voce-${v.key}",
+            )
+        }
+    }
+}
+
+/**
  * «Per te» in cima alla chat: chiuso, una pillola col numero (app-riquadri-chiusi-16-11); aperto, l'elenco. `onMain` è il tasto di una
  * voce (chi lo riceve manda il comando, segna visto o apre la scheda se il tasto chiede un testo), `onOpen` il tocco sulla voce.
  */

@@ -48,14 +48,19 @@ export type Voce = {
 
 const one = (s: string | null | undefined) => (s ?? '').replace(/\s+/g, ' ').trim()
 
+/** La voce di una richiesta: titolo, contesto, gruppo e tasto principale. La stessa in «Per te» e in Dalla master (app-riall-1-dati-16-11). */
+export function voceOf(w: WaitItem): Voce {
+  const title = one(w.title) || one(w.text)
+  const context = [one(w.text), one(w.description)].find(x => x && x !== title) ?? null
+  return { key: w.id, group: groupOf(w.label), title, context, since: w.at, wait: w, main: mainOf(w.actions), result: null }
+}
+
 /** Le voci della sessione: le richieste ancora aperte e i lavori con l'ultima versione non vista. */
 export function voci(waits: readonly WaitItem[], results: readonly ResultGroup[], session: string): Voce[] {
   const out: Voce[] = []
   for (const w of waits) {
     if (w.session !== session || (w.state ?? 'open') !== 'open') continue
-    const title = one(w.title) || one(w.text)
-    const context = [one(w.text), one(w.description)].find(x => x && x !== title) ?? null
-    out.push({ key: w.id, group: groupOf(w.label), title, context, since: w.at, wait: w, main: mainOf(w.actions), result: null })
+    out.push(voceOf(w))
   }
   for (const g of results) {
     const top = g.items[0]
