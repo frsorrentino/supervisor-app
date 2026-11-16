@@ -1,6 +1,7 @@
 package it.pixelbox.cmwatch.mobile
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -52,6 +53,15 @@ class DecideScreenTest {
         } } }
     }
     // app-sessione-bg-avviso-14-11 (contratto 1.146): con bg l'avviso su /logout, senza il campo niente; notte e giorno.
+    // app-verifica-vuota-16-11: in Verifica le prove di una sessione aperta sono una riga che porta alla sua scheda; notte e giorno.
+    private fun inSessione(day: Boolean) = paparazzi.snapshot {
+        CmPhoneTheme(still = true, day = day) { Column(Modifier.fillMaxWidth().background(V3.Bg).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            ProveInSessionRow("win:supervisor-app", 5) {}; ProveInSessionRow("storefront", 1) {}
+        } }
+    }
+    @Test fun verifica_in_sessione() = inSessione(false)
+    @Test fun verifica_in_sessione_giorno() = inSessione(true)
+
     private fun bgNota(day: Boolean) {
         val s = Session(id = "s", name = "blog", account = "a", project = "p", state = SessionState.IDLE, since = 0, bg = true)
         paparazzi.snapshot { CmPhoneTheme(still = true, day = day) { Column(Modifier.fillMaxWidth().background(V3.Bg).padding(12.dp)) { BgNoteRow(s); BgNoteRow(s.copy(bg = false)); BgNoteRow(s.copy(state = SessionState.GONE)) } } }

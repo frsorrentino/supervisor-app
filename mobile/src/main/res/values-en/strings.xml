@@ -1501,6 +1501,7 @@ It starts at your last message to the master.</string>
     <string name="features_try">Try it</string>
     <string name="prove_title">To test</string>
     <string name="prove_loading">On its way from the PC.</string>
+    <plurals name="prove_in_session"><item quantity="one">%1$d test in its card</item><item quantity="other">%1$d tests in its card</item></plurals>
     <string name="prove_none">Nothing to test.</string>
     <string name="prove_all_ok">All ok</string>
     <string name="prove_install_first">Install this version first: its tests apply there.</string>

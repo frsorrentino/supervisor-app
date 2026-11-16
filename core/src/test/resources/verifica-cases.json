@@ -1,0 +1,22 @@
+{
+ "_": "app-verifica-vuota-16-11 (Franz 16/11 18:07: Verifica 5, aperta «Niente da provare»): cinque prove su due versioni, tutte della stessa sessione, come quel giorno. Con la sessione aperta stanno nella sua scheda e Verifica ha una riga che porta lì; con la sessione chiusa stanno in Verifica, per versione. In ogni caso le prove fuori più quelle delle righe fanno il numero di Verifica. Letti da VerificaSessioniTest.",
+ "prove": {
+  "at": 1789805000, "n": 5, "builds": 2,
+  "groups": [
+   {"build": "auto-2026-11-16-1240-8d50ff75", "n": 4, "at": 1789804800, "tasks": ["app-riga-senza-maniglie-15-11", "app-prove-chiusura-anim-16-11", "app-uscite-uniformi-16-11", "app-consiglio-carte-16-11"], "prove": [
+    {"id": 1290, "task": "app-riga-senza-maniglie-15-11", "session": "win:supervisor-app", "build": "auto-2026-11-16-1240-8d50ff75", "dove": "Pixel Tablet, master chiusa in riga in basso", "fai": "Guarda il bordo sopra la riga.", "atteso": "Niente maniglie né frecce."},
+    {"id": 1291, "task": "app-prove-chiusura-anim-16-11", "session": "win:supervisor-app", "build": "auto-2026-11-16-1240-8d50ff75", "dove": "Da provare", "fai": "Tocca Ok su una prova.", "atteso": "La riga si chiude in altezza."},
+    {"id": 1292, "task": "app-uscite-uniformi-16-11", "session": "win:supervisor-app", "build": "auto-2026-11-16-1240-8d50ff75", "dove": "Decidi", "fai": "Conferma una voce.", "atteso": "La scheda si chiude in altezza."},
+    {"id": 1293, "task": "app-consiglio-carte-16-11", "session": "win:supervisor-app", "build": "auto-2026-11-16-1240-8d50ff75", "dove": "Ti aspetta", "fai": "Apri una carta di scelta.", "atteso": "La riga del consiglio."}
+   ]},
+   {"build": "web-0.2.2183 (a2908cbc)", "n": 1, "at": 1789650000, "tasks": ["app-sessione-bg-avviso-14-11"], "prove": [
+    {"id": 1260, "task": "app-sessione-bg-avviso-14-11", "session": "win:supervisor-app", "build": "web-0.2.2183 (a2908cbc)", "dove": "Demo, sessione admin-panel", "fai": "Apri la sessione.", "atteso": "L'avviso su /logout."}
+   ]}
+  ],
+  "ko": [], "red": []
+ },
+ "cases": [
+  {"name": "la sessione è aperta: le prove nella sua scheda, in Verifica la riga che porta lì", "live": ["win:supervisor-app", "rendicontazione-ak"], "outside": [], "rows": [["win:supervisor-app", 5]], "outsideEmpty": true},
+  {"name": "la sessione è chiusa: le prove in Verifica, per versione", "live": ["rendicontazione-ak"], "outside": [1290, 1291, 1292, 1293, 1260], "rows": [], "outsideEmpty": false}
+ ]
+}

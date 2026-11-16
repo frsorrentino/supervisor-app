@@ -647,6 +647,33 @@ fun SummaryList(
     val currentSheet by androidx.compose.runtime.rememberUpdatedState(sheetOpen || !androidx.compose.ui.platform.LocalWindowInfo.current.isWindowFocused)
     val viewTop = androidx.compose.runtime.remember { floatArrayOf(0f) }
     val finishScope = androidx.compose.runtime.rememberCoroutineScope()
+    // app-verifica-vuota-16-11: dalla riga «N prove nella sua scheda» di Verifica la scheda della sessione si apre con le sue prove e viene
+    // in vista, come sul web (app-verifica-conto-elenco-12-11). Solo nella lista che ha le sessioni: sulla plancia le altre colonne stanno ferme.
+    if (parts == null || "sessions" in parts) androidx.compose.runtime.LaunchedEffect(f.cardFocus) {
+        if (f.cardFocus == 0) return@LaunchedEffect
+        val name = f.card ?: return@LaunchedEffect
+        val s = model.rows.firstOrNull { r -> r.session.name == name }?.session ?: return@LaunchedEffect
+        // Un filtro del tabellone che la nasconderebbe si toglie; la sezione Sessioni chiusa si apre.
+        f.boardFilter?.let { b -> if (!it.pixelbox.cmwatch.rules.Kpi.boardMatch(s, b)) f.boardFilter = null }
+        if (!sessionsOpen) { sessionsOpen = true; save("sessions", true) }
+        // Dove sta la scheda, in pixel dall'alto della lista; null finché non è sullo schermo.
+        fun span(): Pair<Float, Float>? {
+            val items = listState.layoutInfo.visibleItemsInfo
+            items.firstOrNull { i -> i.key == "s-${s.id}" }?.let { i -> return i.offset.toFloat() to (i.offset + i.size).toFloat() }
+            if (items.none { i -> i.key == "sessions-list" }) return null
+            return rowAt[name]?.let { (t, b) -> (t - viewTop[0]) to (b - viewTop[0]) }
+        }
+        androidx.compose.runtime.withFrameNanos { }
+        // Come per Utilizzo: se non si vede, dalla cima si scende finché non entra in vista, poi la si porta in alto.
+        if (span() == null) listState.scrollToItem(0)
+        repeat(40) {
+            androidx.compose.runtime.withFrameNanos { }
+            val h = listState.layoutInfo.viewportSize.height.toFloat()
+            span()?.let { (t, b) -> if (t < 0f || b > h) listState.animateScrollBy(t - h * 0.1f); return@LaunchedEffect }
+            if (!listState.canScrollForward) return@LaunchedEffect
+            listState.scrollBy(h * 0.8f)
+        }
+    }
     androidx.compose.runtime.LaunchedEffect(workingNow) {
         val ended = wasWorking - workingNow
         fun visible(name: String): Boolean { val (t, b) = rowAt[name] ?: return false; return b > viewTop[0] && t < viewTop[0] + listState.layoutInfo.viewportSize.height }

@@ -2,6 +2,10 @@ package it.pixelbox.cmwatch.mobile.ui
 
 import it.pixelbox.cmwatch.rules.ItemRows
 import androidx.compose.foundation.background
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.Checklist
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -507,6 +511,27 @@ val LocalHeadsUp = androidx.compose.runtime.staticCompositionLocalOf<HeadsUpActi
  * L'avviso fisso nella scheda di una sessione lanciata con --bg (contratto 1.146, app-sessione-bg-avviso-14-11): lì /logout scollega
  * tutte le sessioni del PC. Non si chiude e non ha tasti: resta finché la sessione è viva.
  */
+/**
+ * app-verifica-vuota-16-11 (Franz 16/11 18:07: «Verifica 5», aperta «Niente da provare»), la riga del web del 12/11 (app-verifica-conto-elenco-12-11):
+ * le prove di una sessione aperta stanno nella sua scheda; in Verifica una riga per sessione col suo numero, e il tocco apre la sua scheda.
+ */
+@Composable
+internal fun ProveInSessionRow(session: String, n: Int, onOpen: () -> Unit) {
+    val shape = RoundedCornerShape(16.dp)
+    Row(
+        Modifier.fillMaxWidth().clip(shape).background(V3.S1).border(1.dp, V3.Line, shape).handCursor().clickable(onClick = onOpen)
+            .padding(start = 14.dp, end = 12.dp, top = 11.dp, bottom = 11.dp).testTag("verifica-in-sessione"),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Icon(androidx.compose.material.icons.Icons.Outlined.Checklist, null, tint = V3.Tx2, modifier = Modifier.size(20.dp))
+        Column(Modifier.weight(1f)) {
+            Text(session, style = V3.Name.copy(fontSize = 15.sp))
+            Text(androidx.compose.ui.res.pluralStringResource(R.plurals.prove_in_session, n, n), style = V3.Small.copy(color = V3.Tx2))
+        }
+        Icon(androidx.compose.material.icons.Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3)
+    }
+}
+
 @Composable
 internal fun BgNoteRow(s: Session) {
     if (!it.pixelbox.cmwatch.rules.BgSession.warns(s)) return

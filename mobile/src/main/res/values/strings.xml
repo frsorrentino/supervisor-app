@@ -1535,6 +1535,7 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="features_try">Prova</string>
     <string name="prove_title">Da provare</string>
     <string name="prove_loading">In arrivo dal PC.</string>
+    <plurals name="prove_in_session"><item quantity="one">%1$d prova nella sua scheda</item><item quantity="other">%1$d prove nella sua scheda</item></plurals>
     <string name="prove_none">Niente da provare.</string>
     <string name="prove_all_ok">Tutte ok</string>
     <string name="prove_install_first">Installa prima questa versione: le sue prove valgono lì.</string>

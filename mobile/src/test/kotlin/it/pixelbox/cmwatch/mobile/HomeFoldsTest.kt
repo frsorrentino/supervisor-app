@@ -33,6 +33,17 @@ class HomeFoldsTest {
         }
     }
 
+    // app-verifica-vuota-16-11: la riga di Verifica apre la scheda della sessione e chiede di portarla in vista, anche toccata due volte.
+    @Test fun openCardFromVerifica() {
+        isolated {
+            val f = HomeFolds()
+            f.openCard("win:supervisor-app")
+            assertTrue(f.isOpen("win:supervisor-app")); assertEquals(1, f.cardFocus)
+            f.openCard("win:supervisor-app")
+            assertTrue(f.isOpen("win:supervisor-app")); assertEquals(2, f.cardFocus)
+        }
+    }
+
     @Test fun oneCardOpenAtATime() {
         isolated {
             val f = HomeFolds()

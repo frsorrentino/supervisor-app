@@ -1613,7 +1613,11 @@ class MainActivity : ComponentActivity() {
             // Contratto 1.107: sopra il banco, le prove che aspettano Franz fuse nella pre-release più nuova (app-sezioni-accorpate-03-11).
             "prove" to { Inline("prove") { androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp)) {
                 decisionsPage?.let { p -> it.pixelbox.cmwatch.mobile.ui.ProveFuseBody(it.pixelbox.cmwatch.rules.ProveFuse.cards(p), { keys -> keys.map { k -> decideRun(CmdOp.DECISIONE, k, "provato", null, null, null) }.all { ok -> ok } }, { k, why -> decideRun(CmdOp.DECISIONE, k, "non_va", null, why, null) }) }
-                if (state?.prove?.let { p -> p.n + p.ko + p.red > 0 } == true) it.pixelbox.cmwatch.mobile.ui.DaProvareBody(proveWhere { x -> x == null || x !in todoLive }, { tag -> app.updater.buildOf(tag) }, { ids -> proveOkRun(ids) }, proveKo, goScreen, onWait = { w -> waitOpen = w })
+                // app-verifica-vuota-16-11: le prove delle sessioni aperte stanno nelle loro schede; qui una riga per sessione che porta lì, come
+                // il web dal 12/11 (app-verifica-conto-elenco-12-11). «Niente da provare» solo se nemmeno le sessioni ne hanno.
+                val ver = provePage?.let { p -> it.pixelbox.cmwatch.rules.ToccaRules.verifica(p, proveSession, todoLive) }
+                if (state?.prove?.let { p -> p.n + p.ko + p.red > 0 } == true && (ver == null || !ver.outsideEmpty || ver.inSessions.isEmpty())) it.pixelbox.cmwatch.mobile.ui.DaProvareBody(ver?.outside, { tag -> app.updater.buildOf(tag) }, { ids -> proveOkRun(ids) }, proveKo, goScreen, onWait = { w -> waitOpen = w })
+                ver?.inSessions?.forEach { r -> it.pixelbox.cmwatch.mobile.ui.ProveInSessionRow(r.session, r.n) { homeFolds.openCard(r.session) } }
                 // Verifica porta anche i lavori consegnati da guardare (app-tocca-sezioni-06-11).
                 if ((state?.results?.nUnseen ?: 0) > 0) Inline("da_guardare") { it.pixelbox.cmwatch.mobile.ui.GuardareBody(state?.results?.items.orEmpty().map(fullResult), guardare) { watchSession = null; watchOpen = true } }
             } } },

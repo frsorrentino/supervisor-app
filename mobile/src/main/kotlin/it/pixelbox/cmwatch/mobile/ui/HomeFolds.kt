@@ -22,6 +22,13 @@ class HomeFolds(card: String? = null) {
     fun isOpen(session: String): Boolean = card == session
     fun toggle(session: String) { card = if (card == session) null else session }
 
+    /**
+     * app-verifica-vuota-16-11: dalla riga «N prove nella sua scheda» di Verifica la scheda della sessione si apre e viene in vista.
+     * [cardFocus] cambia a ogni tocco, così anche la stessa sessione toccata due volte torna in vista (come `homeOpen` del web).
+     */
+    var cardFocus by mutableStateOf(0)
+    fun openCard(session: String) { card = session; cardFocus += 1 }
+
     /** Una sezione richiudibile: la prima volta col suo valore di partenza, poi come l'ha lasciata il tocco. */
     fun state(key: String, start: Boolean): MutableState<Boolean> = states.getOrPut(key) { mutableStateOf(start) }
 
