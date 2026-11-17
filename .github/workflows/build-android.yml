@@ -159,7 +159,11 @@ jobs:
             printf '\n%s\n' "Snapshot cambiati: le immagini nuove sono sul ramo goldens/${GITHUB_SHA::8} e nell'artifact paparazzi-snapshots del run $GITHUB_RUN_ID; i golden vanno presi sul ramo dell'app." >> notes.md
           fi
           cp "$apk" mobile-release.apk
-          gh release create "$tag" mobile-release.apk --prerelease --target "$GITHUB_SHA" --title "$ver · ${GITHUB_REF_NAME} · $short" --notes-file notes.md
+          # Anche l'APK dell'orologio, firmato con la stessa chiave (app-v3-orologio-widget-30-10): si installa al polso con adb.
+          assets=mobile-release.apk
+          wapk=$(find apk -path '*wear/build/outputs/apk/release/*.apk' ! -name '*unsigned*' | head -1)
+          if [ -n "$wapk" ]; then cp "$wapk" wear-release.apk; assets="$assets wear-release.apk"; fi
+          gh release create "$tag" $assets --prerelease --target "$GITHUB_SHA" --title "$ver · ${GITHUB_REF_NAME} · $short" --notes-file notes.md
 
   # I golden nuovi su un ramo a sé (app-pipeline-veloce-06-11): la sessione dell'app li prende con git, senza gh e senza
   # che la master li copi a mano; controlla le immagini e porta sul ramo dell'app solo quelle attese. Un push col
