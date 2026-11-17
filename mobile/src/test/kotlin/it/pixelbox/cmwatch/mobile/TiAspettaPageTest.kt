@@ -87,4 +87,13 @@ class TiAspettaPageTest {
     } }
     @Test fun goneNight() = goneHome(false)
     @Test fun goneDay() = goneHome(true)
+
+    // app-attesa-caricamento-17-11: la voce nota subito, col segno dei dettagli in arrivo; oltre 10 s il PC lento con Riprova e la sessione.
+    private fun loading(l: TiAspetta.Load, day: Boolean) = paparazzi.snapshot { CmPhoneTheme(still = true, day = day) {
+        TiAspettaPage(page, now, wide = false, onBack = {}, onJump = {}, onOther = {}, onHome = {}, load = l, onSession = {}, card = card)
+    } }
+    @Test fun detailsNight() = loading(TiAspetta.Load.DETAILS, false)
+    @Test fun detailsDay() = loading(TiAspetta.Load.DETAILS, true)
+    @Test fun slowNight() = loading(TiAspetta.Load.SLOW, false)
+    @Test fun slowDay() = loading(TiAspetta.Load.SLOW, true)
 }

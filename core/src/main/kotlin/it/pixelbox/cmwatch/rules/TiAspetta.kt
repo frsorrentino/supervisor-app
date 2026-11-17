@@ -98,4 +98,21 @@ object TiAspetta {
         (a.cmd["session"] as? kotlinx.serialization.json.JsonPrimitive)?.takeIf { it.isString }?.content
     /** Quello che è partito: l'etichetta del tasto, col testo scritto se c'era. */
     fun sentWhat(label: String, written: String?): String = written?.trim()?.takeIf { it.isNotEmpty() }?.let { "$label: $it" } ?: label
+
+    /**
+     * app-attesa-caricamento-17-11 (17/11 11:23: il comando `attesa` 8,8 s in fila e 4,1 s in esecuzione, 13 s di sola «La leggo dal
+     * PC»): la voce da mostrare subito. Quella letta dal PC se c'è; altrimenti quella che l'app ha già nell'elenco delle attese, finché
+     * il PC non dice che non c'è più. Null solo per una voce che l'app non conosce. Porta di waitShown in tiAspetta.ts.
+     */
+    fun waitShown(id: String, full: it.pixelbox.cmwatch.contract.WaitItem?, known: List<it.pixelbox.cmwatch.contract.WaitItem>, gone: Boolean): it.pixelbox.cmwatch.contract.WaitItem? =
+        full ?: if (gone) null else known.firstOrNull { it.id == id }
+    /** Il segno della scheda mentre legge: i dettagli in arrivo, oltre 10 s il PC lento, o la lettura fallita; null a lettura finita. */
+    enum class Load { DETAILS, SLOW, FAILED }
+    fun waitLoad(loaded: Boolean, failed: Boolean, gone: Boolean, slow: Boolean): Load? = when {
+        failed -> Load.FAILED
+        loaded || gone -> null
+        slow -> Load.SLOW
+        else -> Load.DETAILS
+    }
+    const val SLOW_MS = 10_000L
 }

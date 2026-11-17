@@ -2265,7 +2265,7 @@
 {#snippet pageView(p: PageName)}
   <!-- La scheda «Ti aspetta» (contratto 1.130, app-scheda-ti-aspetta-07-11): ha la sua testata, con la sessione e da quanto aspetta. -->
   {#if p === 'attesa' && waitId}
-  <TiAspettaView id={waitId} {st} now={st.ts} wide={wide} {run} onBack={closeWait} onHome={() => leaveWait(null)}
+  <TiAspettaView id={waitId} {st} now={st.ts} wide={wide} {run} onBack={closeWait} onHome={() => leaveWait(null)} onSession={(n) => leaveWait(n)}
     onSent={(w, what, to) => { const n = afterAnswer(w, what, to, (x) => st.sessions.some(s => s.name === x && s.state !== 'gone')); say(n.line); leaveWait(n.session) }}
     onOpenWait={(w) => (waitId = w)} onJump={(n, entry, sid) => { const live = st.sessions.some(x => x.name === n && x.state !== 'gone'); waitId = null; waitFrom = null; openPage(null); if (!live && sid) { sidOf = { ...sidOf, [n]: sid }; reading = n } else pick(n); void jumpTo(n, entry) }}
     onApprove={approve} onAsk={(x) => sendTo(MASTER, x)}

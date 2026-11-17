@@ -1900,6 +1900,10 @@ It starts at your last message to the master.</string>
     <string name="wait_sent_to">Sent «%1$s» to %2$s</string>
     <string name="wait_sent_generic">Answer sent to %1$s</string>
     <string name="ti_aspetta_home">Home</string>
+    <string name="ti_aspetta_details">Details coming from the PC</string>
+    <string name="ti_aspetta_slow">The PC is slow to answer.</string>
+    <string name="ti_aspetta_retry">Try again</string>
+    <string name="ti_aspetta_open_session">Open the session</string>
     <string name="ti_aspetta_failed">I cannot read it from the PC.</string>
     <string name="ti_aspetta_loading">Reading it from the PC</string>
     <string name="ti_aspetta_production">production</string>

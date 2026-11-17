@@ -67,8 +67,12 @@ fun TiAspettaPage(
     page: TiAspetta.Page, now: Long, wide: Boolean, onBack: () -> Unit, onJump: (TiAspetta.Source) -> Unit, onOther: (String) -> Unit,
     othersOpen: Boolean = false, stack: Boolean = false, title: String? = null, sub: String? = null,
     /** app-attesa-dopo-scelta-17-11: la via per la home, sempre, anche aperta da un link senza schermata di partenza. */
-    onHome: (() -> Unit)? = null, card: @Composable () -> Unit,
+    onHome: (() -> Unit)? = null,
+    /** app-attesa-caricamento-17-11: il segno mentre i dettagli arrivano dal PC; lento o fallito con Riprova e la sessione. */
+    load: TiAspetta.Load? = null, onRetry: () -> Unit = {}, onSession: (() -> Unit)? = null,
+    card: @Composable () -> Unit,
 ) {
+    Box(Modifier.fillMaxSize()) {
     // Non si salva: ogni scheda, anche un'altra aperta da questa lista, parte con la lista chiusa.
     var open by remember(page.key) { mutableStateOf(othersOpen) }
     // Sul telefono la scheda prende lo schermo intero e lascia il posto alla barra di stato come le altre pagine (systemBarsPadding,
@@ -108,6 +112,8 @@ fun TiAspettaPage(
             }
             if (page.others.isNotEmpty()) Others(page.others, now, open, { open = !open }, onOther)
         }
+    }
+    load?.let { l -> WaitLoadChip(l, onRetry, onSession, Modifier.align(Alignment.BottomCenter)) }
     }
 }
 
@@ -311,14 +317,39 @@ internal class WaitAnswer(private val close: () -> Unit) {
     fun <A, B, C> taken(send: suspend (A, B, C) -> Boolean): suspend (A, B, C) -> Boolean = { a, b, c -> send(a, b, c).also { ok -> if (ok) close() } }
 }
 
+/** app-attesa-caricamento-17-11: in basso, il segno dei dettagli in arrivo; lento o fallito, la frase con Riprova e Apri la sessione. */
+@Composable
+internal fun WaitLoadChip(l: TiAspetta.Load, onRetry: () -> Unit, onSession: (() -> Unit)?, modifier: Modifier = Modifier) {
+    Row(
+        modifier.systemBarsPadding().padding(16.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(if (l == TiAspetta.Load.DETAILS) 999.dp else 14.dp))
+            .background(V3.S3).padding(horizontal = 12.dp, vertical = 4.dp).heightIn(min = 34.dp).testTag("ti-aspetta-dettagli"),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        if (l == TiAspetta.Load.DETAILS) {
+            androidx.compose.material3.CircularProgressIndicator(Modifier.size(12.dp), color = V3.Tx3, strokeWidth = 2.dp)
+            Text(stringResource(R.string.ti_aspetta_details), style = V3.Small.copy(fontSize = 13.5.sp, color = V3.Tx2))
+        } else {
+            Text(stringResource(if (l == TiAspetta.Load.FAILED) R.string.ti_aspetta_failed else R.string.ti_aspetta_slow), style = V3.Small.copy(fontSize = 13.5.sp, color = V3.Tx), modifier = Modifier.weight(1f, fill = false))
+            androidx.compose.material3.TextButton(onClick = onRetry, modifier = Modifier.handCursor()) { Text(stringResource(R.string.ti_aspetta_retry), color = V3.Tx) }
+            onSession?.let { s -> androidx.compose.material3.TextButton(onClick = s, modifier = Modifier.handCursor()) { Text(stringResource(R.string.ti_aspetta_open_session), color = V3.Tx) } }
+        }
+    }
+}
+
 /** La scheda mentre si legge, o quando la domanda non aspetta più: la freccia indietro e una riga. */
 @Composable
-fun TiAspettaEmpty(text: String, wide: Boolean = false, onHome: (() -> Unit)? = null, onBack: () -> Unit) {
+fun TiAspettaEmpty(text: String, wide: Boolean = false, onHome: (() -> Unit)? = null, loading: Boolean = false, onRetry: (() -> Unit)? = null, onBack: () -> Unit) {
     Column(Modifier.fillMaxSize().background(LocalPageBg.current ?: V3.Bg).then(if (wide) Modifier else Modifier.systemBarsPadding()).padding(6.dp)) {
         IconButton(onClick = onBack, modifier = Modifier.handCursor()) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back), tint = V3.Tx) }
-        Text(text, style = V3.Body.copy(color = V3.Tx2), modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
-        // app-attesa-dopo-scelta-17-11: una voce che non c'è più non lascia senza via: la home.
-        onHome?.let { h -> androidx.compose.material3.FilledTonalButton(onClick = h, modifier = Modifier.padding(horizontal = 14.dp).handCursor().testTag("ti-aspetta-home")) { Text(stringResource(R.string.ti_aspetta_home)) } }
+        Row(Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (loading) androidx.compose.material3.CircularProgressIndicator(Modifier.size(14.dp), color = V3.Tx3, strokeWidth = 2.dp)
+            Text(text, style = V3.Body.copy(color = V3.Tx2))
+        }
+        // app-attesa-dopo-scelta-17-11: una voce che non c'è più non lascia senza via: la home. Lenta o fallita, anche Riprova.
+        Row(Modifier.padding(horizontal = 14.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            onRetry?.let { r -> androidx.compose.material3.FilledTonalButton(onClick = r, modifier = Modifier.handCursor()) { Text(stringResource(R.string.ti_aspetta_retry)) } }
+            onHome?.let { h -> androidx.compose.material3.FilledTonalButton(onClick = h, modifier = Modifier.handCursor().testTag("ti-aspetta-home")) { Text(stringResource(R.string.ti_aspetta_home)) } }
+        }
     }
 }
 

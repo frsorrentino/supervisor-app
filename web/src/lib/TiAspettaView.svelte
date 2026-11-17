@@ -9,8 +9,8 @@
   import { locale } from './lang'
   import { decodeWait, decodeWaits, readPage } from './decideDecode'
   import { newCmd } from './transport'
-  import { adviceLine, adviceOf, cmdOf, lookOf, sentWhat, type Kind, type Page } from './tiAspetta'
-  import { markAnswered } from './attese.svelte'
+  import { adviceLine, adviceOf, cmdOf, lookOf, sentWhat, waitLoad, waitShown, type Kind, type Page } from './tiAspetta'
+  import { markAnswered, waits } from './attese.svelte'
   import { t } from './t'
   // La scheda «Ti aspetta» collegata al contratto 1.130-1.131 (app-scheda-ti-aspetta-07-11): legge la voce con `attesa` e le altre con
   // `attese`. La carta in alto ha i tasti del relay (`actions`, ognuno col suo comando già pronto); un relay senza `actions` mostra la
@@ -21,12 +21,12 @@
   // Contratto 1.137 (app-scheda-scelta-12-11): una scelta ha la sua scheda (SceltaAperta: le opzioni con immagini, righe di pro e
   // contro e tasti, «Nessuna, rifare», i giri precedenti); ogni altra richiesta mostra i suoi file sotto il testo (le immagini di cosa
   // guardare di una verifica). La voce si legge con `archive`: dopo la risposta la scheda resta, senza tasti, con com'è finita.
-  let { id, st, now, wide = false, run, onBack, onHome, onSent, onOpenWait, onJump, onApprove, onDone, onAsk, onScreen, onShot, onFile = () => {}, onAnswered = () => {} }: {
+  let { id, st, now, wide = false, run, onBack, onHome, onSession = () => {}, onSent, onOpenWait, onJump, onApprove, onDone, onAsk, onScreen, onShot, onFile = () => {}, onAnswered = () => {} }: {
     id: string; st: State; now: number; wide?: boolean
     run: (c: ReturnType<typeof newCmd>) => Promise<CmdResult | null>
     onBack: () => void; onOpenWait: (id: string) => void
     /** app-attesa-dopo-scelta-17-11: la via per la home, sempre; e dopo una risposta, cosa è partito e a chi (afterAnswer). */
-    onHome: () => void; onSent: (w: WaitItem, what: string, to: string | null) => void
+    onHome: () => void; onSession?: (session: string) => void; onSent: (w: WaitItem, what: string, to: string | null) => void
     onJump: (session: string, entry: string, sessionId: string | null) => void
     onApprove: (task: string, note: string, choice?: string) => void; onDone: (i: DecisionItem) => void; onAsk: (text: string) => void
     onScreen: (s: string) => void; onShot: (f: File, note: string) => void
@@ -36,17 +36,28 @@
     onAnswered?: (w: WaitItem) => void
   } = $props()
 
-  let item = $state<WaitItem | null>(null), others = $state<WaitItem[]>([]), failed = $state(false), gone = $state(false)
+  // app-attesa-caricamento-17-11 (17/11 11:23: il comando `attesa` 8,8 s in fila e 4,1 s in esecuzione, 13 s di sola «La leggo dal PC»):
+  // la scheda parte subito dalla voce che l'app ha già nell'elenco delle attese (titolo, sessione, tipo, tasti) e chiede al PC solo il
+  // resto (da dove viene, i file, com'è finita); un segno piccolo finché arriva. Oltre 10 s dice che il PC è lento, con Riprova e
+  // Apri la sessione. Una lettura fallita ha Riprova. Stessa forma per una voce aperta da link e da elenco.
+  let full = $state<WaitItem | null>(null), fetched = $state<WaitItem[] | null>(null), failed = $state(false), gone = $state(false), slow = $state(false), tries = $state(0)
+  const item = $derived(waitShown(id, full, waits.items, gone))
+  const others = $derived((fetched ?? waits.items).filter(x => x.id !== id))
+  const mark = $derived(waitLoad(full != null, failed, gone, slow))
   $effect(() => {
-    const want = id
-    item = null; failed = false; gone = false; sent = null; writing = null; written = ''
+    const want = id, n = tries
+    full = null; failed = false; gone = false; slow = false; sent = null; writing = null; written = ''
+    const timer = setTimeout(() => { if (want === id && n === tries && full == null) slow = true }, 10_000)
     void run({ ...newCmd('attesa', null, want), archive: true }).then(r => {
-      if (want !== id) return
+      if (want !== id || n !== tries) return
+      clearTimeout(timer); slow = false
       if (r && !r.ok) { gone = true; return }
-      const { page, failed: f } = readPage(r, decodeWait, null); item = page; failed = f
+      const { page, failed: f } = readPage(r, decodeWait, null); full = page; failed = f
     })
-    void run(newCmd('attese', null)).then(r => { const { page } = readPage(r, decodeWaits, null); if (page) others = page.items.filter(x => x.id !== want) })
+    void run(newCmd('attese', null)).then(r => { const { page } = readPage(r, decodeWaits, null); if (page) fetched = page.items })
+    return () => clearTimeout(timer)
   })
+  const retry = () => { tries += 1 }
   const kindOf = (l: string): Kind => (l === 'choose' ? 'choose' : l === 'verify' ? 'verify' : l === 'reply' ? 'answer' : 'decide')
   const page = $derived<Page | null>(item && {
     key: item.id, kind: kindOf(item.label), session: item.session ?? null, since: item.at,
@@ -86,6 +97,13 @@
 </script>
 
 {#if page && item}{@const w = item}
+  {#if mark}
+    <!-- Il segno piccolo dei dettagli in arrivo; oltre 10 s il PC lento, con Riprova e la sessione. -->
+    <div class="load" class:slow={mark !== 'details'} role="status" data-testid="ti-aspetta-dettagli">
+      {#if mark === 'details'}<span class="spin" aria-hidden="true"></span>{t.tiAspettaDetails}{:else}{mark === 'failed' ? t.tiAspettaFailed : t.tiAspettaSlow}
+        <button class="lk" onclick={retry}>{t.tiAspettaRetry}</button>{#if w.session}<button class="lk" onclick={() => onSession(w.session!)}>{t.tiAspettaOpenSession}</button>{/if}{/if}
+    </div>
+  {/if}
   <TiAspetta {page} {now} {wide} {onBack} {onHome} stack={choice} title={out && out.state !== 'open' ? t.sceltaDone[out.state] : null} sub={out && out.state !== 'open' ? answeredAt ?? '' : null} onOther={onOpenWait} onJump={(s) => { if (s.entry) onJump(s.session, s.entry, w.msg?.session_id ?? null) }}>
     {#snippet card()}
       {#if legacy && item.kind === 'prova'}
@@ -135,8 +153,11 @@
 {:else}
   <section class="empty">
     <button class="back" aria-label={t.back} onclick={onBack}><svg viewBox="0 0 24 24" width="24" height="24"><path d="M15 5l-7 7 7 7" fill="none" stroke="var(--tx)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></button>
-    <p>{gone ? t.tiAspettaGone : failed ? t.tiAspettaFailed : t.tiAspettaLoading}</p>
-    {#if gone || failed}<button class="home" data-testid="ti-aspetta-home" onclick={onHome}>{t.tiAspettaHome}</button>{/if}
+    <p>{#if !gone && !failed && !slow}<span class="spin" aria-hidden="true"></span>{/if}{gone ? t.tiAspettaGone : failed ? t.tiAspettaFailed : slow ? t.tiAspettaSlow : t.tiAspettaLoading}</p>
+    <div class="btns">
+      {#if failed || slow}<button class="home" onclick={retry}>{t.tiAspettaRetry}</button>{/if}
+      <button class="home" data-testid="ti-aspetta-home" onclick={onHome}>{t.tiAspettaHome}</button>
+    </div>
   </section>
 {/if}
 
@@ -171,6 +192,13 @@
   .note { font-size: 14px; color: var(--tx2); }
   .empty { display: flex; flex-direction: column; gap: 12px; padding: 10px 16px; height: 100%; background: var(--bg); }
   .empty .back { width: 44px; height: 44px; display: grid; place-items: center; }
-  .empty p { color: var(--tx2); }
+  .empty p { color: var(--tx2); display: flex; align-items: center; gap: 8px; }
+  .empty .btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  .load { position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 5; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; max-width: calc(100% - 32px);
+    padding: 7px 12px; border-radius: 999px; background: var(--s3); color: var(--tx2); font-size: 13.5px; }
+  .load.slow { color: var(--tx); border-radius: 14px; }
+  .lk { font: 600 13.5px var(--display); color: var(--tx); text-decoration: underline; }
+  .spin { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--tx3); border-top-color: transparent; animation: sp .9s linear infinite; flex: none; }
+  @keyframes sp { to { transform: rotate(360deg) } }
   .empty .home { align-self: flex-start; font: 600 14.5px var(--display); padding: 8px 14px; border-radius: 999px; background: var(--s3); color: var(--tx); }
 </style>

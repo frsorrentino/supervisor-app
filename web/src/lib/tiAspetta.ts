@@ -77,3 +77,15 @@ export function afterAnswer(w: { session?: string | null }, what: string, to: st
 }
 /** Quello che è partito: l'etichetta del tasto, col testo scritto se c'era. */
 export const sentWhat = (label: string, written: string | null | undefined) => (written?.trim() ? `${label}: ${written.trim()}` : label)
+
+/**
+ * app-attesa-caricamento-17-11: la voce da mostrare subito. Quella letta dal PC se c'è; altrimenti quella che l'app ha già
+ * nell'elenco delle attese, finché il PC non dice che non c'è più. Null solo per una voce che l'app non conosce.
+ */
+export function waitShown<T extends { id: string }>(id: string, full: T | null, known: readonly T[], gone: boolean): T | null {
+  return full ?? (gone ? null : known.find(x => x.id === id) ?? null)
+}
+/** Il segno della scheda mentre legge: i dettagli in arrivo, oltre 10 s il PC lento, o la lettura fallita; niente a lettura finita. */
+export type WaitLoad = 'details' | 'slow' | 'failed' | null
+export const waitLoad = (loaded: boolean, failed: boolean, gone: boolean, slow: boolean): WaitLoad =>
+  failed ? 'failed' : loaded || gone ? null : slow ? 'slow' : 'details'

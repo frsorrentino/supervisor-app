@@ -369,6 +369,9 @@ class MainActivity : ComponentActivity() {
         var waitOthers by remember { mutableStateOf(emptyList<it.pixelbox.cmwatch.contract.WaitItem>()) }
         var waitGone by remember { mutableStateOf(false) }
         var waitFailed by remember { mutableStateOf(false) }
+        // app-attesa-caricamento-17-11: oltre 10 s senza risposta il PC è lento; Riprova rilegge.
+        var waitSlow by remember { mutableStateOf(false) }
+        var waitTry by remember { androidx.compose.runtime.mutableIntStateOf(0) }
         // I Monitoraggi (app-monitoraggi-09-11, contratto 1.132): le schede dall'op `monitors`, rilette quando `/state.monitors` dice
         // che c'è un valore nuovo; senza monitoraggi la sezione non c'è. La scheda aperta, per id: dalla home, da un link
         // `#/monitor/<id>` o da un suggerimento; una scheda che l'elenco non ha ancora si legge da sola.
@@ -381,9 +384,10 @@ class MainActivity : ComponentActivity() {
         var monitorOne by remember { mutableStateOf<it.pixelbox.cmwatch.contract.MonitorCard?>(null) }
         val linkHandler = androidx.compose.ui.platform.LocalUriHandler.current
         androidx.compose.runtime.SideEffect { (linkHandler as? DownloadLinks)?.let { d -> d.onWait = { w -> waitOpen = w }; d.onMonitor = { m -> monitorOpen = m }; d.onProva = { n -> provaOpen = n } } }
-        LaunchedEffect(waitOpen) {
+        LaunchedEffect(waitOpen, waitTry) {
             val w = waitOpen ?: return@LaunchedEffect
-            waitItem = null; waitGone = false; waitFailed = false
+            waitItem = null; waitGone = false; waitFailed = false; waitSlow = false
+            val slowJob = launch { kotlinx.coroutines.delay(it.pixelbox.cmwatch.rules.TiAspetta.SLOW_MS); waitSlow = true }
             suspend fun ask(op: CmdOp, arg: String?): it.pixelbox.cmwatch.contract.CmdResult? {
                 // Contratto 1.137: `attesa` con `archive` dà la scheda anche dopo la risposta, con com'è finita.
                 val id = runCatching { app.repo.command(op, null, arg, archive = if (op == CmdOp.ATTESA) true else null) }.getOrNull() ?: return null
@@ -392,6 +396,7 @@ class MainActivity : ComponentActivity() {
                 return r
             }
             val one = ask(CmdOp.ATTESA, w)
+            slowJob.cancel(); waitSlow = false
             when {
                 one == null -> waitFailed = true
                 !one.ok -> waitGone = true
@@ -1728,7 +1733,10 @@ class MainActivity : ComponentActivity() {
         }
         // La scheda «Ti aspetta»: sul telefono una pagina, sul tablet nella colonna di destra, larga (mockup approvato il 07/11 alle 21:04).
         val waitPage: @Composable (String, Boolean) -> Unit = { wid, wideNow ->
-            val item = waitItem?.takeIf { x -> x.id == wid }
+            // app-attesa-caricamento-17-11: subito la voce che l'app ha già nell'elenco; i dettagli del PC arrivano dopo.
+            val full = waitItem?.takeIf { x -> x.id == wid }
+            val item = it.pixelbox.cmwatch.rules.TiAspetta.waitShown(wid, full, waitOthers, waitGone)
+            val mark = it.pixelbox.cmwatch.rules.TiAspetta.waitLoad(full != null, waitFailed, waitGone, waitSlow)
             // app-attesa-dopo-scelta-17-11: fuori dalla scheda verso la home, chiuse le pagine sotto (la coda «Ti aspettano» restava vuota).
             val home = { waitOpen = null; settingsOpen = false; searchOpen = false; queueOpen = false; boxOpen = null; tab = StartRoute.Tab.OVERVIEW; open = null }
             // Dopo una risposta una riga con quello che è partito e a chi, poi la sessione della voce, o la home (TiAspetta.afterAnswer).
@@ -1766,12 +1774,14 @@ class MainActivity : ComponentActivity() {
             val doneSub = if (doneTitle == null) null else outcome?.at?.let { at -> listOfNotNull(getString(R.string.scelta_answered, it.pixelbox.cmwatch.mobile.ui.sceltaWhen(at)), outcome.by).joinToString(" · ") } ?: ""
             androidx.compose.runtime.CompositionLocalProvider(it.pixelbox.cmwatch.mobile.ui.LocalWaitFiles provides waitFiles()) { run {
                 if (item == null) it.pixelbox.cmwatch.mobile.ui.TiAspettaEmpty(
-                    getString(if (waitGone) R.string.ti_aspetta_gone else if (waitFailed) R.string.ti_aspetta_failed else R.string.ti_aspetta_loading),
-                    wide = wideNow, onHome = home,
+                    getString(if (waitGone) R.string.ti_aspetta_gone else if (waitFailed) R.string.ti_aspetta_failed else if (waitSlow) R.string.ti_aspetta_slow else R.string.ti_aspetta_loading),
+                    wide = wideNow, onHome = home, loading = mark == it.pixelbox.cmwatch.rules.TiAspetta.Load.DETAILS,
+                    onRetry = if (mark == it.pixelbox.cmwatch.rules.TiAspetta.Load.SLOW || mark == it.pixelbox.cmwatch.rules.TiAspetta.Load.FAILED) ({ waitTry += 1 }) else null,
                 ) { waitOpen = null }
                 else it.pixelbox.cmwatch.mobile.ui.TiAspettaPage(
                     it.pixelbox.cmwatch.rules.TiAspetta.pageOf(item, waitOthers), now, wide = wideNow, onBack = { waitOpen = null },
                     stack = choice, title = doneTitle, sub = doneSub, onHome = home,
+                    load = mark, onRetry = { waitTry += 1 }, onSession = item.session?.let { n -> { home(); open = n } },
                     // «Apri nella trascrizione»: la sessione e la voce, come un risultato della ricerca; una sessione chiusa col suo id.
                     onJump = { src ->
                         src.entry?.let { e ->
