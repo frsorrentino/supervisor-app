@@ -240,11 +240,12 @@ private fun ResetNote(text: String, tag: String) =
 
 /**
  * app-quota-azzeramento-17-11: la riga sotto ogni percentuale della quota, una sola forma per tabellone, blocco aperto e Risorse:
- * «si azzera gio 19/11 alle 3», «lettura di 2 h 05 fa», «non aggiornata», «azzerata, aspetto la lettura nuova».
+ * «si azzera gio 19/11 alle 3», «lettura di 2 h 05 fa», «non aggiornata», «azzerata, aspetto la lettura nuova». Il giorno nella
+ * lingua delle stringhe (la configurazione), non in quella della JVM: con `Locale.getDefault()` usciva «Thu» fra parole italiane.
  */
 @Composable
 internal fun resetText(l: UtilizzoRules.ResetLine, zone: ZoneId = ZoneId.systemDefault()): String = when (l) {
-    is UtilizzoRules.ResetLine.At -> UtilizzoRules.resetWhen(l.at, zone, Locale.getDefault()).let { w ->
+    is UtilizzoRules.ResetLine.At -> UtilizzoRules.resetWhen(l.at, zone, androidx.compose.ui.platform.LocalConfiguration.current.locales[0]).let { w ->
         stringResource(R.string.quota_reset_on, stringResource(R.string.reset_when, w.weekday, w.dayMonth, w.hour))
     }
     UtilizzoRules.ResetLine.Passed -> stringResource(R.string.quota_reset_passed)
