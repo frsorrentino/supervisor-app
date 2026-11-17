@@ -9,7 +9,7 @@
   import { locale } from './lang'
   import { decodeWait, decodeWaits, readPage } from './decideDecode'
   import { newCmd } from './transport'
-  import { adviceLine, adviceOf, cmdOf, lookOf, type Kind, type Page } from './tiAspetta'
+  import { adviceLine, adviceOf, cmdOf, lookOf, sentWhat, type Kind, type Page } from './tiAspetta'
   import { markAnswered } from './attese.svelte'
   import { t } from './t'
   // La scheda «Ti aspetta» collegata al contratto 1.130-1.131 (app-scheda-ti-aspetta-07-11): legge la voce con `attesa` e le altre con
@@ -21,10 +21,12 @@
   // Contratto 1.137 (app-scheda-scelta-12-11): una scelta ha la sua scheda (SceltaAperta: le opzioni con immagini, righe di pro e
   // contro e tasti, «Nessuna, rifare», i giri precedenti); ogni altra richiesta mostra i suoi file sotto il testo (le immagini di cosa
   // guardare di una verifica). La voce si legge con `archive`: dopo la risposta la scheda resta, senza tasti, con com'è finita.
-  let { id, st, now, wide = false, run, onBack, onOpenWait, onJump, onApprove, onDone, onAsk, onScreen, onShot, onFile = () => {}, onAnswered = () => {} }: {
+  let { id, st, now, wide = false, run, onBack, onHome, onSent, onOpenWait, onJump, onApprove, onDone, onAsk, onScreen, onShot, onFile = () => {}, onAnswered = () => {} }: {
     id: string; st: State; now: number; wide?: boolean
     run: (c: ReturnType<typeof newCmd>) => Promise<CmdResult | null>
     onBack: () => void; onOpenWait: (id: string) => void
+    /** app-attesa-dopo-scelta-17-11: la via per la home, sempre; e dopo una risposta, cosa è partito e a chi (afterAnswer). */
+    onHome: () => void; onSent: (w: WaitItem, what: string, to: string | null) => void
     onJump: (session: string, entry: string, sessionId: string | null) => void
     onApprove: (task: string, note: string, choice?: string) => void; onDone: (i: DecisionItem) => void; onAsk: (text: string) => void
     onScreen: (s: string) => void; onShot: (f: File, note: string) => void
@@ -69,7 +71,7 @@
     // La voce esce subito da ogni vista (app-riall-1-dati-16-11); se il PC rifiuta, torna.
     markAnswered(w.id)
     void run({ ...newCmd(c.op as Parameters<typeof newCmd>[0], c.session ?? null, c.arg ?? null), ...c } as ReturnType<typeof newCmd>).then(r => { if (!r?.ok) markAnswered(w.id, false); onAnswered(w) })
-    onBack()
+    onSent(w, sentWhat(a.label, a.text_field ? text : null), typeof c.session === 'string' ? c.session : null)
   }
   // Una scheda che non aspetta più (dall'archivio): la testata dice com'è finita e quando, non da quanto aspetta.
   const out = $derived(item ? outcomeOf(item) : null)
@@ -84,12 +86,12 @@
 </script>
 
 {#if page && item}{@const w = item}
-  <TiAspetta {page} {now} {wide} {onBack} stack={choice} title={out && out.state !== 'open' ? t.sceltaDone[out.state] : null} sub={out && out.state !== 'open' ? answeredAt ?? '' : null} onOther={onOpenWait} onJump={(s) => { if (s.entry) onJump(s.session, s.entry, w.msg?.session_id ?? null) }}>
+  <TiAspetta {page} {now} {wide} {onBack} {onHome} stack={choice} title={out && out.state !== 'open' ? t.sceltaDone[out.state] : null} sub={out && out.state !== 'open' ? answeredAt ?? '' : null} onOther={onOpenWait} onJump={(s) => { if (s.entry) onJump(s.session, s.entry, w.msg?.session_id ?? null) }}>
     {#snippet card()}
       {#if legacy && item.kind === 'prova'}
         <DaProvare {run} only={(p) => p.wid === w.id} {onScreen} {onShot} />
       {:else if legacy && w.type === 'carta'}
-        <CinqueMinuti rows allOpen only={(g) => g.items.some(i => i.wid === w.id)} {st} {run} onApprove={(task, note, choice) => { onApprove(task, note, choice); onBack() }} onDone={(i) => { onDone(i); onBack() }} {onAsk} />
+        <CinqueMinuti rows allOpen only={(g) => g.items.some(i => i.wid === w.id)} {st} {run} onApprove={(task, note, choice) => { onApprove(task, note, choice); onSent(w, sentWhat(choice || t.approve, note), null) }} onDone={(i) => { onDone(i); onSent(w, t.tiAspettaDone, null) }} {onAsk} />
       {:else if choice}
         <SceltaAperta item={w} rows={rows(w)} {sent} onSend={send} {onFile} />
       {:else}
@@ -134,6 +136,7 @@
   <section class="empty">
     <button class="back" aria-label={t.back} onclick={onBack}><svg viewBox="0 0 24 24" width="24" height="24"><path d="M15 5l-7 7 7 7" fill="none" stroke="var(--tx)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></button>
     <p>{gone ? t.tiAspettaGone : failed ? t.tiAspettaFailed : t.tiAspettaLoading}</p>
+    {#if gone || failed}<button class="home" data-testid="ti-aspetta-home" onclick={onHome}>{t.tiAspettaHome}</button>{/if}
   </section>
 {/if}
 
@@ -169,4 +172,5 @@
   .empty { display: flex; flex-direction: column; gap: 12px; padding: 10px 16px; height: 100%; background: var(--bg); }
   .empty .back { width: 44px; height: 44px; display: grid; place-items: center; }
   .empty p { color: var(--tx2); }
+  .empty .home { align-self: flex-start; font: 600 14.5px var(--display); padding: 8px 14px; border-radius: 999px; background: var(--s3); color: var(--tx); }
 </style>

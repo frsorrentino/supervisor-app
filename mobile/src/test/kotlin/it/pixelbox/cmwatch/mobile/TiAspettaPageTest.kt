@@ -75,4 +75,16 @@ class TiAspettaPageTest {
         paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenWidth = 1640, screenHeight = 1000, density = com.android.resources.Density.XHIGH))
         paparazzi.snapshot { CmPhoneTheme(still = true) { androidx.compose.runtime.CompositionLocalProvider(LocalPageBg provides V3.S1) { TiAspettaPage(page, now, wide = true, onBack = {}, onJump = {}, onOther = {}, card = card) } } }
     }
+
+    // app-attesa-dopo-scelta-17-11: la via per la home sempre, accanto al titolo; una voce che non c'è più ha la home sotto la riga.
+    private fun withHome(day: Boolean) = paparazzi.snapshot { CmPhoneTheme(still = true, day = day) {
+        TiAspettaPage(page, now, wide = false, onBack = {}, onJump = {}, onOther = {}, onHome = {}, card = card)
+    } }
+    @Test fun homeNight() = withHome(false)
+    @Test fun homeDay() = withHome(true)
+    private fun goneHome(day: Boolean) = paparazzi.snapshot { CmPhoneTheme(still = true, day = day) {
+        it.pixelbox.cmwatch.mobile.ui.TiAspettaEmpty(androidx.compose.ui.res.stringResource(it.pixelbox.cmwatch.mobile.R.string.ti_aspetta_gone), onHome = {}) {}
+    } }
+    @Test fun goneNight() = goneHome(false)
+    @Test fun goneDay() = goneHome(true)
 }

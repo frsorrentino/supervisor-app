@@ -130,7 +130,7 @@
   import CloseSplash from './lib/CloseSplash.svelte'
   import { closeRefusals, closeSplash, ghostSession, type Leaving } from './lib/closeSplash'
   import { askedSession, askedWait } from './lib/sessionLinks'
-  import { backTo } from './lib/tiAspetta'
+  import { afterAnswer, backTo } from './lib/tiAspetta'
   import MonitorView from './lib/MonitorView.svelte'
   import ProvaView from './lib/ProvaView.svelte'
   import { inVerify, provaOf, readProva, type ProvaRead } from './lib/provaLinks'
@@ -737,6 +737,8 @@
     })()
   })
   const openWait = (w: string) => { waitFrom = backTo(waitFrom, page); waitId = w; openPage('attesa') }
+  // app-attesa-dopo-scelta-17-11: fuori dalla scheda verso la sessione della voce o la home, mai verso la pagina di partenza.
+  const leaveWait = (session: string | null) => { waitId = null; waitFrom = null; if (location.hash.startsWith('#/attesa/')) history.replaceState(null, '', location.pathname + location.search); openPage(null); if (session) pick(session) }
   const closeWait = () => { const to = waitFrom; waitId = null; waitFrom = null; if (location.hash.startsWith('#/attesa/')) history.replaceState(null, '', location.pathname + location.search); openPage(to) }
   $effect(() => {
     const onHash = () => { const w = askedWait(location.hash); if (w) openWait(w); const m = monitorOf(location.hash); if (m) openMonitor(m); const pn = provaOf(location.hash); if (pn != null) openProva(pn) }
@@ -2246,7 +2248,8 @@
 {#snippet pageView(p: PageName)}
   <!-- La scheda «Ti aspetta» (contratto 1.130, app-scheda-ti-aspetta-07-11): ha la sua testata, con la sessione e da quanto aspetta. -->
   {#if p === 'attesa' && waitId}
-  <TiAspettaView id={waitId} {st} now={st.ts} wide={wide} {run} onBack={closeWait}
+  <TiAspettaView id={waitId} {st} now={st.ts} wide={wide} {run} onBack={closeWait} onHome={() => leaveWait(null)}
+    onSent={(w, what, to) => { const n = afterAnswer(w, what, to, (x) => st.sessions.some(s => s.name === x && s.state !== 'gone')); say(n.line); leaveWait(n.session) }}
     onOpenWait={(w) => (waitId = w)} onJump={(n, entry, sid) => { const live = st.sessions.some(x => x.name === n && x.state !== 'gone'); waitId = null; waitFrom = null; openPage(null); if (!live && sid) { sidOf = { ...sidOf, [n]: sid }; reading = n } else pick(n); void jumpTo(n, entry) }}
     onApprove={approve} onAsk={(x) => sendTo(MASTER, x)}
     onDone={(i) => { if (i.kind === 'needs_you' && i.session) attentionDone({ kind: 'needs_you', ref: i.session, since: i.since }); else { const c = st.commitments?.find(x => x.task === i.task); if (c) doneForPerson(c) } }}

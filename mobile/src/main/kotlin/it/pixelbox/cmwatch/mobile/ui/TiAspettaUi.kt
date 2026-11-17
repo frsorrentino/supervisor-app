@@ -25,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -64,7 +65,9 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun TiAspettaPage(
     page: TiAspetta.Page, now: Long, wide: Boolean, onBack: () -> Unit, onJump: (TiAspetta.Source) -> Unit, onOther: (String) -> Unit,
-    othersOpen: Boolean = false, stack: Boolean = false, title: String? = null, sub: String? = null, card: @Composable () -> Unit,
+    othersOpen: Boolean = false, stack: Boolean = false, title: String? = null, sub: String? = null,
+    /** app-attesa-dopo-scelta-17-11: la via per la home, sempre, anche aperta da un link senza schermata di partenza. */
+    onHome: (() -> Unit)? = null, card: @Composable () -> Unit,
 ) {
     // Non si salva: ogni scheda, anche un'altra aperta da questa lista, parte con la lista chiusa.
     var open by remember(page.key) { mutableStateOf(othersOpen) }
@@ -84,6 +87,7 @@ fun TiAspettaPage(
                     else Text(stringResource(R.string.ti_aspetta_since, TiAspetta.age(now - page.since)), style = V3.Meter.copy(color = V3.Wait), maxLines = 1, softWrap = false)
                 }
             }
+            onHome?.let { h -> IconButton(onClick = h, modifier = Modifier.handCursor().testTag("ti-aspetta-home")) { Icon(Icons.Rounded.Home, stringResource(R.string.ti_aspetta_home), tint = V3.Tx2) } }
             if (wide) IconButton(onClick = onBack, modifier = Modifier.handCursor()) { Icon(Icons.Rounded.Close, stringResource(R.string.close), tint = V3.Tx2) }
         }
         if (wide) Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
@@ -309,10 +313,12 @@ internal class WaitAnswer(private val close: () -> Unit) {
 
 /** La scheda mentre si legge, o quando la domanda non aspetta più: la freccia indietro e una riga. */
 @Composable
-fun TiAspettaEmpty(text: String, wide: Boolean = false, onBack: () -> Unit) {
+fun TiAspettaEmpty(text: String, wide: Boolean = false, onHome: (() -> Unit)? = null, onBack: () -> Unit) {
     Column(Modifier.fillMaxSize().background(LocalPageBg.current ?: V3.Bg).then(if (wide) Modifier else Modifier.systemBarsPadding()).padding(6.dp)) {
         IconButton(onClick = onBack, modifier = Modifier.handCursor()) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back), tint = V3.Tx) }
         Text(text, style = V3.Body.copy(color = V3.Tx2), modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
+        // app-attesa-dopo-scelta-17-11: una voce che non c'è più non lascia senza via: la home.
+        onHome?.let { h -> androidx.compose.material3.FilledTonalButton(onClick = h, modifier = Modifier.padding(horizontal = 14.dp).handCursor().testTag("ti-aspetta-home")) { Text(stringResource(R.string.ti_aspetta_home)) } }
     }
 }
 

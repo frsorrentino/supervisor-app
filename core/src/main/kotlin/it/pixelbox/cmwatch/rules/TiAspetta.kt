@@ -83,4 +83,19 @@ object TiAspetta {
         seconds < 86400 -> "${seconds / 3600} h"
         else -> "${seconds / 86400} g"
     }
+
+    /**
+     * app-attesa-dopo-scelta-17-11 (Franz 17/11 10:29: «dopo la scelta effettuata dovrebbe o reindirizzarmi o comunque mostrare
+     * qualcosa per tornare alla sezione/sessione corretta»): una regola sola per ogni risposta data dalla scheda di una voce. Una
+     * riga di conferma con quello che è partito e a chi, poi la sessione della voce se è aperta; senza sessione (o chiusa) la home,
+     * dove sta «Per te». Mai più la schermata di partenza, che dopo la risposta poteva essere vuota. Porta di afterAnswer in tiAspetta.ts.
+     */
+    data class After(val what: String, val to: String, val session: String?)
+    fun afterAnswer(session: String?, what: String, to: String?, live: (String) -> Boolean): After =
+        After(what, to?.takeIf { it.isNotBlank() } ?: session ?: "master", session?.takeIf(live))
+    /** A chi va il comando di un tasto: la sua `session`, se c'è. */
+    fun cmdSession(a: it.pixelbox.cmwatch.contract.WaitAction): String? =
+        (a.cmd["session"] as? kotlinx.serialization.json.JsonPrimitive)?.takeIf { it.isString }?.content
+    /** Quello che è partito: l'etichetta del tasto, col testo scritto se c'era. */
+    fun sentWhat(label: String, written: String?): String = written?.trim()?.takeIf { it.isNotEmpty() }?.let { "$label: $it" } ?: label
 }

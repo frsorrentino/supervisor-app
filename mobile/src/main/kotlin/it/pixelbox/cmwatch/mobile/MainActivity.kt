@@ -1729,10 +1729,18 @@ class MainActivity : ComponentActivity() {
         // La scheda «Ti aspetta»: sul telefono una pagina, sul tablet nella colonna di destra, larga (mockup approvato il 07/11 alle 21:04).
         val waitPage: @Composable (String, Boolean) -> Unit = { wid, wideNow ->
             val item = waitItem?.takeIf { x -> x.id == wid }
-            // Dopo una risposta la scheda si chiude e torna dove era Franz (app-ti-aspetta-lista-chiusa-08-11).
-            val answer = it.pixelbox.cmwatch.mobile.ui.WaitAnswer { if (waitOpen == wid) waitOpen = null }
+            // app-attesa-dopo-scelta-17-11: fuori dalla scheda verso la home, chiuse le pagine sotto (la coda «Ti aspettano» restava vuota).
+            val home = { waitOpen = null; settingsOpen = false; searchOpen = false; queueOpen = false; boxOpen = null; tab = StartRoute.Tab.OVERVIEW; open = null }
+            // Dopo una risposta una riga con quello che è partito e a chi, poi la sessione della voce, o la home (TiAspetta.afterAnswer).
+            val leave = { what: String?, to: String? ->
+                val live = { n: String -> state?.sessions?.any { x -> x.name == n && x.state != SessionState.GONE } == true }
+                val after = it.pixelbox.cmwatch.rules.TiAspetta.afterAnswer(item?.session, what.orEmpty(), to, live)
+                android.widget.Toast.makeText(this@MainActivity, if (what != null) getString(R.string.wait_sent_to, after.what, after.to) else getString(R.string.wait_sent_generic, after.to), android.widget.Toast.LENGTH_LONG).show()
+                if (waitOpen == wid) { home(); after.session?.let { n -> open = n } }
+            }
+            val answer = it.pixelbox.cmwatch.mobile.ui.WaitAnswer { leave(null, null) }
             // Dopo l'esito del PC le schede compatte di questa richiesta (chat, home) si rileggono: «Scelto B» al posto di «Da scegliere».
-            val send = answer.two<it.pixelbox.cmwatch.contract.WaitAction, String?> { a, written ->
+            val send: (it.pixelbox.cmwatch.contract.WaitAction, String?) -> Unit = { a, written ->
                 // app-riall-1-dati-16-11: la voce esce subito da ogni vista; se il PC rifiuta, torna.
                 item?.let { x -> perTeSent[x.id] = true }
                 scope.launch {
@@ -1744,6 +1752,7 @@ class MainActivity : ComponentActivity() {
                         waitRefresh { w -> w.id == item.id || (item.cardId != null && w.cardId == item.cardId) }
                     }
                 }
+                leave(it.pixelbox.cmwatch.rules.TiAspetta.sentWhat(a.label, if (a.textField != null) written else null), it.pixelbox.cmwatch.rules.TiAspetta.cmdSession(a))
             }
             val choice = item != null && item.actions != null && it.pixelbox.cmwatch.rules.Scelta.isChoice(item)
             val outcome = item?.let { x -> it.pixelbox.cmwatch.rules.Scelta.outcomeOf(x) }
@@ -1758,11 +1767,11 @@ class MainActivity : ComponentActivity() {
             androidx.compose.runtime.CompositionLocalProvider(it.pixelbox.cmwatch.mobile.ui.LocalWaitFiles provides waitFiles()) { run {
                 if (item == null) it.pixelbox.cmwatch.mobile.ui.TiAspettaEmpty(
                     getString(if (waitGone) R.string.ti_aspetta_gone else if (waitFailed) R.string.ti_aspetta_failed else R.string.ti_aspetta_loading),
-                    wide = wideNow,
+                    wide = wideNow, onHome = home,
                 ) { waitOpen = null }
                 else it.pixelbox.cmwatch.mobile.ui.TiAspettaPage(
                     it.pixelbox.cmwatch.rules.TiAspetta.pageOf(item, waitOthers), now, wide = wideNow, onBack = { waitOpen = null },
-                    stack = choice, title = doneTitle, sub = doneSub,
+                    stack = choice, title = doneTitle, sub = doneSub, onHome = home,
                     // «Apri nella trascrizione»: la sessione e la voce, come un risultato della ricerca; una sessione chiusa col suo id.
                     onJump = { src ->
                         src.entry?.let { e ->

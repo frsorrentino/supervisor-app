@@ -1,3 +1,4 @@
+import { t } from './t'
 // La scheda «Ti aspetta» (app-scheda-ti-aspetta-07-11, mockup approvato da Franz il 07/11 alle 21:04): la frase della domanda
 // accesa nel pezzo di trascrizione e da quanto aspetta. La stessa regola di TiAspetta.kt, coi casi di
 // core/src/test/resources/ti-aspetta-cases.json. Il modello della pagina segue quello di Kotlin; i dati arrivano col contratto.
@@ -62,3 +63,17 @@ export function age(seconds: number): string {
   if (seconds < 86400) return `${Math.floor(seconds / 3600)} h`
   return `${Math.floor(seconds / 86400)} g`
 }
+
+/**
+ * app-attesa-dopo-scelta-17-11 (Franz 17/11 10:29: «dopo la scelta effettuata dovrebbe o reindirizzarmi o comunque mostrare qualcosa
+ * per tornare alla sezione/sessione corretta»): una regola sola per ogni risposta data dalla scheda di una voce (scelta, ok, Approva,
+ * Chiudi, prova ok o ko, Parliamone). Una riga di conferma con quello che è partito e a chi, poi la sessione della voce se è aperta;
+ * senza sessione (o chiusa) la home, dove sta «Per te». Mai più la pagina di partenza, che dopo la risposta poteva essere vuota.
+ */
+export type AfterAnswer = { line: string; session: string | null }
+export function afterAnswer(w: { session?: string | null }, what: string, to: string | null | undefined, live: (s: string) => boolean): AfterAnswer {
+  const who = to || w.session || 'master'
+  return { line: t.waitSentTo(what, who), session: w.session && live(w.session) ? w.session : null }
+}
+/** Quello che è partito: l'etichetta del tasto, col testo scritto se c'era. */
+export const sentWhat = (label: string, written: string | null | undefined) => (written?.trim() ? `${label}: ${written.trim()}` : label)

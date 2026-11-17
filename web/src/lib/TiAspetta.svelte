@@ -9,9 +9,9 @@
   // qui si apre un'altra scheda (app-ti-aspetta-lista-chiusa-08-11). Come TiAspettaPage in Kotlin.
   // `stack` (app-scheda-scelta-12-11): una scelta con le immagini tiene tutta la larghezza anche sulla plancia, e «Da dove viene» le
   // sta sotto. `title` e `sub`: una scheda che non aspetta più dice com'è finita e quando, al posto di «Ti aspetta» e «da 12 min».
-  let { page, now, wide = false, stack = false, title = null, sub = null, card, onBack, onJump, onOther }: {
+  let { page, now, wide = false, stack = false, title = null, sub = null, card, onBack, onHome = null, onJump, onOther }: {
     page: Page; now: number; wide?: boolean; stack?: boolean; title?: string | null; sub?: string | null; card: Snippet
-    onBack: () => void; onJump: (s: Source) => void; onOther: (key: string) => void
+    onBack: () => void; onHome?: (() => void) | null; onJump: (s: Source) => void; onOther: (key: string) => void
   } = $props()
   const label: Record<Kind, string> = { decide: t.tiAspettaKind.decide, choose: t.tiAspettaKind.choose, verify: t.tiAspettaKind.verify, answer: t.tiAspettaKind.answer }
   let open = $state(false), openKey = ''
@@ -23,6 +23,8 @@
   <header>
     {#if !wide}<button class="ic" aria-label={t.back} onclick={onBack}><svg viewBox="0 0 24 24" width="24" height="24"><path d="M15 5l-7 7 7 7" fill="none" stroke="var(--tx)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></button>{/if}
     <span class="tt"><b>{title ?? t.tiAspettaTitle}</b><small>{#if sub != null}{[page.session, sub].filter(Boolean).join(' · ')}{:else}{#if page.session}{page.session} · {/if}<em>{t.tiAspettaSince(age(now - page.since))}</em>{/if}</small></span>
+    <!-- app-attesa-dopo-scelta-17-11: la via per la home sempre, anche aperta da un link senza pagina di partenza. -->
+    {#if onHome}<button class="ic" aria-label={t.tiAspettaHome} data-testid="ti-aspetta-home" onclick={onHome}><svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z" fill="none" stroke="var(--tx2)" stroke-width="2" stroke-linejoin="round" /></svg></button>{/if}
     {#if wide}<button class="ic" aria-label={t.closeWord} onclick={onBack}><svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="var(--tx2)" stroke-width="2" stroke-linecap="round" /></svg></button>{/if}
   </header>
   <div class="body">
