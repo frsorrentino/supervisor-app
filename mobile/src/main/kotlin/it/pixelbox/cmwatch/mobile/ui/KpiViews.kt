@@ -386,7 +386,7 @@ internal fun UsageSlotRow(w: it.pixelbox.cmwatch.rules.UtilizzoRules.WeekSlot?, 
 }
 
 /** Il terzo blocco del tabellone quando dice l'utilizzo: quanto, di quale finestra, il colore, dove sta la tacca del tempo passato. */
-internal data class UsageCell(val pct: Int, val tick: Float?, val tone: Color, val label: String, val open: Boolean, val onToggle: () -> Unit)
+internal data class UsageCell(val pct: Int, val tick: Float?, val tone: Color, val label: String, val open: Boolean, val reset: String? = null, val onToggle: () -> Unit)
 
 /**
  * L'utilizzo nel tabellone (variante B del mockup del 13/11): la percentuale grande come le altre cifre, sotto la finestra che dice,
@@ -401,6 +401,8 @@ private fun UsageBoard(u: UsageCell, modifier: Modifier) {
             androidx.compose.material3.Icon(if (u.open) androidx.compose.material.icons.Icons.Rounded.ExpandLess else androidx.compose.material.icons.Icons.Rounded.ExpandMore, null, tint = V3.Tx3, modifier = Modifier.size(18.dp))
         }
         Text(u.label, style = V3.Small.copy(fontSize = 14.sp, lineHeight = 17.sp), minLines = 1, modifier = Modifier.weight(1f, fill = false))
+        // app-quota-azzeramento-17-11: sotto la percentuale l'ora in cui si azzera la finestra che mostra, piccola, sopra la barra.
+        u.reset?.let { Text(it, style = V3.Small.copy(fontSize = 12.sp, lineHeight = 15.sp, color = V3.Tx3), modifier = Modifier.testTag("home-box-utilizzo-azzera")) }
         Spacer(Modifier.weight(1f))
         val tx = V3.Tx
         val track = V3.Tx.copy(alpha = 0.14f)

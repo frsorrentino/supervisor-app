@@ -372,6 +372,10 @@
     <string name="speech_rate_short">%1$s×</string>
     <string name="speech_rate_change">Reading speed %1$s: tap to change it</string>
     <string name="quota_line_stale">not updated</string>
+    <string name="reset_when">%1$s %2$s at %3$s</string>
+    <string name="quota_reset_on">resets %1$s</string>
+    <string name="quota_reset_passed">reset, waiting for a new reading</string>
+    <string name="quota_read_ago">read %1$s ago</string>
     <string name="chat_empty">New conversation: no messages yet. Write below to start.</string>
     <string name="menu_goto">Go to</string>
     <string name="menu_home_sub">Home: sessions and the master\'s chat</string>

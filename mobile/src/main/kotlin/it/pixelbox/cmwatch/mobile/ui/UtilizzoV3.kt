@@ -81,6 +81,7 @@ internal fun UtilizzoV3(rings: List<PhoneOverview.Ring>, st: State, page: Timeli
     val many = shown.size > 1
     val toggle = { k: String -> open = if (open == k) null else k }
     val hm = DateTimeFormatter.ofPattern("HH:mm")
+    val age = UtilizzoRules.dataAge(st, now)
     Column(Modifier.fillMaxWidth().testTag("utilizzo-v3")) {
         // Franz 01/11 13:44: «la riga Utilizzo e la riga Settimana» sono ridondanti. Un account: la barra a tutta larghezza, senza riga.
         // Due account: la riga prende il nome dell'account, con «5 ore» rientrata sotto chi ha quel limite. Le origini stanno in «Tutti i dettagli».
@@ -88,7 +89,10 @@ internal fun UtilizzoV3(rings: List<PhoneOverview.Ring>, st: State, page: Timeli
             val noH5 = r.h5 == null
             val kw = "w7:${r.account}"
             val pace = weekPaceText(UtilizzoRules.weekDelta(r.w7, r.weekResetAt, now), UtilizzoRules.weekDay(r.weekResetAt, now))
-            val renewal = r.weekResetAt?.let { stringResource(R.string.week_renewal, DateTimeFormatter.ofPattern("EEE HH:mm", Locale.getDefault()).format(Instant.ofEpochSecond(it).atZone(zone))) }
+            // app-quota-azzeramento-17-11: sotto ogni barra, sempre, l'ora in cui si azzera (o perché non si sa), dalla lettura vera.
+            val q = st.quota[r.account]
+            val resetW7 = q?.let { UtilizzoRules.resetLine(it.resetW7, now, it.stale, age) }?.let { resetText(it, zone) }
+            val resetH5 = q?.let { UtilizzoRules.resetLine(it.resetH5, now, it.stale, age) }?.let { resetText(it, zone) }
             r.w7?.let { raw ->
                 val w7 = raw.coerceIn(0, 100)
                 if (!many) {
@@ -96,9 +100,9 @@ internal fun UtilizzoV3(rings: List<PhoneOverview.Ring>, st: State, page: Timeli
                     Column(Modifier.fillMaxWidth().testTag("utilizzo-riga-unica").padding(top = if (inSlot) 8.dp else 14.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                         if (!inSlot) {
                             Meter(w7, null, UtilizzoRules.elapsedPct(r.weekResetAt, UtilizzoRules.W7_S, now), Modifier.padding(start = 14.dp, end = 14.dp, bottom = 6.dp).fillMaxWidth(), stale = r.stale)
-                            if (r.stale) Note(stringResource(R.string.quota_line_stale)) else pace?.let { Note(it) }
+                            if (!r.stale && age == null) pace?.let { Note(it) }
                         }
-                        renewal?.let { Note(it.replaceFirstChar { c -> c.titlecase() }) }
+                        resetW7?.let { Note(it.replaceFirstChar { c -> c.titlecase() }, Modifier.testTag("utilizzo-azzera-w7")) }
                     }
                 } else {
                     UseRow(open == kw, { toggle(kw) }) {
@@ -108,11 +112,8 @@ internal fun UtilizzoV3(rings: List<PhoneOverview.Ring>, st: State, page: Timeli
                         Spacer(Modifier.width(GAP))
                         Text("$w7%", style = V3.Meter.copy(color = if (r.stale) V3.Tx2 else V3.Tx), textAlign = TextAlign.End, modifier = Modifier.width(valW))
                     }
-                    if (open == kw || r.stale || (noH5 && pace != null)) Column(Modifier.padding(bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                        if (r.stale) Note(stringResource(R.string.quota_line_stale))
-                        pace?.takeIf { (noH5 && !r.stale) || open == kw }?.let { Note(it) }
-                        if (open == kw) renewal?.let { Note(it) }
-                    }
+                    resetW7?.let { ResetNote(it, "utilizzo-azzera-w7") }
+                    if (!r.stale && pace != null && (noH5 || open == kw)) Column(Modifier.padding(bottom = 10.dp)) { Note(pace) }
                 }
             }
             if (r.h5 != null) {
@@ -127,9 +128,9 @@ internal fun UtilizzoV3(rings: List<PhoneOverview.Ring>, st: State, page: Timeli
                     Spacer(Modifier.width(GAP))
                     Text(if (proj != null && !r.stale) "$pct% → $proj%" else "$pct%", style = V3.Meter.copy(color = if (r.stale) V3.Tx2 else V3.Tx), textAlign = TextAlign.End, modifier = Modifier.width(valW))
                 }
-                if (open == k5 || r.stale) Column(Modifier.padding(bottom = 10.dp)) {
-                    if (r.stale) Note(stringResource(R.string.quota_line_stale))
-                    if (open == k5) {
+                resetH5?.let { ResetNote(it, "utilizzo-azzera-h5") }
+                if (open == k5) Column(Modifier.padding(bottom = 10.dp)) {
+                    run {
                     // «adesso» sopra il grafico, centrato sulla linea: fra le due ore in fondo non ci sta (Franz 30/10, correzione al mockup D).
                     if (tick != null) Aligned(valW) {
                         BoxWithConstraints(Modifier.fillMaxWidth().height(16.dp)) {
@@ -146,11 +147,7 @@ internal fun UtilizzoV3(rings: List<PhoneOverview.Ring>, st: State, page: Timeli
                             }
                         }
                     }
-                    Note(when {
-                        proj != null && r.resetAt != null -> stringResource(R.string.usage_projection, proj, hm.format(Instant.ofEpochSecond(r.resetAt!!).atZone(zone)))
-                        r.resetAt != null -> stringResource(R.string.quota_resets_at, hm.format(Instant.ofEpochSecond(r.resetAt!!).atZone(zone)))
-                        else -> stringResource(R.string.quota_old)
-                    })
+                    if (proj != null && r.resetAt != null) Note(stringResource(R.string.usage_projection, proj, hm.format(Instant.ofEpochSecond(r.resetAt!!).atZone(zone))))
                     }
                 }
             }
@@ -234,7 +231,25 @@ private fun Aligned(valW: Dp, content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun Note(text: String) = Text(text, style = V3.Small.copy(fontSize = 14.sp), modifier = Modifier.padding(start = 14.dp, end = 12.dp + ARROW))
+private fun Note(text: String, modifier: Modifier = Modifier) = Text(text, style = V3.Small.copy(fontSize = 14.sp), modifier = modifier.padding(start = 14.dp, end = 12.dp + ARROW))
+
+/** app-quota-azzeramento-17-11: la riga dell'azzeramento sotto la barra della riga, nella sua colonna, piccola. */
+@Composable
+private fun ResetNote(text: String, tag: String) =
+    Text(text, style = V3.Small.copy(fontSize = 12.sp, lineHeight = 15.sp, color = V3.Tx3), modifier = Modifier.testTag(tag).padding(start = 14.dp + labW() + GAP, end = 12.dp + ARROW, bottom = 8.dp))
+
+/**
+ * app-quota-azzeramento-17-11: la riga sotto ogni percentuale della quota, una sola forma per tabellone, blocco aperto e Risorse:
+ * «si azzera gio 19/11 alle 3», «lettura di 2 h 05 fa», «non aggiornata», «azzerata, aspetto la lettura nuova».
+ */
+@Composable
+internal fun resetText(l: UtilizzoRules.ResetLine, zone: ZoneId = ZoneId.systemDefault()): String = when (l) {
+    is UtilizzoRules.ResetLine.At -> UtilizzoRules.resetWhen(l.at, zone, Locale.getDefault()).let { w ->
+        stringResource(R.string.quota_reset_on, stringResource(R.string.reset_when, w.weekday, w.dayMonth, w.hour))
+    }
+    UtilizzoRules.ResetLine.Passed -> stringResource(R.string.quota_reset_passed)
+    is UtilizzoRules.ResetLine.Stale -> l.ageS?.let { a -> stringResource(R.string.quota_read_ago, it.pixelbox.cmwatch.contract.Durations.since(0, a)) } ?: stringResource(R.string.quota_line_stale)
+}
 
 @Composable
 private fun Label(text: String, indent: Boolean = false) {
@@ -306,7 +321,7 @@ internal fun UsagePage(st: State, ov: PhoneOverview.Model, page: TimelinePage?, 
             Text(stringResource(R.string.menu_quadro), style = V3.Section.copy(fontSize = 22.sp, lineHeight = 26.sp))
         }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(start = 12.dp, end = 12.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            PhoneOverview.lineRings(ov.rings).forEach { r -> TabletQuotaPanel(r, now, dataStale = dataStale) }
+            PhoneOverview.lineRings(ov.rings).forEach { r -> TabletQuotaPanel(r, now, dataStale = dataStale, dataAgeS = UtilizzoRules.dataAge(st, now)) }
             TodayPanel(ov.today, it.pixelbox.cmwatch.rules.UsageTodayRules.rows(st.usageToday))
             st.quota.keys.forEach { a -> Kpi.split(st, a)?.let { sp -> Kpi4(sp) } }
             page?.let { p -> Kpi18(Kpi.dayFigures(p, state = st, now = now, zone = zone)) }

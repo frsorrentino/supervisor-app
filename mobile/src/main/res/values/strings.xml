@@ -380,6 +380,11 @@
     <string name="speech_rate_short">%1$s×</string>
     <string name="speech_rate_change">Velocità di lettura %1$s: tocca per cambiarla</string>
     <string name="quota_line_stale">non aggiornata</string>
+    <!-- app-quota-azzeramento-17-11: la riga sotto ogni percentuale della quota. -->
+    <string name="reset_when">%1$s %2$s alle %3$s</string>
+    <string name="quota_reset_on">si azzera %1$s</string>
+    <string name="quota_reset_passed">azzerata, aspetto la lettura nuova</string>
+    <string name="quota_read_ago">lettura di %1$s fa</string>
     <string name="quota_line_window" translatable="false">5h</string>
     <string name="chat_empty">Conversazione nuova: ancora nessun messaggio. Scrivi qui sotto per cominciare.</string>
     <string name="menu_goto">Vai a</string>

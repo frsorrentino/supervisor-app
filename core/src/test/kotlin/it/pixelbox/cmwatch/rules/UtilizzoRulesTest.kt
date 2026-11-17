@@ -95,4 +95,23 @@ class UtilizzoRulesTest {
         assertEquals(UtilizzoRules.UsageAlarm("a", true, 92, null), UtilizzoRules.usageAlarm(mapOf("a" to q5(76, w7 = 92)), 0))
         assertEquals("a pari le 5 ore, che finiscono prima", false, UtilizzoRules.usageAlarm(mapOf("a" to q5(80, w7 = 80)), 0)!!.week)
     }
+
+    // app-quota-azzeramento-17-11: 1795053600 è il rinnovo vero dell'account personale della settimana del 17/11. Stessi casi di resetLine.test.ts.
+    private val reset = 1795053600L
+    private val rome = java.time.ZoneId.of("Europe/Rome")
+    private val ita = java.util.Locale.ITALIAN
+
+    @Test fun resetHourIsLikeTheLimitTitles() {
+        assertEquals(UtilizzoRules.When("gio", "19/11", "3"), UtilizzoRules.resetWhen(reset, rome, ita))
+        assertEquals(UtilizzoRules.When("lun", "16/11", "3:30"), UtilizzoRules.resetWhen(reset + 30 * 60 - 3 * 86400, rome, ita))
+        assertEquals(UtilizzoRules.When("gio", "19/11", "14:05"), UtilizzoRules.resetWhen(reset + 11 * 3600 + 5 * 60, rome, ita))
+    }
+
+    @Test fun resetLineSaysWhyInsteadOfAnHourThatDoesNotHold() {
+        assertEquals(UtilizzoRules.ResetLine.At(reset), UtilizzoRules.resetLine(reset, reset - 40 * 3600, false))
+        assertEquals(UtilizzoRules.ResetLine.Passed, UtilizzoRules.resetLine(reset, reset + 60, false))
+        assertEquals(UtilizzoRules.ResetLine.Stale(7500), UtilizzoRules.resetLine(reset, reset - 40 * 3600, false, 7500))
+        assertEquals(UtilizzoRules.ResetLine.Stale(null), UtilizzoRules.resetLine(reset, reset - 40 * 3600, true))
+        assertNull(UtilizzoRules.resetLine(null, reset, false))
+    }
 }

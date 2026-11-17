@@ -22,6 +22,8 @@ object PhoneOverview {
         val weekResetAt: Long? = null, val stale: Boolean = false,
         /** Contratto 1.86: la settimana ora per ora e da dove viene (2A e 2B); null con un relay precedente. */
         val weekPoints: it.pixelbox.cmwatch.contract.WeekPoints? = null, val weekOrigins: it.pixelbox.cmwatch.contract.WeekOrigins? = null,
+        /** app-quota-azzeramento-17-11: le ore lette, anche passate, per dire «azzerata» invece di niente. */
+        val readResetH5: Long? = null, val readResetW7: Long? = null,
     )
 
     /**
@@ -47,7 +49,7 @@ object PhoneOverview {
             val pace = samples[row.account]?.takeIf { it.size >= 2 && row.resetAt != null && !stale && !row.stale }
                 ?.let { QuotaHistory.pace(it, row.resetAt!!, now) }
             val weekReset = q.resetW7?.takeIf { it > now }
-            Ring(row.account, row.personal, UtilizzoRules.fiveHourLive(q.h5, q.resetH5, q.stale, now), q.w7, row.resetAt, pace, weekReset, row.stale, q.w7Points, q.w7Origins)
+            Ring(row.account, row.personal, UtilizzoRules.fiveHourLive(q.h5, q.resetH5, q.stale, now), q.w7, row.resetAt, pace, weekReset, row.stale, q.w7Points, q.w7Origins, q.resetH5, q.resetW7)
         }
         val contexts = WorkPanel.contexts(state).map { c ->
             val s = state.sessions.first { it.name == c.name }

@@ -771,6 +771,10 @@ fun SummaryList(
                             pct, it.pixelbox.cmwatch.rules.UtilizzoRules.elapsedPct(usageAlarm?.resetAt ?: weekSlot?.resetAt, window, now)?.toFloat(),
                             if (usageAlarm != null) (if (pct >= 90) V3.Red else V3.Wait) else if (stale) V3.Tx3 else if (pct >= 90) V3.Red else if (pct >= 75) V3.Wait else V3.Tx2,
                             stringResource(if (usageAlarm != null && !usageAlarm.week) R.string.usage_cell_5h else R.string.usage_cell_week), usageOpen,
+                            (usageAlarm?.account ?: weekSlot?.account)?.let { a -> st.quota[a] }?.let { q ->
+                                val h5 = usageAlarm != null && !usageAlarm.week
+                                it.pixelbox.cmwatch.rules.UtilizzoRules.resetLine(if (h5) q.resetH5 else q.resetW7, now, q.stale, it.pixelbox.cmwatch.rules.UtilizzoRules.dataAge(st, now))
+                            }?.let { l -> resetText(l) },
                         ) { usageOpen = !usageOpen; save("usage", usageOpen) }
                     }
                     Kpi7(kh, st, now, boardClick, onQuota, joined = up.any { k -> k != pin }, usage = cell, filter = bf, slot = { slotContent() })

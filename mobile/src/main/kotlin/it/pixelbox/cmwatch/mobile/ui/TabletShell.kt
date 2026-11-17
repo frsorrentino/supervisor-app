@@ -167,7 +167,7 @@ fun QuotaRing(ring: PhoneOverview.Ring, size: androidx.compose.ui.unit.Dp = 64.d
  * adesso fino alla ripartenza (piena fino a ora, tratteggiata dopo, soglie 80 e 100), poi la settimana col ritmo medio.
  */
 @Composable
-fun TabletQuotaPanel(ring: PhoneOverview.Ring, now: Long, dataStale: Boolean = false) {
+fun TabletQuotaPanel(ring: PhoneOverview.Ring, now: Long, dataStale: Boolean = false, dataAgeS: Long? = null) {
     val shape = RoundedCornerShape(14.dp)
     Column(
         Modifier.fillMaxWidth().clip(shape).background(Cm.surfaceLow).border(1.dp, Cm.line, shape).padding(14.dp),
@@ -175,6 +175,8 @@ fun TabletQuotaPanel(ring: PhoneOverview.Ring, now: Long, dataStale: Boolean = f
     ) {
         // quota-senza-cinque-ore: senza il dato la testa è la settimana, col giorno e il ritmo, e la sezione delle 5 ore non c'è.
         val noH5 = ring.h5 == null && ring.w7 != null
+        val resetH5 = UtilizzoRules.resetLine(ring.readResetH5 ?: ring.resetAt, now, ring.stale, dataAgeS)?.let { resetText(it) }
+        val resetW7 = UtilizzoRules.resetLine(ring.readResetW7 ?: ring.weekResetAt, now, ring.stale, dataAgeS)?.let { resetText(it) }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
             QuotaRing(ring, 64.dp, stale = ring.stale || dataStale)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -185,13 +187,9 @@ fun TabletQuotaPanel(ring: PhoneOverview.Ring, now: Long, dataStale: Boolean = f
                         style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Medium, fontFeatureSettings = "tnum"),
                         color = if (ring.stale) Cm.text2 else Cm.text,
                     )
-                    if (noH5) ring.weekResetAt?.let { at ->
-                        Text(stringResource(R.string.week_renewal, dayTime(at)), style = MaterialTheme.typography.bodySmall, color = Cm.text2, modifier = Modifier.padding(bottom = 5.dp))
-                    } else ring.resetAt?.let { at ->
-                        Text(stringResource(R.string.quota_resets_at, hhmm(at)), style = MaterialTheme.typography.bodySmall, color = Cm.text2, modifier = Modifier.padding(bottom = 5.dp))
-                    }
                 }
-                if (ring.stale) Text(stringResource(R.string.quota_old), style = MaterialTheme.typography.bodySmall, color = Cm.briefWarn)
+                // app-quota-azzeramento-17-11: la stessa riga del tabellone e del blocco Utilizzo; vecchia o passata lo dice invece dell'ora.
+                (if (noH5) resetW7 else resetH5)?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = if (ring.stale || dataAgeS != null) Cm.briefWarn else Cm.text2, modifier = Modifier.testTag("pannello-azzera-${if (noH5) "w7" else "h5"}")) }
             }
         }
         val reset = ring.resetAt
@@ -229,6 +227,7 @@ fun TabletQuotaPanel(ring: PhoneOverview.Ring, now: Long, dataStale: Boolean = f
         if (!noH5) {
             HorizontalDivider(color = Cm.line, modifier = Modifier.padding(vertical = 2.dp))
             PanelTitle(stringResource(R.string.tablet_week_label), ring.account, ring.w7?.let { "$it%" })
+            resetW7?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Cm.text2, modifier = Modifier.testTag("pannello-azzera-w7")) }
         }
         val wp = ring.weekPoints
         val wr = ring.weekResetAt

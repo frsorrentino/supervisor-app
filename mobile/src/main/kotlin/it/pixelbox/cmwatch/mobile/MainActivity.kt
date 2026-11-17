@@ -2384,7 +2384,7 @@ class MainActivity : ComponentActivity() {
                 }
                 // Un account fermo (dato vecchio) non ha il suo riquadro se l'altro è aggiornato, come nella riga in alto
                 // (Franz, 08/10 20:32: «inutile mostrare anche il suo box»).
-                PhoneOverview.lineRings(ov.rings).forEach { r -> TabletQuotaPanel(r, now, dataStale = snap.freshness is Freshness.Stale) }
+                PhoneOverview.lineRings(ov.rings).forEach { r -> TabletQuotaPanel(r, now, dataStale = snap.freshness is Freshness.Stale, dataAgeS = it.pixelbox.cmwatch.rules.UtilizzoRules.dataAge(st, now)) }
                 TodayPanel(ov.today, it.pixelbox.cmwatch.rules.UsageTodayRules.rows(st.usageToday))
             }
         }

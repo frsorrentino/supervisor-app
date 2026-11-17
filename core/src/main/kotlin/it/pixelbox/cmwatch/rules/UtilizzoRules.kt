@@ -1,6 +1,7 @@
 package it.pixelbox.cmwatch.rules
 
 import it.pixelbox.cmwatch.contract.KpiWaitDay
+import it.pixelbox.cmwatch.contract.publishedTs
 
 /** Il blocco Utilizzo aperto (scelta D di Franz, 30/10 20:11, compito app-utilizzo-d-30-10; utilizzo.ts nella web). */
 object UtilizzoRules {
@@ -91,5 +92,34 @@ object UtilizzoRules {
     fun waits(week: List<KpiWaitDay>): Waits? {
         val last = week.lastOrNull { it.medianMin != null } ?: return null
         return Waits(Math.round(last.medianMin!!).toInt(), week.sumOf { it.n })
+    }
+
+    /**
+     * app-quota-azzeramento-17-11 (Franz 17/11 08:11): la riga piccola sotto ogni percentuale della quota, una sola forma per tabellone,
+     * blocco aperto e Risorse: «si azzera gio 19/11 alle 3». Con la lettura vecchia la sua età (lo stato intero vecchio) o «non
+     * aggiornata» (l'account vecchio: il relay non dice da quando); a ora passata «azzerata». Mai l'ora di una lettura che non vale.
+     * Porta di resetLine in utilizzo.ts.
+     */
+    sealed interface ResetLine {
+        data class At(val at: Long) : ResetLine
+        data object Passed : ResetLine
+        data class Stale(val ageS: Long?) : ResetLine
+    }
+    fun resetLine(at: Long?, now: Long, stale: Boolean, dataAgeS: Long? = null): ResetLine? = when {
+        dataAgeS != null -> ResetLine.Stale(dataAgeS)
+        stale -> ResetLine.Stale(null)
+        at == null -> null
+        at > now -> ResetLine.At(at)
+        else -> ResetLine.Passed
+    }
+    /** L'età dello stato quando è vecchio (oltre i 3 minuti di [it.pixelbox.cmwatch.contract.Freshness]), altrimenti null. */
+    fun dataAge(state: it.pixelbox.cmwatch.contract.State, now: Long): Long? =
+        if (it.pixelbox.cmwatch.contract.Freshness.of(state, now) is it.pixelbox.cmwatch.contract.Freshness.Stale) (now - state.publishedTs).coerceAtLeast(0) else null
+    /** «gio», «19/11», «3» o «14:05»: i minuti solo se non sono zero. Il giorno nella lingua data. */
+    data class When(val weekday: String, val dayMonth: String, val hour: String)
+    fun resetWhen(at: Long, zone: java.time.ZoneId, locale: java.util.Locale): When {
+        val t = java.time.Instant.ofEpochSecond(at).atZone(zone)
+        val wd = t.dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, locale).removeSuffix(".")
+        return When(wd, "${t.dayOfMonth}/${t.monthValue}", if (t.minute == 0) "${t.hour}" else "${t.hour}:%02d".format(t.minute))
     }
 }
