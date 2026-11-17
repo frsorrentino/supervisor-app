@@ -1,4 +1,6 @@
 import { isPersonalQuota } from './briefCards'
+import { freshness, publishedTs, since } from './durations'
+import { locale } from './lang'
 import { shown } from './quotaLine'
 import { t } from './t'
 
@@ -101,4 +103,35 @@ export function paceText(delta: number | null, day: number | null = null): strin
   if (delta == null) return null
   const p = delta < 0 ? t.usageBelowPace(-delta) : delta > 0 ? t.usageAbovePace(delta) : t.weekEven
   return day != null ? t.weekDayPace(day, p) : p
+}
+
+/**
+ * app-quota-azzeramento-17-11 (Franz 17/11 08:11, «l'informazione di quando si azzera la quota settimanale deve essere visibile»):
+ * la riga piccola sotto ogni percentuale della quota, una sola forma per tabellone, blocco aperto e Risorse. «si azzera gio 19/11
+ * alle 3» come i titoli dei limiti; con la lettura vecchia la sua età (lo stato intero vecchio) o «non aggiornata» (l'account
+ * vecchio, il relay non dice da quando); a ora passata «azzerata, aspetto la lettura nuova». Mai l'ora di una lettura che non vale.
+ * Porta: UtilizzoRules.resetLine nell'app.
+ */
+export type ResetLine = { kind: 'at'; at: number } | { kind: 'passed' } | { kind: 'stale'; ageS: number | null }
+export function resetLine(at: number | null | undefined, now: number, stale: boolean | undefined, dataAgeS: number | null = null): ResetLine | null {
+  if (dataAgeS != null) return { kind: 'stale', ageS: dataAgeS }
+  if (stale) return { kind: 'stale', ageS: null }
+  if (at == null) return null
+  return at > now ? { kind: 'at', at } : { kind: 'passed' }
+}
+/** «gio 19/11 alle 3», «lun 17/11 alle 14:30»: i minuti solo se non sono zero. */
+export function resetWhen(at: number, timeZone?: string): string {
+  const p = Object.fromEntries(new Intl.DateTimeFormat(locale, { timeZone, weekday: 'short', day: 'numeric', month: 'numeric', hour: 'numeric', minute: '2-digit', hourCycle: 'h23' })
+    .formatToParts(new Date(at * 1000)).map(x => [x.type, x.value]))
+  const h = String(Number(p.hour))
+  return t.resetWhen(String(p.weekday).replace('.', ''), `${Number(p.day)}/${Number(p.month)}`, p.minute === '00' ? h : `${h}:${p.minute}`)
+}
+export function resetText(r: ResetLine, timeZone?: string): string {
+  if (r.kind === 'at') return t.quotaResetOn(resetWhen(r.at, timeZone))
+  if (r.kind === 'passed') return t.quotaResetPassed
+  return r.ageS != null ? t.quotaReadAgo(since(0, r.ageS)) : t.quotaLineStale
+}
+/** L'età dello stato quando è vecchio (oltre i 3 minuti di `freshness`), altrimenti null: va nella riga invece dell'ora. */
+export function dataAge(st: { ts: number; published_at?: number | null }, now: number): number | null {
+  return freshness(st, now).stale ? Math.max(0, now - publishedTs(st)) : null
 }

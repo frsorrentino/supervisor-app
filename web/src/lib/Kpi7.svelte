@@ -16,14 +16,14 @@
   // app-tabellone-filtri-14-11 (Franz 14/11 14:22): «ferme» e «al lavoro» filtrano la lista delle sessioni sotto; la casella del
   // filtro acceso resta accesa, e a 0 non si tocca e non ha la freccia.
   let { h, st = null, now = 0, onBox = () => {}, onQuota = () => {}, slot, usage = null, onUsage = () => {}, filter = null }: { h: Head; filter?: 'aspetta' | 'lavoro' | null; st?: State | null; now?: number; onBox?: (b: Box) => void; onQuota?: () => void; slot?: Snippet
-    usage?: { pct: number; tick: number | null; tone: string; label: string; open: boolean } | null; onUsage?: () => void } = $props()
+    usage?: { pct: number; tick: number | null; tone: string; label: string; open: boolean; reset?: string | null } | null; onUsage?: () => void } = $props()
 </script>
 
 <div class="board lit" data-kpi="kpi-7">
   <button class="cell" class:on={filter === 'aspetta'} aria-pressed={filter === 'aspetta'} disabled={!h.waiting} data-testid="home-box-aspetta" onclick={() => onBox('aspetta')}><b class="n" class:wait={h.waiting > 0}>{h.waiting}{#if h.open}<small class="of">/{h.open}</small>{/if}</b><span class="l">{h.waiting ? t.kpi7Waiting(h.waiting, Math.max(1, Math.round((h.oldestWaitS ?? 0) / 60))) : t.kpi7NoneWaiting}</span>{#if h.waiting}<span class="ms chev" aria-hidden="true">chevron_right</span>{/if}</button>
   <button class="cell" class:on={filter === 'lavoro'} aria-pressed={filter === 'lavoro'} disabled={!h.busy} data-testid="home-box-lavoro" onclick={() => onBox('lavoro')}><b class="n">{h.busy}{#if h.open}<small class="of">/{h.open}</small>{/if}</b><span class="l">{t.kpi7Busy}</span>{#if h.busy}<span class="ms chev" aria-hidden="true">chevron_right</span>{/if}</button>
   {#if usage}
-    <button class="cell use" data-testid="home-box-utilizzo" aria-expanded={usage.open} onclick={onUsage}><b class="n" style:color={usage.tone === 'var(--tx2)' ? null : usage.tone}>{usage.pct}<sup>%</sup></b><span class="l">{usage.label}</span><span class="ms chev" aria-hidden="true">{usage.open ? 'expand_less' : 'expand_more'}</span>
+    <button class="cell use" data-testid="home-box-utilizzo" aria-expanded={usage.open} onclick={onUsage}><b class="n" style:color={usage.tone === 'var(--tx2)' ? null : usage.tone}>{usage.pct}<sup>%</sup></b><span class="l">{usage.label}</span>{#if usage.reset}<span class="rs" data-testid="home-box-utilizzo-azzera">{usage.reset}</span>{/if}<span class="ms chev" aria-hidden="true">{usage.open ? 'expand_less' : 'expand_more'}</span>
       <span class="edge" style:color={usage.tone}><i style="width:{Math.min(100, usage.pct)}%"></i>{#if usage.tick != null}<u style="left:{usage.tick}%"></u>{/if}</span></button>
   {:else}
   <button class="cell" data-testid="home-box-esiti" onclick={() => onBox('esiti')}><b class="n">{h.outcomes ?? '–'}</b><span class="l">{#if h.outcomes == null}{t.kpi7OutcomesUnknown}{:else if h.red}{t.kpi7Outcomes}, <em>{t.kpi7Red(h.red)}</em>{:else}{t.kpi7Outcomes}{/if}</span><span class="ms chev" aria-hidden="true">chevron_right</span></button>
@@ -58,6 +58,8 @@
   /* Il blocco dell'utilizzo: il segno % più piccolo, la barra sul bordo in basso con la tacca del tempo passato. */
   .n sup { font-size: 22px; font-weight: 600; vertical-align: 14px; margin-left: 2px; color: var(--tx2); }
   .cell.use[aria-expanded='true'] { background: var(--s2); }
+  /* app-quota-azzeramento-17-11: l'ora di azzeramento sotto la percentuale, piccola, sopra la barra. */
+  .rs { display: block; font-size: 12px; line-height: 1.25; color: var(--tx3); margin: 2px 0 6px; overflow-wrap: anywhere; }
   .edge { position: absolute; left: 12px; right: 12px; bottom: 10px; height: 4px; border-radius: 2px; background: color-mix(in srgb, var(--tx) 14%, transparent); }
   .edge i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 2px; background: currentColor; }
   .edge u { position: absolute; top: -3px; bottom: -3px; width: 2px; border-radius: 1px; background: var(--tx); }

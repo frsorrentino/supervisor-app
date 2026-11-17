@@ -3,7 +3,7 @@
   import type { Ring } from './overview'
   import { weekProjected, weekRunsOut } from './tablet'
   import { rhythm, type Rhythm } from './rhythm5h'
-  import { paceText, weekDay, weekDelta } from './utilizzo'
+  import { paceText, resetLine, resetText, weekDay, weekDelta } from './utilizzo'
   import { BUDGET, samplesFrom, weekChart, weekDays, type WeekChart, type WeekDay } from './week7'
   import { t } from './t'
   import QuotaRing from './QuotaRing.svelte'
@@ -11,7 +11,11 @@
   // Il pannello delle quote in fondo alla home della plancia (TabletQuotaPanel): la finestra di 5 ore con la previsione al
   // ritmo di adesso fino alla ripartenza (piena fino a ora, tratteggiata dopo, soglie 80 e 100), poi la settimana col
   // ritmo medio al rinnovo.
-  let { ring, now, dataStale = false, timeZone }: { ring: Ring; now: number; dataStale?: boolean; timeZone?: string } = $props()
+  let { ring, now, dataStale = false, dataAgeS = null, timeZone }: { ring: Ring; now: number; dataStale?: boolean; dataAgeS?: number | null; timeZone?: string } = $props()
+  // app-quota-azzeramento-17-11: la stessa riga del tabellone e del blocco Utilizzo, per le 5 ore in testa e per la settimana.
+  const resetOf = (h5: boolean) => { const l = resetLine(h5 ? ring.readResetH5 : ring.readResetW7, now, ring.stale, dataAgeS); return l ? resetText(l, timeZone) : null }
+  const resetH5 = $derived(resetOf(true))
+  const resetW7 = $derived(resetOf(false))
   const hm = (at: number) => new Date(at * 1000).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', timeZone })
   const dayTime = (at: number) => new Date(at * 1000).toLocaleString(locale, { weekday: 'long', hour: '2-digit', minute: '2-digit', timeZone }).replace(',', ' ')
   // Il ritmo delle cinque ore (1A e 1B, 25/10): solo con la quota letta e non vecchia, altrimenti la frase del perché.
@@ -116,8 +120,8 @@
     <QuotaRing {ring} stale={ring.stale || dataStale} />
     <div class="hcol">
       <span class="lab">{(noH5 ? t.tabletWeekLabel : t.tabletQuotaLabel).toUpperCase()} · {ring.account.toUpperCase()}</span>
-      <div class="num"><b class:dim={ring.stale}>{noH5 ? `${ring.w7}%` : ring.h5 != null ? `${ring.h5}%` : '–'}</b>{#if noH5}{#if ring.weekResetAt}<small>{t.weekRenewal(dayTime(ring.weekResetAt))}</small>{/if}{:else if ring.resetAt}<small>{t.quotaResetsAt(hm(ring.resetAt))}</small>{/if}</div>
-      {#if ring.stale}<span class="old">{t.quotaOldWord}</span>{/if}
+      <div class="num"><b class:dim={ring.stale}>{noH5 ? `${ring.w7}%` : ring.h5 != null ? `${ring.h5}%` : '–'}</b></div>
+      {#if noH5 ? resetW7 : resetH5}<span class="rs" class:old={ring.stale || dataAgeS != null} data-testid="pannello-azzera-{noH5 ? 'w7' : 'h5'}">{noH5 ? resetW7 : resetH5}</span>{/if}
     </div>
   </div>
   {#if noH5}
@@ -165,6 +169,7 @@
   {#if !noH5}
     <hr />
     <div class="title"><span class="lab">{t.tabletWeekLabel.toUpperCase()} · {ring.account.toUpperCase()}</span>{#if ring.w7 != null}<b>{ring.w7}%</b>{/if}</div>
+    {#if resetW7}<span class="rs" data-testid="pannello-azzera-w7">{resetW7}</span>{/if}
   {/if}
   {#if wk && wd && ring.weekPoints}
     <!-- 2A: la settimana cumulata contro il ritmo pari, la proiezione al ritmo delle ultime 48 ore; etichette sul grafico. -->
@@ -235,8 +240,8 @@
   .num { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
   .num b { font-size: 28px; font-weight: 500; line-height: 1.1; font-variant-numeric: tabular-nums; }
   .num b.dim { color: var(--text2); }
-  .num small { font-size: 12.5px; color: var(--text2); }
-  .old { font-size: 12.5px; color: var(--b-warn); }
+  .rs { font-size: 12.5px; color: var(--text2); }
+  .rs.old { color: var(--b-warn); }
   .panel { border-radius: 14px; background: var(--low); border: 1px solid rgb(255 255 255 / .12); padding: 14px; display: flex; flex-direction: column; gap: 8px; }
   .title { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
   .lab { flex: 1; font: 11px var(--mono); letter-spacing: .12em; color: var(--text2); }

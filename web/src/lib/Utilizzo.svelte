@@ -4,7 +4,7 @@
   import { dayFigures, split } from './kpi'
   import { locale } from './lang'
   import { t } from './t'
-  import { elapsedPct, H5_S, paceText, peakHour, W7_S, waitsLine, weekDay, weekDelta } from './utilizzo'
+  import { dataAge, elapsedPct, H5_S, paceText, peakHour, resetLine, resetText, W7_S, waitsLine, weekDay, weekDelta } from './utilizzo'
   // Il blocco Utilizzo aperto (scelta D di Franz, 30/10 20:11; UtilizzoV3.kt nell'app): righe compatte, un tocco apre il mini-grafico
   // di quella riga, una aperta per volta. Tutte le frecce su una verticale. Barra e grafico hanno la stessa colonna, così la tacca e
   // «adesso» cadono nello stesso punto; il resto sta nella pagina «Utilizzo e limiti», da «Tutti i dettagli».
@@ -15,7 +15,6 @@
   const shown = $derived(rings.some(r => !r.stale) ? rings.filter(r => !r.stale) : rings)
   const many = $derived(shown.length > 1)
   const hm = (s: number) => new Date(s * 1000).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
-  const dayTime = (s: number) => new Date(s * 1000).toLocaleString(locale, { weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
   const pc = (x: number | null | undefined) => Math.max(0, Math.min(100, Math.round(x ?? 0)))
   const tone = (p: number) => (p >= 90 ? 'var(--red)' : p >= 75 ? 'var(--wait)' : 'var(--tx2)')
   const top = $derived(shown.filter(r => !r.stale && r.h5 != null).sort((a, b) => (b.h5 ?? 0) - (a.h5 ?? 0))[0] ?? null)
@@ -23,6 +22,13 @@
   const f = $derived(page ? dayFigures(page, st, now) : null)
   const maxHour = $derived(Math.max(1, ...(f?.perHour ?? []).map(([p, c]: [number, number]) => p + c)))
   const waits = $derived(data?.kpi_waits ? waitsLine(data.kpi_waits.week ?? []) : null)
+  // app-quota-azzeramento-17-11: sotto ogni barra, sempre, l'ora in cui si azzera (o perché non si sa), dalla lettura vera dell'account.
+  const age = $derived(dataAge(st, now))
+  const resetOf = (account: string, h5: boolean) => {
+    const q = st.quota[account]
+    const l = q ? resetLine(h5 ? q.reset_h5 : q.reset_w7, now, q.stale, age) : null
+    return l ? resetText(l) : null
+  }
   function curve(r: Ring) {
     if (!r.resetAt) return null
     const start = r.resetAt - H5_S
@@ -53,21 +59,18 @@
         <div class="one" data-testid="utilizzo-riga-unica">
           <div class="onehead">
             {@render meter(w, null, elapsedPct(r.weekResetAt, W7_S, now), r.stale)}
-            {#if r.stale}<p class="note">{t.quotaLineStale}</p>{:else if pace}<p class="note">{pace}</p>{/if}
+            {#if pace && !r.stale && age == null}<p class="note">{pace}</p>{/if}
           </div>
-          {#if r.weekResetAt}<p class="note renew">{t.weekRenewal(dayTime(r.weekResetAt))}</p>{/if}
+          {#if resetOf(r.account, false)}<p class="note renew" data-testid="utilizzo-azzera-w7">{resetOf(r.account, false)}</p>{/if}
         </div>
       {:else}
         <button class="row" aria-expanded={open === `w7:${r.account}`} onclick={() => toggle(`w7:${r.account}`)}>
           {@render label(shown.filter(x => x.personal === r.personal).length > 1 ? r.account : r.personal ? t.usageAccountPersonal : t.usageAccountWork)}{@render meter(w, null, elapsedPct(r.weekResetAt, W7_S, now), r.stale)}
           <span class="val" class:dim={r.stale}>{w}%</span>{@render arrow(`w7:${r.account}`)}
         </button>
-        {#if open === `w7:${r.account}` || r.stale || (noH5 && pace)}
-          <div class="open">
-            {#if r.stale}<p class="note">{t.quotaLineStale}</p>{/if}
-            {#if pace && ((noH5 && !r.stale) || open === `w7:${r.account}`)}<p class="note">{pace}</p>{/if}
-            {#if open === `w7:${r.account}` && r.weekResetAt}<p class="note">{t.weekRenewal(dayTime(r.weekResetAt))}</p>{/if}
-          </div>
+        {#if resetOf(r.account, false)}<p class="note rs" data-testid="utilizzo-azzera-w7">{resetOf(r.account, false)}</p>{/if}
+        {#if pace && !r.stale && (noH5 || open === `w7:${r.account}`)}
+          <div class="open"><p class="note">{pace}</p></div>
         {/if}
       {/if}
     {/if}
@@ -80,7 +83,7 @@
       {@render label(t.kpi7Quota, many)}{@render meter(p, proj, tk, r.stale)}
       <span class="val" class:dim={r.stale}>{proj != null && !r.stale ? `${p}% → ${proj}%` : `${p}%`}</span>{@render arrow(`h5:${r.account}`)}
     </button>
-    {#if r.stale}<div class="open"><p class="note">{t.quotaLineStale}</p></div>{/if}
+    {#if resetOf(r.account, true)}<p class="note rs" data-testid="utilizzo-azzera-h5">{resetOf(r.account, true)}</p>{/if}
     {#if open === `h5:${r.account}`}
       <div class="open">
         {#if c}
@@ -94,7 +97,7 @@
             <div class="axis"><span>{hm(r.resetAt! - H5_S)}</span><span>{hm(r.resetAt!)}</span></div>
           </div>
         {/if}
-        <p class="note">{proj != null && r.resetAt ? t.usageProjection(proj, hm(r.resetAt)) : r.resetAt ? t.quotaResetsAt(hm(r.resetAt)) : t.quotaLineStale}</p>
+        {#if proj != null && r.resetAt}<p class="note">{t.usageProjection(proj, hm(r.resetAt))}</p>{/if}
       </div>
     {/if}
     {/if}
@@ -155,6 +158,8 @@
   .nowl { position: relative; height: 16px; font: 400 12.5px var(--mono); }
   .nowl b { position: absolute; transform: translateX(-50%); font-weight: 400; color: var(--tx); white-space: nowrap; }
   .note { margin: 4px 0 0; font-size: 14px; line-height: 1.35; color: var(--tx2); }
+  /* app-quota-azzeramento-17-11: la riga dell'azzeramento sotto la barra, nella colonna della barra. */
+  .note.rs { margin: -8px 0 0; padding: 0 12px 8px calc(14px + var(--lab) + 10px); font-size: 12px; color: var(--tx3); }
   .sl { display: flex; justify-content: space-between; gap: 10px; padding: 2px 0; font-size: 14px; color: var(--tx); overflow-wrap: anywhere; }
   .sl b { font: 400 12.5px var(--mono); }
   .sl.dim span { color: var(--tx2); }

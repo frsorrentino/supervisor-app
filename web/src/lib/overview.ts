@@ -18,6 +18,8 @@ export type Ring = {
   weekResetAt: number | null; stale: boolean
   /** Contratto 1.86: la settimana ora per ora e da dove viene (2A e 2B); null con un relay precedente. */
   weekPoints?: WeekPoints | null; weekOrigins?: WeekOrigins | null
+  /** app-quota-azzeramento-17-11: le ore lette, anche passate, per dire «azzerata» invece di niente. */
+  readResetH5?: number | null; readResetW7?: number | null
 }
 /** Una riga del contesto: le soglie della card delle misure, più modello ed effort come li legge il PC. */
 export type ContextRow = { name: string; pct: number; tone: Tone; model: string | null; effort: string | null }
@@ -37,7 +39,8 @@ export function build(state: State, events: Event[], samples: Record<string, Sam
     const s = samples[row.account]
     const p = s && s.length >= 2 && row.resetAt != null && !stale && !row.stale ? pace(s, row.resetAt, now) : null
     return { account: row.account, personal: row.personal, h5: fiveHourLive(q.h5, q.reset_h5, row.stale, now), w7: q.w7 ?? null, resetAt: row.resetAt, pace: p,
-      weekResetAt: q.reset_w7 != null && q.reset_w7 > now ? q.reset_w7 : null, stale: row.stale, weekPoints: q.w7_points ?? null, weekOrigins: q.w7_origins ?? null }
+      weekResetAt: q.reset_w7 != null && q.reset_w7 > now ? q.reset_w7 : null, stale: row.stale, weekPoints: q.w7_points ?? null, weekOrigins: q.w7_origins ?? null,
+      readResetH5: q.reset_h5 ?? null, readResetW7: q.reset_w7 ?? null }
   })
   const contexts = work.contexts(state).map((c): ContextRow => {
     const s = state.sessions.find(x => x.name === c.name)!

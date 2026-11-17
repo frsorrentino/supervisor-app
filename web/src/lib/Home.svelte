@@ -65,7 +65,7 @@
   import CatIcon from './CatIcon.svelte'
   import { BOARD_MAX, DEFAULT_CATS, EDGE, FOLDING, catFor, catKeys, catOrder, toTop as toBoard, fromTop as offBoard, decode as decodeCats, dragCats, encode as encodeCats, flat as flatCats, settle, toggle as toggleCat, top as topOf, type Cat, type CatId, type HomeKey } from './homeCats'
   import { DEFAULT_ORDER, dragTarget, normalize as normalizeOrder, orderArg, overSlot, pinnable, pinned, release, slotKey, type HomeSection } from './homeOrder'
-  import { elapsedPct, H5_S, paceText, usageAlarm, W7_S, weekSlot } from './utilizzo'
+  import { dataAge, elapsedPct, H5_S, paceText, resetLine, resetText, usageAlarm, W7_S, weekSlot } from './utilizzo'
   import { resetLabel } from './header'
   import { glyphOf, span as spanOf, type GlyphKind } from './rail'
   import { badge as badgeOf, GREY, personal } from './badge'
@@ -211,6 +211,11 @@
   const weekAlarm = $derived(!!alarm)
   // Variante B del tabellone (app-tabellone-utilizzo-b-13-11): l'utilizzo è il terzo blocco, non più una riga. Con una finestra
   // vicina al limite il blocco dice quella (le 5 ore o la settimana) col suo colore; il tocco apre i dettagli nel tabellone.
+  const resetOf = (account: string, h5: boolean) => {
+    const q = st.quota[account]
+    const r = q ? resetLine(h5 ? q.reset_h5 : q.reset_w7, now, q.stale, dataAge(st, now)) : null
+    return r ? resetText(r) : null
+  }
   const usageCell = $derived.by(() => {
     if (!week) return null
     const a = alarm
@@ -218,6 +223,8 @@
     return {
       pct, tick: a ? elapsedPct(a.resetAt, a.week ? W7_S : H5_S, now) : elapsedPct(week.resetAt, W7_S, now),
       tone: a ? (pct >= 90 ? 'var(--red)' : 'var(--wait)') : slotTone(week), label: a && !a.week ? t.usageCell5h : t.usageCellWeek, open: !!open.usage,
+      // app-quota-azzeramento-17-11: sotto la percentuale l'ora in cui si azzera la finestra che mostra.
+      reset: resetOf(a ? a.account : week.account, !!a && !a.week),
     }
   })
   const kh = $derived(kpiHead(st, kpiPage, now))

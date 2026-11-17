@@ -115,6 +115,7 @@
   import AddDevice from './lib/AddDevice.svelte'
   import Queue from './lib/Queue.svelte'
   import QuotaPanel from './lib/QuotaPanel.svelte'
+  import { dataAge } from './lib/utilizzo'
   import Inspector from './lib/Inspector.svelte'
   import ColumnTab from './lib/ColumnTab.svelte'
   import { alert as elsewhereOf, away as awayOf, key as alertKey, keys as alertKeys, type Alert } from './lib/elsewhere'
@@ -2313,7 +2314,7 @@
 
 <!-- Un account fermo (dato vecchio) non ha il suo riquadro se l'altro è aggiornato, come nella riga in alto (Franz, 08/10 20:32). -->
 {#snippet usageV3()}<Utilizzo rings={overview.rings} st={stShown} page={kpiPage} data={kpiData} {now} onDetails={goUsage} />{/snippet}
-{#snippet quotaPanels()}{#each overview.rings.some(r => !r.stale) ? overview.rings.filter(r => !r.stale) : overview.rings as r (r.account)}<QuotaPanel ring={r} now={now} />{/each}<TodayPanel bars={overview.today} usage={usageRows(st.usage_today)} />{/snippet}
+{#snippet quotaPanels()}{#each overview.rings.some(r => !r.stale) ? overview.rings.filter(r => !r.stale) : overview.rings as r (r.account)}<QuotaPanel ring={r} now={now} dataAgeS={dataAge(st, now)} />{/each}<TodayPanel bars={overview.today} usage={usageRows(st.usage_today)} />{/snippet}
 
 {#snippet inspector()}
   {@const first = st.sessions.find(x => x.name === cols[0])}
