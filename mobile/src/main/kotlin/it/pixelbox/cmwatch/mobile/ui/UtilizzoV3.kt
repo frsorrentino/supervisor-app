@@ -2,6 +2,7 @@ package it.pixelbox.cmwatch.mobile.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -315,7 +316,7 @@ private fun Hours(perHour: List<Pair<Int, Int>>, modifier: Modifier) {
 
 /** La pagina «Utilizzo e limiti», aperta da «Tutti i dettagli», dal menu e dalla riga della quota: quello che il blocco non mostra più. */
 @Composable
-internal fun UsagePage(st: State, ov: PhoneOverview.Model, page: TimelinePage?, data: KpiData?, now: Long, dataStale: Boolean, onBack: () -> Unit, zone: ZoneId = ZoneId.systemDefault()) = V3Theme {
+internal fun UsagePage(st: State, ov: PhoneOverview.Model, page: TimelinePage?, data: KpiData?, now: Long, dataStale: Boolean, onBack: () -> Unit, zone: ZoneId = ZoneId.systemDefault(), pagella: it.pixelbox.cmwatch.contract.Pagella? = null) = V3Theme {
     Column(Modifier.fillMaxSize().background(V3.Bg).systemBarsPadding().testTag("usage-page")) {
         Row(Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back), tint = V3.Tx) }
@@ -327,6 +328,13 @@ internal fun UsagePage(st: State, ov: PhoneOverview.Model, page: TimelinePage?, 
             st.quota.keys.forEach { a -> Kpi.split(st, a)?.let { sp -> Kpi4(sp) } }
             page?.let { p -> Kpi18(Kpi.dayFigures(p, state = st, now = now, zone = zone)) }
             data?.waits?.let { w -> Kpi17(w, now) }
+            // app-rendiconti-2-02-11: la pagella anche qui, solo con righe da 10 casi in su.
+            pagella?.takeIf { p -> it.pixelbox.cmwatch.rules.ContiRules.pagellaRows(p).isNotEmpty() }?.let { p ->
+                Column(Modifier.fillMaxWidth().clip(androidx.compose.foundation.shape.RoundedCornerShape(14.dp)).background(V3.S1).then(Modifier.border(1.dp, V3.Line, androidx.compose.foundation.shape.RoundedCornerShape(14.dp))).padding(top = 12.dp)) {
+                    Text(stringResource(R.string.home_sec_scorecard), style = V3.Section.copy(fontSize = 17.sp), modifier = Modifier.padding(start = 14.dp, bottom = 6.dp))
+                    PagellaBody(p, zone)
+                }
+            }
         }
     }
 }

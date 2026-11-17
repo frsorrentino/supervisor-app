@@ -187,6 +187,8 @@ fun SummaryList(
      * c'è. `onMonitor` apre la scheda, `onNewMonitor` la chat della master con «monitora » nel campo.
      */
     monitors: List<it.pixelbox.cmwatch.contract.MonitorCard>? = null, onMonitor: (String) -> Unit = {}, onNewMonitor: () -> Unit = {},
+    /** app-rendiconti-2-02-11 (contratto 1.103): la pagina dei conti; Rendiconti c'è col relay che la sa leggere, Pagella da 10 casi in su. */
+    conti: it.pixelbox.cmwatch.contract.ContiPage? = null,
     /** Contratto 1.84 (B4): l'anteprima di cosa si salva chiudendo le finite, poi la chiusura; null = il relay non le ha. */
     closePreview: (suspend (List<String>) -> it.pixelbox.cmwatch.rules.CloseFinished.Preview?)? = null,
     onCloseMany: (List<String>) -> Unit = {},
@@ -347,7 +349,7 @@ fun SummaryList(
     fun save(key: String, v: Boolean) { if (parts == null) runCatching { prefs?.edit()?.putBoolean(key, v)?.apply() } }
     /** `hot`: ha qualcosa per Franz, filo e numero in ambra (app-richiede-te-righe-02-11). */
     class NewRow(val title: Int, val icon: androidx.compose.ui.graphics.vector.ImageVector, val count: String, val tag: String, val open: androidx.compose.runtime.MutableState<Boolean>, val hot: Boolean = false)
-    val newOpen = remember { (it.pixelbox.cmwatch.rules.HomeOrder.TOP + "da_guardare" + "monitors").associateWith { k -> section(k) } }
+    val newOpen = remember { (it.pixelbox.cmwatch.rules.HomeOrder.TOP + "da_guardare" + "monitors" + "rendiconti" + "pagella").associateWith { k -> section(k) } }
     // I corpi delle voci per chiave; i Monitoraggi il loro (app-monitoraggi-09-11).
     // La sezione c'è appena il riassunto dice che ci sono Monitoraggi, anche prima delle schede (app-monitoraggi-attesa-10-11): allora le
     // righe sono «in arrivo».
@@ -360,6 +362,9 @@ fun SummaryList(
         if (key == "monitors") return monitorsSection?.let { sec ->
             NewRow(R.string.monitors_title, androidx.compose.material.icons.Icons.AutoMirrored.Outlined.ShowChart, sec.count.toString(), "home-sez-monitoraggi", newOpen.getValue(key), it.pixelbox.cmwatch.rules.Monitors.looking(kpiState?.monitors, monitors) > 0)
         }
+        // app-rendiconti-2-02-11: Rendiconti in Lavori coi clienti del mese; Pagella in Risorse, solo con righe da 10 casi in su.
+        if (key == "rendiconti") return conti?.let { c -> NewRow(R.string.home_sec_reports, icons.Description, c.clienti.size.toString(), "home-rendiconti", newOpen.getValue(key)) }
+        if (key == "pagella") return it.pixelbox.cmwatch.rules.ContiRules.pagellaRows(conti?.pagella).size.takeIf { n -> n > 0 }?.let { n -> NewRow(R.string.home_sec_scorecard, icons.MilitaryTech, n.toString(), "home-pagella", newOpen.getValue(key)) }
         val st = kpiState ?: return null
         val open = newOpen[key] ?: return null
         return when (key) {
@@ -387,6 +392,7 @@ fun SummaryList(
     // Il riassunto a destra di una voce chiusa: per i Monitoraggi quanti sono da guardare, altrimenti niente.
     @Composable fun rightOf(key: String): String? =
         if (key == "monitors") monitorsSection?.let { _ -> it.pixelbox.cmwatch.rules.Monitors.looking(kpiState?.monitors, monitors) }?.takeIf { n -> n > 0 }?.let { n -> stringResource(R.string.monitors_look, n) }
+        else if (key == "rendiconti") conti?.let { c -> it.pixelbox.cmwatch.rules.ContiRules.monthName(c.mese, androidx.compose.ui.platform.LocalConfiguration.current.locales[0]) }
         else newRight(key, kpiState)
     // Rilasciata sul tabellone, la voce resta aperta col suo contenuto in vista (Franz 02/11 20:45).
     // Presa una voce di In cima, le voci di In cima restano con la sola testata, così sotto si vede il bersaglio (Franz 03/11 12:05,
@@ -1101,7 +1107,7 @@ fun SummaryList(
                     PluginsSlotRow(it.pixelbox.cmwatch.rules.SlotInfo.plugins(plugins!!), zone, slotDrag("plugins"), pluginsOpen) { pluginsOpen = !pluginsOpen; save("plugins", pluginsOpen) }
                     FoldIn(pluginsOpen) { Box(Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp)) { PluginsCard(plugins!!, onPluginsLoad!!, onPluginCmd!!, pluginsInitial, pluginsRunner) } }
                 }
-                "prima_raccolta", "seguiti", "prove", "decisioni", "da_guardare", "monitors" -> newRow(pin)?.let { r ->
+                "prima_raccolta", "seguiti", "prove", "decisioni", "da_guardare", "monitors", "rendiconti", "pagella" -> newRow(pin)?.let { r ->
                     SlotRow(slotDrag(pin), stringResource(r.title), r.icon, r.count, right = if (r.open.value) null else rightOf(pin), tag = r.tag, open = r.open.value, hot = r.hot) { toggleNew(r, pin) }
                     FoldIn(r.open.value) { Box(Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp)) { bodies[pin]?.invoke() } }
                 }
@@ -1119,7 +1125,7 @@ fun SummaryList(
         fun renderKey(k: String) {
             if (k == listSkip) return
             when (k) {
-                "prima_raccolta", "seguiti", "prove", "decisioni", "da_guardare", "monitors" -> renderNew(k)
+                "prima_raccolta", "seguiti", "prove", "decisioni", "da_guardare", "monitors", "rendiconti", "pagella" -> renderNew(k)
                 // Chiuse sta sotto le sessioni, in fondo (scelta 2, Franz 02/11 17:43); Plugin e skill dentro Sistema.
                 "sessions" -> { renderSessions(); if (listSkip != "closed") renderClosed() }
                 "suggestions" -> renderSuggestions()
@@ -1142,7 +1148,7 @@ fun SummaryList(
                 "system" -> system != null
                 "plugins" -> hasPlugins
                 "closed" -> closedGroup != null
-                "prima_raccolta", "seguiti", "prove", "decisioni", "da_guardare", "monitors" -> newRow(k) != null
+                "prima_raccolta", "seguiti", "prove", "decisioni", "da_guardare", "monitors", "rendiconti", "pagella" -> newRow(k) != null
                 else -> false
             }
             if (!has) { renderKey(k); return }

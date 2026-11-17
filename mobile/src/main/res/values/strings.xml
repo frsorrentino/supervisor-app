@@ -2057,4 +2057,29 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="lavori_to_voce">aspetta il tuo ok ›</string>
     <string name="cat_sig_for_you">Per te %1$d</string>
     <string name="per_te_version">versione %1$d</string>
+    <!-- app-rendiconti-2-02-11 (contratto 1.103): Rendiconti e Pagella. -->
+    <string name="conti_loading">I rendiconti stanno arrivando dal PC</string>
+    <string name="conti_failed">Non riesco a leggere i rendiconti dal PC.</string>
+    <string name="conti_none">Nessun lavoro per un cliente a %1$s.</string>
+    <plurals name="conti_tasks">
+        <item quantity="one">%d lavoro</item>
+        <item quantity="other">%d lavori</item>
+    </plurals>
+    <string name="conti_draft_on">bozza del %1$s</string>
+    <string name="conti_commits">%d commit</string>
+    <string name="conti_releases_n">%d release</string>
+    <string name="conti_releases">Release: %1$s</string>
+    <string name="conti_no_git">Senza git: commit e release non si misurano.</string>
+    <string name="conti_ask">Chiedi la bozza</string>
+    <string name="conti_ask_again">Chiedi una bozza nuova</string>
+    <string name="conti_asked">Bozza chiesta alla master: arriva in Dalla master.</string>
+    <string name="conti_ask_failed">Il PC non ha risposto: riprova.</string>
+    <string name="pagella_since">Dal %1$s, solo le righe da %2$d casi in su</string>
+    <string name="pagella_kind_fix">correzioni</string>
+    <string name="pagella_kind_feature">funzioni</string>
+    <string name="pagella_kind_refactor">riordino</string>
+    <string name="pagella_kind_docs">documenti</string>
+    <string name="pagella_kind_test">test</string>
+    <string name="pagella_cases">%d casi</string>
+    <string name="pagella_defects">%d%% con difetti</string>
 </resources>

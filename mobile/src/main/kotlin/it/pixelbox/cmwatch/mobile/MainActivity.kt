@@ -333,6 +333,9 @@ class MainActivity : ComponentActivity() {
         var seguitiOpen by rememberSaveable { mutableStateOf(false) }
         var seguitiPage by remember { mutableStateOf<it.pixelbox.cmwatch.contract.SeguitiPage?>(null) }
         var seguitiFailed by remember { mutableStateOf(false) }
+        // app-rendiconti-2-02-11 (contratto 1.103): la pagina dei conti, letta all'avvio se il relay ha l'op; un mese o un cliente toccati la rileggono.
+        var contiPage by remember { mutableStateOf<it.pixelbox.cmwatch.contract.ContiPage?>(null) }
+        var contiFailed by remember { mutableStateOf(false) }
         // Contratto 1.106 (app-da-guardare-02-11): la pagina di Da guardare (tutta, o di una sessione) e il risultato aperto.
         var watchOpen by rememberSaveable { mutableStateOf(false) }
         var watchSession by rememberSaveable { mutableStateOf<String?>(null) }
@@ -1040,7 +1043,7 @@ class MainActivity : ComponentActivity() {
         }
         if (usageOpen) stateShown?.let { st ->
             val ov = remember(st, events, samples, now, snap.freshness) { PhoneOverview.build(st, events, samples, now, java.time.ZoneId.systemDefault(), stale = snap.freshness is Freshness.Stale) }
-            it.pixelbox.cmwatch.mobile.ui.PageIn { it.pixelbox.cmwatch.mobile.ui.UsagePage(st, ov, kpiPage, kpiData, now, snap.freshness is Freshness.Stale, onBack = { usageOpen = false }) }
+            it.pixelbox.cmwatch.mobile.ui.PageIn { it.pixelbox.cmwatch.mobile.ui.UsagePage(st, ov, kpiPage, kpiData, now, snap.freshness is Freshness.Stale, onBack = { usageOpen = false }, pagella = contiPage?.pagella) }
             return
         }
         boxOpen?.let { b -> stateShown?.let { st ->
@@ -1453,6 +1456,20 @@ class MainActivity : ComponentActivity() {
             id?.let { x -> app.repo.forget(x) }
             readDecide()
         } }
+        suspend fun contiAsk(op: CmdOp, mese: String?, project: String?): it.pixelbox.cmwatch.contract.CmdResult? {
+            val id = runCatching { app.repo.command(op, null, mese, project = project) }.getOrNull() ?: return null
+            val r = kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(id) }[id] }
+            app.repo.forget(id)
+            return r
+        }
+        val loadConti: suspend (String?, String?) -> Unit = { mese, project ->
+            val r = contiAsk(CmdOp.CONTI, mese, project)
+            val p = r?.takeIf { x -> x.ok }?.let { x -> runCatching { ContractJson.decodeConti(x.text) }.getOrNull() }
+            if (p != null) { contiPage = p; contiFailed = false } else if (contiPage == null) contiFailed = true
+        }
+        val askDraft: suspend (String, String) -> Pair<Boolean, String>? = { mese, project -> contiAsk(CmdOp.CONTI_AZIONE, mese, project)?.let { r -> r.ok to r.text } }
+        val contiOn = state?.ops?.contains("conti") == true
+        LaunchedEffect(contiOn) { if (contiOn) loadConti(null, null) }
         // Il tocco conta: `device` lo mette il Repo. «Allinea» risponde con l'id del compito aperto.
         val act: (String, String?, String) -> Unit = { action, product, key -> scope.launch {
             val id = runCatching { app.repo.command(CmdOp.SEGUITI_AZIONE, null, null, action = action, product = product, key = key) }.getOrNull()
@@ -1670,6 +1687,8 @@ class MainActivity : ComponentActivity() {
         val toMaster: (String) -> Unit = { name -> if (!wide) open = null; homeFolds.focusPerTe(name) }
         val masterTodo = if (uItems != null) perTeRows else ((decHome?.groups.orEmpty().count { g -> !decOfSession(g) }) + (proveWhere { x -> x == null || x !in todoLive }?.n ?: 0) + (if (state?.primaRaccolta != null) 1 else 0))
         val sectionBodies: Map<String, @Composable () -> Unit> = mapOf(
+            "rendiconti" to { it.pixelbox.cmwatch.mobile.ui.RendicontiBody(contiPage, contiFailed, { m, p -> scope.launch { loadConti(m, p) } }, askDraft) },
+            "pagella" to { contiPage?.pagella?.let { p -> it.pixelbox.cmwatch.mobile.ui.PagellaBody(p) } },
             "da_guardare" to { Inline("da_guardare") { it.pixelbox.cmwatch.mobile.ui.GuardareBody(state?.results?.items.orEmpty().map(fullResult), guardare) { watchSession = null; watchOpen = true } } },
             "prima_raccolta" to { Inline("prima_raccolta") { it.pixelbox.cmwatch.mobile.ui.PrimaRaccoltaBody(primaPage, touch, goScreen) { featuresOpen = true } } },
             "seguiti" to { Inline("seguiti") { it.pixelbox.cmwatch.mobile.ui.SeguitiBody(seguitiPage, seguitiFailed, act, { open = null; tab = StartRoute.Tab.LAVORI }, { open = null; masterChat = true }) } },
@@ -2493,7 +2512,7 @@ class MainActivity : ComponentActivity() {
                     closeRefused = leaving?.let { l -> l.refused?.let { why -> l.name to why } }, closeArmable = leaving?.armable == true, onCloseSeen = { leaving = null }, onCloseArm = armClose,
                     elicitations = it.pixelbox.cmwatch.rules.Elicit.open(state, now).filter { e -> e.id !in elicitSent }, onElicit = answerElicit,
                     suggestions = state?.let { st -> it.pixelbox.cmwatch.rules.Suggestions.visible(st, sugDone.toSet(), now) }, onSuggestion = answerSuggestion,
-                    monitors = monitorsNow, onMonitor = { id -> monitorOpen = id }, onNewMonitor = { talkDraft = getString(R.string.monitors_new_draft) },
+                    monitors = monitorsNow, conti = contiPage.takeIf { contiOn }, onMonitor = { id -> monitorOpen = id }, onNewMonitor = { talkDraft = getString(R.string.monitors_new_draft) },
                     closePreview = if (state?.ops?.contains("close_preview") == true && state.ops?.contains("close") == true) ({ names ->
                         val id = runCatching { app.repo.closePreview(names) }.getOrNull()
                         val r = id?.let { i -> kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(i) }[i] } }

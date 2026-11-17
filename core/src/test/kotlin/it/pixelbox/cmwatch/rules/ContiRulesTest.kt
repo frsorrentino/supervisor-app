@@ -17,6 +17,7 @@ class ContiRulesTest {
         .map { it.jsonObject }.first { it.getValue("id").jsonPrimitive.content.endsWith("0913") }.getValue("text").jsonPrimitive.content
         .let(ContractJson::decodeConti)
 
+    /** Il rendiconto del mese: i clienti e il dettaglio misurato di uno (lavori, commit, release). */
     @Test fun monthWithClientsAndTheDetail() {
         assertEquals("2026-09", page.mese)
         assertEquals(listOf("acme-site"), page.clienti.map { it.name })

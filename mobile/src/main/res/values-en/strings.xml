@@ -2022,4 +2022,28 @@ It starts at your last message to the master.</string>
     <string name="lavori_to_voce">waits for your ok ›</string>
     <string name="cat_sig_for_you">For you %1$d</string>
     <string name="per_te_version">version %1$d</string>
+    <string name="conti_loading">The reports are coming from the PC</string>
+    <string name="conti_failed">I can\'t read the reports from the PC.</string>
+    <string name="conti_none">No client work in %1$s.</string>
+    <plurals name="conti_tasks">
+        <item quantity="one">%d task</item>
+        <item quantity="other">%d tasks</item>
+    </plurals>
+    <string name="conti_draft_on">draft of %1$s</string>
+    <string name="conti_commits">%d commits</string>
+    <string name="conti_releases_n">%d releases</string>
+    <string name="conti_releases">Releases: %1$s</string>
+    <string name="conti_no_git">No git: commits and releases are not measured.</string>
+    <string name="conti_ask">Ask for the draft</string>
+    <string name="conti_ask_again">Ask for a new draft</string>
+    <string name="conti_asked">Draft asked of the master: it comes in From the master.</string>
+    <string name="conti_ask_failed">The PC did not answer: try again.</string>
+    <string name="pagella_since">Since %1$s, only rows with %2$d cases or more</string>
+    <string name="pagella_kind_fix">fixes</string>
+    <string name="pagella_kind_feature">features</string>
+    <string name="pagella_kind_refactor">refactoring</string>
+    <string name="pagella_kind_docs">docs</string>
+    <string name="pagella_kind_test">tests</string>
+    <string name="pagella_cases">%d cases</string>
+    <string name="pagella_defects">%d%% with defects</string>
 </resources>
