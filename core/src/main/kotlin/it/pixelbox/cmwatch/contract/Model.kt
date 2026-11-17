@@ -458,6 +458,30 @@ enum class CmdOp {
 @Serializable data class ResultsPage(val groups: List<ResultGroup> = emptyList(), @SerialName("n_unseen") val nUnseen: Int = 0, val more: Boolean = false)
 
 /** Contratto 1.102, op `seguiti`. */
+/** Contratto 1.103 (app-rendiconti-2-02-11): la pagina di `conti`, il mese coi clienti, il dettaglio di uno e la pagella. */
+@Serializable data class ContiPage(
+    val at: Long, val mese: String, val mesi: List<String> = emptyList(), val clienti: List<ContiCliente> = emptyList(),
+    val dettaglio: ContiDettaglio? = null, val pagella: Pagella? = null,
+)
+@Serializable data class ContiCliente(val project: String, val name: String, val n: Int, @SerialName("draft_at") val draftAt: Long? = null)
+@Serializable data class ContiDettaglio(
+    val project: String, val name: String, val mese: String, val measured: ContiMeasured,
+    val tasks: List<ContiTask> = emptyList(), val commits: List<ContiCommit> = emptyList(), @SerialName("commits_more") val commitsMore: Boolean = false,
+    val releases: List<ContiRelease> = emptyList(), val git: Boolean = true,
+)
+@Serializable data class ContiMeasured(val tasks: Int, val commits: Int, val releases: Int)
+@Serializable data class ContiTask(val task: String, val title: String, val at: Long, @SerialName("outcome_kind") val outcomeKind: String? = null)
+@Serializable data class ContiCommit(val hash: String, val at: Long, val subject: String)
+@Serializable data class ContiRelease(val tag: String, val at: Long)
+@Serializable data class Pagella(
+    val since: Long, val min: Int = 10, val rows: List<PagellaRow> = emptyList(), val advice: List<String> = emptyList(),
+    @SerialName("unknown_model") val unknownModel: Int = 0,
+)
+@Serializable data class PagellaRow(
+    val model: String, val kind: String, val n: Int, val enough: Boolean = false, val defects: Int? = null, val rate: Double? = null,
+    val efforts: Map<String, Int> = emptyMap(),
+)
+
 @Serializable data class SeguitiPage(
     val at: Long = 0, val rimasto: List<RimastoItem> = emptyList(), val altrove: List<AltroveRun> = emptyList(), val promemoria: List<Promemoria> = emptyList(),
     @SerialName("promemoria_scattati") val promemoriaScattati: List<PromemoriaFired> = emptyList(),
@@ -888,6 +912,10 @@ val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts
     @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
     @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
     val key: String? = null,
+    /** Contratto 1.103: `conti` e `conti_azione`, il progetto del cliente; assente, non scritto. */
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+    @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
+    val project: String? = null,
     /** Contratto 1.106, `result_note`: il secondo del video a cui si riferisce la nota; assente, non scritto. */
     @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
     @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)

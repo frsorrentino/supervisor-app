@@ -33,7 +33,7 @@ const FILE_RESULT_TIMEOUT_MS = 180_000
 /** Le pagine lette dal PC (app-pwa-decisioni-03-11): il 03/11 alle 12:46 `decisioni` è arrivato al relay 29,5 s dopo la partenza
  * ed eseguito in 0,1 s; a 20 s la PWA aveva già lasciato perdere e restava «In arrivo dal PC». */
 // Anche i Monitoraggi (app-monitoraggi-attesa-10-11): il 10/11 `monitors` è rimasto in fila sul relay 23-51 s, e a 20 s la sezione spariva.
-const PAGE_OPS: CmdOp[] = ['decisioni', 'prove', 'seguiti', 'prima_raccolta', 'results', 'agenda', 'monitors', 'monitor_refresh']
+const PAGE_OPS: CmdOp[] = ['decisioni', 'prove', 'seguiti', 'prima_raccolta', 'results', 'agenda', 'monitors', 'monitor_refresh', 'conti']
 export const resultTimeoutMs = (op: CmdOp) =>
   op === 'slash' || op === 'done' || PAGE_OPS.includes(op) ? SLASH_RESULT_TIMEOUT_MS : op === 'file' || op === 'report' || op === 'quota_route' ? FILE_RESULT_TIMEOUT_MS : RESULT_TIMEOUT_MS
 
@@ -122,7 +122,7 @@ const DEVICE_OPS = new Set<CmdOp>(['prompt', 'resume', 'launch', 'report', 'appr
  * Un comando nuovo dalla web app: `by` = "web" come mette il relay di default. `question` (contratto 1.52): per `answer` e
  * `allow_all`, l'id della domanda aperta al tocco; il relay non preme tasti se nel frattempo ne è arrivata un'altra.
  */
-export function newCmd(op: CmdOp, session: string | null, arg?: string | null, text?: string, question?: string, extra?: { product?: string; key?: string; value?: string; result?: 'ok' | 'ko'; hours?: number; reason?: string; also?: string[]; kind?: string; since?: number; choice?: string; sid?: string; action?: string; content?: Record<string, string | number | boolean>; pos_s?: number; when?: 'now' | 'after' | 'force'; tech?: Record<string, string>; share?: string; hash?: string }): Cmd {
+export function newCmd(op: CmdOp, session: string | null, arg?: string | null, text?: string, question?: string, extra?: { product?: string; key?: string; value?: string; result?: 'ok' | 'ko'; hours?: number; reason?: string; also?: string[]; kind?: string; since?: number; choice?: string; sid?: string; action?: string; content?: Record<string, string | number | boolean>; pos_s?: number; when?: 'now' | 'after' | 'force'; tech?: Record<string, string>; share?: string; hash?: string; project?: string; device?: string }): Cmd {
   const c: Cmd = { id: crypto.randomUUID(), op, session, arg: arg ?? null, issued: Math.round(Date.now() / 1000), by: 'web' }
   if (text !== undefined) c.text = text
   // Contratto 1.34: il file della chat a pezzi da 1 MB fino a 25 MB, come il telefono (Repo.file); senza, il relay rifiuta
@@ -148,6 +148,9 @@ export function newCmd(op: CmdOp, session: string | null, arg?: string | null, t
   if (extra?.hash !== undefined) c.hash = extra.hash
   if (extra?.value !== undefined) c.value = extra.value
   if (extra?.product !== undefined) c.product = extra.product
+  // Contratto 1.103, `conti` e `conti_azione`: il progetto del cliente e da dove parte la richiesta della bozza.
+  if (extra?.project !== undefined) c.project = extra.project
+  if (extra?.device !== undefined) c.device = extra.device
   if (extra?.key !== undefined) c.key = extra.key
   if (extra?.content !== undefined) c.content = extra.content
   // Contratto 1.106, `result_note`: il secondo del video.

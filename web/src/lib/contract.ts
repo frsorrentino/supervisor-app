@@ -450,6 +450,8 @@ export type Cmd = {
   value?: string
   /** Contratto 1.102: `seguiti_azione`, il prodotto e la voce o l'id del promemoria. */
   product?: string; key?: string
+  /** Contratto 1.103: `conti` e `conti_azione`. */
+  project?: string
   /** Contratto 1.106, `result_note`: il secondo del video. */
   pos_s?: number
   /** Contratto 1.52: `answer` e `allow_all`, l'id della domanda a cui si risponde. */

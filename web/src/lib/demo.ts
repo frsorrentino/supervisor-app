@@ -96,6 +96,25 @@ export const primaDemo = (now: number): PrimaRaccoltaPage => ({ at: now, status:
   ask: en ? { text: 'To finish the setup, scan your sessions.', note: "The data stays on this computer (it reaches the phone encrypted); the master's first round uses a small part of your quota.", yes: 'Scan', later: 'Not now', first_round: true }
     : { text: 'Per completare la configurazione, effettua la scansione delle sessioni.', note: 'I dati restano su questo computer (al telefono arrivano cifrati); il primo giro della master usa una piccola parte della quota.', yes: 'Scansiona', later: 'Non ora', first_round: true } })
 /** Contratto 1.102: quello che resta fuori dal codice, dati del mondo della demo. */
+/** Contratto 1.103 (app-rendiconti-2-02-11): i conti del mese coi clienti della demo, il dettaglio di uno e la pagella. */
+export function contiDemo(now: number, mese: string | null, project: string | null) {
+  const d = new Date(now * 1000), cur = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  const p = new Date(d.getFullYear(), d.getMonth() - 1, 1), prev = `${p.getFullYear()}-${String(p.getMonth() + 1).padStart(2, '0')}`
+  const m = mese ?? cur
+  const clienti = m === cur
+    ? [{ project: 'work/storefront', name: 'storefront', n: 7, draft_at: null }, { project: 'work/ledger-api', name: 'ledger-api', n: 3, draft_at: now - 2 * 86400 }]
+    : [{ project: 'work/storefront', name: 'storefront', n: 11, draft_at: now - 20 * 86400 }]
+  const c = clienti.find(x => x.project === project)
+  return { at: now, mese: m, mesi: [cur, prev], clienti,
+    dettaglio: c ? { project: c.project, name: c.name, mese: m, measured: { tasks: c.n, commits: c.n * 6, releases: 2 },
+      tasks: [{ task: 'demo-cart', title: en ? 'Cart totals' : 'Totali del carrello', at: now - 3 * 86400, outcome_kind: 'release' }, { task: 'demo-checkout', title: en ? 'Checkout page' : 'Pagina del checkout', at: now - 6 * 86400, outcome_kind: 'release' }],
+      commits: [], commits_more: false, releases: [{ tag: 'v2.4.0', at: now - 3 * 86400 }, { tag: 'v2.3.1', at: now - 9 * 86400 }], git: true } : null,
+    pagella: { since: now - 30 * 86400, min: 10, advice: [], unknown_model: 0, rows: [
+      { model: 'claude-opus-5-5', kind: 'fix', n: 14, enough: true, defects: 2, rate: 0.143, efforts: { high: 14 } },
+      { model: 'claude-sonnet-5-5', kind: 'feature', n: 11, enough: true, defects: 3, rate: 0.273, efforts: { medium: 11 } },
+      { model: 'claude-sonnet-5-5', kind: 'fix', n: 6, enough: false, defects: null, rate: null, efforts: {} },
+    ] } }
+}
 export const seguitiDemo = (now: number): SeguitiPage => ({ at: now,
   rimasto: [
     { product: 'storefront', key: 'demo', title: en ? 'Site demo' : 'Demo del sito', where: en ? 'the demo on the site' : 'la demo sul sito', stale: true, why: 'paths:3', session: 'storefront', aligned_version: 'v2.3.0', aligned_at: now - 12 * 86400, task: null },
@@ -241,7 +260,7 @@ export function world(now: number): World {
       { kind: 'turn_blocking', session: 'blog', ref: 'blog', title: stopOk.text, since: stopOk.at },
     ].sort((a, b) => a.since - b.since),
     // Contratto 1.84: suggerimenti, anteprima e chiusura salvando lo stato.
-    ops: [...new Set([...(base.ops ?? []), 'suggestion', 'close_preview', 'close', 'home_order', 'prima_raccolta', 'prima_raccolta_azione', 'seguiti', 'seguiti_azione', 'results', 'result_seen', 'result_note', 'thumb', 'plugins', 'plugin_check', 'plugin_update', 'plugin_update_all'])],
+    ops: [...new Set([...(base.ops ?? []), 'suggestion', 'close_preview', 'close', 'home_order', 'prima_raccolta', 'prima_raccolta_azione', 'seguiti', 'seguiti_azione', 'conti', 'conti_azione', 'results', 'result_seen', 'result_note', 'thumb', 'plugins', 'plugin_check', 'plugin_update', 'plugin_update_all'])],
     commitments,
     // Contratto 1.99: le righe di Da provare e Da decidere, coi conti degli elenchi `proveDemo` e `decisionsDemo`.
     prove: { n: 2, builds: 1, red: 0, ko: 0 }, decisions: { n: 3, here: 2, tasks: 4, snoozed: 0 },

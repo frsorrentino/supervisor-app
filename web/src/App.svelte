@@ -33,6 +33,9 @@
   import type { DecisionGroup, ProvePage } from './lib/contract'
   import PrimaRaccolta from './lib/PrimaRaccolta.svelte'
   import Seguiti from './lib/Seguiti.svelte'
+  import Rendiconti from './lib/Rendiconti.svelte'
+  import Pagella from './lib/Pagella.svelte'
+  import { decodeConti, type ContiPage } from './lib/conti'
   import { autoOpen as primaAutoOpen } from './lib/primaRaccolta'
   import CinqueMinuti from './lib/CinqueMinuti.svelte'
   import { suggestionNames as suggestionNamesOf } from './lib/slotInfo'
@@ -579,6 +582,18 @@
   // rilette quando `/state.monitors` dice che c'è un valore nuovo; senza monitoraggi la sezione non c'è. La scheda aperta, per id:
   // dalla home, da un link `#/monitor/<id>` o da un suggerimento; una scheda che l'elenco non ha ancora si legge da sola.
   let monitors = $state<MonitorCard[] | null>(demo ? monitorsDemo() : null)
+  // app-rendiconti-2-02-11 (contratto 1.103): la pagina dei conti si legge all'avvio, se il relay ha l'op: Rendiconti la mostra e la
+  // Pagella c'è solo con righe da 10 casi in su. Un mese o un cliente toccati la rileggono.
+  let contiPage = $state<ContiPage | null>(null), contiFailed = $state(false), contiAsked = false
+  async function loadConti(mese: string | null, project: string | null) {
+    const r = await run(newCmd('conti', null, mese, undefined, undefined, project ? { project } : undefined))
+    const p = readPage(r, decodeConti, contiPage); contiPage = p.page; contiFailed = p.failed
+  }
+  const askDraft = async (mese: string, project: string) => {
+    const r = await run(newCmd('conti_azione', null, mese, undefined, undefined, { project, device: 'web' }))
+    return r ? { ok: r.ok, text: r.text } : null
+  }
+  $effect(() => { if (st.ops?.includes('conti') && !contiAsked) { contiAsked = true; void loadConti(null, null) } })
   let monitorOne = $state<MonitorCard | null>(null)
   let monitorId = $state<string | null>(monitorOf(location.hash))
   let monitorFrom = $state<PageName | null>(null)
@@ -2219,14 +2234,16 @@
   <!-- Prima raccolta sta dentro Decidi finché c'è (app-sezioni-accorpate-03-11, scelta A). -->
   {:else if k === 'decisioni'}{#if uItems}<PerTeGruppi {run} groups={perTeG} now={st.ts} current={wide ? (cols.length === 1 ? cols : perTeFocus && cols.includes(perTeFocus.session) ? [perTeFocus.session] : []) : []} focus={perTeFocus} onSession={(n) => { openPage(null); pick(n) }} onOpenWait={openWait}
     onOpenResult={(id, s) => { watchSession = s; watchOpenId = id; openPage('guardare') }} reread={() => void readResults(run)} onAnswered={(w) => waitCardsRefresh(w)} />{:else}{#if st.prima_raccolta}<PrimaRaccolta {run} summary={st.prima_raccolta} onScreen={(s) => openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName)} onFeatures={() => openPage('features')} />{/if}{#if st.decisions?.n}{@render decisionsBody(true)}{/if}{/if}
-  {:else if k === 'da_guardare'}{@render guardare('body')}{/if}
+  {:else if k === 'da_guardare'}{@render guardare('body')}
+  {:else if k === 'rendiconti'}<Rendiconti page={contiPage} failed={contiFailed} onLoad={(m, p) => void loadConti(m, p)} onAsk={askDraft} />
+  {:else if k === 'pagella' && contiPage?.pagella}<Pagella pagella={contiPage.pagella} />{/if}
 {/snippet}
 <!-- Contratto 1.106 (app-da-guardare-02-11): i file consegnati dalle sessioni; i file arrivano con l'op `file`, a nome della sessione. -->
 {#snippet guardare(mode: 'body' | 'page')}<Guardare {run} thumbs={!!st.ops?.includes('thumb')} summary={st.results} {mode} session={mode === 'page' ? watchSession : null} openId={mode === 'page' ? watchOpenId : null}
   getFile={(r, f, quiet) => getFile(r.session ?? '', f.path, `result:${r.id}:${f.path}`, quiet).then(x => x?.blob ?? null)}
   onExternal={(r) => fileAction(r.session ?? '', r.path, 'open', `result:${r.id}:${r.path}`)} onSession={(n) => { openPage(null); pick(n) }}
   onAll={() => { watchSession = null; watchOpenId = null; openPage('guardare') }} onOpen={(r) => { watchSession = null; watchOpenId = r.id; openPage('guardare') }} />{/snippet}
-{#snippet homeView(part: 'sessions' | 'you' | 'work' | 'out' | 'tools' | 'top' | null)}<Home st={stShown} {part} {perTeRows} {perTeOpen} onPerTeToggle={perTeToggle} {perTeFocus} perTeBySession={Object.fromEntries(perTeG.filter(g => g.session).map(g => [g.session, g.voci.length]))} perTeFirst={perTeG[0]?.voci[0]?.title ?? null} {monitors} monitorsSum={stShown.monitors ?? null} onMonitor={openMonitor} onNewMonitor={() => talk(t.monitorsNewDraft)} onMine={mineGo} onRestart={handoff} onHomeOrder={!part && st.ops?.includes('home_order') ? (a) => saveHomeOrder(a, false) : null} afterSessions={part === 'work' ? deskTasks : undefined} selected={[]} onPick={card} onAnswer={answer} onStep={(n, x) => { pick(n); sendTo(n, x) }} usage={quotaPanels} usageBlock={usageV3}
+{#snippet homeView(part: 'sessions' | 'you' | 'work' | 'out' | 'tools' | 'top' | null)}<Home st={stShown} {part} {perTeRows} {perTeOpen} onPerTeToggle={perTeToggle} {perTeFocus} perTeBySession={Object.fromEntries(perTeG.filter(g => g.session).map(g => [g.session, g.voci.length]))} perTeFirst={perTeG[0]?.voci[0]?.title ?? null} {monitors} conti={st.ops?.includes('conti') ? contiPage : null} monitorsSum={stShown.monitors ?? null} onMonitor={openMonitor} onNewMonitor={() => talk(t.monitorsNewDraft)} onMine={mineGo} onRestart={handoff} onHomeOrder={!part && st.ops?.includes('home_order') ? (a) => saveHomeOrder(a, false) : null} afterSessions={part === 'work' ? deskTasks : undefined} selected={[]} onPick={card} onAnswer={answer} onStep={(n, x) => { pick(n); sendTo(n, x) }} usage={quotaPanels} usageBlock={usageV3}
         night={nightBoxShown ? nightModel : undefined} {nightTitle} {justClosed} closing={leaving && !leaving.refused ? leaving.name : null} closeRefused={leaving?.refused ? { name: leaving.name, why: leaving.refused, armable: !!leaving.armable } : null} onCloseArm={arm} onCloseSeen={() => (leaving = null)} elicitations={openElicitations(st, now).filter(e => !elicitSent.has(e.id))} onElicit={elicit} newBody={sectionBody} suggestionNames={suggestionNamesOf(sug.all, k => t.sugKind[k] ?? t.sugKindOther)} suggestionsAt={sug.shown[0]?.at} suggestions={sugCard} suggestionsN={sug.shown.length} suggestionsTotal={sug.total} onClosePreview={st.ops?.includes('close_preview') && st.ops?.includes('close') ? closePreview : null} onCloseMany={closeMany} onSystem={tr && !demo ? sysAct : null} {kpiPage} {kpiData} onBox={(b) => openPage(`box-${b}`)} onQuota={() => openPage('overview')} pluginsLoad={tr && st.ops?.includes('plugins') ? pluginsLoad : null} pluginsRun={tr && st.ops?.includes('plugin_update') ? pluginsRun : null} onNight={() => openPage('night')}
         onApprove={approve} {todo} {sessionTodo} onApprovalClose={closeApproval} onDone={attentionDone} onOk={(n, x) => sendTo(n, x)} onClose={(n) => cmd(n)('slash', 'exit')} onSessionCmd={(n, op, arg) => cmd(n)(op, arg)} agenda={agenda.page} {donePages} onLavori={() => openPage('lavori')} onEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
         {usageFocus} onUsageFocused={() => (usageFocus = 0)} onSpeak={(x) => toggle(x)}
@@ -2280,7 +2297,7 @@
       <Search {sent} {events} remote onQuery={search} page={searchPage}
         known={new Set(st.sessions.map(x => x.name))} sessions={st.sessions} now={st.ts} onOpen={(n, entry, sid, live) => { if (n && live === false && sid && entry) { sidOf = { ...sidOf, [n]: sid }; openPage(null); reading = n; void jumpTo(n, entry) } else if (n) { openPage(null); pick(n); if (entry) jumpTo(n, entry) } else openPage('lavori') }} />
     {:else if p === 'usage'}
-      <UsagePage panels={quotaPanels} st={stShown} page={kpiPage} data={kpiData} {now} />
+      <UsagePage panels={quotaPanels} st={stShown} page={kpiPage} data={kpiData} {now} pagella={contiPage?.pagella ?? null} />
     {:else if p === 'guardare'}
       {@render guardare('page')}
     {:else if p === 'seguiti'}

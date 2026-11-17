@@ -65,6 +65,7 @@
   import CatIcon from './CatIcon.svelte'
   import { BOARD_MAX, DEFAULT_CATS, EDGE, FOLDING, catFor, catKeys, catOrder, toTop as toBoard, fromTop as offBoard, decode as decodeCats, dragCats, encode as encodeCats, flat as flatCats, settle, toggle as toggleCat, top as topOf, type Cat, type CatId, type HomeKey } from './homeCats'
   import { DEFAULT_ORDER, dragTarget, normalize as normalizeOrder, orderArg, overSlot, pinnable, pinned, release, slotKey, type HomeSection } from './homeOrder'
+  import { monthName, pagellaRows } from './conti'
   import { dataAge, elapsedPct, H5_S, paceText, resetLine, resetText, usageAlarm, W7_S, weekSlot } from './utilizzo'
   import { resetLabel } from './header'
   import { glyphOf, span as spanOf, type GlyphKind } from './rail'
@@ -85,7 +86,7 @@
   import MonitorsList from './MonitorsList.svelte'
   import { looking as monitorsLooking, sectionOf as monitorsSection } from './monitors'
   import type { MonitorCard, MonitorsSummary } from './contract'
-  let { perTeRows = 0, perTeOpen = false, onPerTeToggle = () => {}, perTeFirst = null, perTeFocus = null, perTeBySession = {}, newBody, suggestionNames = [], suggestionsAt, onHomeOrder = null, st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, todo = {}, sessionTodo = null, onApprovalClose = null, onDone = () => {}, onOk = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, closeRefused = null, onCloseSeen = () => {}, onCloseArm = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0, suggestionsTotal, usageBlock, onMine = null, onRestart = null, monitors = null, monitorsSum = null, onMonitor = () => {}, onNewMonitor = () => {} }: {
+  let { perTeRows = 0, perTeOpen = false, onPerTeToggle = () => {}, perTeFirst = null, perTeFocus = null, perTeBySession = {}, newBody, suggestionNames = [], suggestionsAt, onHomeOrder = null, st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, todo = {}, sessionTodo = null, onApprovalClose = null, onDone = () => {}, onOk = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, closeRefused = null, onCloseSeen = () => {}, onCloseArm = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0, suggestionsTotal, usageBlock, onMine = null, onRestart = null, monitors = null, conti = null, monitorsSum = null, onMonitor = () => {}, onNewMonitor = () => {} }: {
     suggestionNames?: string[]
     /** I corpi delle voci del programma del 01/11, gli stessi delle pagine: si aprono sul posto (Franz 02/11 08:05). */
     newBody?: Snippet<[string]>
@@ -127,6 +128,8 @@
     suggestions?: Snippet; suggestionsN?: number; suggestionsTotal?: number; suggestionsAt?: number
     /** I Monitoraggi (app-monitoraggi-09-11): l'ultima sezione di Dalla master; null o vuota = la sezione non c'è. */
     monitors?: MonitorCard[] | null; monitorsSum?: MonitorsSummary | null; onMonitor?: (id: string) => void; onNewMonitor?: () => void
+    /** app-rendiconti-2-02-11 (contratto 1.103): la pagina dei conti; Rendiconti c'è col relay che la sa leggere, Pagella da 10 casi in su. */
+    conti?: import('./conti').ContiPage | null
     /** «Fuori dalle sessioni» (OutsideSessions.kt): le righe di servizio vengono da «Per te», con quello che si è letto e mandato. */
     donePages?: Record<string, DonePage>; events?: Event[]; sent?: Scheduled[]; read?: Set<string>; now?: number; onService?: (r: ForYouRow) => void
     /** «Chiuse»: l'elenco con «Riapri» (contratto 1.9), se il relay lo sa fare. */
@@ -190,7 +193,8 @@
   // piatto. Nella plancia larga stanno nella fascia sopra le colonne (part 'top') e le colonne non le ripetono.
   const up = $derived(sentOrder && sentOrder.from === savedKey && !part ? sentOrder.top : topOf(st.home_order))
   // Le sezioni che la home sa disegnare: l'ordine salvato di sempre più Da guardare, che esiste dal contratto 1.106.
-  const SHOWN: string[] = [...DEFAULT_ORDER, 'da_guardare', 'notte', 'monitors']
+  const SHOWN: string[] = [...DEFAULT_ORDER, 'da_guardare', 'notte', 'monitors', 'rendiconti', 'pagella']
+  const pagN = $derived(pagellaRows(conti?.pagella).length)
   const order = $derived(flatCats(up, cats).filter(k => k === EDGE || SHOWN.includes(k)) as HomeSection[])
   const edgeAt = (o: string[]) => Math.max(0, o.indexOf(EDGE))
   // Una sezione si disegna nella home intera, nella colonna della sua categoria e nella fascia della cima della plancia.
@@ -820,7 +824,10 @@
 {/snippet}
 
 <section class="home" class:part={!!part} class:topdrag={topDrag}>
-{#snippet secOf(k: HomeSection)}{#if k === 'prima_raccolta'}{@render secNuove(k)}{:else if k === 'seguiti'}{@render secNuove(k)}{:else if k === 'prove'}{@render secNuove(k)}{:else if k === 'decisioni'}{@render secNuove(k)}{:else if k === 'sessions'}{@render secSessions()}{@render secClosed()}{:else if k === 'suggestions'}{@render secSuggestions()}{:else if k === 'notte'}{@render secNotte()}{:else if k === 'lavori'}{@render secLavori()}{:else if k === 'esiti'}{@render secEsiti()}{:else if k === 'usage'}{@render secUsage()}{:else if k === 'system'}{@render secSystem()}{#if listSkip !== 'plugins' && !up.includes('system')}{@render secPlugins()}{/if}{:else if k === 'plugins'}{@render secPlugins()}{:else if (k as string) === 'da_guardare'}{@render secNuove(k)}{:else if (k as string) === 'monitors'}{@render secMonitors()}{:else}{@render secClosed()}{/if}{/snippet}
+{#snippet secOf(k: HomeSection)}{#if k === 'prima_raccolta'}{@render secNuove(k)}{:else if k === 'seguiti'}{@render secNuove(k)}{:else if k === 'prove'}{@render secNuove(k)}{:else if k === 'decisioni'}{@render secNuove(k)}{:else if k === 'sessions'}{@render secSessions()}{@render secClosed()}{:else if k === 'suggestions'}{@render secSuggestions()}{:else if k === 'notte'}{@render secNotte()}{:else if k === 'lavori'}{@render secLavori()}{:else if k === 'esiti'}{@render secEsiti()}{:else if k === 'usage'}{@render secUsage()}{:else if k === 'system'}{@render secSystem()}{#if listSkip !== 'plugins' && !up.includes('system')}{@render secPlugins()}{/if}{:else if k === 'plugins'}{@render secPlugins()}{:else if (k as string) === 'da_guardare'}{@render secNuove(k)}{:else if (k as string) === 'monitors'}{@render secMonitors()}{:else if (k as string) === 'rendiconti'}{@render secConti()}{:else if (k as string) === 'pagella'}{@render secPagella()}{:else}{@render secClosed()}{/if}{/snippet}
+<!-- app-rendiconti-2-02-11: Rendiconti in Lavori, coi clienti del mese; Pagella in Risorse, solo con righe da 10 casi in su. -->
+{#snippet secConti()}{#if conti && newBody && shows('work')}{@render sec('rendiconti', t.contiTitle, 'svg:inbox', String(conti.clienti.length), 'home-rendiconti', !open['rendiconti'] ? monthName(conti.mese) : null)}{@render nuovaBody('rendiconti' as HomeSection)}{/if}{/snippet}
+{#snippet secPagella()}{#if pagN && newBody && shows('tools')}{@render sec('pagella', t.pagellaTitle, 'svg:chart', String(pagN), 'home-pagella')}{@render nuovaBody('pagella' as HomeSection)}{/if}{/snippet}
 {#snippet slotBox()}
  {@const live = dragOrder ?? order}
  <!-- Le voci In cima dentro il tabellone, sotto i tre numeri, al massimo quattro (app-utilizzo-una-barra-03-11): la fascia separata non c'è più. -->

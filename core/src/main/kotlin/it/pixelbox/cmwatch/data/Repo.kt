@@ -264,6 +264,8 @@ class Repo(
         value: String? = null,
         /** Contratto 1.102, `seguiti_azione`. */
         product: String? = null, key: String? = null,
+        /** Contratto 1.103, `conti` e `conti_azione`: il progetto del cliente. */
+        project: String? = null,
         /** Contratto 1.106, `result_note`: il secondo del video. */
         posS: Double? = null,
         /** Contratto 1.83, `elicit`: le risposte del modulo di un server MCP. */
@@ -281,7 +283,7 @@ class Repo(
         val cmd = Cmd(
             id, op, session, arg, now(), by, text = text, device = device, voice = voice, via = via, confirmations = confirmations,
             action = action, until = until, blocks = blocks, question = question, at = at, confirm = confirm, prompt = prompt, reopen = reopen,
-            kind = kind, since = since, choice = choice, sid = sid, content = content, result = result, hours = hours, reason = reason, also = also, value = value, product = product, key = key, posS = posS,
+            kind = kind, since = since, choice = choice, sid = sid, content = content, result = result, hours = hours, reason = reason, also = also, value = value, product = product, key = key, project = project, posS = posS,
             closeWhen = closeWhen, tech = tech, share = share, screenshotOk = share?.let { true }, hash = hash, archive = archive,
         )
         question?.let { q -> _answered[cmd.id] = q }

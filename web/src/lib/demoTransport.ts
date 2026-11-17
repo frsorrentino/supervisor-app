@@ -2,7 +2,7 @@ import changesRaw from '../../../contract/changes-sample.json?raw'
 import { decodeChanges, type ChangesView, type Cmd, type CmdResult, type Event, type Session, type State, type TranscriptEntry } from './contract'
 import type { FileBlob, Transport } from './transport'
 import { lang } from './lang'
-import { decisionsDemo, waitsDemo, kpiDemo, demoSearch, pluginsDemo, primaDemo, proveDemo, resultsDemo, seguitiDemo, world, type World } from './demo'
+import { decisionsDemo, waitsDemo, kpiDemo, demoSearch, pluginsDemo, primaDemo, proveDemo, resultsDemo, seguitiDemo, contiDemo, world, type World } from './demo'
 import type { DecisionsPage, PrimaRaccoltaPage, ProvePage, ResultsPage, SeguitiPage, WaitAnswered, WaitItem } from './contract'
 import { NIGHT_TARGET } from './recapAgenda'
 
@@ -212,6 +212,9 @@ export class DemoTransport implements Transport {
           return ok('ok')
         }
         case 'seguiti': return ok(JSON.stringify(this.seguiti ??= seguitiDemo(this.now())))
+        // Contratto 1.103: i conti del mese (e il dettaglio di un cliente); la bozza la chiede alla master.
+        case 'conti': return ok(JSON.stringify(contiDemo(this.now(), cmd.arg ?? null, cmd.project ?? null)))
+        case 'conti_azione': return cmd.project ? ok('draft asked of the master') : ko('conti_azione: no project')
         // Contratto 1.106: Visto segna la versione e quelle prima; il lavoro esce da Da guardare; la nota si salva come fa il relay.
         case 'results': return ok(JSON.stringify(this.resultsPage ??= resultsDemo(this.now())))
         // Contratto 1.136: l'anteprima di una consegna della demo; le prime righe per i testi, una prima pagina disegnata per gli altri.
