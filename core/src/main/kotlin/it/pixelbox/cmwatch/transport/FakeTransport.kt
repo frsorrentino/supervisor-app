@@ -16,6 +16,11 @@ enum class DemoStep { CALM, QUESTION, DEPLOYED, FOLLOWUP, TICK, BLOG, NEW, SHOPA
 class FakeTransport(
     private val load: (String) -> String,
     private val now: () -> Long = { System.currentTimeMillis() / 1000 },
+    /**
+     * Ogni quanto il PC finto «ripubblica» lo stato: senza, dopo tre minuti la demo diceva «Dato vecchio» e «aggiornato 3 min fa».
+     * 0 (i test) lo lascia com'è: un flusso che non finisce mai bloccava i test che lo raccolgono; le app passano 30 s.
+     */
+    private val publishEveryMs: Long = 0,
 ) : Transport {
     /** La risposta d'esempio a `op` con questo `arg`, o quella con un arg che non c'è (contratto 1.130, `attesa` di una voce chiusa). */
     fun sampleResult(op: String, arg: String?): Pair<Boolean, String> {
@@ -131,7 +136,10 @@ class FakeTransport(
     private val eventList = demoEvents(ContractJson.decodeEvents(load("events-sample")), ContractJson.decodeState(load("state-1-question")))
     private val results = HashMap<String, CmdResult>()
 
-    override val state: Flow<State> get() = current
+    // app-play-aggiornamento-18-11: lo stato esce con l'ora di adesso a ogni ripubblicazione, come fa il relay e come la demo web.
+    override val state: Flow<State> get() = if (publishEveryMs <= 0) current else kotlinx.coroutines.flow.combine(current, kotlinx.coroutines.flow.flow { while (true) { emit(Unit); kotlinx.coroutines.delay(publishEveryMs) } }) { s, _ ->
+        s.copy(ts = maxOf(s.ts, now()))
+    }
     override val events: Flow<List<Event>> = MutableStateFlow(eventList)
     override suspend fun fetchEvent(key: String): Event? = eventList.firstOrNull { it.key == key }
     /** Le chiavi degli eventi della Demo: fuori dalla Demo si tolgono da Room. */

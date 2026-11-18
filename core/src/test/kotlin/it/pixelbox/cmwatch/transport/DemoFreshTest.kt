@@ -71,4 +71,15 @@ class DemoFreshTest {
         assertEquals(it.pixelbox.cmwatch.contract.SessionState.IDLE, m.state)
         assert(m.outcome?.full?.contains("Prossimi:") == true)
     }
+
+    /** Dopo tre minuti la demo diceva «aggiornato 3 min fa» e «Dato vecchio»: ora il PC finto ripubblica lo stato con l'ora di adesso. */
+    @Test fun theDemoStaysFreshOverTime() = runBlocking {
+        var clock = now
+        val d = FakeTransport(load = { n -> File("../contract/$n.json").readText() }, now = { clock }, publishEveryMs = 20)
+        val first = d.state.first()
+        clock += 600
+        val later = kotlinx.coroutines.withTimeout(2_000) { d.state.first { s -> s.ts >= clock } }
+        assertEquals(Freshness.Fresh, Freshness.of(later, clock))
+        assert(later.ts - first.ts >= 600)
+    }
 }

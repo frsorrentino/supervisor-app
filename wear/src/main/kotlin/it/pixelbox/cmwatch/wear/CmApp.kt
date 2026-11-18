@@ -70,7 +70,7 @@ class CmApp : Application() {
 
     @Volatile private var currentActivity: android.app.Activity? = null
 
-    val fake: FakeTransport by lazy { FakeTransport(load = { DemoText.dress(assets.open("contract/$it.json").bufferedReader().readText()) }) }
+    val fake: FakeTransport by lazy { FakeTransport(load = { DemoText.dress(assets.open("contract/$it.json").bufferedReader().readText()) }, publishEveryMs = 30_000) }
 
     override fun onCreate() {
         super.onCreate()

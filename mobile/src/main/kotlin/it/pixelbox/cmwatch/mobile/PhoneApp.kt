@@ -97,7 +97,7 @@ class PhoneApp : Application() {
     }
     val pluginsRun by lazy { it.pixelbox.cmwatch.rules.PluginsRun(scope, ::pluginsLoad, ::pluginsCmd) }
 
-    val fake: FakeTransport by lazy { FakeTransport(load = { DemoText.dress(assets.open("contract/$it.json").bufferedReader().readText()) }) }
+    val fake: FakeTransport by lazy { FakeTransport(load = { DemoText.dress(assets.open("contract/$it.json").bufferedReader().readText()) }, publishEveryMs = 30_000) }
 
     /** Contratto 1.32: che dispositivo è, per lo schema dei collegamenti di tutti (Android del Chromebook, tablet, telefono). */
     private fun deviceKind(): String = when {
