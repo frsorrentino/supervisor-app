@@ -4,6 +4,7 @@ import it.pixelbox.cmwatch.rules.NewProject
 import it.pixelbox.cmwatch.contract.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.serialization.builtins.serializer
 
 /** Gli stati della storia dei video promozionali (piano 16/09): uno per scena, raggiungibili via adb. */
 enum class DemoStep { CALM, QUESTION, DEPLOYED, FOLLOWUP, TICK, BLOG, NEW, SHOPASK }
@@ -52,6 +53,18 @@ class FakeTransport(
         val pick = same.firstOrNull { (str(it, "archive") == "true") == archive } ?: same.firstOrNull()
         return pick?.let(::resultOf) ?: cmds.map(::resultOf).firstOrNull { !it.first } ?: (false to "$arg: no wait")
     }
+
+    /**
+     * Le attese della fixture portate ad adesso (app-play-aggiornamento-18-11): la pagina è di ora e ogni voce tiene la sua distanza da
+     * lei, come fa [rebase] con lo stato; prima una voce diceva «Ti aspetta da 66 g».
+     */
+    private fun waitsShift(): Long = now() - ContractJson.decodeWaits(sampleText("attese")).at
+    private fun waitsNow(): String = ContractJson.decodeWaits(sampleText("attese")).let { p ->
+        val d = now() - p.at
+        ContractJson.json.encodeToString(WaitsPage.serializer(), p.copy(at = p.at + d, items = p.items.map { w -> w.copy(at = w.at + d) }))
+    }
+    private fun waitNow(raw: String): String = runCatching { ContractJson.decodeWait(raw) }.getOrNull()
+        ?.let { w -> ContractJson.json.encodeToString(WaitItem.serializer(), w.copy(at = w.at + waitsShift())) } ?: raw
 
     fun sampleText(op: String): String {
         val root = kotlinx.serialization.json.Json.parseToJsonElement(load("cmd-result-sample")).let { it as kotlinx.serialization.json.JsonObject }
@@ -390,6 +403,15 @@ class FakeTransport(
             CmdOp.LAST -> ses?.outcome?.full?.takeIf { it.isNotBlank() }?.let { ok(it) } ?: ko("${cmd.session}: nessun messaggio da leggere")
             // Contratto 1.9: i testi del relay, di successo e di rifiuto.
             CmdOp.REOPEN -> when {
+                // app-play-aggiornamento-18-11: la demo non ha la master e la home offre «Riapri»; prima rispondeva «master is not a
+                // closed session». Ora la master si apre, ferma, con un esito e i prossimi passi, come FeatureDemoState.
+                ses == null && cmd.session == "master" -> {
+                    val t = now()
+                    val m = Session(id = "demo-master", name = "master", account = "personal", project = "personal/control-room", state = SessionState.IDLE, since = t,
+                        outcome = Outcome("Two sessions wait for you", "Esito: storefront and payments-api wait for your ok; the blog post is ready.\nProssimi: open storefront · publish the post", t))
+                    current.value = current.value.let { st -> st.copy(ts = t, sessions = Order.sessions(st.sessions + m)) }
+                    ok("reopened master (personal): last conversation in the folder")
+                }
                 ses == null -> ko("${cmd.session} is not a closed session")
                 ses.state != SessionState.GONE -> ko("${ses.name} is already running")
                 else -> ok("reopened ${ses.name} (${ses.account}): last conversation in the folder")
@@ -446,7 +468,11 @@ class FakeTransport(
                 ok("seen")
             }
             CmdOp.RESULT_NOTE -> ok("note sent to ${current.value.results?.items?.firstOrNull { it.id == cmd.arg }?.session ?: "the session"}")
-            CmdOp.CONTI, CmdOp.CONTI_AZIONE, CmdOp.FEEDBACK_CONSENT, CmdOp.FEEDBACK_SEND, CmdOp.FEEDBACK_TEXT, CmdOp.FEEDBACK_APP -> ko("${cmd.op}: not in this demo yet")
+            // Contratto 1.103 (app-play-aggiornamento-18-11): la demo dichiara `conti` e l'app lo chiede all'avvio; senza risposta
+            // compariva «CONTI: not in this demo yet». I conti e la bozza della fixture del relay.
+            CmdOp.CONTI -> ok(sampleText("conti"))
+            CmdOp.CONTI_AZIONE -> sampleResult("conti_azione", cmd.arg).let { r -> CmdResult(cmd.id, r.first, r.second, now()) }
+            CmdOp.FEEDBACK_CONSENT, CmdOp.FEEDBACK_SEND, CmdOp.FEEDBACK_TEXT, CmdOp.FEEDBACK_APP -> ko("${cmd.op}: not in this demo yet")
             CmdOp.SEGUITI_AZIONE -> when (cmd.action) {
                 "allinea" -> ok("allinea-${cmd.product}-${cmd.key}")
                 "ok" -> ok("${cmd.key}: marked aligned with this version")
@@ -491,9 +517,9 @@ class FakeTransport(
                 }
             }
             // Contratto 1.130: le attese della fixture; `attesa` con l'id della fixture ha il pezzo di trascrizione, le altre sono chiuse.
-            CmdOp.ATTESE -> ok(sampleText("attese"))
+            CmdOp.ATTESE -> ok(waitsNow())
             // Contratto 1.137: con `archive` la voce dell'archivio (anche di un giro vecchio); un id che la fixture non ha è un rifiuto.
-            CmdOp.ATTESA -> attesaSample(cmd.arg, cmd.archive == true).let { r -> CmdResult(cmd.id, r.first, r.second, now()) }
+            CmdOp.ATTESA -> attesaSample(cmd.arg, cmd.archive == true).let { r -> CmdResult(cmd.id, r.first, if (r.first) waitNow(r.second) else r.second, now()) }
             // Contratto 1.132: l'elenco dei Monitoraggi della fixture; con un id la sua scheda, un id che non c'è più è un errore.
             CmdOp.MONITORS -> if (cmd.arg == null) ok(ContractJson.json.encodeToString(MonitorsPage.serializer(), demoMonitors())) else demoMonitors().items.firstOrNull { it.id == cmd.arg }?.let { c -> ok(cardJson(c)) }
                 ?: sampleResult("monitors", cmd.arg).let { r -> CmdResult(cmd.id, r.first, r.second, now()) }
@@ -523,7 +549,11 @@ class FakeTransport(
             CmdOp.ATTENTION_DONE -> ko("${cmd.kind} ${cmd.arg}: nothing to close")
             // Contratto 1.145: da 1 a 20, intero in testo; la risposta buona porta il numero.
             CmdOp.MAX_SESSIONS_SET -> cmd.arg?.toIntOrNull()?.takeIf { it in 1..20 }?.let { ok("{\"max_sessions\": $it}") } ?: ko("max_sessions out of range 1-20")
-            CmdOp.HOME_ORDER -> ko("the demo does not save the order")
+            // Contratto 1.97 (app-play-aggiornamento-18-11): aprire o spostare una sezione salva l'ordine; la demo lo rifiutava e ogni
+            // tocco su una sezione mostrava «the demo does not save the order». Lo tiene in memoria, come il relay nello stato.
+            CmdOp.HOME_ORDER -> runCatching { cmd.arg?.takeIf { a -> a.isNotBlank() }?.let { a -> ContractJson.json.decodeFromString(kotlinx.serialization.builtins.ListSerializer(String.serializer()), a) }.orEmpty() }
+                .getOrNull()?.let { o -> current.value = current.value.copy(homeOrder = o.takeIf { x -> x.isNotEmpty() }); ok("home order saved") }
+                ?: ko("home_order: not an array of strings")
             // Contratto 1.84 (B4): la demo non chiude: l'anteprima dice cosa salverebbe, la chiusura non c'è.
             CmdOp.CLOSE_PREVIEW -> ok("""{"sessions": []}""")
             CmdOp.CLOSE -> ko("the demo does not close sessions")
