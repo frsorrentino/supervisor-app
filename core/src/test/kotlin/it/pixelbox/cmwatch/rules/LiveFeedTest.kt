@@ -35,7 +35,7 @@ class LiveFeedTest {
         assertEquals(1, n.level)
         assertEquals(Kind.QUESTION, n.kind)
         assertEquals("q-1789210500-1", n.questionId)
-        assertEquals("ledger api chiede: Deploy ready with DEPLOY_TOKEN=•••, waiting for the client's ok. Deploy now? Uno: yes. Due: no.", n.text)
+        assertEquals("ledger api chiede: Deploy ready with DEPLOY_TOKEN=•••, client ok pending. Deploy now? Uno: yes. Due: no.", n.text)
     }
 
     @Test fun anApprovalIsLevelOneAndAsksForTheDoubleConfirm() {
@@ -251,7 +251,7 @@ class LiveFeedTest {
         // field-notes è ferma ma non seguita, orbit-docs è chiusa
         assertEquals(
             listOf(
-                "ledger api chiede: Deploy ready with DEPLOY_TOKEN=•••, waiting for the client's ok. Deploy now? Uno: yes. Due: no.",
+                "ledger api chiede: Deploy ready with DEPLOY_TOKEN=•••, client ok pending. Deploy now? Uno: yes. Due: no.",
                 "Richiesta di ok: Release 2.4 of atlas-shop, tag v2.4 and push to origin main, su production (shop.example.com). Serve la doppia conferma.",
             ),
             LiveFeed.round(q, IT),
@@ -311,7 +311,7 @@ class LiveFeedTest {
 
     @Test fun statusWaitingAndQuotaPhrases() {
         val ledger = q.sessions.single { it.name == "ledger-api" }
-        assertEquals("ledger api chiede: Deploy ready with DEPLOY_TOKEN=•••, waiting for the client's ok. Deploy now? Uno: yes. Due: no.", LiveFeed.status(ledger, IT))
+        assertEquals("ledger api chiede: Deploy ready with DEPLOY_TOKEN=•••, client ok pending. Deploy now? Uno: yes. Due: no.", LiveFeed.status(ledger, IT))
         assertEquals("field notes ha finito: README rewritten.", LiveFeed.status(q.sessions.single { it.name == "field-notes" }, IT))
         assertEquals("orbit docs si è chiusa.", LiveFeed.status(q.sessions.single { it.name == "orbit-docs" }, IT))
         val busy = idle.sessions.single().copy(state = SessionState.BUSY)

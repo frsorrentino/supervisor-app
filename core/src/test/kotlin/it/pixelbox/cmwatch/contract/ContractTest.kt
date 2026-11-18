@@ -305,7 +305,7 @@ class ContractTest {
         val results = root.getValue("result").jsonArray.map { ContractJson.json.decodeFromJsonElement(CmdResult.serializer(), it) }
         // Manca «unfollow»; dal contratto 1.72 anche «changes» e «diff», il cui risultato ha la sua fixture (changes-sample.json).
         // Dal 1.97 anche «home_order», senza esempio in questa fixture: il risultato è quello solito, e lo stato lo prova homeOrderInTheState.
-        assertEquals(setOf(CmdOp.UNFOLLOW, CmdOp.CHANGES, CmdOp.DIFF, CmdOp.HOME_ORDER), CmdOp.entries.toSet() - cmds.map { it.op }.toSet())
+        assertEquals(setOf(CmdOp.UNFOLLOW, CmdOp.CHANGES, CmdOp.DIFF, CmdOp.HOME_ORDER, CmdOp.FAVICON), CmdOp.entries.toSet() - cmds.map { it.op }.toSet())
         // Contratto 1.145 (app-tabellone-frazioni-13-11): «max_sessions_set» porta il numero in arg; la risposta buona è il numero
         // confermato, fuori da 1-20 un rifiuto a parole.
         val max = cmds.filter { it.op == CmdOp.MAX_SESSIONS_SET }

@@ -229,7 +229,7 @@ private fun SessionMenuRow(s: Session, group: it.pixelbox.cmwatch.rules.Summary.
         else -> stringResource(R.string.menu_row_still, since(s.since))
     }
     Box(if (current) Modifier.background(V3.S2) else Modifier) {
-        V3Row(first, onClick, { StateGlyph(it.pixelbox.cmwatch.rules.Rail.glyph(s, group), s.context, square = !it.pixelbox.cmwatch.rules.Accounts.personal(s.account, s.accountKind)) }, {
+        V3Row(first, onClick, { SessionRailIcon(s, it.pixelbox.cmwatch.rules.Rail.glyph(s, group), s.context, square = !it.pixelbox.cmwatch.rules.Accounts.personal(s.account, s.accountKind)) }, {
             s.context?.let { Text(stringResource(R.string.ctx_short, it), style = V3.Meter, maxLines = 1) }
             if (current) Icon(Icons.Rounded.Check, null, tint = V3.Tx, modifier = Modifier.padding(start = 6.dp).size(18.dp))
         }) {

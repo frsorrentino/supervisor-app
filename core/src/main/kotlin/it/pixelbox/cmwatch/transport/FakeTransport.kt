@@ -79,6 +79,13 @@ class FakeTransport(
     }
 
     // Contratto 1.106: Da guardare con il risultato della fixture state-3, così la demo e gli screenshot lo mostrano.
+    /** Le favicon della demo (app-favicon-siti-18-11): storefront e blog sono siti, payments-api no e tiene l'icona di oggi. */
+    @kotlinx.serialization.Serializable private class DemoFavicons(val hashes: Map<String, String> = emptyMap(), val images: Map<String, FaviconImage> = emptyMap())
+    private val demoFavicons: DemoFavicons = runCatching {
+        ContractJson.json.decodeFromString(DemoFavicons.serializer(), javaClass.getResourceAsStream("demo-favicons.json")!!.bufferedReader().readText())
+    }.getOrDefault(DemoFavicons())
+    private fun faviconOf(name: String): String? = demoFavicons.hashes[when (name) { "atlas-shop" -> "storefront"; "field-notes" -> "blog"; else -> name }]
+
     private val current = MutableStateFlow(stopped(rebase(ContractJson.decodeState(load("state-1-question")))).copy(prove = ProveSummary(2, 1), decisions = DecisionsSummary(2, 1, 3), results = ContractJson.decodeState(load("state-3-stale")).results, monitors = demoSummary(), ops = demoOps()))
 
     // Contratto 1.133 nella demo (app-monitoraggi-aggiorna-10-11): i Monitoraggi della fixture nella home, aggiornabili quelli che la fixture
@@ -238,7 +245,7 @@ class FakeTransport(
         fun sh(t: Long?) = t?.plus(d)
         // La pubblicazione (1.43) segue `ts`: con quella della fixture la demo era vecchia di mesi e la quota diceva «lettura di 66 g fa».
         return s.copy(ts = s.ts + d, publishedAt = null, sessions = s.sessions.map { ses ->
-            ses.copy(since = ses.since + d, turnStarted = sh(ses.turnStarted),
+            ses.copy(since = ses.since + d, turnStarted = sh(ses.turnStarted), favicon = ses.favicon ?: faviconOf(ses.name),
                 question = ses.question?.let { it.copy(askedAt = it.askedAt + d) },
                 outcome = ses.outcome?.let { it.copy(at = it.at + d) },
                 // Contratto 1.72: i conteggi della pillola sono di adesso (nella fixture `at` non segue `ts`).
@@ -471,6 +478,8 @@ class FakeTransport(
             CmdOp.RESULTS -> ok(sampleText("results"))
             // Contratto 1.136: l'anteprima di una consegna della demo; un testo per i file di testo, la prima pagina degli esempi per gli altri.
             CmdOp.THUMB -> demoThumb(cmd.arg)?.let { ok(it) } ?: ko("result ${cmd.arg} not found")
+            // Contratto 1.153 (app-favicon-siti-18-11): le favicon inventate della demo; un'impronta che non c'è è l'errore del relay.
+            CmdOp.FAVICON -> demoFavicons.images[cmd.arg]?.let { f -> ok(ContractJson.json.encodeToString(FaviconImage.serializer(), f)) } ?: ko("favicon ${cmd.arg} not found")
             CmdOp.RESULT_SEEN -> {
                 current.value = current.value.let { st -> st.copy(results = st.results?.items?.filterNot { it.id == cmd.arg }?.takeIf { it.isNotEmpty() }?.let { ResultsSummary(it.size, it) }) }
                 ok("seen")

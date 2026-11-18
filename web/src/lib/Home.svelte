@@ -62,6 +62,8 @@
   import { count as outsideCount, groups as outsideGroups, place as placeOutside, tonight as tonightOf, type Category } from './outside'
   import type { Event } from './contract'
   import StateGlyph from './StateGlyph.svelte'
+  import SiteAvatar from './SiteAvatar.svelte'
+  import { favicons, ringOf } from './favicons.svelte'
   import CatIcon from './CatIcon.svelte'
   import { BOARD_MAX, DEFAULT_CATS, EDGE, FOLDING, catFor, catKeys, catOrder, toTop as toBoard, fromTop as offBoard, decode as decodeCats, dragCats, encode as encodeCats, flat as flatCats, settle, toggle as toggleCat, top as topOf, type Cat, type CatId, type HomeKey } from './homeCats'
   import { DEFAULT_ORDER, dragTarget, normalize as normalizeOrder, orderArg, overSlot, pinnable, pinned, release, slotKey, type HomeSection } from './homeOrder'
@@ -1229,12 +1231,12 @@
         </div>
       {/if}
       <!-- Il binario (stile «Studio e Diretta», 30/10): il glifo dello stato e, sotto, da quanto aspetta o lavora, o l'ora. -->
-      <span class="rail"><StateGlyph kind={rl.kind} ctx={s.context} square={square(s)} label={t.states[s.state]} />{#if rl.text}<b class="rt {rl.kind}">{rl.text}</b>{/if}</span>
+      <span class="rail">{#if s.favicon && favicons.get(s.favicon)}<SiteAvatar url={favicons.get(s.favicon)!} ring={ringOf(rl.kind)} busy={rl.kind === 'busy'} label={`${s.name}, ${t.states[s.state]}`} />{:else}<StateGlyph kind={rl.kind} ctx={s.context} square={square(s)} label={t.states[s.state]} />{/if}{#if rl.text}<b class="rt {rl.kind}">{rl.text}</b>{/if}</span>
       <div class="cnt">
       <div class="top">
         <!-- Il colore che dai alla sessione, piccolo accanto al nome; il segno della modalità dei permessi dopo il nome, solo
              se diverso dal solito (mockup del 14/10, schermata 2). -->
-        <span class="nm">{#if idColor(s)}<i class="idc" class:sq={square(s)} style:background={idColor(s)}></i>{/if}<span class="name">{s.name}</span><PermGlyph g={homeGlyph(s)} /></span>
+        <span class="nm">{#if idColor(s) && !(s.favicon && favicons.get(s.favicon))}<i class="idc" class:sq={square(s)} style:background={idColor(s)}></i>{/if}<span class="name">{s.name}</span><PermGlyph g={homeGlyph(s)} /></span>
         {#if s.duplicate_of}<span class="dup">{t.cleanupDupTag.toUpperCase()}</span>{/if}
         <!-- La quota 5h sta una volta sola, nel tabellone; qui il contesto e l'ora dell'ultimo rosso di oggi. -->
         {#if s.context != null && (group === 'waiting' || group === 'working')}<span class="mono">{t.ctx(s.context)}</span>{/if}

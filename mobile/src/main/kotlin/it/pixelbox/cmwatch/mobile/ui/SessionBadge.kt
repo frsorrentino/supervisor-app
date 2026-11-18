@@ -38,6 +38,8 @@ import it.pixelbox.cmwatch.rules.RecapAgenda
  */
 @Composable
 fun SessionBadge(s: Session, size: Dp = 22.dp, modifier: Modifier = Modifier) {
+    // app-favicon-siti-18-11 (scelta B): un progetto che è un sito mostra la sua favicon con l'anello dello stato.
+    siteFavicon(s)?.let { icon -> SiteAvatar(icon, stateRing(s), busy = s.state == it.pixelbox.cmwatch.contract.SessionState.BUSY, size = size, label = s.name, modifier = modifier); return }
     val spec = Badge.of(s.account, s.color, s.state, s.icon, s.accountKind)
     // Il respiro in un livello suo, letto solo lì (Franz, 05/10 12:30: «l'app è sempre molto lenta»): letto qui ricomponeva
     // il badge a ogni fotogramma e ridisegnava tutta la lista che lo contiene.

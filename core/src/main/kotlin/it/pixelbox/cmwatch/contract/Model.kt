@@ -123,6 +123,8 @@ enum class CmdOp {
     @SerialName("monitor_refresh") MONITOR_REFRESH,
     /** Contratto 1.136: l'anteprima di una consegna (arg = id dei risultati); lettura, corsia lenta. */
     @SerialName("thumb") THUMB,
+    /** Contratto 1.153: la favicon di un'impronta di `sessions[].favicon`, una volta per impronta. */
+    @SerialName("favicon") FAVICON,
     /** Contratto 1.37: una decisione da salvare nella memoria della master; `text` obbligatorio, `arg` = progetto o null. */
     @SerialName("decision") DECISION,
     /** Contratto 1.39: togliere un dispositivo accoppiato; `arg` = uid. Solo «Scollega questo browser», col proprio uid. */
@@ -324,6 +326,8 @@ enum class CmdOp {
     val tocca: Tocca? = null,
     /** Contratto 1.120: la chiusura armata (`close` con when after o force), solo finché è armata. */
     val closing: Closing? = null,
+    /** Contratto 1.153 (app-favicon-siti-18-11): l'impronta della favicon del sito (12 esadecimali), solo se il progetto ne ha una; l'immagine con l'op `favicon`. */
+    val favicon: String? = null,
 )
 
 /** Contratto 1.120, `sessions[].closing`: mode after o force, quando è stata armata, la scadenza (null per after). */
@@ -455,6 +459,8 @@ enum class CmdOp {
     val id: String, val path: String = "", val at: Long = 0, val kind: String = "none", val mime: String? = null, val data: String? = null,
     val width: Int? = null, val height: Int? = null, val text: String? = null, val why: String? = null,
 )
+/** Contratto 1.153, la risposta dell'op `favicon`: un PNG 64×64 in base64. */
+@Serializable data class FaviconImage(val hash: String, val domain: String = "", val mime: String = "image/png", val data: String = "", val width: Int = 64, val height: Int = 64, val at: Long = 0)
 @Serializable data class ResultsPage(val groups: List<ResultGroup> = emptyList(), @SerialName("n_unseen") val nUnseen: Int = 0, val more: Boolean = false)
 
 /** Contratto 1.102, op `seguiti`. */

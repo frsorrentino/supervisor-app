@@ -17,6 +17,8 @@ object ContractJson {
     /** Contratto 1.44: il rapporto della notte, il `text` dell'op `night`. */
     fun decodeSeguiti(raw: String): SeguitiPage = json.decodeFromString(SeguitiPage.serializer(), raw)
     fun decodeConti(raw: String): ContiPage = json.decodeFromString(ContiPage.serializer(), raw)
+    /** Contratto 1.153: la risposta dell'op `favicon`. */
+    fun decodeFavicon(raw: String): FaviconImage = json.decodeFromString(FaviconImage.serializer(), raw)
     fun decodeResults(raw: String): ResultsPage = json.decodeFromString(ResultsPage.serializer(), raw)
     fun decodePrimaRaccolta(raw: String): PrimaRaccoltaPage = json.decodeFromString(PrimaRaccoltaPage.serializer(), raw)
     fun decodeProve(raw: String): ProvePage = json.decodeFromString(ProvePage.serializer(), raw)

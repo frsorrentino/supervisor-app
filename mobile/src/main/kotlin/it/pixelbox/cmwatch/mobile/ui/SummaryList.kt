@@ -1383,7 +1383,7 @@ private fun SummaryCard(
     // o quanto il nome col testo grande, e il nome ci sta al centro; prima il glifo partiva da 4 dp e restava 2 dp più in alto.
     val nameRow = with(androidx.compose.ui.platform.LocalDensity.current) { maxOf(32.dp, V3.Name.lineHeight.toDp()) }
     Column(Modifier.width(V3.Rail).padding(top = nameRow / 2 - 10.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) {
-        Box(Modifier.capAlign(V3.Name)) { StateGlyph(glyph, s.context, square = square) }
+        Box(Modifier.capAlign(V3.Name)) { SessionRailIcon(s, glyph, s.context, square) }
         railText?.let { x -> Text(x, style = V3.RailText.copy(color = if (glyph == it.pixelbox.cmwatch.rules.Rail.Glyph.STILL) V3.Tx2 else V3.tone(glyph)), maxLines = 1) }
     }
     Spacer(Modifier.width(8.dp))

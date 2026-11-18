@@ -64,7 +64,7 @@ describe('i box della home aperti (app-box-cliccabili-29-10)', () => {
   const st = (sessions: Session[]): State => ({ ...q, ts: now, sessions })
 
   it('ti aspettano: le sessioni della cifra, la più vecchia prima, senza segreti', () => {
-    expect(waitingRows(q)).toEqual([{ session: 'ledger-api', kind: 'question', text: "Deploy ready with DEPLOY_TOKEN=\u2022\u2022\u2022, waiting for the client's ok. Deploy now?", since: 1789210500, closesItself: false }])
+    expect(waitingRows(q)).toEqual([{ session: 'ledger-api', kind: 'question', text: "Deploy ready with DEPLOY_TOKEN=\u2022\u2022\u2022, client ok pending. Deploy now?", since: 1789210500, closesItself: false }])
     const x = st([s('a', { turn_blocking: { text: 'ok to publish', at: now - 60 } }), s('b', { needs_you: { reason: 'type the code', at: now - 600, until: true } }), s('c', { state: 'gone', needs_you: { reason: 'gone', at: now - 900 } })])
     expect(waitingRows(x).map(r => [r.session, r.kind, r.closesItself])).toEqual([['b', 'needs_you', true], ['a', 'blocking', false]])
     expect(waitingRows(x).length).toBe(head(x, null, now).waiting)

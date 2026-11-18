@@ -6,6 +6,8 @@
   import { t } from './t'
   import Badge from './Badge.svelte'
   import StateGlyph from './StateGlyph.svelte'
+  import SiteAvatar from './SiteAvatar.svelte'
+  import { favicons, ringOf } from './favicons.svelte'
   import { glyphOf } from './rail'
   import { personal } from './badge'
 
@@ -43,7 +45,7 @@
     <div class="gh" style:color={tone[g]}>{(t.summary[g] ?? t.summary.still)(list.length).toUpperCase()}</div>
     {#each list as x (x.name)}
       <button class="row" class:on={x.name === s.name} onclick={() => go(x.name)}>
-        <span class="glyph"><StateGlyph kind={glyphOf(x)} ctx={x.context} square={!personal(x.account, x.account_kind)} /></span>
+        <span class="glyph">{#if x.favicon && favicons.get(x.favicon)}<SiteAvatar url={favicons.get(x.favicon)!} ring={ringOf(glyphOf(x))} busy={glyphOf(x) === 'busy'} size={26} label={x.name} />{:else}<StateGlyph kind={glyphOf(x)} ctx={x.context} square={!personal(x.account, x.account_kind)} />{/if}</span>
         <span class="col"><b>{x.name}</b><small style:color={g === 'waiting' ? 'var(--wait)' : null}>{status(x, g)}</small></span>
         {#if x.context != null}<span class="ctx mono">{t.ctx(x.context)}</span>{/if}
         {#if x.name === s.name}<svg viewBox="0 0 24 24" width="18" height="18"><path d="M5 12l5 5 9-10" fill="none" stroke="var(--icon)" stroke-width="2.4" stroke-linecap="round" /></svg>{/if}

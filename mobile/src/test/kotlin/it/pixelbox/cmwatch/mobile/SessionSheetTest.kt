@@ -23,7 +23,7 @@ class SessionSheetTest {
     // app-citazione-trascrizione-07-11: due pezzi citati sopra il campo, con l'ora della risposta e la ×; di notte e di giorno.
     private fun quoted() = QuoteDraft().apply {
         add("The build is ready and the migration notes are checked.", st.ts - 600)
-        add("Deploy ready with DEPLOY_TOKEN=dpl_9f8e7d6c5b4a, waiting for the client's ok. Deploy now? The release notes are in the PR and the staging run is green on every suite.", st.ts - 300)
+        add("Deploy ready with DEPLOY_TOKEN=dpl_9f8e7d6c5b4a, client ok pending. Deploy now? The release notes are in the PR and the staging run is green on every suite.", st.ts - 300)
     }
     @Test fun sheetQuotes() = paparazzi.snapshot { CmPhoneTheme(still = true) { SessionSheet(st.sessions.first { it.state == SessionState.IDLE }, st.ts, emptyList(), 120, none, quoteStart = quoted()) } }
     @Test fun sheetQuotesDay() = paparazzi.snapshot { CmPhoneTheme(still = true, day = true) { SessionSheet(st.sessions.first { it.state == SessionState.IDLE }, st.ts, emptyList(), 120, none, quoteStart = quoted()) } }

@@ -30,6 +30,8 @@ export type Model = { id: string; label?: string | null }
 export type Goal = { text: string; since: number; met?: boolean | null }
 
 export type Session = {
+  /** Contratto 1.153 (app-favicon-siti-18-11): l'impronta della favicon del sito; l'immagine con l'op `favicon`. */
+  favicon?: string | null
   /** Contratto 1.120: la chiusura armata (`close` con when after o force), solo finché è armata; deadline null per after. */
   closing?: { mode: 'after' | 'force'; at: number; deadline: number | null } | null
   /** Contratto 1.54 e 1.55. */
@@ -409,7 +411,7 @@ export type SystemStatus = {
 
 export type CmdOp = 'answer' | 'prompt' | 'launch' | 'follow' | 'unfollow' | 'resume' | 'screen' | 'allow_all' | 'last' | 'reopen' | 'done'
   | 'model' | 'effort' | 'night_add' | 'night_remove' | 'report' | 'interrupt' | 'transcript' | 'file' | 'slash' | 'projects'
-  | 'search' | 'timeline' | 'pair_add' | 'approve' | 'approval_close' | 'attese' | 'attesa' | 'monitors' | 'monitor_refresh' | 'thumb' | 'decision' | 'unpair' | 'night' | 'agenda' | 'agenda_set' | 'quota_route' | 'project_new'
+  | 'search' | 'timeline' | 'pair_add' | 'approve' | 'approval_close' | 'attese' | 'attesa' | 'monitors' | 'monitor_refresh' | 'thumb' | 'favicon' | 'decision' | 'unpair' | 'night' | 'agenda' | 'agenda_set' | 'quota_route' | 'project_new'
   | 'attention_done'
   /** Contratto 1.145: arg = il massimo di sessioni, intero in testo da 1 a 20; risposta `{"max_sessions": N}`. */
   | 'max_sessions_set'

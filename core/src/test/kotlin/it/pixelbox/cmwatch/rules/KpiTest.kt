@@ -103,7 +103,7 @@ class KpiTest {
     @Test fun boxWaiting_sameSessionsAsTheFigure_oldestFirst_secretsMasked() {
         val q = ContractJson.decodeState(Fixtures.stateQuestion)
         val rows = Kpi.waitingRows(q)
-        assertEquals(listOf(Kpi.Waiting("ledger-api", Kpi.WaitKind.QUESTION, "Deploy ready with DEPLOY_TOKEN=\u2022\u2022\u2022, waiting for the client's ok. Deploy now?", 1_789_210_500L, false)), rows)
+        assertEquals(listOf(Kpi.Waiting("ledger-api", Kpi.WaitKind.QUESTION, "Deploy ready with DEPLOY_TOKEN=\u2022\u2022\u2022, client ok pending. Deploy now?", 1_789_210_500L, false)), rows)
         assertEquals(Kpi.head(q, null, q.ts, zone).waiting, rows.size)
         // needs_you dice se si chiude da sé; la voce bloccante viene dopo; la più vecchia in cima.
         val st = State(v = 1, ts = now, host = "pc", sessions = listOf(

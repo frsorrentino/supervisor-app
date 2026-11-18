@@ -1,3 +1,4 @@
+import demoFaviconsRaw from '../../../core/src/main/resources/it/pixelbox/cmwatch/transport/demo-favicons.json?raw'
 import stateRaw from '../../../contract/state-1-question.json?raw'
 import monitorsMockup from '../../../core/src/test/resources/monitors-mockup.json'
 import type { Approval, MonitorCard, MonitorsPage } from './contract'
@@ -24,10 +25,16 @@ import { lang } from './lang'
 //
 // In inglese i testi della demo sono inglesi (Franz, 13/10 21:48); le righe «Esito:» e «Prossimi:» restano: sono il
 // formato con cui le sessioni chiudono il turno, e la web app le mostra come «Outcome» e come tasti.
+/** Le favicon inventate della demo (app-favicon-siti-18-11), le stesse della demo del telefono (FakeTransport). */
+export const demoFavicons: { hashes: Record<string, string>; images: Record<string, { hash: string; domain: string; mime: string; data: string; width: number; height: number; at: number }> } = JSON.parse(demoFaviconsRaw)
 const en = lang === 'en'
 
 /** DemoText.kt: frasi più lunghe prima delle più corte che le contengono. Più, solo qui, la domanda col token in chiaro. */
 const DRESS: [string, string][] = [
+  // Contratto 1.153: le fixture del relay accorciano la domanda («client ok pending»), nelle tre forme.
+  ["Deploy ready with DEPLOY_TOKEN=dpl_9f8e7d6c5b4a, client ok pending. Deploy now?", 'Staging is green. Deploy 2.8.0?'],
+  ["Deploy ready with DEPLOY_TOKEN=•••, client ok pending. Deploy now?", 'Staging is green. Deploy 2.8.0?'],
+  ['Deploy ready with DEPLOY_TOKEN=\u2022\u2022\u2022, client ok pending. Deploy now?', 'Staging is green. Deploy 2.8.0?'],
   ["Deploy ready with DEPLOY_TOKEN=dpl_9f8e7d6c5b4a, waiting for the client's ok. Deploy now?", 'Staging is green. Deploy 2.8.0?'],
   ["Deploy ready with DEPLOY_TOKEN=\u2022\u2022\u2022, waiting for the client's ok. Deploy now?", 'Staging is green. Deploy 2.8.0?'],
   ['Deploy ready with DEPLOY_TOKEN=\\u2022\\u2022\\u2022, waiting for the client\'s ok. Deploy now?', 'Staging is green. Deploy 2.8.0?'],
@@ -214,7 +221,9 @@ export function world(now: number): World {
         outcome: s.outcome ? { ...s.outcome, at: s.outcome.at + d } : s.outcome, goal: s.goal ? { ...s.goal, since: s.goal.since + d } : s.goal,
         advice: s.advice ? { ...s.advice, at: s.advice.at + d } : s.advice,
         // Contratto 1.72: i conteggi della pillola sono di due minuti fa (nella fixture `at` non segue `ts`).
-        changes: s.changes ? { ...s.changes, at: now - 120 } : s.changes }
+        changes: s.changes ? { ...s.changes, at: now - 120 } : s.changes,
+        // Contratto 1.153 (app-favicon-siti-18-11): storefront e blog sono siti, con le favicon inventate della demo del telefono.
+        favicon: s.favicon ?? demoFavicons.hashes[s.name] ?? null }
       // Contratto 1.68 nella demo (FakeTransport.stopped): storefront ferma per te con un login, blog con un ok alla fine del
       // turno. Blog è seguita e al 64 % di contesto: si vedono «ha finito» e la proposta «handoff, poi /clear».
       // Contratto 1.113 per sessione (app-demo-sempre-allineata-03-11): i conti di Tocca a te, che sommati fanno quelli di `tocca`.

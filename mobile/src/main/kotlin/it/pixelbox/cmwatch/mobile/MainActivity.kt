@@ -1,5 +1,6 @@
 package it.pixelbox.cmwatch.mobile
 
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.foundation.layout.ime
 import androidx.compose.material.icons.rounded.VerticalSplit
 import androidx.compose.material.icons.rounded.HorizontalSplit
@@ -123,6 +124,25 @@ class MainActivity : ComponentActivity() {
      * poi la cache; si rilegge solo dopo un Ok o un Non va dalla scheda. Le azioni le aggancia Main, dove stanno Verifica e la pagina.
      */
     private val provaCache = androidx.compose.runtime.mutableStateMapOf<Long, it.pixelbox.cmwatch.rules.ProvaLinks.Read?>()
+    /**
+     * app-favicon-siti-18-11 (contratto 1.153): le favicon dei siti per impronta. Una lettura `favicon` per impronta, poi il file in
+     * files/favicons/<impronta>.png: un'impronta nuova è un'icona nuova, la vecchia resta finché la cartella non si svuota.
+     */
+    private val favicons = androidx.compose.runtime.mutableStateMapOf<String, androidx.compose.ui.graphics.ImageBitmap>()
+    private val faviconAsked = mutableSetOf<String>()
+    private fun faviconLoad(hash: String) {
+        if (hash in favicons || !faviconAsked.add(hash)) return
+        app.scope.launch(kotlinx.coroutines.Dispatchers.Main) {
+            val file = java.io.File(java.io.File(filesDir, "favicons"), "$hash.png")
+            val bytes = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { runCatching { file.readBytes() }.getOrNull() }
+                ?: it.pixelbox.cmwatch.rules.PatientRead.result(
+                    send = { app.repo.command(CmdOp.FAVICON, null, hash) }, results = app.repo.resultsById, forget = { x -> app.repo.forget(x) }, giveUpOnRefusal = true,
+                )?.let { r -> it.pixelbox.cmwatch.rules.Favicons.png(hash, r.ok, r.text) }
+                    ?.also { b -> kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { runCatching { file.parentFile?.mkdirs(); file.writeBytes(b) } } }
+            val bmp = bytes?.let { b -> android.graphics.BitmapFactory.decodeByteArray(b, 0, b.size) }
+            if (bmp != null) favicons[hash] = bmp.asImageBitmap() else faviconAsked.remove(hash)
+        }
+    }
     private var provaOpenFn: (Long) -> Unit = {}
     private var provaOkFn: suspend (Long) -> Boolean = { false }
     private var provaKoFn: suspend (it.pixelbox.cmwatch.contract.ProvaOne, String) -> Boolean = { _, _ -> false }
@@ -190,7 +210,7 @@ class MainActivity : ComponentActivity() {
             // app-download-fuori-scheda-04-11: i link a file (APK, video, archivi) vanno al gestore dei download, non al browser.
             val baseUri = androidx.compose.ui.platform.LocalUriHandler.current
             val uriHandler = remember { DownloadLinks(this@MainActivity, baseUri) }
-            androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalUriHandler provides uriHandler) {
+            androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalUriHandler provides uriHandler, it.pixelbox.cmwatch.mobile.ui.LocalFavicons provides favicons) {
             CmPhoneTheme {
                 val settings by app.prefs.flow.collectAsStateWithLifecycle(initialValue = null)
                 val ui by app.pairing.ui.collectAsStateWithLifecycle()
@@ -568,6 +588,8 @@ class MainActivity : ComponentActivity() {
         val updateUi by app.updater.ui.collectAsStateWithLifecycle()
         LaunchedEffect(Unit) { while (true) { delay(30_000); now = System.currentTimeMillis() / 1000 } }
         val state = snap.state
+        val faviconsWanted = it.pixelbox.cmwatch.rules.Favicons.wanted(state)
+        LaunchedEffect(faviconsWanted) { faviconsWanted.forEach(::faviconLoad) }
         // Franz 23/10 21:24: dopo Approva la voce sparisce subito; torna solo se il registro rifiuta (Approvals).
         val okPending = remember { mutableStateListOf<String>() }
         val stateShown = state?.let { st -> if (okPending.isEmpty()) st else it.pixelbox.cmwatch.rules.Approvals.withoutApproved(st, okPending.toSet()) }

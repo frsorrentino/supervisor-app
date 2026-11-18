@@ -20,7 +20,7 @@ class NotificationPlanTest {
         assertEquals("ledger-api", p.title)
         // Franz, 22/10 13:36: niente emoji nelle notifiche, nemmeno il pallino dell'account davanti al nome.
         assertEquals("ledger-api", p.person)
-        assertEquals("Deploy ready with DEPLOY_TOKEN=•••, waiting for the client's ok. Deploy now?", p.messages.last())
+        assertEquals("Deploy ready with DEPLOY_TOKEN=•••, client ok pending. Deploy now?", p.messages.last())
         assertEquals(listOf(Act.Option(1, "1 yes"), Act.Option(2, "2 no"), Act.Reply, Act.Open), p.actions)
         assertEquals(listOf("1 yes", "2 no"), p.choices)
         assertTrue(p.freeForm); assertTrue(p.chronometer); assertEquals(1789210500L, p.whenS)
@@ -33,7 +33,7 @@ class NotificationPlanTest {
         val q = ledger.question!!.copy(text = "Use token ghp_abc123 to deploy?", preview = "Use token ••• to deploy?")
         val p = NotificationPlan.question(ledger.copy(question = q), l, history = emptyList())
         assertEquals("Use token ••• to deploy?", p.messages.last())
-        assertEquals("Deploy ready with DEPLOY_TOKEN=•••, waiting for the client's ok. Deploy now?", ledger.question!!.shareable)
+        assertEquals("Deploy ready with DEPLOY_TOKEN=•••, client ok pending. Deploy now?", ledger.question!!.shareable)
     }
 
     // Contratto 1.60: anche l'esito ha il suo testo senza segreti.

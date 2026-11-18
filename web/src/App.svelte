@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { favicons, wanted as wantedFavicons, remembered as rememberedFavicon, keep as keepFavicon, faviconUrl } from './lib/favicons.svelte'
   import { answer as maxAnswer, canSet as canSetMax } from './lib/maxSessions'
   import MasterKey from './lib/MasterKey.svelte'
   import { nameOf as keyNameOf, type Move as KeyMove, type Spot as KeySpot } from './lib/masterKey'
@@ -594,6 +595,18 @@
     return r ? { ok: r.ok, text: r.text } : null
   }
   $effect(() => { if (st.ops?.includes('conti') && !contiAsked) { contiAsked = true; void loadConti(null, null) } })
+  // app-favicon-siti-18-11 (contratto 1.153): una lettura `favicon` per impronta, poi la copia nel browser; un'impronta nuova è
+  // un'icona nuova. Una lettura fallita si riprova al cambio di stato dopo.
+  const faviconAsked = new Set<string>()
+  $effect(() => {
+    for (const h of wantedFavicons(st)) {
+      if (favicons.has(h) || faviconAsked.has(h)) continue
+      const mem = rememberedFavicon(h)
+      if (mem) { favicons.set(h, mem); continue }
+      faviconAsked.add(h)
+      void run(newCmd('favicon', null, h)).then(r => { const u = r ? faviconUrl(h, r.ok, r.text) : null; if (u) keepFavicon(h, u); else faviconAsked.delete(h) })
+    }
+  })
   let monitorOne = $state<MonitorCard | null>(null)
   let monitorId = $state<string | null>(monitorOf(location.hash))
   let monitorFrom = $state<PageName | null>(null)
