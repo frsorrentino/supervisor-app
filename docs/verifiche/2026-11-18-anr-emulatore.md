@@ -28,8 +28,12 @@ Emulatore riavviato con 2 GB e win con 4,7 GB liberi, APK di release della pre-r
 (`auto-2026-11-18-1132-14736b2d`), demo:
 
 - home ferma 10 s: **0 fotogrammi** disegnati, quindi nessuna animazione che giri di continuo;
-- 10 minuti d'uso (28 giri: apri una sessione e torna, scorri la home, menu e «Utilizzo e limiti», scorri, torna):
-  **0 ANR**, nessun crash.
+- 10 minuti d'uso (`soak3.py`: a ogni giro l'app in primo piano, apri storefront e torna, scorri, menu e «Utilizzo e
+  limiti», scorri, torna; ogni pagina verificata dal testo che deve comparire): **15 giri, 29 pagine su 30 aperte e
+  verificate** (la prima prima che la home fosse pronta), **0 ANR, 0 crash, nessuna finestra di blocco**.
+- Una prima prova di 10 minuti con 0 ANR non vale: dopo «Indietro» i tocchi finivano sulla home di Android e nella
+  tendina, e la finestra di System UI dell'avvio era rimasta aperta. Rifatta come sopra.
+- Nel log dell'emulatore: «Serial console enabled — Performance is impacted».
 
 I fotogrammi lenti (90° percentile 101 ms) sono della grafica software dell'emulatore a 1080×2160.
 
