@@ -215,7 +215,8 @@ class FakeTransport(
     private fun rebase(s: State): State {
         val d = now() - s.ts
         fun sh(t: Long?) = t?.plus(d)
-        return s.copy(ts = s.ts + d, sessions = s.sessions.map { ses ->
+        // La pubblicazione (1.43) segue `ts`: con quella della fixture la demo era vecchia di mesi e la quota diceva «lettura di 66 g fa».
+        return s.copy(ts = s.ts + d, publishedAt = null, sessions = s.sessions.map { ses ->
             ses.copy(since = ses.since + d, turnStarted = sh(ses.turnStarted),
                 question = ses.question?.let { it.copy(askedAt = it.askedAt + d) },
                 outcome = ses.outcome?.let { it.copy(at = it.at + d) },
