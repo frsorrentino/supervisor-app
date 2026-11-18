@@ -23,6 +23,10 @@ object DemoText {
         "Wait for the go" to "Wait for the client's go, then deploy 2.8.0",
         "Pick up the pricing page" to "Pick up the pricing page redesign for the App Store listing",
         "Deploy ready" to "Refund endpoint ready",
+        // I token finti delle fixture servono ai test del relay che li nasconde; nella demo e nelle schermate per Play sembravano
+        // credenziali vere (app-play-aggiornamento-18-11): si vedono già nascosti, come nelle anteprime del relay.
+        "DEPLOY_TOKEN=dpl_9f8e7d6c5b4a" to "DEPLOY_TOKEN=•••",
+        "PREVIEW_TOKEN=pvw_4f3e2d1c0b9a" to "PREVIEW_TOKEN=•••",
         "ledger-api" to "payments-api",
         "atlas-shop" to "storefront",
         "field-notes" to "blog",
