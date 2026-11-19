@@ -6,6 +6,7 @@
   import Kpi17 from './Kpi17.svelte'
   import Kpi18 from './Kpi18.svelte'
   import Pagella from './Pagella.svelte'
+  import SessionsToday from './SessionsToday.svelte'
   import { pagellaRows, type Pagella as PagellaData } from './conti'
   import { t } from './t'
   // La pagina «Utilizzo e limiti» (scelta D, 30/10 20:11): quello che il blocco della home non mostra più.
@@ -17,6 +18,7 @@
   {#each Object.keys(st.quota) as a (a)}{@const sp = split(st, a)}{#if sp}<Kpi4 s={sp} />{/if}{/each}
   {#if page}<Kpi18 f={dayFigures(page, st, now)} />{/if}
   {#if data?.kpi_waits}<Kpi17 w={data.kpi_waits} {now} />{/if}
+  <SessionsToday {st} {page} {data} {now} />
   <!-- app-rendiconti-2-02-11: la pagella anche qui, solo con righe da 10 casi in su. -->
   {#if pagellaRows(pagella).length}<section class="pg"><h3>{t.pagellaTitle}</h3><Pagella pagella={pagella!} /></section>{/if}
 </div>

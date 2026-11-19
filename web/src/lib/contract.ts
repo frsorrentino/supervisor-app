@@ -378,7 +378,8 @@ export type PluginsPage = { checked_at: number | null; accounts: { account: stri
 export type KpiTask = { task: string; short: string | null; state: string; age_s: number; attempts: number; attempts_max: number; stalled: boolean; who: string | null }
 export type KpiTasks = { open: number; waiting_you: number; stalled: number; closed_today: number; tasks: KpiTask[] }
 export type KpiChecksDay = { date: string; green: number; red: number }
-export type KpiTurn = { start: number; end: number; outcome: 'ok' | 'fail' | 'question' | 'running' | string; tokens: number; cache_read: number }
+/** app-scheda-sessione-semplice-19-11: `text` la prima riga dell'esito del turno, chiesto al relay; assente con un relay precedente. */
+export type KpiTurn = { start: number; end: number; outcome: 'ok' | 'fail' | 'question' | 'running' | string; tokens: number; cache_read: number; text?: string | null }
 /** `working` (1.110): assente con un relay precedente; `working_why` fra job, session, cpu. */
 export type KpiHost = { name: string; up: boolean; cpu: number | null; ram_pct: number | null; disk_pct: number | null; working?: boolean | null; working_why?: string[] }
 export type KpiCommands = { p50_s: number | null; p95_s: number | null; n: number }

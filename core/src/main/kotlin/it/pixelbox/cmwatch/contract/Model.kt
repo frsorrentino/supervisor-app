@@ -1195,7 +1195,8 @@ const val LEGACY_HANDOFF = "/fable-director:handoff --here"
 
 /** 10 · `outcome` ok | fail | question | running; `tokens` = input + scritture in cache + output, `cache_read` a parte. */
 @Serializable data class KpiSessionTurns(val session: String, val turns: List<KpiTurn> = emptyList())
-@Serializable data class KpiTurn(val start: Long, val end: Long, val outcome: String, val tokens: Long = 0, @SerialName("cache_read") val cacheRead: Long = 0)
+/** app-scheda-sessione-semplice-19-11: `text` la prima riga dell'esito del turno, chiesto al relay; null con un relay precedente. */
+@Serializable data class KpiTurn(val start: Long, val end: Long, val outcome: String, val tokens: Long = 0, @SerialName("cache_read") val cacheRead: Long = 0, val text: String? = null)
 
 /** 12 · la latenza dalla push alla lettura nell'ultima ora, le sessioni di questo computer e le altre macchine. */
 @Serializable data class KpiHealth(

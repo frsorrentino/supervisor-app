@@ -18,6 +18,7 @@
   import PluginsSection from './PluginsSection.svelte'
   import type { KpiData, PluginsPage } from './contract'
   import { day as kpiDay, dayFigures, HANDOFF, boardMatch, boardShown, boardTap, head as kpiHead, hourly, midnight, outcomes as kpiOutcomes, split as kpiSplit, todayShare, turnsOf, waitingSince } from './kpi'
+  import { before as kBefore, nextStep as kNext, task as kTask } from './sessionK'
   import type { TimelinePage } from './contract'
   import { actionOf, consumersLine, isOpen as sysIsOpen, num as sysNum, summaryLine, type Manual } from './system'
   import PermGlyph from './PermGlyph.svelte'
@@ -559,6 +560,8 @@
     }
   }
   let expanded = $state<string | null>(null)
+  // app-scheda-sessione-semplice-19-11: la sessione di cui la scheda K mostra tutti i turni di oggi.
+  let kAll = $state<string | null>(null)
   const groups = $derived(withMaster ? deskGroups(model) : (['waiting', 'finished', 'working', 'still'] as Group[]).map(g => [g, model.rows.filter(r => r.group === g)] as [Group, Row[]]).filter(([, rows]) => rows.length > 0))
   // Il riordino (Franz 29/10 20:48, app-home-riordino-29-10): chi aspetta te in cima, in «Ti aspettano»; le altre in «Sessioni».
   // Franz 02/11 15:38 (app-feedback-azioni-02-11): Fatto e Ok rispondono al tocco (leave.ts): conferma sul tasto, la card esce
@@ -1250,16 +1253,8 @@
           <svg viewBox="0 0 24 24" width="22" height="22"><path d={open ? 'M7 14l5-5 5 5' : 'M7 10l5 5 5-5'} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
         </button>
       </div>
-      {#if open && s.goal?.text}<div class="goal">{t.goal}: {s.goal.text}</div>{/if}
-      {#if group === 'working' && !open && s.tool}
-        <!-- Chiusa, una sessione al lavoro è una riga: lo strumento, da quanto dura il turno, il contesto (app-home-riordino-29-10). -->
-        {@const [tool, ...rest] = s.tool.split(' ')}
-        <p class="meta mono2"><span class="tool">{tool}</span>{rest.join(' ')}</p>
-      {:else if x.body}{@const old = staleHours(r, now)}<p class="body" class:full={open} class:one={!open} class:strong={group === 'waiting' || open} class:stale={old != null}>{#if !open && !unified && (todo[s.name]?.d || todo[s.name]?.v)}<span class="tdchips">{#if todo[s.name].d}<span class="tdc w">{t.todoChips.d(todo[s.name].d)}</span>{/if}{#if todo[s.name].v}<span class="tdc">{t.todoChips.v(todo[s.name].v)}</span>{/if}</span>{/if}{x.body}{#if old != null}<span class="ago">{t.staleAgo(old)}</span>{/if}</p>{/if}
-      {#if open && !unified && sessionTodo && (todo[s.name]?.d || todo[s.name]?.v)}<div class="tdbody" role="presentation" onclick={(e) => e.stopPropagation()}>{@render sessionTodo(s.name)}</div>{/if}
-      {#if open && group === 'waiting' && askedFor(s)}{@const a = askedFor(s)!}<p class="asked mono2">{a.task ? t.askedForTask(a.from, a.task) : t.askedFor(a.from)}</p>{/if}
-      {#if open && dt.doing}<p class="doing" data-testid="scheda-sta-facendo"><small>{t.detailDoing}</small><span class="mono2">{dt.doing}</span></p>{/if}
-      {#if open && dt.said}<div class="said" data-testid="scheda-ultimo-messaggio"><small>{t.detailSaid(hhmm(dt.saidAt!))}</small><p>{dt.said.replace(/\*\*|__|`/g, '')}</p></div>{/if}
+      <!-- app-scheda-sessione-semplice-19-11: i blocchi della scheda, gli stessi chiusa e aperta; aperta li mette nell'ordine della K. -->
+      {#snippet okDoneB()}
       {#if open && !unified && group === 'waiting' && !s.question}
         {@const d = doneOf(s)}
         {@const ok = okOf(s)}
@@ -1269,8 +1264,8 @@
         {#if ok}<div class="oks"><div class="ok"><span class="okt mono2"></span><button class={s.name === primary ? 'approve mini' : 'tonal mini'} class:done={wp === 'ok'} disabled={!!wp} onclick={(e) => { e.stopPropagation(); wAct(s, 'ok', () => onOk(s.name, ok)) }}>{#if wp === 'ok'}✓ {/if}{t.attentionOk}</button></div></div>
         {:else if d}<div class="oks"><div class="ok"><span class="okt mono2">{s.needs_you?.expires_at ? expiryText(s.needs_you.expires_at) : ''}</span><button class={s.name === primary && !s.needs_you?.until ? 'approve mini' : 'tonal mini'} class:done={wp === 'done'} disabled={!!wp} onclick={(e) => { e.stopPropagation(); wAct(s, 'done', () => onDone(d)) }}>{#if wp === 'done'}✓ {/if}{t.attentionDone}</button></div></div>{/if}
       {/if}
-      <!-- Aperta, una ferma mostra anche le altre voci di «Prossimi:» come tasti, subito sotto l'Ok (app-attesa-dettagli-02-11). -->
-      {#if open && !unified && steps.length && group === 'waiting'}{@render chipRow(s, steps, x.blocking)}{/if}
+      {/snippet}
+      {#snippet approvalsB()}
       {#if open && !unified && r.approvals.length}
         <!-- Franz 23/10 19:34: gli ok del registro che questa sessione chiede, ognuno col suo Approva, qui e non in schede a parte. -->
         <div class="oks">
@@ -1288,7 +1283,11 @@
           {/each}
         </div>
       {/if}
+      {/snippet}
+      {#snippet headsB()}
       {#if open && onSessionCmd}<HeadsUpNote {s} {now} onPropose={(text) => onSessionCmd(s.name, 'prompt', text)} />{/if}
+      {/snippet}
+      {#snippet mineB()}
       {#if open && mine.length}
         <!-- Strada B (Franz 23/10 23:08): i lavori di questa sessione che aspettano te, qui come gli ok. -->
         <div class="oks">
@@ -1302,6 +1301,8 @@
           {/each}
         </div>
       {/if}
+      {/snippet}
+      {#snippet svcB()}
       {#if open && svc.length}
         <!-- Franz 24/10 00:46: un suggerimento che riguarda questa sessione (il contesto alto) sta qui, con il suo tasto tonale. -->
         <div class="oks">
@@ -1315,10 +1316,13 @@
           {/each}
         </div>
       {/if}
+      {/snippet}
+      {#snippet optionsB()}
       {#if open && !unified && group === 'waiting' && s.question}
         <Options q={s.question} onAnswer={(n) => onAnswer(s.name, n)} firstFilled={s.name === primary} tonal="color-mix(in srgb, var(--primary) 12%, var(--surface))" />
       {/if}
-      {#if open && !unified && steps.length && group !== 'waiting'}{@render chipRow(s, steps, x.blocking)}{/if}
+      {/snippet}
+      {#snippet cleanB()}
       {#if c && (open || closing === s.name || confirming === s.name)}
         <div class="clean">
           <!-- Chi ha finito o è un doppione resta qui e dice di essere aperta (Franz, 06/10 10:57). -->
@@ -1371,17 +1375,62 @@
           <button class="danger" onclick={(e) => { e.stopPropagation(); confirming = null; onClose(s.name) }}>{t.closeOk(s.name)}</button>
         </div>
       {/if}
-      {#if open}<div class="details stats">{[s.model?.label, s.effort, s.account].filter(Boolean).join(' · ')}</div>{/if}
-      {#if open && kpiPage}<Kpi11 spans={kpiDay(kpiEvents.get(s.name) ?? [], dayStart, now, s.state === 'gone' ? null : waitingSince(s))} from={dayStart} {now} />{/if}
-      {#if open && turnsOf(kpiData, s.name).length}<Kpi10 turns={turnsOf(kpiData, s.name)} />{/if}
+      {/snippet}
+      {#if group === 'working' && !open && s.tool}
+        <!-- Chiusa, una sessione al lavoro è una riga: lo strumento, da quanto dura il turno, il contesto (app-home-riordino-29-10). -->
+        {@const [tool, ...rest] = s.tool.split(' ')}
+        <p class="meta mono2"><span class="tool">{tool}</span>{rest.join(' ')}</p>
+      {:else if x.body && !open}{@const old = staleHours(r, now)}<p class="body" class:full={open} class:one={!open} class:strong={group === 'waiting' || open} class:stale={old != null}>{#if !open && !unified && (todo[s.name]?.d || todo[s.name]?.v)}<span class="tdchips">{#if todo[s.name].d}<span class="tdc w">{t.todoChips.d(todo[s.name].d)}</span>{/if}{#if todo[s.name].v}<span class="tdc">{t.todoChips.v(todo[s.name].v)}</span>{/if}</span>{/if}{x.body}{#if old != null}<span class="ago">{t.staleAgo(old)}</span>{/if}</p>{/if}
       {#if !open}
-        <!-- Le barre del contesto e delle ultime sei ore (kpi-5, kpi-6) solo nella card aperta (app-home-riordino-29-10). -->
-      {:else if s.context != null}
-        <!-- Grammatica unica (Franz 24/10 00:01): il contesto sta sulla barra, col valore in mono accanto; non in testa. -->
-        <div class="trackrow">{#if kpiPage && s.state !== 'gone'}<Kpi6 counts={hourly(kpiEvents.get(s.name) ?? [], now)} />{/if}<div class="track hand" data-kpi="kpi-5" style="--hand:{HANDOFF}%"><div class="fill" style="width:{Math.min(100, s.context)}%;background:{ctxTone(s.context)}"></div></div><span class="ctxv">{t.ctx(s.context)}{#if todayShare(st, s.name) != null}{' · '}{t.kpi5Today(todayShare(st, s.name)!)}{/if}</span></div>
-      {:else if kpiPage && s.state !== 'gone'}
-        <!-- Proposta 6 senza contesto letto: le colonnine da sole, sulla riga dove starebbe la barra. -->
-        <div class="trackrow"><Kpi6 counts={hourly(kpiEvents.get(s.name) ?? [], now)} /></div>
+        {@render cleanB()}
+      {:else}
+        <!-- La forma K (Franz 19/11 18:42): dall'alto in ordine di tempo, come la chat; il tasto pieno in fondo, sotto il pollice. La
+             giornata a fasce e l'attività per ora sono andate in Utilizzo, i token per turno e la parte di oggi del contesto nelle quote. -->
+        <div class="details stats">{[s.model?.label, s.effort, s.account].filter(Boolean).join(' · ')}</div>
+        {@const kb = kBefore(turnsOf(kpiData, s.name), kAll === s.name)}
+        {@const kt = kTask(st.commitments, s.name)}
+        {@const kn = kNext(kt, unified ? [] : steps)}
+        {@const kRest = unified ? [] : steps.filter(y => y.trim() !== kn)}
+        {@const waitsHere = group === 'waiting' || r.approvals.length > 0 || mine.length > 0}
+        <div class="k" data-testid="scheda-k">
+          {#if kb}
+            <section class="kg past" data-testid="k-prima"><h4>{t.kBefore}<small>{t.kTurnsToday(kb.total, kb.minutes)}</small></h4>
+              {#if kb.hidden}<button class="kmore" data-testid="k-altri-turni" onclick={(e) => { e.stopPropagation(); kAll = s.name }}>{t.kMoreTurns(kb.hidden)}</button>{/if}
+              {#each kb.turns as tu (tu.start)}
+                <button class="kr tap" onclick={(e) => { e.stopPropagation(); onPick(s.name) }}>
+                  <span class="kl mono2">{hhmm(tu.start)}</span>
+                  <span class="kx one"><svg class="ki" class:bad={!tu.ok} viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d={tu.ok ? 'M20 6 9 17l-5-5' : 'M18 6 6 18M6 6l12 12'} /></svg><span class:none={!tu.text}>{tu.text ?? (tu.ok ? t.kTurnOk : t.kTurnFailed)}</span></span>
+                  <span class="kd mono2">{t.kMinutes(tu.minutes)}</span>
+                </button>
+              {/each}
+            </section>
+          {/if}
+          <section class="kg now" data-testid="k-adesso"><h4>{t.kNow}</h4>
+            {#if kt}<div class="kr"><span class="kl">{t.kTask}</span><span class="kx"><span class="ktask"><b>{kt.short ?? kt.task}</b><span class:paused={!!kt.paused}>{kt.paused ? t.kTaskPaused : t.kTaskRunning}</span></span>{#if s.goal?.text}<small>{t.goal}: {s.goal.text}</small>{/if}</span></div>
+            {:else if s.goal?.text}<div class="kr"><span class="kl">{t.kTask}</span><span class="kx">{s.goal.text}</span></div>{/if}
+            {#if dt.doing}<div class="kr" data-testid="scheda-sta-facendo"><span class="kl">{t.kDoing}</span><span class="kx mono2">{dt.doing}</span></div>{/if}
+            {#if x.body && group !== 'waiting'}{@const old = staleHours(r, now)}<div class="kr"><span class="kl mono2">{s.outcome?.at ? hhmm(s.outcome.at) : ''}</span><p class="kx body full strong" class:stale={old != null}>{x.body}{#if old != null}<span class="ago">{t.staleAgo(old)}</span>{/if}</p></div>{/if}
+            {#if dt.said}<div class="kr" data-testid="scheda-ultimo-messaggio"><span class="kl mono2">{dt.saidAt ? hhmm(dt.saidAt) : t.kSaid}</span><p class="kx">{dt.said.replace(/\*\*|__|`/g, '')}</p></div>{/if}
+            {#if s.context != null}<div class="kr"><span class="kl">{t.kContext}</span><span class="kx"><span class="kctx"><span class="kbar" data-kpi="kpi-5"><span style="width:{Math.min(100, s.context)}%;background:{ctxTone(s.context)}"></span></span><b class="mono2">{s.context}%</b></span></span></div>{/if}
+            {@render svcB()}
+            {@render headsB()}
+            {@render cleanB()}
+          </section>
+          {#if kn || waitsHere || kRest.length || (!unified && sessionTodo && (todo[s.name]?.d || todo[s.name]?.v))}
+            <section class="kg next" data-testid="k-prossimo"><h4>{t.kNext}</h4>
+              {#if kn}<div class="kr"><span class="kl">{t.kStep}</span><span class="kx">{kn}</span></div>{/if}
+              {#if kRest.length}{@render chipRow(s, kRest, x.blocking)}{/if}
+        {#if open && !unified && sessionTodo && (todo[s.name]?.d || todo[s.name]?.v)}<div class="tdbody" role="presentation" onclick={(e) => e.stopPropagation()}>{@render sessionTodo(s.name)}</div>{/if}
+              {#if waitsHere}
+                <div class="kr"><span class="kl">{t.kWaits}</span><div class="kx">
+                  {#if group === 'waiting' && x.body}<p class="body full strong">{x.body}</p>{/if}
+                {#if open && group === 'waiting' && askedFor(s)}{@const a = askedFor(s)!}<p class="asked mono2">{a.task ? t.askedForTask(a.from, a.task) : t.askedFor(a.from)}</p>{/if}
+                  {@render okDoneB()}{@render approvalsB()}{@render mineB()}{@render optionsB()}
+                </div></div>
+              {/if}
+            </section>
+          {/if}
+        </div>
       {/if}
       </div>
     </div>
@@ -1492,6 +1541,41 @@
 
 
 <style>
+  /* app-scheda-sessione-semplice-19-11: la scheda aperta nella forma K. Un binario a sinistra fa da linea del tempo, un nodo per
+     gruppo; ogni riga è etichetta, testo e al massimo un tasto; tutto ciò che si tocca è alto almeno 44 px (mobile-native), la
+     pressione risponde subito (emil-design-eng), il monospazio solo per ore e minuti (impeccable). */
+  /* Il binario corre sotto la colonna dell'icona (49 px con lo spazio): il testo dei turni ha tutta la larghezza della carta. */
+  .k { position: relative; display: flex; flex-direction: column; gap: 14px; margin: 10px 0 0 -49px; padding-left: 22px; }
+  .k::before { content: ''; position: absolute; left: 5px; top: 12px; bottom: 18px; width: 2px; border-radius: 1px; background: var(--s3); }
+  .kg { position: relative; display: flex; flex-direction: column; }
+  .kg > h4 { position: relative; display: flex; align-items: baseline; gap: 8px; margin: 0; font: 600 17px/22px var(--display, inherit); color: var(--text); }
+  .kg > h4 small { font: 400 13px/1 inherit; color: var(--tx3); }
+  .kg > h4::before { content: ''; position: absolute; left: -21px; top: 6px; width: 10px; height: 10px; border-radius: 50%; box-sizing: border-box; background: var(--s1); border: 2px solid var(--tx3); }
+  .kg.now > h4::before { background: var(--busy); border-color: var(--busy); }
+  .kg.next > h4 { color: var(--wait); }
+  .kg.next > h4::before { background: var(--wait); border-color: var(--wait); box-shadow: 0 0 0 4px color-mix(in srgb, var(--wait) 18%, transparent); }
+  .kr { display: grid; grid-template-columns: 64px 1fr auto; column-gap: 12px; align-items: start; min-height: 44px; padding: 10px 0; text-align: left; font: inherit; color: inherit; background: none; border: 0; width: 100%; box-sizing: border-box; }
+  .kr.tap { cursor: pointer; border-radius: 12px; margin: 0 -8px; padding: 10px 8px; width: calc(100% + 16px); touch-action: manipulation; transition: background-color 160ms cubic-bezier(.23, 1, .32, 1); }
+  .kr.tap:active { background: var(--s2, var(--surface)); }
+  .kl { font-size: 13px; line-height: 21px; color: var(--text2); }
+  .kl.mono2 { font-variant-numeric: tabular-nums; }
+  .kx { min-width: 0; font-size: 15.5px; line-height: 21px; margin: 0; display: flex; flex-direction: column; gap: 2px; }
+  .kx small { font-size: 13px; line-height: 18px; color: var(--text2); }
+  .kx.one { flex-direction: row; align-items: center; gap: 6px; white-space: nowrap; overflow: hidden; -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent); mask-image: linear-gradient(90deg, #000 85%, transparent); }
+  .kx .none { color: var(--text2); font-style: italic; }
+  .ki { flex: none; fill: none; stroke: var(--good); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .ki.bad { stroke: var(--red); }
+  .kd { font-size: 12.5px; line-height: 21px; color: var(--tx3); white-space: nowrap; text-align: right; min-width: 44px; font-variant-numeric: tabular-nums; }
+  .kmore { align-self: flex-start; min-height: 44px; padding: 0; border: 0; background: none; color: var(--busy); font: 600 15px/1 inherit; cursor: pointer; touch-action: manipulation; }
+  .ktask { display: flex; align-items: baseline; gap: 8px; }
+  .ktask b { font-weight: 500; }
+  .ktask span { font-size: 13.5px; color: var(--busy); flex: none; white-space: nowrap; }
+  .ktask span.paused { color: var(--text2); }
+  .kctx { display: flex; align-items: center; gap: 10px; height: 21px; }
+  .kbar { flex: 1; height: 6px; border-radius: 3px; background: var(--s3); overflow: hidden; }
+  .kbar > span { display: block; height: 100%; border-radius: 3px; }
+  .kctx b { font-weight: 500; font-size: 14px; font-variant-numeric: tabular-nums; }
+  @media (prefers-reduced-motion: reduce) { .kr.tap { transition: none; } }
   .alive { color: var(--idle); font-weight: 500; }
   .home { padding: 12px 16px 24px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; height: 100%; }
   .gh { display: flex; align-items: center; gap: 8px; margin: 6px 8px 0; font: 500 12.5px/1.4 var(--mono); letter-spacing: .08em; color: var(--t); }

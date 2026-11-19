@@ -328,6 +328,7 @@ internal fun UsagePage(st: State, ov: PhoneOverview.Model, page: TimelinePage?, 
             st.quota.keys.forEach { a -> Kpi.split(st, a)?.let { sp -> Kpi4(sp) } }
             page?.let { p -> Kpi18(Kpi.dayFigures(p, state = st, now = now, zone = zone)) }
             data?.waits?.let { w -> Kpi17(w, now) }
+            KSessionsToday(st, page, data, now, zone)
             // app-rendiconti-2-02-11: la pagella anche qui, solo con righe da 10 casi in su.
             pagella?.takeIf { p -> it.pixelbox.cmwatch.rules.ContiRules.pagellaRows(p).isNotEmpty() }?.let { p ->
                 Column(Modifier.fillMaxWidth().clip(androidx.compose.foundation.shape.RoundedCornerShape(14.dp)).background(V3.S1).then(Modifier.border(1.dp, V3.Line, androidx.compose.foundation.shape.RoundedCornerShape(14.dp))).padding(top = 12.dp)) {

@@ -1450,7 +1450,8 @@ private fun SummaryCard(
             }
         }
         // L'obiettivo della sessione, stabile, sopra l'attività del momento (osservazioni del 03/10): si legge anche dopo ore.
-        if (!compact) SessionsText.goalLine(s, stringResource(R.string.goal))?.let { g ->
+        // Aperta, nella forma K, sta in Adesso sotto il compito (app-scheda-sessione-semplice-19-11).
+        if (!compact && !open) SessionsText.goalLine(s, stringResource(R.string.goal))?.let { g ->
             Text(g, style = V3.Small, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip)
         }
         // Franz 24/10 19:46 (B2): l'esito di una ferma più vecchio di 6 ore si spegne e dice da quante ore.
@@ -1458,6 +1459,18 @@ private fun SummaryCard(
         // Chiusa, una sessione al lavoro è una riga: lo strumento in mono (app-home-riordino-29-10).
         val toolLine = s.tool?.takeIf { r.group == Summary.Group.WORKING && !open }
         val chips = todo?.takeIf { perTe < 0 && compact && (it.first > 0 || it.second > 0) }
+        val bodyText: @Composable (Boolean) -> Unit = { full ->
+            Text(
+                if (old == null) androidx.compose.ui.text.AnnotatedString(body) else androidx.compose.ui.text.buildAnnotatedString {
+                    append(body); append("  ")
+                    withStyle(androidx.compose.ui.text.SpanStyle(color = Cm.briefWarn, fontStyle = androidx.compose.ui.text.font.FontStyle.Normal, fontFamily = V3.Mono, fontSize = 11.sp)) { append(stringResource(R.string.stale_ago, old)) }
+                },
+                style = (if (waiting || full) V3.Body else V3.Small).copy(fontStyle = if (old != null) androidx.compose.ui.text.font.FontStyle.Italic else androidx.compose.ui.text.font.FontStyle.Normal),
+                color = if (waiting || full) V3.Tx else if (old != null) V3.Tx2.copy(alpha = 0.75f) else V3.Tx2,
+                maxLines = if (full) Int.MAX_VALUE else 1, softWrap = full, overflow = androidx.compose.ui.text.style.TextOverflow.Clip,
+                modifier = if (full) Modifier else Modifier.fadeEnd(),
+            )
+        }
         if (chips != null) Row(Modifier.fillMaxWidth().fadeEnd(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             // Le richieste della sessione in testa alla riga: la scheda chiusa resta della sua misura (app-sessioni-compatte-06-11).
             if (chips.first > 0) TodoChip(stringResource(R.string.todo_decide, chips.first), true)
@@ -1465,135 +1478,204 @@ private fun SummaryCard(
             Text(toolLine ?: body, style = if (toolLine != null) V3.Meter else if (waiting) V3.Body else V3.Small, color = if (waiting || toolLine != null) V3.Tx else V3.Tx2, maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Clip)
         }
         else if (toolLine != null) Text(toolLine, style = V3.Meter, maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.fadeEnd())
-        else if (body.isNotBlank()) Text(
-            if (old == null) androidx.compose.ui.text.AnnotatedString(body) else androidx.compose.ui.text.buildAnnotatedString {
-                append(body); append("  ")
-                withStyle(androidx.compose.ui.text.SpanStyle(color = Cm.briefWarn, fontStyle = androidx.compose.ui.text.font.FontStyle.Normal, fontFamily = V3.Mono, fontSize = 11.sp)) { append(stringResource(R.string.stale_ago, old)) }
-            },
-            style = (if (waiting || open) V3.Body else V3.Small).copy(fontStyle = if (old != null) androidx.compose.ui.text.font.FontStyle.Italic else androidx.compose.ui.text.font.FontStyle.Normal),
-            color = if (waiting || open) V3.Tx else if (old != null) V3.Tx2.copy(alpha = 0.75f) else V3.Tx2,
-            maxLines = if (open) Int.MAX_VALUE else 1, softWrap = open, overflow = androidx.compose.ui.text.style.TextOverflow.Clip,
-            modifier = if (open) Modifier else Modifier.fadeEnd(),
-        )
-        // Contratto 1.84: la richiesta di un'altra sessione per un compito di questa dice chi la fa.
-        // Le sottoschede partono dal bordo del contenuto della scheda, non dalla colonna del titolo (app-superfici-plancia-07-11):
-        // si allargano a sinistra sopra il binario, a 12 dp dal bordo.
-        if (open && perTe < 0 && sessionTodo != null && todo != null && (todo.first > 0 || todo.second > 0)) Box(Modifier.padding(top = 4.dp).bleedStart(V3.Rail + 8.dp - 12.dp)) {
-            androidx.compose.runtime.CompositionLocalProvider(LocalSubCard provides true) { sessionTodo(s.name) }
-        }
-        if (waiting && !compact) Summary.askedFor(s)?.let { a ->
-            Text(if (a.task != null) stringResource(R.string.asked_for_task, a.from, a.task!!) else stringResource(R.string.asked_for, a.from), style = MonoSmall)
-        }
-        if (open) detail.doing?.let { d ->
-            Column(Modifier.padding(top = 2.dp).testTag("scheda-sta-facendo"), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(stringResource(R.string.detail_doing), style = V3.Small, color = V3.Tx2)
-                Text(d, style = V3.Meter.copy(color = V3.Tx))
-            }
-        }
-        if (open) detail.said?.let { said ->
-            Column(Modifier.padding(top = 2.dp).testTag("scheda-ultimo-messaggio"), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(stringResource(R.string.detail_said, hhmmOf(detail.saidAt ?: 0)), style = V3.Small, color = V3.Tx2)
-                Text(it.pixelbox.cmwatch.rules.Markdown.parse(said).text.trim(), style = V3.Body, color = V3.Tx)
+        else if (body.isNotBlank() && !open) bodyText(false)
+        // Aperta: modello, effort e account sotto il nome, come nella testata della K.
+        if (open) details(s).forEach { Text(it, style = V3.Small, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip) }
+
+        // I blocchi della scheda, gli stessi chiusa e aperta; aperta li mette nell'ordine della K.
+        val askedBlock: @Composable () -> Unit = {
+            if (waiting && !compact) Summary.askedFor(s)?.let { a ->
+                Text(if (a.task != null) stringResource(R.string.asked_for_task, a.from, a.task!!) else stringResource(R.string.asked_for, a.from), style = MonoSmall)
             }
         }
         // Franz 23/10 19:34: gli ok del registro che questa sessione chiede, ognuno col suo Approva, qui e non in schede a parte.
-        if (!compact) {
-        if (perTe < 0) r.approvals.forEach { a -> ApprovalLine(a, onApprove) }
-        // Strada B (Franz 23/10 23:08): i lavori di questa sessione che aspettano te, qui come gli ok.
-        HeadsUpNoteRow(s, now)
-        works.forEach { w -> WorkLine(w, onDone = { onWorkDone(w) }, onStart = { onWorkStart(w) }) }
-        services.forEach { row -> ServiceLine(row) { onService(row) } }
+        val approvalsBlock: @Composable () -> Unit = {
+            if (!compact) {
+                if (perTe < 0) r.approvals.forEach { a -> ApprovalLine(a, onApprove) }
+                // Strada B (Franz 23/10 23:08): i lavori di questa sessione che aspettano te, qui come gli ok.
+                HeadsUpNoteRow(s, now)
+                works.forEach { w -> WorkLine(w, onDone = { onWorkDone(w) }, onStart = { onWorkStart(w) }) }
+            }
         }
+        val servicesBlock: @Composable () -> Unit = { if (!compact) services.forEach { row -> ServiceLine(row) { onService(row) } } }
         // Contratto 1.80: una ferma si chiude da qui col tasto «Fatto»; la scadenza di un needs-you accanto. Una voce dal «!» di
         // «Prossimi:» ha «Ok», che la manda alla sessione come un seguito (Franz 02/11 11:03).
-        val okStep = if (compact) null else okStep0
-        if (okStep != null) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.End) {
-            V3Pill(stringResource(R.string.attention_ok), filled = doneFilled, confirmed = wPick == "ok") { wAct("ok") { onStep(okStep) } }
-        }
-        else if (perTe < 0 && waiting && s.question == null && !compact) AttentionQueue.doneOf(s)?.let { d ->
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(s.needsYou?.expiresAt?.let { expiryText(it, now) } ?: "", style = MonoSmall, color = Cm.text2, modifier = Modifier.weight(1f))
-                V3Pill(stringResource(R.string.attention_done), filled = doneFilled, confirmed = wPick == "done") { wAct("done") { onDone(d) } }
+        val okDoneBlock: @Composable () -> Unit = {
+            val okStep = if (compact) null else okStep0
+            if (okStep != null) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.End) {
+                V3Pill(stringResource(R.string.attention_ok), filled = doneFilled, confirmed = wPick == "ok") { wAct("ok") { onStep(okStep) } }
+            }
+            else if (perTe < 0 && waiting && s.question == null && !compact) AttentionQueue.doneOf(s)?.let { d ->
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(s.needsYou?.expiresAt?.let { expiryText(it, now) } ?: "", style = MonoSmall, color = Cm.text2, modifier = Modifier.weight(1f))
+                    V3Pill(stringResource(R.string.attention_done), filled = doneFilled, confirmed = wPick == "done") { wAct("done") { onDone(d) } }
+                }
             }
         }
         // Le opzioni della domanda subito, anche a card chiusa: rispondere è il motivo per cui la card è in cima.
-        if (waiting && !compact && perTe < 0) s.question?.let { q ->
-            var holdHint by rememberSaveable(q.id) { mutableStateOf(false) }
-            // Sul fondo della card il tonale di sempre quasi spariva (provini 03/10): un velo del colore primario.
-            QuestionOptions(q, firstFilled = firstFilled, holdHint = holdHint, onHold = { holdHint = true }, onAnswer = onAnswer, tonal = if (V3.day) V3.S1 else V3.S3, v3 = true)
+        val questionBlock: @Composable () -> Unit = {
+            if (waiting && !compact && perTe < 0) s.question?.let { q ->
+                var holdHint by rememberSaveable(q.id) { mutableStateOf(false) }
+                // Sul fondo della card il tonale di sempre quasi spariva (provini 03/10): un velo del colore primario.
+                QuestionOptions(q, firstFilled = firstFilled, holdHint = holdHint, onHold = { holdHint = true }, onAnswer = onAnswer, tonal = if (V3.day) V3.S1 else V3.S3, v3 = true)
+            }
         }
         // I consigli come tasti, sempre visibili (Franz, 03/10 17:27): il tocco li manda subito a quella sessione, che li
-        // prende a fine turno se sta lavorando.
-        // Aperta, una ferma mostra anche le altre voci di «Prossimi:» come tasti (app-attesa-dettagli-02-11).
-        if (perTe < 0 && waiting && open && detail.steps.isNotEmpty()) androidx.compose.foundation.layout.FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            val blocking = s.nextSteps.orEmpty().filter { it.blocking }.map { it.text.trim() }
-            detail.steps.forEach { step -> StepChip(step, step in blocking, sent = step in sentSteps) { sentSteps = sentSteps + step; onStep(step) } }
-        }
-        if (perTe < 0 && !waiting && !compact && parsed.steps.isNotEmpty()) androidx.compose.foundation.layout.FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            // Contratto 1.38, variante 2: chi sblocca ha il filo ambra e il lucchetto (dal «!» o da `next_steps`).
-            val blocking = parsed.blocking + s.nextSteps.orEmpty().filter { it.blocking }.map { it.text }
-            parsed.steps.forEach { step -> StepChip(step, step in blocking, sent = step in sentSteps) { sentSteps = sentSteps + step; onStep(step) } }
+        // prende a fine turno se sta lavorando. Aperta, una ferma mostra anche le altre voci di «Prossimi:» (app-attesa-dettagli-02-11).
+        val stepsBlock: @Composable (skip: String?) -> Unit = { skip ->
+            if (perTe < 0 && waiting && open && detail.steps.isNotEmpty()) androidx.compose.foundation.layout.FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                val blocking = s.nextSteps.orEmpty().filter { it.blocking }.map { it.text.trim() }
+                detail.steps.filter { it.trim() != skip }.forEach { step -> StepChip(step, step in blocking, sent = step in sentSteps) { sentSteps = sentSteps + step; onStep(step) } }
+            }
+            if (perTe < 0 && !waiting && !compact && parsed.steps.isNotEmpty()) androidx.compose.foundation.layout.FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                // Contratto 1.38, variante 2: chi sblocca ha il filo ambra e il lucchetto (dal «!» o da `next_steps`).
+                val blocking = parsed.blocking + s.nextSteps.orEmpty().filter { it.blocking }.map { it.text }
+                parsed.steps.filter { it.trim() != skip }.forEach { step -> StepChip(step, step in blocking, sent = step in sentSteps) { sentSteps = sentSteps + step; onStep(step) } }
+            }
         }
         // Contratto 1.37: compito chiuso o doppione, a sessione ferma; «Chiudi» solo senza finestra. Chi ha finito resta qui e
         // dice di essere aperta; la conferma sta nella card, senza finestre (Franz, 06/10 10:57-12:45).
-        it.pixelbox.cmwatch.rules.MasterService.cleanup(s, canExit, now)?.takeIf { !compact }?.let { c ->
-            run {
-                val detail = when {
-                    s.attached -> null
-                    c.kind == it.pixelbox.cmwatch.rules.MasterService.Cleanup.Kind.DUPLICATE -> stringResource(R.string.cleanup_duplicate, c.of.orEmpty())
-                    else -> s.outcome?.at?.let { stringResource(R.string.cleanup_finished_at, clockHm(it)) } ?: stringResource(R.string.cleanup_finished)
-                }
-                val open = stringResource(R.string.cleanup_open)
-                // Il nome sta già in testa alla scheda: il tasto dice solo «Chiudi» (Franz 30/10 19:46).
-                V3Split(Modifier.fillMaxWidth(), gap = 10.dp, text = {
-                    Text(
-                        if (detail == null) androidx.compose.ui.text.AnnotatedString(stringResource(R.string.cleanup_attached))
-                        else androidx.compose.ui.text.buildAnnotatedString {
-                            withStyle(androidx.compose.ui.text.SpanStyle(color = Cm.idle, fontWeight = androidx.compose.ui.text.font.FontWeight.Medium)) { append("● $open") }
-                            append(" · $detail")
-                        },
-                        style = MaterialTheme.typography.bodySmall, color = Cm.text2,
-                    )
-                }) {
-                    if (!closing && c.canClose && !closeAsk) Surface(onClick = { closeAsk = true }, shape = CircleShape, color = Cm.surfaceHigh, contentColor = Cm.text) {
-                        Row(Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Icon(Icons.Rounded.PowerSettingsNew, null, tint = Cm.briefAlertRing, modifier = Modifier.size(18.dp))
-                            Text(stringResource(R.string.cleanup_close_short), style = MaterialTheme.typography.labelLarge)
-                        }
-                    }
+        val cleanup = it.pixelbox.cmwatch.rules.MasterService.cleanup(s, canExit, now)?.takeIf { !compact }
+        val cleanupText: @Composable (it.pixelbox.cmwatch.rules.MasterService.Cleanup) -> androidx.compose.ui.text.AnnotatedString = { c ->
+            val detail = when {
+                s.attached -> null
+                c.kind == it.pixelbox.cmwatch.rules.MasterService.Cleanup.Kind.DUPLICATE -> stringResource(R.string.cleanup_duplicate, c.of.orEmpty())
+                else -> s.outcome?.at?.let { stringResource(R.string.cleanup_finished_at, clockHm(it)) } ?: stringResource(R.string.cleanup_finished)
+            }
+            val openWord = stringResource(R.string.cleanup_open)
+            if (detail == null) androidx.compose.ui.text.AnnotatedString(stringResource(R.string.cleanup_attached))
+            else androidx.compose.ui.text.buildAnnotatedString {
+                withStyle(androidx.compose.ui.text.SpanStyle(color = Cm.idle, fontWeight = androidx.compose.ui.text.font.FontWeight.Medium)) { append("● $openWord") }
+                append(" · $detail")
+            }
+        }
+        val closeKey: @Composable () -> Unit = {
+            Surface(onClick = { closeAsk = true }, shape = CircleShape, color = Cm.surfaceHigh, contentColor = Cm.text, modifier = Modifier.heightIn(min = 44.dp)) {
+                Row(Modifier.padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Rounded.PowerSettingsNew, null, tint = Cm.briefAlertRing, modifier = Modifier.size(18.dp))
+                    Text(stringResource(R.string.cleanup_close_short), style = MaterialTheme.typography.labelLarge)
                 }
             }
-            // Su una riga sua (Franz 27/10 13:23): accanto, col nome lungo, lasciava allo stato due-tre lettere per riga.
-            if (closing) ClosingChip(s.name)
-            if (c.canClose && closeAsk) androidx.compose.foundation.layout.FlowRow(
+        }
+        // La conferma del Chiudi, gli stati del Chiudi (in corso, rifiutato, armato) e la conferma dal menu: si vedono sempre.
+        val closeStates: @Composable () -> Unit = {
+            if (cleanup != null) {
+                // Su una riga sua (Franz 27/10 13:23): accanto, col nome lungo, lasciava allo stato due-tre lettere per riga.
+                if (closing) ClosingChip(s.name)
+                if (cleanup.canClose && closeAsk) androidx.compose.foundation.layout.FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text(stringResource(R.string.close_inline), style = MaterialTheme.typography.bodySmall, color = Cm.text2, modifier = Modifier.padding(end = 4.dp))
+                    androidx.compose.material3.TextButton(onClick = { closeAsk = false }) { Text(stringResource(R.string.close_keep), color = Cm.actionIcon) }
+                    androidx.compose.material3.Button(
+                        onClick = { closeAsk = false; onClose() },
+                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = V3.S3, contentColor = Cm.gone),
+                    ) { Text(stringResource(R.string.cleanup_close_short)) }
+                }
+            }
+            if (closing && it.pixelbox.cmwatch.rules.MasterService.cleanup(s, canExit, now) == null) ClosingChip(s.name)
+            // Il Chiudi dà sempre un esito (Franz, 04/11): rifiutata, la card dice perché finché non tocchi «Va bene».
+            refused?.let { why -> RefusedRow(s.name, why, onRefusedSeen, onArm) }
+            // Contratto 1.120: armata dal relay, la card lo dice finché non si chiude.
+            if (!closing) s.closing?.let { c -> ArmedChip(c.mode == "force") }
+            if (menuClose) androidx.compose.foundation.layout.FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Text(stringResource(R.string.close_inline), style = MaterialTheme.typography.bodySmall, color = Cm.text2, modifier = Modifier.padding(end = 4.dp))
-                androidx.compose.material3.TextButton(onClick = { closeAsk = false }) { Text(stringResource(R.string.close_keep), color = Cm.actionIcon) }
+                androidx.compose.material3.TextButton(onClick = { menuClose = false }) { Text(stringResource(R.string.close_keep), color = Cm.actionIcon) }
                 androidx.compose.material3.Button(
-                    onClick = { closeAsk = false; onClose() },
+                    onClick = { menuClose = false; onClose() },
                     colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = V3.S3, contentColor = Cm.gone),
                 ) { Text(stringResource(R.string.cleanup_close_short)) }
             }
         }
-        if (closing && it.pixelbox.cmwatch.rules.MasterService.cleanup(s, canExit, now) == null) ClosingChip(s.name)
-        // Il Chiudi dà sempre un esito (Franz, 04/11): rifiutata, la card dice perché finché non tocchi «Va bene».
-        refused?.let { why -> RefusedRow(s.name, why, onRefusedSeen, onArm) }
-        // Contratto 1.120: armata dal relay, la card lo dice finché non si chiude.
-        if (!closing) s.closing?.let { c -> ArmedChip(c.mode == "force") }
-        if (menuClose) androidx.compose.foundation.layout.FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Text(stringResource(R.string.close_inline), style = MaterialTheme.typography.bodySmall, color = Cm.text2, modifier = Modifier.padding(end = 4.dp))
-            androidx.compose.material3.TextButton(onClick = { menuClose = false }) { Text(stringResource(R.string.close_keep), color = Cm.actionIcon) }
-            androidx.compose.material3.Button(
-                onClick = { menuClose = false; onClose() },
-                colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = V3.S3, contentColor = Cm.gone),
-            ) { Text(stringResource(R.string.cleanup_close_short)) }
+
+        if (!open) {
+            askedBlock()
+            approvalsBlock()
+            servicesBlock()
+            okDoneBlock()
+            questionBlock()
+            stepsBlock(null)
+            cleanup?.let { c ->
+                // Il nome sta già in testa alla scheda: il tasto dice solo «Chiudi» (Franz 30/10 19:46).
+                V3Split(Modifier.fillMaxWidth(), gap = 10.dp, text = { Text(cleanupText(c), style = MaterialTheme.typography.bodySmall, color = Cm.text2) }) {
+                    if (!closing && c.canClose && !closeAsk) closeKey()
+                }
+            }
+            closeStates()
+        } else {
+            // La forma K (Franz 19/11 18:42): dall'alto in ordine di tempo, come la chat; il tasto pieno in fondo, sotto il pollice.
+            // I KPI che stavano qui sono andati nelle pagine Utilizzo (giornata a fasce, attività per ora) e quote (token per turno,
+            // parte di oggi del contesto).
+            var allTurns by rememberSaveable(s.name) { mutableStateOf(false) }
+            val before = androidx.compose.runtime.remember(kpiTurns, allTurns) { it.pixelbox.cmwatch.rules.SessionK.before(kpiTurns, allTurns) }
+            val task = androidx.compose.runtime.remember(menuState?.commitments, s.name) { it.pixelbox.cmwatch.rules.SessionK.task(menuState?.commitments, s.name) }
+            val stepList = if (waiting) detail.steps else parsed.steps
+            val next = it.pixelbox.cmwatch.rules.SessionK.nextStep(task, if (perTe < 0) stepList else emptyList())
+            KTimeline(Modifier.padding(top = 10.dp)) {
+                before?.let { b ->
+                    KGroup(stringResource(R.string.k_before), KTone.PAST, pluralStringResource(R.plurals.k_turns_today, b.total, b.total, b.minutes.toInt()), "k-prima") {
+                        KTurns(b, onAll = { allTurns = true }, onOpen = openNeck)
+                    }
+                }
+                KGroup(stringResource(R.string.k_now), KTone.NOW, tag = "k-adesso") {
+                    task?.let { c ->
+                        KRow(stringResource(R.string.k_task)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(c.short ?: c.task, style = V3.Body.copy(fontFamily = V3.Mono, fontSize = 13.5.sp), maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.weight(1f, fill = false).fadeEnd())
+                                Text(stringResource(if (c.paused != null) R.string.k_task_paused else R.string.k_task_running), style = V3.Small.copy(color = if (c.paused != null) V3.Tx2 else V3.Busy), maxLines = 1)
+                            }
+                            SessionsText.goalLine(s, stringResource(R.string.goal))?.let { g -> Text(g, style = V3.Small, maxLines = 2) }
+                        }
+                    }
+                    if (task == null) SessionsText.goalLine(s, stringResource(R.string.goal))?.let { g -> KRow(stringResource(R.string.k_task)) { Text(g, style = V3.Body) } }
+                    detail.doing?.let { d -> KRow(stringResource(R.string.k_doing), mono = false) { Text(d, style = V3.Meter.copy(color = V3.Tx), modifier = Modifier.testTag("scheda-sta-facendo")) } }
+                    if (body.isNotBlank() && !waiting) KRow(s.outcome?.at?.let { hhmmOf(it) } ?: "", mono = true) { bodyText(true) }
+                    detail.said?.let { said ->
+                        KRow(detail.saidAt?.let { hhmmOf(it) } ?: stringResource(R.string.k_said), mono = detail.saidAt != null) {
+                            Text(it.pixelbox.cmwatch.rules.Markdown.parse(said).text.trim(), style = V3.Body, color = V3.Tx, modifier = Modifier.testTag("scheda-ultimo-messaggio"))
+                        }
+                    }
+                    s.context?.let { pct ->
+                        val bar = when (it.pixelbox.cmwatch.rules.SessionMeters.contextTone(pct)) {
+                            it.pixelbox.cmwatch.rules.BriefCards.Tone.ALERT -> V3.Red
+                            it.pixelbox.cmwatch.rules.BriefCards.Tone.WARN -> V3.Wait
+                            else -> V3.Busy
+                        }
+                        KRow(stringResource(R.string.k_context)) {
+                            Box(Modifier.testTag("kpi-5")) { KContextBar(it.pixelbox.cmwatch.rules.SessionMeters.contextFraction(pct) ?: 0f, pct, bar) }
+                        }
+                    }
+                    // Oltre la soglia il consiglio del contesto, col suo tasto tonale (i suggerimenti della sessione).
+                    servicesBlock()
+                    cleanup?.let { c ->
+                        KRow(stringResource(R.string.k_window), action = if (!closing && c.canClose && !closeAsk) ({ closeKey() }) else null) {
+                            Text(cleanupText(c), style = V3.Body)
+                        }
+                    }
+                    closeStates()
+                }
+                val waitsHere = waiting || r.approvals.isNotEmpty() || works.isNotEmpty() || okStep0 != null
+                if (next != null || waitsHere || (perTe < 0 && stepList.size > 1)) KGroup(stringResource(R.string.k_next), KTone.NEXT, tag = "k-prossimo") {
+                    next?.let { n -> KRow(stringResource(R.string.k_step)) { Text(n, style = V3.Body) } }
+                    stepsBlock(next?.trim())
+                    if (open && perTe < 0 && sessionTodo != null && todo != null && (todo.first > 0 || todo.second > 0)) Box(Modifier.padding(top = 4.dp)) {
+                        androidx.compose.runtime.CompositionLocalProvider(LocalSubCard provides true) { sessionTodo(s.name) }
+                    }
+                    if (waitsHere) KRow(stringResource(R.string.k_waits)) {
+                        if (waiting && body.isNotBlank()) bodyText(true)
+                        askedBlock()
+                        approvalsBlock()
+                        okDoneBlock()
+                        questionBlock()
+                    }
+                }
+            }
         }
         if (menu) {
             // Un menu solo, lo stesso della chat e della plancia (app-menu-sessione-03-11): le voci da SessionMenu.
@@ -1615,38 +1697,6 @@ private fun SummaryCard(
                 )
             }
         }
-        // Le statistiche in fondo, sotto quello che si sceglie (app-attesa-dettagli-02-11).
-        if (open) {
-            details(s).forEach { Text(it, style = MaterialTheme.typography.bodySmall, color = Cm.text2, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip) }
-            // Proposta 11: la giornata a fasce nella card aperta; «ti aspetta» solo per il tratto in corso, dallo stato.
-            kpiEvents?.let { ev ->
-                val from = it.pixelbox.cmwatch.rules.Kpi.midnight(now, java.time.ZoneId.systemDefault())
-                Kpi11(it.pixelbox.cmwatch.rules.Kpi.day(ev, from, now, if (s.state == it.pixelbox.cmwatch.contract.SessionState.GONE) null else it.pixelbox.cmwatch.rules.Kpi.waitingSince(s)), from, now)
-            }
-            // Proposta 10: la striscia dei turni di oggi col costo, sotto la giornata a fasce.
-            kpiTurns?.takeIf { t -> t.isNotEmpty() }?.let { t -> Kpi10(t) }
-        }
-        // Le barre dei KPI 5 e 6 solo nella card aperta (riordino del 29/10, punto 8).
-        if (open) s.context?.let { pct ->
-            val bar = when (it.pixelbox.cmwatch.rules.SessionMeters.contextTone(pct)) {
-                it.pixelbox.cmwatch.rules.BriefCards.Tone.ALERT -> Cm.briefAlertRing
-                it.pixelbox.cmwatch.rules.BriefCards.Tone.WARN -> Cm.briefWarn
-                else -> Cm.briefRing
-            }
-            // Grammatica unica (Franz 24/10 00:01): il contesto sta sulla barra, col valore in mono accanto; non in testa.
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                // Proposta 6: le ultime sei ore sulla riga della barra, dove c'è posto anche a 320 dp.
-                if (s.state != it.pixelbox.cmwatch.contract.SessionState.GONE) kpiEvents?.let { ev -> Kpi6(it.pixelbox.cmwatch.rules.Kpi.hourly(ev, now)) }
-                // Proposta 5: il segno della soglia di handoff sulla barra, e la parte di quota di oggi accanto al contesto.
-                androidx.compose.foundation.layout.BoxWithConstraints(Modifier.weight(1f).height(7.dp).testTag("kpi-5"), contentAlignment = Alignment.CenterStart) {
-                    Box(Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(2.dp)).background(Cm.briefTrack)) {
-                        Box(Modifier.fillMaxWidth(it.pixelbox.cmwatch.rules.SessionMeters.contextFraction(pct) ?: 0f).fillMaxHeight().background(bar))
-                    }
-                    Box(Modifier.offset(x = maxWidth * (it.pixelbox.cmwatch.rules.Kpi.HANDOFF / 100f)).width(2.dp).fillMaxHeight().clip(RoundedCornerShape(1.dp)).background(Cm.text.copy(alpha = 0.8f)))
-                }
-                Text(stringResource(R.string.ctx_short, pct) + (todayShare?.let { " · " + stringResource(R.string.kpi5_today, it) } ?: ""), style = MonoSmall.copy(fontSize = 11.sp), color = Cm.text2, maxLines = 1)
-            }
-        } ?: run { if (open && s.state != it.pixelbox.cmwatch.contract.SessionState.GONE) kpiEvents?.let { ev -> Kpi6(it.pixelbox.cmwatch.rules.Kpi.hourly(ev, now)) } }
     }
     }
     }
@@ -1923,7 +1973,7 @@ internal fun ApprovalCard(a: it.pixelbox.cmwatch.contract.Approval, now: Long, o
  * Una riga che sfuma al bordo destro invece di finire con «…» (regole di larghezza, Franz 12/09): la scheda chiusa delle sessioni
  * compatte (app-sessioni-compatte-06-11). Una maschera sul bordo, come homeFadeEnd in verticale.
  */
-private fun Modifier.fadeEnd(): Modifier = this
+internal fun Modifier.fadeEnd(): Modifier = this
     .graphicsLayer { compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen }
     .drawWithContent {
         drawContent()

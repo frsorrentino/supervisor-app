@@ -594,6 +594,25 @@
     <string name="quadro_old">dato vecchio</string>
     <string name="master_absent">La master non è aperta</string>
     <string name="master_absent_detail">Riaprila per scriverle da qui.</string>
+    <!-- app-scheda-sessione-semplice-19-11: la scheda K della sessione. -->
+    <string name="k_before">Prima</string>
+    <string name="k_results">Risultati</string>
+    <string name="k_now">Adesso</string>
+    <string name="k_next">Prossimo</string>
+    <plurals name="k_turns_today"><item quantity="one">%1$d turno oggi, %2$d min</item><item quantity="other">%1$d turni oggi, %2$d min</item></plurals>
+    <plurals name="k_more_turns"><item quantity="one">Un altro turno prima</item><item quantity="other">Altri %1$d turni prima</item></plurals>
+    <string name="k_minutes">%1$d min</string>
+    <string name="k_turn_ok">riuscito, senza esito scritto</string>
+    <string name="k_turn_failed">fallito</string>
+    <string name="k_task">Compito</string>
+    <string name="k_task_running">in corso</string>
+    <string name="k_task_paused">in pausa</string>
+    <string name="k_doing">Sta facendo</string>
+    <string name="k_context">Contesto</string>
+    <string name="k_window">Finestra</string>
+    <string name="k_step">Passo</string>
+    <string name="k_waits">Ti aspetta</string>
+    <string name="k_said">Ha detto</string>
     <string name="master_launch_title">Avvia la master</string>
     <string name="master_launch_detail">Un tocco la apre sul PC, anche dopo /exit.</string>
     <string name="master_launch">Avvia</string>
@@ -1045,6 +1064,7 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="kpi7_outcomes_unknown">esiti oggi, in arrivo</string>
     <string name="kpi4_title">Quota 5h · %1$s</string>
     <string name="kpi4_others">altre</string>
+    <string name="sessions_today_title">Sessioni di oggi</string>
     <string name="kpi5_today">oggi %1$d%%</string>
     <string name="kpi6_aria">%1$d eventi nelle ultime 6 ore, uno per colonna d\'ora</string>
     <string name="kpi11_title">Oggi</string>
