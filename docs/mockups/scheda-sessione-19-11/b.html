@@ -1,0 +1,29 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=360"><title>Scheda B</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_style.css"><style>
+.blocks{display:flex;gap:2px;margin-top:12px;height:28px}
+.blocks i{display:grid;place-items:center;border-radius:4px;font:700 13px/1 sans-serif;font-style:normal;color:#0B0B0B}
+.blocks .g{background:var(--good)}.blocks .r{background:var(--red)}
+.ends{display:flex;justify-content:space-between;margin-top:6px;font:500 13px/1 var(--mono);color:var(--tx2)}
+.legend{display:flex;gap:14px;margin-top:12px;font-size:13px;color:var(--tx2)}
+.legend .k::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.legend .g::before{background:var(--good)}.legend .r::before{background:var(--red)}
+</style></head><body>
+<div class="tag">B · UN GRAFICO SOLO, BLOCCHI DI TURNI</div>
+<div class="card">
+ <div class="lead"><span class="ok">✓</span><small>16:41</small></div>
+ <div><div class="head"><span class="name">joyconceptstore-com</span><span class="fail">✗ 09:18</span></div>
+  <div class="hl">Token CAPI Joy allineato, attendo eventi server</div>
+  <div class="sub">Opus 5.5 · high · professionale</div></div>
+ <div class="block">
+  <div class="sum">6 turni · 33 min <span class="d">·</span> <span class="x">1 ✗</span> <span class="d">· ctx 35%</span></div>
+  <!-- larghezza = durata: 10, 2, 5, 9, 5, 2 min -->
+  <div class="blocks" role="img" aria-label="6 turni oggi, dalle 08:41 alle 16:41: il terzo, alle 09:18, fallito">
+   <i class="g" style="flex:10">✓</i><i class="g" style="flex:2"></i><i class="r" style="flex:5">✗</i><i class="g" style="flex:9">✓</i><i class="g" style="flex:5">✓</i><i class="g" style="flex:2"></i>
+  </div>
+  <div class="ends"><span>08:41</span><span>16:41</span></div>
+  <div class="legend"><span class="k g">riuscito</span><span class="k r">fallito</span><span>larghezza = durata</span></div>
+ </div>
+</div>
+<div class="note">Un tocco su un blocco apre la risposta di quel turno. Totali, ultimo esito e contesto di joyconceptstore del 19/11; durate dei singoli turni ricostruite dalla giornata.</div>
+</body></html>
