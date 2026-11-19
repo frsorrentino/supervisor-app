@@ -1,0 +1,71 @@
+/* Bozza K (Franz 19/11 18:18): la J in ordine cronologico dall'alto, come la chat — Prima, Risultati, Adesso, Prossimo — col
+   tasto in basso dove arriva il pollice; in testata resta «N ti aspetta». Rifinita con impeccable, apple-design, mobile-native,
+   emil-design-eng (vedi il commit). */
+:root{--rail:20px;--lab:64px;--gap:12px;--ease-out:cubic-bezier(.23,1,.32,1);--amber:#FFB23F}
+html{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
+::selection{background:rgba(143,168,210,.35);color:var(--tx)}
+.card{display:block;padding:16px 16px 12px;border-radius:16px}
+svg.i{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* Testata */
+.hd{display:grid;grid-template-columns:40px 1fr auto;column-gap:12px;align-items:center}
+.av{width:40px;height:40px;border-radius:50%;padding:3px;background:var(--good)}
+.av span{display:grid;place-items:center;width:100%;height:100%;border-radius:50%;background:#F2EFEA;border:2px solid var(--s1);font:700 15px/1 'Barlow Semi Condensed';color:#1B1B1B}
+.hd .name{font:600 20px/1.1 'Barlow Semi Condensed';letter-spacing:-.01em}
+.hd .meta{font-size:13.5px;line-height:18px;color:var(--tx2);margin-top:3px}
+.hd .side{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.when{display:inline-flex;align-items:center;gap:4px;font:500 13px/1 var(--mono);font-variant-numeric:tabular-nums;color:var(--good)}
+.when svg.i{width:14px;height:14px}
+.waits{white-space:nowrap;display:inline-flex;align-items:center;gap:6px;min-height:28px;padding:0 10px;border-radius:999px;background:rgba(255,178,63,.14);color:var(--amber);font:600 13.5px/1 'Barlow Semi Condensed';letter-spacing:.01em}
+.waits::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--amber)}
+/* Linea del tempo: dall'alto il passato, in basso il prossimo */
+.tl{position:relative;margin-top:16px;padding-left:calc(var(--rail) + 4px)}
+.tl::before{content:"";position:absolute;left:5px;top:12px;bottom:28px;width:2px;background:var(--s3);border-radius:1px}
+.g{position:relative}
+.g + .g{margin-top:14px}
+.g > h3{position:relative;display:flex;align-items:baseline;gap:8px;font:600 15px/22px 'Barlow Semi Condensed';color:var(--tx)}
+.g > h3::before{content:"";position:absolute;left:calc(-1 * var(--rail) - 3px);top:6px;width:10px;height:10px;border-radius:50%;background:var(--s1);border:2px solid #555}
+.g.now > h3::before{border-color:var(--busy);background:var(--busy)}
+.g.next > h3{color:var(--amber)}
+.g.next > h3::before{border-color:var(--amber);background:var(--amber);box-shadow:0 0 0 4px rgba(255,178,63,.18)}
+.g > h3 small{font:400 13px/1 'Barlow';color:var(--tx3)}
+/* Una riga: etichetta, testo, al massimo un tasto; tutta toccabile quando apre qualcosa */
+.r{display:grid;grid-template-columns:var(--lab) 1fr auto;column-gap:var(--gap);align-items:start;min-height:44px;padding:10px 0}
+.r.tap{border-radius:12px;margin:0 -8px;padding:10px 8px;transition:background-color 160ms var(--ease-out)}
+.r.tap:active{background:var(--s2)}
+.r .k{font-size:13px;line-height:21px;color:var(--tx2)}
+.r .k.t{font:500 13px/21px var(--mono);font-variant-numeric:tabular-nums;color:var(--tx2)}
+.r .v{font-size:15.5px;line-height:21px;min-width:0}
+.r .v small{display:block;font-size:13px;line-height:18px;color:var(--tx2);margin-top:2px}
+.r .a{align-self:center}
+.one{display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden;-webkit-mask-image:linear-gradient(90deg,#000 85%,transparent);mask-image:linear-gradient(90deg,#000 85%,transparent)}
+.ck{color:var(--good)}
+.dur{font:400 12.5px/21px var(--mono);font-variant-numeric:tabular-nums;color:var(--tx3);white-space:nowrap;text-align:right;min-width:44px}
+.chev{color:var(--tx3);align-self:center}
+.more{display:flex;align-items:center;min-height:44px;font:600 14px/1 'Barlow Semi Condensed';color:var(--busy)}
+/* Tasti: 44 px, pressione immediata, testo non selezionabile */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;min-width:44px;padding:0 18px;border-radius:999px;font:600 15px/1 'Barlow Semi Condensed';white-space:nowrap;user-select:none;-webkit-user-select:none;touch-action:manipulation;transition:transform 160ms var(--ease-out),background-color 160ms var(--ease-out)}
+.btn:active{transform:scale(.97)}
+.btn.full{background:var(--amber);color:#111}
+.btn.full:active{background:#E89E2C}
+.btn.tonal{background:var(--s3);color:var(--tx)}
+.btn.tonal:active{background:#2c2c2c}
+code{font:500 13.5px/1 var(--mono);color:var(--tx)}
+.st{color:var(--busy);font-size:13.5px;margin-left:6px}
+/* Risultati: le immagini come miniature, gli altri come pillole; il tocco apre */
+.res{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 0 4px}
+.res .pill{min-height:44px}
+.th{width:60px;height:44px;border-radius:10px;border:1px solid var(--line);overflow:hidden;position:relative;background:#1d1b19}
+.th i{position:absolute;left:0;right:0;top:0;height:12px;background:#3a2c22}
+.th b{position:absolute;left:7px;right:7px;top:18px;height:11px;border-radius:3px;background:#b07a54}
+.th.m{width:32px}
+.th.m b{left:5px;right:5px}
+.pill{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 12px;border-radius:999px;background:var(--s2);font-size:13.5px;color:var(--tx)}
+.pill .i{width:16px;height:16px;color:var(--tx2)}
+.pill em{font-style:normal;color:var(--tx3);font-family:var(--mono);font-size:12px}
+.ctx{display:flex;align-items:center;gap:10px;height:21px}
+.ctx .bar{flex:1;height:6px;border-radius:3px;background:var(--s3)}
+.ctx .bar i{display:block;height:100%;border-radius:3px;background:var(--busy)}
+.ctx b{font:500 14px/1 var(--mono);font-variant-numeric:tabular-nums}
+.warn .bar i{background:var(--amber)}
+.warn b{color:var(--amber)}
+@media (prefers-reduced-motion:reduce){.btn,.r.tap{transition:none}.btn:active{transform:none}}

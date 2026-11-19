@@ -35,3 +35,10 @@ compito app-scheda-sessione-semplice-19-11.
 | 28 | Voci di Per te della sessione (ok, prova, scelta, screenshot) | Per te | Prossimo › Ti aspetta, una riga ciascuna col suo tasto |
 | 29 | Risultati: file, immagini, link, release | Risultati | Gruppo Risultati: il numero di oggi, miniature e pillole, il tocco apre |
 | 30 | Consiglio del contesto (passaggio di consegne e /clear) | Contesto | Riga Contesto, «Fallo» tonale |
+
+## Nella K (Franz 19/11 18:18)
+
+La K mette la J in ordine di tempo dall'alto: Prima, Risultati, Adesso, Prossimo. Le righe dell'inventario restano dove le mette la J, con tre spostamenti:
+- «N ti aspetta» resta anche in testata (punto 6), così non si perde scorrendo; il tocco porta a Prossimo;
+- Contesto e Finestra (punti 20, 21, 26, 30) salgono in Adesso: sono lo stato di adesso, e così Prossimo resta in fondo;
+- Ti aspetta (punti 15-18, 28) è l'ultima riga della scheda, col suo tasto pieno sotto il pollice.
