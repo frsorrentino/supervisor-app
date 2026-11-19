@@ -30,7 +30,7 @@ export type Model = { id: string; label?: string | null }
 export type Goal = { text: string; since: number; met?: boolean | null }
 
 export type Session = {
-  /** Campo atteso da supervisor-master-riconosciuta-19-11 (D9): true sulla master del PC, assente con un relay precedente. */
+  /** Contratto 1.154 (D9, app-master-avvia-19-11): true sulla master del PC, assente con un relay precedente. */
   master?: boolean | null
   /** Contratto 1.153 (app-favicon-siti-18-11): l'impronta della favicon del sito; l'immagine con l'op `favicon`. */
   favicon?: string | null
