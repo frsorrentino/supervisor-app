@@ -1,0 +1,11 @@
+/* Le parti comuni alle bozze D-G: la testa della carta col turno più nuovo di joyconceptstore (19/11, 16:40, 25 min). */
+.turns{display:flex;flex-direction:column}
+.turn{display:grid;grid-template-columns:44px 16px 52px 1fr 10px;align-items:center;gap:6px;min-height:44px}
+.turn .t{font:500 14px/1 var(--mono);color:var(--tx2)}
+.turn .i{font:700 15px/1 sans-serif;text-align:center;color:var(--good)}
+.turn .m{font:400 13px/1 var(--mono);color:var(--tx3);text-align:right;white-space:nowrap}
+.turn .w{font-size:15px}
+.turn .w.none{color:var(--tx3);font-style:italic}
+.chev{color:var(--tx3);font-size:16px}
+.bar{height:10px;border-radius:5px;background:var(--s3);overflow:hidden}
+.bar i{display:block;height:100%;width:35%;background:var(--busy);border-radius:5px}
