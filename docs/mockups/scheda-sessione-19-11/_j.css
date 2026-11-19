@@ -1,0 +1,53 @@
+/* Bozza J (Franz 19/11 17:57): la I con tutto quello che la scheda mostra oggi, curata. Un binario a sinistra fa da linea del
+   tempo (prossimo → adesso → risultati → prima); etichette in tondo minuscolo, una sola misura di riga, un solo tasto pieno. */
+:root{--rail:20px;--lab:68px;--gap:12px}
+.card{display:block;padding:16px 16px 6px}
+.hd{display:grid;grid-template-columns:40px 1fr auto;column-gap:12px;align-items:center}
+.av{width:40px;height:40px;border-radius:50%;padding:3px;background:conic-gradient(var(--good) 0 360deg)}
+.av span{display:grid;place-items:center;width:100%;height:100%;border-radius:50%;background:#F2EFEA;border:2px solid var(--s1);font:700 15px/1 'Barlow Semi Condensed';color:#1B1B1B}
+.hd .name{font:600 20px/1.15 'Barlow Semi Condensed'}
+.hd .meta{font-size:13.5px;color:var(--tx2);margin-top:3px}
+.hd .when{font:500 13px/1 var(--mono);color:var(--good);text-align:right}
+.hd .when.red{color:var(--red)}
+.tl{position:relative;margin-top:14px;padding-left:calc(var(--rail) + 4px)}
+.tl::before{content:"";position:absolute;left:5px;top:10px;bottom:16px;width:2px;background:var(--s3);border-radius:1px}
+.g{position:relative;padding-top:4px}
+.g + .g{margin-top:10px}
+.g > h3{position:relative;font:600 15px/22px 'Barlow Semi Condensed';color:var(--tx);display:flex;align-items:baseline;gap:8px}
+.g > h3::before{content:"";position:absolute;left:calc(-1 * var(--rail) - 4px + 1px);top:6px;width:10px;height:10px;border-radius:50%;background:var(--s1);border:2px solid var(--tx3)}
+.g.next > h3{color:#FFB23F}
+.g.next > h3::before{border-color:#FFB23F;background:#FFB23F}
+.g.now > h3::before{border-color:var(--busy);background:var(--busy)}
+.g > h3 small{font:400 13px/1 'Barlow';color:var(--tx3)}
+.r{display:grid;grid-template-columns:var(--lab) 1fr auto;column-gap:var(--gap);align-items:start;padding:9px 0}
+.r .k{font-size:13px;line-height:20px;color:var(--tx2)}
+.r .k.t{font:500 13px/20px var(--mono);font-variant-numeric:tabular-nums}
+.r .v{font-size:15.5px;line-height:21px;min-width:0}
+.r .v small{display:block;font-size:13px;line-height:18px;color:var(--tx2);margin-top:2px}
+.r .a{align-self:center}
+.one{white-space:nowrap;overflow:hidden;-webkit-mask-image:linear-gradient(90deg,#000 85%,transparent);mask-image:linear-gradient(90deg,#000 85%,transparent)}
+.ck{color:var(--good);font-weight:700;margin-right:6px}
+.dur{font:400 12.5px/20px var(--mono);color:var(--tx3);white-space:nowrap}
+.btn{display:inline-block;font:600 15px/1 'Barlow Semi Condensed';border-radius:999px;padding:12px 18px;white-space:nowrap}
+.btn.full{background:#FFB23F;color:#111}
+.btn.tonal{background:var(--s3);color:var(--tx)}
+.link{font:600 14px/20px 'Barlow Semi Condensed';color:var(--busy)}
+code{font:500 13.5px/1 var(--mono);color:var(--tx)}
+.st{color:var(--busy);font-size:13.5px;margin-left:6px}
+/* Risultati: le immagini come miniature, gli altri come pillole; il tocco apre. */
+.res{display:flex;flex-wrap:wrap;gap:8px;padding:6px 0 10px}
+.th{width:76px;height:54px;border-radius:10px;border:1px solid var(--line);overflow:hidden;position:relative;background:#1d1b19}
+.th i{position:absolute;left:0;right:0;top:0;height:16px;background:#3a2c22}
+.th b{position:absolute;left:8px;right:8px;top:22px;height:14px;border-radius:3px;background:linear-gradient(90deg,#8b5a3c,#c99266)}
+.th.m{width:40px}
+.th.m b{left:5px;right:5px}
+.pill{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:999px;background:var(--s2);border:1px solid var(--line);font-size:13.5px;color:var(--tx)}
+.pill em{font-style:normal;color:var(--tx3);font-family:var(--mono);font-size:12px}
+.foot{margin:6px -16px 0;padding:4px 16px 2px;border-top:1px solid var(--line)}
+.foot .r{grid-template-columns:var(--lab) 1fr auto}
+.ctx{display:flex;align-items:center;gap:10px;height:21px}
+.ctx .bar{flex:1;height:6px;border-radius:3px}
+.ctx .bar i{border-radius:3px}
+.ctx b{font:500 14px/1 var(--mono);font-variant-numeric:tabular-nums}
+.warn .bar i{background:#FFB23F}
+.warn b{color:#FFB23F}
