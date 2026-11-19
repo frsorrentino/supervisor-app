@@ -1,5 +1,6 @@
 package it.pixelbox.cmwatch.mobile
 
+import it.pixelbox.cmwatch.rules.MasterLaunch
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
@@ -244,7 +245,13 @@ class SummaryListTest {
         val reply = TranscriptEntry("a1", "assistant", "Lanciata claude-master sulla fase 2.2.\n\nEsito: Fase 2.2 avviata su claude-master", st.ts - 600)
         CmPhoneTheme(still = true) { Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) { MasterDock(m, it.pixelbox.cmwatch.rules.MasterHome.hero(listOf(reply), m), {}, {}, expanded = true) } }
     }
-    @Test fun dockAbsent() = paparazzi.snapshot { CmPhoneTheme(still = true) { Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg).padding(16.dp)) { MasterAbsent {} } } }
+    // app-master-avvia-19-11: la card della master chiusa nei suoi quattro stati, dall'alto: avvia, si sta avviando, rifiutata, PC spento.
+    @Test fun dockAbsent() = paparazzi.snapshot { CmPhoneTheme(still = true) { Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg).padding(16.dp), verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)) {
+        MasterAbsent(MasterLaunch.Card(MasterLaunch.Kind.LAUNCH)) {}
+        MasterAbsent(MasterLaunch.Card(MasterLaunch.Kind.STARTING)) {}
+        MasterAbsent(MasterLaunch.Card(MasterLaunch.Kind.FAILED, "master is not a closed session")) {}
+        MasterAbsent(MasterLaunch.Card(MasterLaunch.Kind.PC_OFF)) {}
+    } } }
     // La pressione lunga: la copia del titolo che segue il dito.
     @Test fun homeSectionDrag() = paparazzi.snapshot {
         CmPhoneTheme(still = true) { it.pixelbox.cmwatch.mobile.ui.HomeDragGhost("lavori") }

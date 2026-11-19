@@ -580,6 +580,15 @@
     <string name="quadro_old">old reading</string>
     <string name="master_absent">The master is not open</string>
     <string name="master_absent_detail">Reopen it to write to it from here.</string>
+    <string name="master_launch_title">Start the master</string>
+    <string name="master_launch_detail">One tap opens it on the PC, even after /exit.</string>
+    <string name="master_launch">Start</string>
+    <string name="master_starting_title">The master is starting</string>
+    <string name="master_starting_detail">Its window opens on the PC: it shows up here as soon as it is ready.</string>
+    <string name="master_failed_title">The master did not start</string>
+    <string name="master_retry">Retry</string>
+    <string name="master_pc_off_title">The PC is not answering</string>
+    <string name="master_pc_off_detail">The PC is off or WSL is stopped: turn it on or open Ubuntu, then start it from here.</string>
     <string name="tab_master">Master</string>
     <plurals name="fy_scheduled">
         <item quantity="one">%1$d scheduled message</item>

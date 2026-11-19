@@ -38,4 +38,20 @@ class ContextActionsTest {
         assertEquals("master", ContextActions.master(st)?.name)
         assertNull(ContextActions.master(st.copy(sessions = listOf(s("kb"), s("master", state = SessionState.GONE)))))
     }
+
+    // D9 (app-master-avvia-19-11): col flag del relay la master si riconosce dal flag, anche con un altro nome.
+    @Test fun theMasterFlagWinsOverTheName() {
+        val st = State(v = 1, ts = 0, host = "pc", sessions = listOf(s("master").copy(master = false), s("regia").copy(master = true)))
+        assertEquals("regia", ContextActions.master(st)?.name)
+        assertTrue(ContextActions.isMaster(st.sessions[1], st.sessions))
+        assertFalse(ContextActions.isMaster(st.sessions[0], st.sessions))
+    }
+
+    @Test fun theLaunchTargetIsTheKnownMasterEvenClosed() {
+        val closed = State(v = 1, ts = 0, host = "pc", sessions = listOf(s("kb"), s("regia", state = SessionState.GONE).copy(master = true)))
+        assertNull(ContextActions.master(closed))
+        assertEquals("regia", ContextActions.masterTarget(closed))
+        assertEquals("master", ContextActions.masterTarget(closed.copy(sessions = listOf(s("kb")))))
+        assertEquals("master", ContextActions.masterTarget(null))
+    }
 }

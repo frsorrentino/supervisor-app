@@ -1,4 +1,5 @@
 import { workingText } from './masterHome'
+import { masterOf } from './masterLaunch'
 import type { Approval, QuotaAccount, Session, State } from './contract'
 import { DAY } from './durations'
 import { approves } from './questionRules'
@@ -40,8 +41,8 @@ export const attachedTasks = (rows: Row[]): Set<string> => new Set(rows.flatMap(
 
 export function build(state: State, sent: Sent[], now: number, read: Set<string>): Model {
   const live = state.sessions.filter(s => s.state !== 'gone')
-  const master = live.find(s => s.name === MASTER) ?? null
-  const others = live.filter(s => s.name !== MASTER)
+  const master = masterOf(state.sessions)
+  const others = live.filter(s => s !== master)
   // Contratto 1.68: chi è ferma per Franz conta come una domanda, col motivo; tutte dalla più vecchia.
   const waiting: Bare[] = others.flatMap((s): Bare[] => {
     if (s.question) return [{ group: 'waiting', session: s, text: approves(s.question) ?? s.question.text, at: s.question.asked_at }]

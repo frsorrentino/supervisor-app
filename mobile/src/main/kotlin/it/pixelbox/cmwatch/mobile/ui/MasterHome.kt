@@ -323,13 +323,39 @@ private fun MiniGauge(h5: Int?, w7: Int?, stale: Boolean) {
     }
 }
 
-/** Senza master aperta: la casa resta utile, con il tasto per riaprirla. */
+/**
+ * Senza master aperta (app-master-avvia-19-11): «Avvia la master» con un tocco, anche dopo /exit; dopo il tocco «si sta
+ * avviando» con l'anello che gira; un rifiuto col testo del relay e «Riprova»; con lo stato vecchio il PC è spento o WSL è
+ * fermo, e il tasto non c'è perché nessuno lo riceverebbe. [canLaunch] falso con un relay senza `reopen`.
+ */
 @Composable
-fun MasterAbsent(onReopen: () -> Unit) {
+fun MasterAbsent(card: it.pixelbox.cmwatch.rules.MasterLaunch.Card, canLaunch: Boolean = true, onLaunch: () -> Unit) {
+    val k = card.kind
+    val off = k == it.pixelbox.cmwatch.rules.MasterLaunch.Kind.PC_OFF
     GlassCard {
-        Text(stringResource(R.string.master_absent), style = MaterialTheme.typography.titleMedium, color = Cm.text)
-        Text(stringResource(R.string.master_absent_detail), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
-        Button(onClick = onReopen, colors = ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary)) { Text(stringResource(R.string.reopen)) }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            if (k == it.pixelbox.cmwatch.rules.MasterLaunch.Kind.STARTING) androidx.compose.material3.CircularProgressIndicator(Modifier.size(20.dp), color = Cm.primary, strokeWidth = 2.5.dp)
+            Text(
+                stringResource(when (k) {
+                    it.pixelbox.cmwatch.rules.MasterLaunch.Kind.PC_OFF -> R.string.master_pc_off_title
+                    it.pixelbox.cmwatch.rules.MasterLaunch.Kind.STARTING -> R.string.master_starting_title
+                    it.pixelbox.cmwatch.rules.MasterLaunch.Kind.FAILED -> R.string.master_failed_title
+                    it.pixelbox.cmwatch.rules.MasterLaunch.Kind.LAUNCH -> R.string.master_launch_title
+                }),
+                style = MaterialTheme.typography.titleMedium, color = if (off) Cm.text2 else Cm.text,
+            )
+        }
+        Text(
+            card.error ?: stringResource(when (k) {
+                it.pixelbox.cmwatch.rules.MasterLaunch.Kind.PC_OFF -> R.string.master_pc_off_detail
+                it.pixelbox.cmwatch.rules.MasterLaunch.Kind.STARTING -> R.string.master_starting_detail
+                else -> R.string.master_launch_detail
+            }),
+            style = MaterialTheme.typography.bodyMedium, color = Cm.text2,
+        )
+        if (card.button && canLaunch) Button(onClick = onLaunch, colors = ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary)) {
+            Text(stringResource(if (k == it.pixelbox.cmwatch.rules.MasterLaunch.Kind.FAILED) R.string.master_retry else R.string.master_launch))
+        }
     }
 }
 

@@ -594,6 +594,15 @@
     <string name="quadro_old">dato vecchio</string>
     <string name="master_absent">La master non è aperta</string>
     <string name="master_absent_detail">Riaprila per scriverle da qui.</string>
+    <string name="master_launch_title">Avvia la master</string>
+    <string name="master_launch_detail">Un tocco la apre sul PC, anche dopo /exit.</string>
+    <string name="master_launch">Avvia</string>
+    <string name="master_starting_title">La master si sta avviando</string>
+    <string name="master_starting_detail">Sul PC si apre la sua finestra: qui compare appena è pronta.</string>
+    <string name="master_failed_title">La master non è partita</string>
+    <string name="master_retry">Riprova</string>
+    <string name="master_pc_off_title">Il PC non risponde</string>
+    <string name="master_pc_off_detail">Il PC è spento o WSL è fermo: accendilo o apri Ubuntu, poi avviala da qui.</string>
     <string name="tab_master">Master</string>
     <plurals name="fy_scheduled">
         <item quantity="one">%1$d messaggio programmato</item>

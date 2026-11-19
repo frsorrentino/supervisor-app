@@ -51,8 +51,18 @@ object ContextActions {
         return choices?.models?.firstOrNull { it.id.endsWith("[1m]") && Tune.sameModel(it.id, id) }
     }
 
-    /** La master è la sessione che si chiama «master», se è aperta. */
-    fun master(state: State?): Session? = state?.sessions?.firstOrNull { it.name == MASTER && it.state != SessionState.GONE }
+    /**
+     * D9 (app-master-avvia-19-11): la master è quella col flag `sessions[].master`; finché il relay non lo manda (nessuna
+     * sessione lo porta) è quella che si chiama «master».
+     */
+    fun isMaster(s: Session, all: List<Session>): Boolean =
+        if (all.any { it.master != null }) s.master == true else s.name == MASTER
+
+    /** La master aperta, se c'è. */
+    fun master(state: State?): Session? = state?.sessions?.let { l -> l.firstOrNull { it.state != SessionState.GONE && isMaster(it, l) } }
+
+    /** A chi mandare `reopen` per avviarla: la master nota, anche chiusa, altrimenti il nome di sempre. */
+    fun masterTarget(state: State?): String = state?.sessions?.let { l -> l.firstOrNull { isMaster(it, l) }?.name } ?: MASTER
 
     const val MASTER = "master"
 }

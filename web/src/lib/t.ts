@@ -347,7 +347,10 @@ const it = {
   privacy: 'Privacy', privacySub: "L'informativa, sul sito",
   chatEmpty: 'Conversazione nuova: ancora nessun messaggio. Scrivi qui sotto per cominciare.', menuGoto: 'Vai a', menuRowWaiting: (x: string) => `domanda · ${x}`, menuRowWorking: (x: string) => `al lavoro · ${x}`, menuRowStill: (x: string) => `ferma da ${x}`, menuHomeSub: 'La home: sessioni e chat della master',
   meterTitle: 'Fotogrammi', meterOff: 'Spegni il contatore', meterMax: 'il più lungo', meterOver: 'oltre 33 ms', meterScript: (n: string) => `script ${n}`, meterLayout: 'stile e impaginazione', meterPaint: 'disegno', meterHint: "Tocca o trascina: qui compare l'ultimo gesto.",
-  loadOlder: 'Carica i messaggi precedenti', loadNewer: 'Carica i messaggi successivi', masterAbsent: 'La master non è aperta', masterAbsentDetail: 'Riaprila per scriverle da qui.',
+  loadOlder: 'Carica i messaggi precedenti', loadNewer: 'Carica i messaggi successivi', masterLaunchTitle: 'Avvia la master', masterLaunchDetail: 'Un tocco la apre sul PC, anche dopo /exit.', masterLaunch: 'Avvia',
+  masterStartingTitle: 'La master si sta avviando', masterStartingDetail: 'Sul PC si apre la sua finestra: qui compare appena è pronta.',
+  masterFailedTitle: 'La master non è partita', masterRetry: 'Riprova',
+  masterPcOffTitle: 'Il PC non risponde', masterPcOffDetail: 'Il PC è spento o WSL è fermo: accendilo o apri Ubuntu, poi avviala da qui.',
   // Contratto 1.72: il diff dal telefono.
   diffShowAll: 'Mostra tutto', diffBeyond: 'Oltre le 5000 righe il diff resta sul PC', diffMore: (n: number) => `+${n} caratteri`,
   diffOpen: (f: string) => `Apri il diff di ${f}`, diffClose: (f: string) => `Chiudi il diff di ${f}`, diffLoading: 'Chiedo il passaggio intero al PC',
@@ -806,7 +809,10 @@ const en: typeof it = {
   privacy: 'Privacy', privacySub: 'The policy, on the website',
   chatEmpty: 'New conversation: no messages yet. Write below to start.', menuGoto: 'Go to', menuRowWaiting: (x: string) => `question · ${x}`, menuRowWorking: (x: string) => `working · ${x}`, menuRowStill: (x: string) => `idle for ${x}`, menuHomeSub: "Home: sessions and the master's chat",
   meterTitle: 'Frames', meterOff: 'Turn the counter off', meterMax: 'longest', meterOver: 'over 33 ms', meterScript: (n: string) => `script ${n}`, meterLayout: 'style and layout', meterPaint: 'paint', meterHint: 'Tap or drag: the last gesture shows here.',
-  loadOlder: 'Load earlier messages', loadNewer: 'Load later messages', masterAbsent: 'The master is not open', masterAbsentDetail: 'Reopen it to write to it from here.',
+  loadOlder: 'Load earlier messages', loadNewer: 'Load later messages', masterLaunchTitle: 'Start the master', masterLaunchDetail: 'One tap opens it on the PC, even after /exit.', masterLaunch: 'Start',
+  masterStartingTitle: 'The master is starting', masterStartingDetail: 'Its window opens on the PC: it shows up here as soon as it is ready.',
+  masterFailedTitle: 'The master did not start', masterRetry: 'Retry',
+  masterPcOffTitle: 'The PC is not answering', masterPcOffDetail: 'The PC is off or WSL is stopped: turn it on or open Ubuntu, then start it from here.',
   // Contract 1.72: the diff from the phone.
   diffShowAll: 'Show all', diffBeyond: 'Past 5000 lines the diff stays on the PC', diffMore: (n: number) => `+${n} characters`,
   diffOpen: (f: string) => `Open the diff of ${f}`, diffClose: (f: string) => `Close the diff of ${f}`, diffLoading: 'Asking the PC for the whole step',

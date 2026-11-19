@@ -328,6 +328,8 @@ enum class CmdOp {
     val closing: Closing? = null,
     /** Contratto 1.153 (app-favicon-siti-18-11): l'impronta della favicon del sito (12 esadecimali), solo se il progetto ne ha una; l'immagine con l'op `favicon`. */
     val favicon: String? = null,
+    /** Campo atteso da supervisor-master-riconosciuta-19-11 (D9): true sulla master del PC (`workspace.root_session_name`), con un relay precedente assente. */
+    val master: Boolean? = null,
 )
 
 /** Contratto 1.120, `sessions[].closing`: mode after o force, quando è stata armata, la scadenza (null per after). */

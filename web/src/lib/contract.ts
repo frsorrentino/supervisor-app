@@ -30,6 +30,8 @@ export type Model = { id: string; label?: string | null }
 export type Goal = { text: string; since: number; met?: boolean | null }
 
 export type Session = {
+  /** Campo atteso da supervisor-master-riconosciuta-19-11 (D9): true sulla master del PC, assente con un relay precedente. */
+  master?: boolean | null
   /** Contratto 1.153 (app-favicon-siti-18-11): l'impronta della favicon del sito; l'immagine con l'op `favicon`. */
   favicon?: string | null
   /** Contratto 1.120: la chiusura armata (`close` con when after o force), solo finché è armata; deadline null per after. */

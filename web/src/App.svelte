@@ -128,6 +128,7 @@
   import type { Elicitation, Suggestion } from './lib/contract'
   import { build as devicesOf, linked as linkedDevices } from './lib/devices'
   import { freshness } from './lib/durations'
+  import { launchCard, masterOf, masterTarget } from './lib/masterLaunch'
   import { setRate, setVoice } from './lib/speech.svelte'
   import { build as overviewOf } from './lib/overview'
   import ReadingPill from './lib/ReadingPill.svelte'
@@ -209,7 +210,17 @@
   // Quello che si è letto o avviato (turni finiti, resoconto, prossimi passi) e i messaggi mandati da qui, per «Per te».
   let read = $state(new Set<string>())
   const sent = $derived(mine.map(([m]) => m))
-  const master = $derived(st.sessions.find(s => s.name === MASTER && s.state !== 'gone') ?? null)
+  // D9 (app-master-avvia-19-11): la master dal flag `sessions[].master`, o dal nome con un relay precedente.
+  const master = $derived(masterOf(st.sessions))
+  // «Avvia la master» (S1): l'ora del tocco e il rifiuto del relay; si azzerano quando la master compare.
+  let launchSent = $state<number | null>(null)
+  let launchRefused = $state<string | null>(null)
+  $effect(() => { if (master) { launchSent = null; launchRefused = null } })
+  const launch = $derived(launchCard(ready ? freshness(st, now) : null, launchSent, launchRefused, now))
+  function launchMaster() {
+    launchSent = nowS(); launchRefused = null
+    run(newCmd('reopen', masterTarget(st.sessions))).then(r => { if (r && !r.ok) launchRefused = r.text })
+  }
   // Un comando rifiutato o senza risposta: una riga in basso per qualche secondo.
   let notice = $state<string | null>(null)
   let addDlg: AddDevice | undefined = $state()
@@ -2221,9 +2232,13 @@
       <AppBar {st} now={now} openCount={summary.open} onPage={openPage} onFeedback={openFeedback} quota={false} />
       <div class="list" use:fadeEnd>{@render homeView(null)}</div>
       {#if !master && ready}
-        <!-- Senza master (MasterHome.kt): una card con «Riapri», invece della barra che non c'è. -->
-        <div class="nomaster"><span><b>{t.masterAbsent}</b><small>{t.masterAbsentDetail}</small></span>
-          {#if st.ops?.includes('reopen')}<button onclick={() => cmd(MASTER)('reopen')}>{t.reopen}</button>{/if}</div>
+        <!-- Senza master (MasterHome.kt, app-master-avvia-19-11): «Avvia la master» con un tocco, anche dopo /exit; con lo
+             stato vecchio il PC è spento o WSL è fermo e il tasto non c'è, nessuno lo riceverebbe. -->
+        <div class="nomaster" class:off={launch.kind === 'pc_off'}>
+          {#if launch.kind === 'starting'}<progress class="spin" aria-label={t.masterStartingTitle}></progress>{/if}
+          <span role="status"><b>{launch.kind === 'pc_off' ? t.masterPcOffTitle : launch.kind === 'starting' ? t.masterStartingTitle : launch.kind === 'failed' ? t.masterFailedTitle : t.masterLaunchTitle}</b>
+            <small>{launch.kind === 'pc_off' ? t.masterPcOffDetail : launch.kind === 'starting' ? t.masterStartingDetail : launch.kind === 'failed' ? launch.error : t.masterLaunchDetail}</small></span>
+          {#if launch.button && st.ops?.includes('reopen')}<button onclick={launchMaster}>{launch.kind === 'failed' ? t.masterRetry : t.masterLaunch}</button>{/if}</div>
       {/if}
       <div class="reading"><ReadingPill {slots} here={null} onOpen={pick} /></div>
     {/snippet}
@@ -2535,6 +2550,15 @@
   .nomaster span { flex: 1; display: flex; flex-direction: column; gap: 2px; }
   .nomaster small { color: var(--text2); font-size: 14px; }
   .nomaster button { height: 44px; padding: 0 20px; border-radius: 999px; background: var(--primary); color: var(--on-primary); font-weight: 500; }
+  /* PC spento: la card si spegne anche lei, niente tasto (app-master-avvia-19-11). */
+  .nomaster.off b { color: var(--text2); }
+  /* Si sta avviando: un <progress> indeterminato, annunciato come tale, con l'anello che gira (lento con meno movimento). */
+  .spin { flex: none; inline-size: 22px; block-size: 22px; border-radius: 50%; appearance: none; border: 0; background: conic-gradient(var(--primary) 0 90deg, var(--s2) 0); mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px)); animation: spin 1s linear infinite; }
+  .spin::-webkit-progress-bar, .spin::-webkit-progress-value { background: none; }
+  .spin::-moz-progress-bar { background: none; }
+  @media (prefers-reduced-motion: reduce) { .spin { animation-duration: 3s; } }
+  @media (forced-colors: active) { .spin { forced-color-adjust: none; background: conic-gradient(CanvasText 0 90deg, Canvas 0); } }
+  @keyframes spin { to { rotate: 1turn; } }
   .reading { padding: 8px 0; }
   .column { height: 100%; display: flex; flex-direction: column; }
   /* All'avvio (app-avvio-senza-salto-04-11): lo scheletro della colonna salvata, poi il contenuto entra con un'assolvenza breve e

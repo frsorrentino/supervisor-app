@@ -41,8 +41,8 @@ object Summary {
 
     fun build(state: State, events: List<Event>, sent: List<Sent>, now: Long, zone: ZoneId, read: Set<String>): Model {
         val live = state.sessions.filter { it.state != SessionState.GONE }
-        val master = live.firstOrNull { it.name == ContextActions.MASTER }
-        val others = live.filter { it.name != ContextActions.MASTER }
+        val master = ContextActions.master(state)
+        val others = live.filter { it !== master }
         val forYou = MasterHome.forYou(state, events, sent, now, zone, read, limit = Int.MAX_VALUE).rows
         // Contratto 1.68: chi è ferma per Franz conta come una domanda, col motivo; tutte dalla più vecchia.
         // Franz 24/10 18:49 (ok-master-dove-24-10): la master ha una scheda come le altre, ma solo quando ha qualcosa per

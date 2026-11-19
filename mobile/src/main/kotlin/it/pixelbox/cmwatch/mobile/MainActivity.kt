@@ -2508,6 +2508,19 @@ class MainActivity : ComponentActivity() {
                 return@summaryPage
             }
             val master = summary.master
+            // «Avvia la master» (app-master-avvia-19-11): l'ora del tocco e il rifiuto del relay; si azzerano quando compare.
+            var launchSent by rememberSaveable { mutableStateOf<Long?>(null) }
+            var launchRefused by rememberSaveable { mutableStateOf<String?>(null) }
+            LaunchedEffect(master != null) { if (master != null) { launchSent = null; launchRefused = null } }
+            val launchCard = it.pixelbox.cmwatch.rules.MasterLaunch.card(snap.freshness.takeIf { state != null }, launchSent, launchRefused, now)
+            val launchMaster: () -> Unit = {
+                launchSent = System.currentTimeMillis() / 1000; launchRefused = null
+                scope.launch {
+                    val id = runCatching { app.repo.command(CmdOp.REOPEN, it.pixelbox.cmwatch.rules.ContextActions.masterTarget(state), null) }.getOrNull()
+                    val r = id?.let { i -> kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(i) }[i] } }
+                    if (r != null && !r.ok) launchRefused = r.text
+                }
+            }
             val masterEntries = master?.let { m -> ChatFeed.pageEntries(m.name, chatName, entriesOwner, entries, feedCache) }.orEmpty()
             // `parts`: una colonna della plancia del tablet (app-tablet-come-pwa-03-11), con la testata e il fondo di ogni categoria.
             val listPart: @Composable (List<String>?, (@Composable (String) -> Unit)?, (@Composable (String) -> Unit)?) -> Unit = { parts, partHead, partFoot ->
@@ -2681,7 +2694,7 @@ class MainActivity : ComponentActivity() {
                 Box(Modifier.weight(1f)) { list() }
                 // Sul tablet la master sta nel suo telaio, di lato o in fondo (app-tablet-come-pwa-03-11).
                 if (master == null) Box(Modifier.padding(16.dp)) {
-                    MasterAbsent { scope.launch { runCatching { app.repo.command(CmdOp.REOPEN, it.pixelbox.cmwatch.rules.ContextActions.MASTER, null) } } }
+                    MasterAbsent(launchCard, canLaunch = state?.ops?.contains("reopen") != false, onLaunch = launchMaster)
                 }
             }
         }
