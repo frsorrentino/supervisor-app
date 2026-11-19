@@ -44,6 +44,7 @@
   // Le pagine mostrate come sorgente col tasto «Codice», per chiave.
   let code = $state<Record<string, boolean>>({})
   import Md from './Md.svelte'
+  import { turnFiles, type Bozze } from './bozzeLinks'
   import { replaceNames, splitLabels, taskNames } from './chatLabels'
   import { outcomeText, splitOutcome } from './decide'
   import { outcomeType, type OutcomeType } from './kpi'
@@ -72,6 +73,18 @@
   // riga «Nuovi» e un fondo che sfuma; l'ultima visita si ricorda lasciando la chat (Chat rimonta il Feed a ogni sessione).
   // La scheda unica (app-chat-scheda-unica-13-11): le voci divise in turni, la richiesta a fumetto e sotto una scheda sola.
   const rows = $derived(turns(items))
+  // app-bozze-link-19-11: le bozze citate in una risposta aprono le immagini o gli HTML mandati nello stesso turno.
+  const entryList = $derived(items.flatMap(i => ('entry' in i && i.entry ? [i.entry] : [])))
+  function bozzeOf(e: TranscriptEntry): Bozze | null {
+    const fs = turnFiles(entryList, entryList.indexOf(e))
+    if (!fs.length) return null
+    return { files: fs.map(x => x.file.path), open: (i: number) => {
+      const { file, entry } = fs[i]
+      const key = fileKey(s.name, file, entry), url = media[key]
+      if (url && (isImage(file.mime) || /\.(png|jpe?g|webp|gif)$/i.test(file.path))) { zoomed = { src: url, name: file.path.split('/').pop() ?? '' }; onFile(file.path, 'seen', key) }
+      else onFile(file.path, 'open', key)
+    } }
+  }
   const rowKey = (r: Row) => (r.type === 'turn' ? r.key : `x-${r.entry.id}`)
   // svelte-ignore state_referenced_locally
   const seenAt = readSeen(s.name)
@@ -178,39 +191,39 @@
 {/snippet}
 
 <!-- Il testo della sessione a pezzi: paragrafi, voci d'elenco col loro segno, comandi con «Copia». -->
-{#snippet richText(text: string)}
+{#snippet richText(text: string, bz: Bozze | null = null)}
   {#each rich(text) as b}
-    {#if b.type === 'p'}<p><Md text={b.text} {onTask} /></p>
-    {:else if b.type === 'li'}<div class="li" style="--d:{b.depth}"><span class="mk" class:n={b.mark !== '•'}>{b.mark}</span><p><Md text={b.text} {onTask} /></p></div>
+    {#if b.type === 'p'}<p><Md text={b.text} {onTask} bozze={bz} /></p>
+    {:else if b.type === 'li'}<div class="li" style="--d:{b.depth}"><span class="mk" class:n={b.mark !== '•'}>{b.mark}</span><p><Md text={b.text} {onTask} bozze={bz} /></p></div>
     {:else if b.type === 'quote'}
       <!-- Un testo da mandare a qualcuno (app-chat-testo-da-inviare-13-11): in un box suo, senza «>», e «Copia» lo copia pulito. -->
-      <div class="sq" data-testid="chat-citazione"><div class="md">{@render richText(b.text)}</div><button class="cp" onclick={() => copy(copyText(b.text))}>{t.copy}</button></div>
+      <div class="sq" data-testid="chat-citazione"><div class="md">{@render richText(b.text, bz)}</div><button class="cp" onclick={() => copy(copyText(b.text))}>{t.copy}</button></div>
     {:else}<div class="cmd"><Icon name="run" size={18} color="var(--tx3)" /><code>{b.text}</code><button class="cp" onclick={() => copy(b.text)}>{t.copy}</button></div>{/if}
   {/each}
 {/snippet}
 
-{#snippet prose(text: string)}
+{#snippet prose(text: string, bz: Bozze | null = null)}
   {#each splitLabels(replaceNames(text, taskNames(commitments))) as part}
     {#if part.kind === 'you'}
-      <div class="fyou"><div class="fyh"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 11V6a2 2 0 0 0-4 0M14 10V4a2 2 0 0 0-4 0v2M10 10.5V6a2 2 0 0 0-4 0v8" /><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15" /></svg><b>{part.title}</b></div>{@render richText(part.body)}</div>
+      <div class="fyou"><div class="fyh"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 11V6a2 2 0 0 0-4 0M14 10V4a2 2 0 0 0-4 0v2M10 10.5V6a2 2 0 0 0-4 0v8" /><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15" /></svg><b>{part.title}</b></div>{@render richText(part.body, bz)}</div>
     {:else if part.kind === 'untested'}
-      <div class="funt"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 8h.01" /></svg><p><Md text={part.text} {onTask} /></p></div>
+      <div class="funt"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 8h.01" /></svg><p><Md text={part.text} {onTask} bozze={bz} /></p></div>
     {:else}
       {#each blocks(part.text) as b}
-        {#if b.type === 'text'}{@render richText(b.text)}{:else}{@render table(b)}{/if}
+        {#if b.type === 'text'}{@render richText(b.text, bz)}{:else}{@render table(b)}{/if}
       {/each}
     {/if}
   {/each}
 {/snippet}
 
 <!-- Il testo diviso ai titoli della sessione; `index` = l'indice dei titoli in cima, nella risposta. -->
-{#snippet doc(text: string, index: boolean)}
+{#snippet doc(text: string, index: boolean, bz: Bozze | null = null)}
   {@const d = sections(text)}
-  {#if d.lead}<div class="md lead" class:big={index && d.secs.length > 0}>{@render prose(d.lead)}</div>{/if}
+  {#if d.lead}<div class="md lead" class:big={index && d.secs.length > 0}>{@render prose(d.lead, bz)}</div>{/if}
   {#if index && d.secs.length > 1}
     <div class="idx">{#each d.secs as sc, i}<button onclick={(ev) => jump(ev, i)}><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg><span><Md text={sc.title} /></span></button>{/each}</div>
   {/if}
-  {#each d.secs as sc}<div class="sec" class:first={!d.lead}><h4><Md text={sc.title} {onTask} /></h4><div class="md">{@render prose(sc.body)}</div></div>{/each}
+  {#each d.secs as sc}<div class="sec" class:first={!d.lead}><h4><Md text={sc.title} {onTask} /></h4><div class="md">{@render prose(sc.body, bz)}</div></div>{/each}
 {/snippet}
 
 {#snippet extras(e: TranscriptEntry, r: Read)}
@@ -232,7 +245,7 @@
   <div class="nd say" class:found={flash === e.id} data-entry={e.id}>
     <span class="ic"></span>
     <div class="saytext" data-quote={r.text} data-quote-at={e.at ?? ''}>
-      {@render doc(r.es.body, false)}
+      {@render doc(r.es.body, false, bozzeOf(e))}
       {#if r.es.outcome}<div class="fesito"><span class="gl t-{r.typed}"><Icon name={ESITO_ICON[r.typed]} size={18} /></span><p><Md text={outcomeText(r.es.outcome, t.outcomeLabel)} {onTask} /></p></div>{/if}
       {@render extras(e, r)}
     </div>
@@ -245,7 +258,7 @@
   <div class="ans" class:found={flash === e.id} data-entry={e.id} data-quote={r.text} data-quote-at={e.at ?? ''}>
     {#if r.es.body.trim() || r.buttons.length || r.wl.ids.length || e.cut}
       <section class="z za">
-        {@render doc(r.es.body, true)}
+        {@render doc(r.es.body, true, bozzeOf(e))}
         {@render extras(e, r)}
       </section>
     {/if}

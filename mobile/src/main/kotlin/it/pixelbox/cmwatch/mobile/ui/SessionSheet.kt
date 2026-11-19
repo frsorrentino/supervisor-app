@@ -2626,7 +2626,9 @@ private fun TableBlock(t: it.pixelbox.cmwatch.rules.MarkdownTable.Table) {
 }
 
 /** I nomi dei compiti da mostrare in chat e cosa fa il tocco su uno (Franz 01/11 21:31). */
-class TaskLinks(val names: Map<String, String>, val open: (String) -> Unit)
+/** app-bozze-link-19-11: i file visivi del turno e come aprirne uno, per le bozze citate nel testo. */
+class BozzeOpen(val files: List<String>, val open: (Int) -> Unit)
+class TaskLinks(val names: Map<String, String>, val bozze: BozzeOpen? = null, val open: (String) -> Unit)
 val LocalTaskLinks = staticCompositionLocalOf { TaskLinks(emptyMap()) {} }
 
 /** Il corpo di una risposta: testo, tabelle, il riquadro «Da te» e «Non provato» (Franz 01/11 21:24), coi nomi dei compiti. */
@@ -2805,6 +2807,19 @@ private fun requestStyle(text: String): androidx.compose.ui.text.TextStyle =
 /** Un turno: la richiesta a fumetto a destra e, sotto, tutto quello che scrive la sessione in una scheda sola. */
 @Composable
 private fun TurnRow(
+    t: it.pixelbox.cmwatch.rules.ChatTurns.Row.Turn, flash: String?, focus: String?, ttsMinChars: Int, actions: SheetActions, reasonOf: (String) -> String?,
+    onRetried: (String) -> Unit, onEdit: (String) -> Unit, onStep: (String) -> Unit, showSteps: Boolean = true,
+) {
+    // app-bozze-link-19-11: le bozze citate nel testo del turno aprono le immagini o gli HTML mandati nello stesso turno.
+    val files = remember(t) { (t.work.map { it.entry } + listOfNotNull(t.answer)).flatMap { e -> e.files.orEmpty().filter(it.pixelbox.cmwatch.rules.BozzeLinks::visual).map { f -> f to e.id } } }
+    val opener = LocalFileOpener.current
+    val base = LocalTaskLinks.current
+    val links = if (files.isEmpty()) base else TaskLinks(base.names, BozzeOpen(files.map { it.first.path }) { i -> val (f, id) = files[i]; opener.open(it.pixelbox.cmwatch.rules.FileCache.key(f, id), f) }, base.open)
+    CompositionLocalProvider(LocalTaskLinks provides links) { TurnRowBody(t, flash, focus, ttsMinChars, actions, reasonOf, onRetried, onEdit, onStep, showSteps) }
+}
+
+@Composable
+private fun TurnRowBody(
     t: it.pixelbox.cmwatch.rules.ChatTurns.Row.Turn, flash: String?, focus: String?, ttsMinChars: Int, actions: SheetActions, reasonOf: (String) -> String?,
     onRetried: (String) -> Unit, onEdit: (String) -> Unit, onStep: (String) -> Unit, showSteps: Boolean = true,
 ) {
@@ -3135,6 +3150,12 @@ internal fun linked(text: String, tasks: TaskLinks? = null): AnnotatedString = a
     // dentro l'app, col link `#/prova/<n>` che DownloadLinks porta lì come `#/attesa` e `#/monitor`.
     it.pixelbox.cmwatch.rules.ProvaLinks.find(plain).filter { r -> linked.none { l -> r.range.first <= l.last && l.first <= r.range.last } }.forEach { r ->
         addLink(androidx.compose.ui.text.LinkAnnotation.Url(it.pixelbox.cmwatch.rules.ProvaLinks.link(r.n), link), r.range.first, r.range.last + 1)
+    }
+    // Le bozze citate (app-bozze-link-19-11): «le tre bozze», «bozza A», «A, riepilogo:» aprono il file mandato nello stesso turno.
+    tasks?.bozze?.let { bz ->
+        it.pixelbox.cmwatch.rules.BozzeLinks.find(plain, bz.files).filter { r -> linked.none { l -> r.range.first <= l.last && l.first <= r.range.last } }.forEach { r ->
+            addLink(androidx.compose.ui.text.LinkAnnotation.Clickable("bozza-${r.file}", link) { bz.open(r.file) }, r.range.first, r.range.last + 1)
+        }
     }
 }
 

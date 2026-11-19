@@ -1,0 +1,44 @@
+[
+  {
+    "name": "la risposta vera della master del 19/11 alle 17:04 (testo senza markdown)",
+    "text": "Le tre bozze della scheda sessione sono pronte: te le ho mandate come immagini e la carta per scegliere è in «Dalla master».\n\n- A, riepilogo e ultimi turni: una riga di totali.\n- B, un grafico a blocchi: i turni come blocchi.\n- C, solo riepilogo: quattro numeri.\n\nConsiglio la A: risponde a quello che vuoi sapere. Ore e prime parole dei turni nelle bozze sono ricostruite.",
+    "files": ["docs/mockups/scheda-sessione-19-11/scheda-a.png", "docs/mockups/scheda-sessione-19-11/scheda-b.png", "docs/mockups/scheda-sessione-19-11/scheda-c.png"],
+    "links": [
+      { "text": "Le tre bozze", "file": 0 },
+      { "text": "A, riepilogo e ultimi turni", "file": 0 },
+      { "text": "B, un grafico a blocchi", "file": 1 },
+      { "text": "C, solo riepilogo", "file": 2 },
+      { "text": "bozze", "file": 0 }
+    ]
+  },
+  {
+    "name": "bozza con la lettera e bozze con più lettere",
+    "text": "Guarda la bozza B, poi le bozze A e C.",
+    "files": ["/tmp/x/bozza_A.html", "/tmp/x/bozza_B.html", "/tmp/x/bozza_C.html"],
+    "links": [
+      { "text": "la bozza B", "file": 1 },
+      { "text": "le bozze A", "file": 0 },
+      { "text": "C", "file": 2 }
+    ]
+  },
+  {
+    "name": "senza file visivi nel turno niente link",
+    "text": "Le tre bozze sono pronte.",
+    "files": [],
+    "links": []
+  },
+  {
+    "name": "una voce d'elenco con una lettera senza il suo file resta testo",
+    "text": "- A, uno: x\n- D, quattro: y",
+    "files": ["a.png"],
+    "links": [
+      { "text": "A, uno", "file": 0 }
+    ]
+  },
+  {
+    "name": "parole che contengono bozza non sono bozze; una lettera senza file non diventa link",
+    "text": "Abbozzare la bozza F non serve.",
+    "files": ["schermo.png"],
+    "links": []
+  }
+]
