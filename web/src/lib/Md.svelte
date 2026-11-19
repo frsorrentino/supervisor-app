@@ -6,7 +6,7 @@
   import { TASK_URL } from './chatLabels'
   // Il testo con il markdown dell'app (`linked` di SessionSheet.kt): grassetto, corsivo, codice, link con testo, poi i link
   // nudi che non stanno già dentro un link. Pezzi di testo semplice, niente HTML iniettato.
-  let { text, onTask = null, bozze = null }: { text: string; onTask?: ((code: string) => void) | null; bozze?: Bozze | null } = $props()| null } = $props()
+  let { text, onTask = null, bozze = null }: { text: string; onTask?: ((code: string) => void) | null; bozze?: Bozze | null } = $props()
   type Piece = { s: string; bold?: boolean; italic?: boolean; code?: boolean; url?: string; bozza?: number }
   const pieces = $derived.by(() => {
     const md = parse(text)
