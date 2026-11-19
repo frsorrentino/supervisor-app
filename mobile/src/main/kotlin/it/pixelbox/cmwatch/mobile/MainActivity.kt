@@ -2410,7 +2410,7 @@ class MainActivity : ComponentActivity() {
         val pageHeader: @Composable (String?) -> Unit = { page ->
             PageHeader(
                 page, state?.let { st -> PhoneBoard.sections(st).flatMap { sec -> sec.sessions } }.orEmpty(), summary?.open ?: 0, now,
-                onPick = { n -> open = n; if (n == null) tab = StartRoute.Tab.OVERVIEW }, onClosed = { closedOpen = true }, menu = menuActions,
+                onPick = { n -> val g = StartRoute.go(n, it.pixelbox.cmwatch.rules.ContextActions.masterTarget(state)); open = g.open; masterChat = g.masterChat; if (g.open == null) tab = StartRoute.Tab.OVERVIEW }, onClosed = { closedOpen = true }, menu = menuActions,
                 quota = state?.let { st -> {
                     val rings = remember(st, events, samples, now, snap.freshness) {
                         PhoneOverview.build(st, events, samples, now, java.time.ZoneId.systemDefault(), stale = snap.freshness is Freshness.Stale).rings
@@ -2983,7 +2983,7 @@ class MainActivity : ComponentActivity() {
             tab, demo, onTab = { tab = it; open = null }, onSettings = { settingsOpen = true },
             sessions = state?.let { st -> PhoneBoard.sections(st).flatMap { sec -> sec.sessions } }.orEmpty(),
             // La master dal menu in alto apre la sua chat come le altre (design 03/10); «Tutte le sessioni» torna al riepilogo.
-            current = open, onPick = { n -> open = n; if (n == null) tab = StartRoute.Tab.OVERVIEW },
+            current = open, onPick = { n -> val g = StartRoute.go(n, it.pixelbox.cmwatch.rules.ContextActions.masterTarget(state)); open = g.open; masterChat = g.masterChat; if (g.open == null) tab = StartRoute.Tab.OVERVIEW },
             onQuadro = goUsage, onSearch = { searchOpen = true }, onLaunch = { launching = true },
             onNight = { nightOpen = true },
             host = host, stale = snap.freshness is Freshness.Stale,

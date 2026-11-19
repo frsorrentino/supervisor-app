@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Session, State } from './contract'
   import { of as menuOf } from './sessionsMenu'
+  import { MASTER } from './summary'
   import { since } from './durations'
   import { stop } from './strongAlert'
   import { t } from './t'
@@ -37,7 +38,8 @@
 
 <dialog bind:this={dlg} class="panel" data-testid="vai-a-v3" onclick={backdrop} aria-label={t.menuGoto}>
   <div class="ph">{t.menuGoto}</div>
-  <button class="row" onclick={() => go(null)}>
+  <!-- app-menu-sessioni-19-11: la riga «Master» apre la chat della master, non la home chiusa. -->
+  <button class="row" onclick={() => go(MASTER)}>
     <span class="home"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z" fill="none" stroke="var(--tx2)" stroke-width="1.8" stroke-linejoin="round" /></svg></span>
     <span class="col"><b>{t.summaryTitle}</b><small>{t.menuHomeSub}</small></span>
   </button>

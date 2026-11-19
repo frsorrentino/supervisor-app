@@ -22,4 +22,12 @@ class StartRouteTest {
         assertFalse(StartRoute.masterAtHome("atlas-shop"))
         assertFalse(StartRoute.masterAtHome(null))
     }
+
+    // app-menu-sessioni-19-11: dal menu «Vai a» aperto in una sessione, la master apre la sua chat nella home, non la home chiusa.
+    @Test fun theSessionsMenuOpensTheMasterChat() {
+        assertEquals(StartRoute.Go(open = null, masterChat = true), StartRoute.go("master", "master"))
+        assertEquals(StartRoute.Go(open = null, masterChat = true), StartRoute.go("regia", "regia"))
+        assertEquals(StartRoute.Go(open = "kb", masterChat = false), StartRoute.go("kb", "master"))
+        assertEquals(StartRoute.Go(open = null, masterChat = false), StartRoute.go(null, "master"))
+    }
 }

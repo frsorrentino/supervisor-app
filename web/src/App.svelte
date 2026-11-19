@@ -1523,7 +1523,7 @@
     // Aprire una sessione la toglie da «Hanno finito», come nell'app.
     const o = st.sessions.find(x => x.name === name)?.outcome
     if (o && !read.has(finishedKey(name, o.at))) read = new Set([...read, finishedKey(name, o.at)])
-    if (name === MASTER) smooth(() => { masterOpen = true; open = null })
+    if (name === MASTER || name === master?.name) smooth(() => { masterOpen = true; open = null })
     else if (wide) setCols(add(cols, name), name, cardOf(name))
     else smooth(() => { open = name })
   }

@@ -191,7 +191,8 @@ private fun SessionMenu(
         }, origin = androidx.compose.ui.graphics.TransformOrigin(0.2f, 0f), tag = "vai-a-v3", mark = arrowAt[0]) { close ->
             val pick: (String?) -> Unit = { n -> close(); onPick(n) }
             // La home in testa: il riepilogo con la master.
-            V3Row(true, { pick(null) }, { Icon(androidx.compose.material.icons.Icons.Outlined.Home, null, tint = V3.Tx2, modifier = Modifier.size(22.dp)) }) {
+            // app-menu-sessioni-19-11: la riga «Master» apre la chat della master, non la home chiusa; la freccia resta la home.
+            V3Row(true, { pick(it.pixelbox.cmwatch.rules.ContextActions.MASTER) }, { Icon(androidx.compose.material.icons.Icons.Outlined.Home, null, tint = V3.Tx2, modifier = Modifier.size(22.dp)) }) {
                 Text(stringResource(R.string.summary_title), style = V3.Name)
                 Text(stringResource(R.string.menu_home_sub), style = V3.Small)
             }

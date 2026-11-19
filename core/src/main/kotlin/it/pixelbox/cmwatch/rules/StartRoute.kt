@@ -16,6 +16,14 @@ object StartRoute {
      */
     fun masterAtHome(name: String?): Boolean = name == ContextActions.MASTER
 
+    /** Dove porta una scelta del menu «Vai a» o un link: null la home, la master la sua chat nella home, le altre la loro scheda. */
+    data class Go(val open: String?, val masterChat: Boolean)
+    fun go(name: String?, master: String?): Go = when {
+        name == null -> Go(null, false)
+        name == master || masterAtHome(name) -> Go(null, true)
+        else -> Go(name, false)
+    }
+
     fun openSheet(freshLaunch: Boolean, restored: String?): String? = if (freshLaunch) null else restored
 
     /**
