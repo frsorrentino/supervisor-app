@@ -42,7 +42,8 @@
   // Apri la sessione. Una lettura fallita ha Riprova. Stessa forma per una voce aperta da link e da elenco.
   let full = $state<WaitItem | null>(null), fetched = $state<WaitItem[] | null>(null), failed = $state(false), gone = $state(false), slow = $state(false), tries = $state(0)
   const item = $derived(waitShown(id, full, waits.items, gone))
-  const others = $derived((fetched ?? waits.items).filter(x => x.id !== id))
+  // La carta mostrata può avere un id diverso da quello chiesto (un giro dopo, o `replaced_from`): fuori dalle altre anche per card_id.
+  const others = $derived((fetched ?? waits.items).filter(x => x.id !== id && x.id !== item?.id && !(item?.card_id && x.card_id === item.card_id)))
   const mark = $derived(waitLoad(full != null, failed, gone, slow))
   $effect(() => {
     const want = id, n = tries

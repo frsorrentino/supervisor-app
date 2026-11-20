@@ -40,7 +40,7 @@ object TiAspetta {
     fun pageOf(item: it.pixelbox.cmwatch.contract.WaitItem, others: List<it.pixelbox.cmwatch.contract.WaitItem>): Page = Page(
         item.id, kindOf(item.label), item.session, item.at,
         item.msg?.let { m -> Source(m.session ?: item.session.orEmpty(), m.at, m.text, m.key, m.id) },
-        others.filter { o -> o.id != item.id }.map { o -> Other(o.id, kindOf(o.label), o.title?.takeIf { w -> w.isNotBlank() } ?: o.card?.what?.takeIf { w -> w.isNotBlank() } ?: o.text, o.session, o.at) },
+        others.filter { o -> o.id != item.id && (item.cardId == null || o.cardId != item.cardId) }.map { o -> Other(o.id, kindOf(o.label), o.title?.takeIf { w -> w.isNotBlank() } ?: o.card?.what?.takeIf { w -> w.isNotBlank() } ?: o.text, o.session, o.at) },
     )
 
     /**
