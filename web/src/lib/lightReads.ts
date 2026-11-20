@@ -36,6 +36,10 @@ export class LightTransport implements Transport {
   private flying = new Map<string, Promise<CmdResult>>()
   constructor(private inner: Transport, private page: Page = browserPage) {
     this.fetchTail = inner.fetchTail ? (id) => inner.fetchTail!(id) : undefined
+    // app-tasti-riscontro-20-11: senza questi due il giro dei tasti restava su «Mando al PC» per sempre (la demo e la web vera:
+    // la master il 20/11 alle 11:05 con «Ferma» su admin-panel).
+    this.taken = inner.taken ? (id) => inner.taken!(id) : undefined
+    this.peekResult = inner.peekResult ? (id) => inner.peekResult!(id) : undefined
   }
   fetchState() { return this.inner.fetchState() }
   subscribe(onState: Parameters<Transport['subscribe']>[0], onDown?: () => void) { return this.inner.subscribe(onState, onDown) }
@@ -43,6 +47,8 @@ export class LightTransport implements Transport {
   share(id: string, mime: string, data: Uint8Array, name?: string | null) { return this.inner.share(id, mime, data, name) }
   fetchFile(id: string) { return this.inner.fetchFile(id) }
   fetchTail?: Transport['fetchTail']
+  taken?: Transport['taken']
+  peekResult?: Transport['peekResult']
 
   async send(cmd: Cmd): Promise<CmdResult> {
     if (!READ_OPS.has(cmd.op)) { this.writing++; try { return await this.fetch(cmd) } finally { this.writing-- } }

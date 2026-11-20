@@ -64,7 +64,7 @@
   import { currentSubscription, pushStatus, subscribe, subscriptionDoc } from './lib/push'
   import PairPage from './lib/PairPage.svelte'
   import { approveText, canClear, clearDue, handoffPrompt } from './lib/masterService'
-  import { POLL_MS, WAIT_S, final, phase, type Phase } from './lib/cmdTrack'
+  import { final, follow as followCmd } from './lib/cmdTrack'
   import { toggle } from './lib/speech.svelte'
   import Home from './lib/Home.svelte'
   import Chat from './lib/Chat.svelte'
@@ -434,7 +434,6 @@
   const attentionDone = (d: { kind: string; ref: string; since?: number }) => track(newCmd('attention_done', null, d.ref, undefined, undefined, { kind: d.kind, since: d.since }), t.tapDone).then(r => !!r?.ok)
   /** app-chiudi-esito-04-11: i «not closed» del relay, col motivo in italiano. */
   const refusals = (text: string) => closeRefusals(text, t.closeBlocked, t.closeRefusedOther)
-  /** app-tasti-riscontro-20-11 (Franz 20/11 08:35: «ogni tasto dia un feedback»): l'esito riuscito di un tocco; il no lo dice `run`. */
   /**
    * app-tasti-riscontro-20-11 (Franz 20/11 08:35 e 09:46, «Estendi il controllo ai comandi appesi»): manda un comando da un tasto e
    * dice a che punto è finché non c'è un esito, come tapResult sul telefono (le fasi in cmdTrack.ts, uguali a CmdTrack.kt): «Mando
@@ -444,31 +443,17 @@
   async function track(c: Cmd, ok: string, session: string | null = null, send?: () => Promise<CmdResult | null>): Promise<CmdResult | null> {
     if (!tr) { console.info('[cm] comando', c.session, c.op, c.arg, c.text); return null }
     const t0 = tr
-    say(t.tapSending, true)
-    const sentAt = nowS()
-    let r: CmdResult | null = null
-    let settled = false
-    const p = (send ? send() : t0.send(c)).then(x => { if (x) r = x }, () => {}).finally(() => { settled = true })
-    let shown: Phase = 'sending'
-    for (;;) {
-      // Finché l'invio aspetta, il suo esito sveglia subito il giro; dopo, solo il passo: un invio già chiuso vinceva ogni corsa
-      // all'istante e il giro non lasciava più la pagina (la demo bloccata sul comando appeso, «in coda» uguale).
-      const tick = new Promise(res => setTimeout(res, POLL_MS))
-      await (settled ? tick : Promise.race([p, tick]))
-      const el = nowS() - sentAt
-      if (!r && el >= WAIT_S) r = (await t0.peekResult?.(c.id)) ?? null
-      const taken = !r && el >= WAIT_S ? ((await t0.taken?.(c.id)) ?? null) : null
-      const ph = phase(el, r, taken, session ? st.sessions.find(x => x.name === session) ?? null : null, sentAt)
-      if (ph !== shown) {
-        shown = ph
-        const rr = r as CmdResult | null
-        const text = ph === 'sending' ? t.tapSending : ph === 'not_taken' ? t.trackNotTaken : ph === 'working' ? t.trackWorking
-          : ph === 'done' ? `✓ ${ok}` : ph === 'queued' ? (session ? t.trackQueued(session) : t.tapQueued) : ph === 'delivered' ? `✓ ${t.trackDelivered(session ?? '')}`
-          : ph === 'refused' ? `✗ ${rr ? refusalText(rr, c.question ?? null, st.sessions, t.answerAlreadyResolved) : ''}` : `✗ ${t.trackNoAnswer}`
-        say(text, !final(ph))
-      }
-      if (final(ph) || (ph === 'queued' && (!session || el > 3600))) return r
-    }
+    return followCmd({
+      send: send ?? (() => t0.send(c)),
+      taken: t0.taken ? () => t0.taken!(c.id) : undefined,
+      peek: t0.peekResult ? () => t0.peekResult!(c.id) : undefined,
+      session: session ? () => st.sessions.find(x => x.name === session) ?? null : undefined,
+      now: nowS,
+      sleep: ms => new Promise(res => setTimeout(res, ms)),
+      onPhase: (ph, r) => say(ph === 'sending' ? t.tapSending : ph === 'not_taken' ? t.trackNotTaken : ph === 'working' ? t.trackWorking
+        : ph === 'done' ? `✓ ${ok}` : ph === 'queued' ? (session ? t.trackQueued(session) : t.tapQueued) : ph === 'delivered' ? `✓ ${t.trackDelivered(session ?? '')}`
+        : ph === 'refused' ? `✗ ${r ? refusalText(r, c.question ?? null, st.sessions, t.answerAlreadyResolved) : ''}` : `✗ ${t.trackNoAnswer}`, !final(ph)),
+    })
   }
   // `quietClose` (app-chiudi-scheda-20-11): il no di una chiusura lo dice una volta sola la carta della chiusura, non anche l'avviso.
   async function run(c: Cmd, quietClose = false): Promise<CmdResult | null> {
