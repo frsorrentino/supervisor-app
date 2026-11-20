@@ -24,10 +24,12 @@
 <style>
   .pag { display: flex; flex-direction: column; padding: 4px 0 8px; }
   .dim { color: var(--tx2); font-size: 14px; padding: 0 14px 6px; }
-  .row { display: flex; align-items: baseline; gap: 10px; min-height: 40px; padding: 8px 14px; border-top: 1px solid var(--line); }
+  /* app-pagella-sovrapposta-19-11: i casi stanno a destra sulla riga del nome quando ci stanno interi, se no vanno sotto, allineati a
+     destra; prima .k si stringeva sotto la sua parola e a 360 px «correzioni» finiva sotto «14 casi». */
+  .row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; min-height: 40px; padding: 8px 14px; border-top: 1px solid var(--line); }
   .nm { font: 600 15px var(--display); flex: none; }
-  .k { color: var(--tx2); font-size: 14px; flex: 1; min-width: 0; }
-  .v { font: 500 14px var(--mono); color: var(--tx); flex: none; }
+  .k { color: var(--tx2); font-size: 14px; flex: 1 1 auto; overflow-wrap: anywhere; }
+  .v { font: 500 14px var(--mono); color: var(--tx); flex: none; max-width: 100%; margin-left: auto; text-align: right; }
   .v b { font-weight: 500; }
   .v b.bad { color: var(--wait); }
   .adv { font-size: 14px; color: var(--wait); padding: 6px 14px 0; }

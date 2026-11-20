@@ -29,9 +29,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import it.pixelbox.cmwatch.contract.ContiPage
@@ -129,13 +131,46 @@ fun PagellaBody(pagella: Pagella, zone: ZoneId = ZoneId.systemDefault()) {
         Text(stringResource(R.string.pagella_since, DateTimeFormatter.ofPattern("d/M").format(Instant.ofEpochSecond(pagella.since).atZone(zone)), pagella.min), style = V3.Small.copy(fontSize = 14.sp), modifier = Modifier.padding(start = 14.dp, end = 14.dp, bottom = 6.dp))
         rows.forEach { r ->
             Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
-            Row(Modifier.fillMaxWidth().heightIn(min = 40.dp).padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(ContiRules.modelName(r.model), style = V3.Name.copy(fontSize = 15.sp), maxLines = 1)
-                Text(kinds[r.kind]?.let { stringResource(it) } ?: r.kind, style = V3.Small.copy(fontSize = 14.sp), maxLines = 1, modifier = Modifier.weight(1f))
-                val pct = ContiRules.ratePct(r)
-                Text(stringResource(R.string.pagella_cases, r.n) + (pct?.let { p -> " · " + stringResource(R.string.pagella_defects, p) } ?: ""), style = V3.Meter.copy(fontSize = 14.sp, color = if ((pct ?: 0) >= 20) V3.Wait else V3.Tx))
+            val pct = ContiRules.ratePct(r)
+            PagellaLine(Modifier.fillMaxWidth().heightIn(min = 40.dp).padding(horizontal = 14.dp, vertical = 8.dp).testTag("pagella-${r.model}-${r.kind}")) {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(ContiRules.modelName(r.model), style = V3.Name.copy(fontSize = 15.sp), maxLines = 1)
+                    Text(kinds[r.kind]?.let { stringResource(it) } ?: r.kind, style = V3.Small.copy(fontSize = 14.sp))
+                }
+                Text(stringResource(R.string.pagella_cases, r.n) + (pct?.let { p -> " · " + stringResource(R.string.pagella_defects, p) } ?: ""), style = V3.Meter.copy(fontSize = 14.sp, color = if ((pct ?: 0) >= 20) V3.Wait else V3.Tx), textAlign = TextAlign.End)
             }
         }
         pagella.advice.forEach { a -> Text(a, style = V3.Small.copy(fontSize = 14.sp, color = V3.Wait), modifier = Modifier.padding(start = 14.dp, end = 14.dp, top = 6.dp)) }
     }
 }
+
+/**
+ * app-pagella-sovrapposta-19-11: una riga della Pagella. Il nome della prova a sinistra e i casi a destra sulla stessa riga quando ci
+ * stanno; altrimenti i casi vanno sotto, allineati a destra. Mai uno sopra l'altro (prima, a 360 dp, «correzioni» finiva sotto «14 casi»).
+ */
+@Composable
+internal fun PagellaLine(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    val gap = 10.dp
+    val rowGap = 2.dp
+    Layout(content, modifier) { ms, c ->
+        val free = c.copy(minWidth = 0, minHeight = 0)
+        val lead = ms[0].measure(free)
+        val oneLine = pagellaOneLine(lead.width, ms[1].maxIntrinsicWidth(Constraints.Infinity), gap.roundToPx(), c.maxWidth)
+        val cases = ms[1].measure(if (oneLine) free.copy(maxWidth = (c.maxWidth - lead.width - gap.roundToPx()).coerceAtLeast(0)) else free)
+        val w = c.maxWidth
+        val h = if (oneLine) maxOf(lead.height, cases.height) else lead.height + rowGap.roundToPx() + cases.height
+        layout(w, h.coerceAtLeast(c.minHeight)) {
+            val top = ((h.coerceAtLeast(c.minHeight) - h) / 2)
+            if (oneLine) {
+                lead.placeRelative(0, top + (h - lead.height) / 2)
+                cases.placeRelative(w - cases.width, top + (h - cases.height) / 2)
+            } else {
+                lead.placeRelative(0, top)
+                cases.placeRelative(w - cases.width, top + lead.height + rowGap.roundToPx())
+            }
+        }
+    }
+}
+
+/** Nome e casi stanno sulla stessa riga? Solo se ci stanno interi, col loro spazio in mezzo. */
+internal fun pagellaOneLine(lead: Int, cases: Int, gap: Int, max: Int): Boolean = lead + gap + cases <= max
