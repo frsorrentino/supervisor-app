@@ -34,6 +34,12 @@ class MasterHomeTest {
         assertEquals(83, f.rows[2].number)
     }
 
+    /** app-tasti-riscontro-20-11: win:supervisor all'80 % senza comando di handoff aveva il tasto «Handoff, poi /clear», muto. */
+    @Test fun contextOnlyWhereTheSessionHasAHandoff() {
+        val f = MasterHome.forYou(st(s("win:supervisor", ctx = 80).copy(handoff = null), s("kb", ctx = 82).copy(handoff = "/supervisor:handoff --here")), emptyList(), emptyList(), at(15), zone)
+        assertEquals(listOf("kb"), f.rows.map { it.session })
+    }
+
     @Test fun cutAtThreeWithMore() {
         val f = MasterHome.forYou(st(s("a", ctx = 81), s("b", ctx = 82), s("c", ctx = 83), s("d", ctx = 84)), emptyList(), emptyList(), at(15), zone)
         assertEquals(3, f.rows.size); assertEquals(1, f.more)

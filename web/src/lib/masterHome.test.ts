@@ -26,6 +26,10 @@ describe('Per te', () => {
     expect(f.rows.map(r => r.session)).toEqual(['b', 'a', 'master'])
     expect(f.rows[2].number).toBe(83)
   })
+  it('il contesto solo dove la sessione ha un comando di handoff (app-tasti-riscontro-20-11)', () => {
+    const f = fy(st({ ...s('win:supervisor', 'idle', 80), handoff: null }, { ...s('kb', 'idle', 82), handoff: '/supervisor:handoff --here' }), at(15))
+    expect(f.rows.map(r => r.session)).toEqual(['kb'])
+  })
   it('tagliate a tre con il conto delle altre', () => {
     const state = st(s('a', 'idle', 81), s('b', 'idle', 82), s('c', 'idle', 83), s('d', 'idle', 84))
     const f = fy(state, at(15))

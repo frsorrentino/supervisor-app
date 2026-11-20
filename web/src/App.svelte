@@ -322,14 +322,20 @@
 
   // Contratto 1.37, «Handoff, poi /clear»: il /clear parte a turno finito, una volta sola; dopo 3 ore si lascia perdere.
   let clearAfter = $state<Record<string, number>>(tr && !demo ? json('cm.clear_after', {}) : {})
-  function handoff(name: string) {
+  // app-tasti-riscontro-20-11 (Franz 20/11 08:35): il tocco dice subito «Mando l'handoff», poi fatto, in coda o il motivo del no; prima
+  // il prompt finiva solo nella chat e un invio fallito non diceva niente fuori di lì.
+  async function handoff(name: string) {
     const s = st.sessions.find(x => x.name === name)
-    if (!s) return
+    if (!s) { say(`✗ ${t.handoffGone(name)}`); return }
     const clear = canClear(st)
     const prompt = handoffPrompt(st, s, clear ? t.ctxHandoffClearPrompt : t.ctxHandoffPrompt)
-    if (prompt == null) return
-    sendTo(name, prompt)
+    if (prompt == null) { say(`✗ ${t.handoffNone(name)}`); return }
+    say(t.handoffSending(name))
+    const r = await sendResult(name, prompt)
+    if (!tr) return
+    if (!r?.ok) { say(`✗ ${t.handoffFailed(name, r ? r.text : t.noAnswer)}`); return }
     if (clear) { clearAfter = { ...clearAfter, [name]: nowS() }; if (!demo) save('cm.clear_after', JSON.stringify(clearAfter)) }
+    say(`✓ ${r.text?.startsWith('queued:') ? t.handoffQueued(name) : clear ? t.handoffSentClear(name) : t.handoffSent(name)}`)
   }
   function clearsDue(s: State) {
     const next = { ...clearAfter }
@@ -425,9 +431,11 @@
 
   /** Un comando al relay; il rifiuto si mostra in basso. */
   /** Contratto 1.80: «Fatto» su una ferma: la richiesta si chiude sul PC (kind e ref, since per una ferma del turno). */
-  const attentionDone = (d: { kind: string; ref: string; since?: number }) => run(newCmd('attention_done', null, d.ref, undefined, undefined, { kind: d.kind, since: d.since })).then(r => !!r?.ok)
+  const attentionDone = (d: { kind: string; ref: string; since?: number }) => (say(t.tapSending), run(newCmd('attention_done', null, d.ref, undefined, undefined, { kind: d.kind, since: d.since }))).then(r => (tapSaid(r), r)).then(r => !!r?.ok)
   /** app-chiudi-esito-04-11: i «not closed» del relay, col motivo in italiano. */
   const refusals = (text: string) => closeRefusals(text, t.closeBlocked, t.closeRefusedOther)
+  /** app-tasti-riscontro-20-11 (Franz 20/11 08:35: «ogni tasto dia un feedback»): l'esito riuscito di un tocco; il no lo dice `run`. */
+  function tapSaid(r: CmdResult | null) { if (r?.ok) say(`✓ ${r.text?.startsWith('queued:') ? t.tapQueued : t.tapDone}`) }
   async function run(c: Cmd): Promise<CmdResult | null> {
     if (!tr) { console.info('[cm] comando', c.session, c.op, c.arg, c.text); return null }
     try {
@@ -1866,9 +1874,14 @@
   /** Vero se il PC ha preso il messaggio (app-feedback-azioni-02-11: chi ha toccato sa se la scheda può uscire). */
   async function sendTo(name: string, text: string): Promise<boolean> {
     // Senza trasporto il messaggio resta «inviato al PC».
+    const r = await sendResult(name, text)
+    return tr ? !!r?.ok : true
+  }
+  /** Il prompt e la risposta del PC; null se il PC non ha risposto (o senza trasporto). */
+  async function sendResult(name: string, text: string): Promise<CmdResult | null> {
     const m: Sent = { id: crypto.randomUUID(), session: name, text, sentAt: nowS() }
     msgs = [...msgs, m]
-    if (!tr) return true
+    if (!tr) return null
     pend = { ...pend, [m.id]: 'sending' }
     const done = answering(name)
     // Contratto 1.65: a una sessione chiusa il relay la riapre e poi consegna.
@@ -1878,8 +1891,8 @@
       const r = await tr.send({ ...newCmd('prompt', name, text), id: m.id, ...(closed ? { reopen: true } : {}) })
       res = { ...res, [m.id]: r }
       done(r)
-      return r.ok
-    } catch { pend = { ...pend, [m.id]: 'failed' }; done(null); return false }
+      return r
+    } catch { pend = { ...pend, [m.id]: 'failed' }; done(null); return null }
   }
   // Contratto 1.64: un tocco = un comando; riuscito, si apre la sessione nata.
   async function newProject(parent: string, name: string, first: string, confirm: boolean): Promise<CmdResult | null> {
@@ -2073,7 +2086,9 @@
     } else {
       const c = newCmd(op, name || null, arg, text, rawSt.sessions.find(x => x.name === name)?.question?.id)
       const done = name && (op === 'answer' || op === 'allow_all') ? answering(name) : null
-      run(c).then(r => done?.(r))
+      // app-tasti-riscontro-20-11: ogni tasto dice «Mando al PC», poi fatto o in coda; il no del PC lo dice già `run`.
+      say(t.tapSending)
+      run(c).then(r => { done?.(r); tapSaid(r) })
     }
   }
   // La conversazione di quello che è a schermo, la master sempre (vive nella home), alla cadenza del telefono e una lettura
@@ -2350,7 +2365,7 @@
         devices={linkedDevices(st, remote?.uid ?? null, now) ?? []} now={now} channel={access ? t.channelLocal : remote ? t.channelFirebase : t.channelDemo} onRate={setRate} onVoice={setVoice}
         details={wide ? details : null} onDetails={(on) => { details = on; save('cm.details', on ? '1' : '0') }} {push} onPush={setPush}
         onFeatures={() => openPage('features')} onHomeOrder={st.ops?.includes('home_order') ? () => openPage('homeorder') : null} onAdd={tr && st.ops?.includes('pair_add') ? () => addDlg?.open() : null} demo={!!demo}
-        onRevoke={tr && !demo && st.ops?.includes('unpair') ? (uid) => run(newCmd('unpair', null, uid)) : null}
+        onRevoke={tr && !demo && st.ops?.includes('unpair') ? (uid) => { say(t.tapSending); return run(newCmd('unpair', null, uid)).then(r => (tapSaid(r), r)) } : null}
         maxSessions={kpiData?.kpi_health?.sessions_max ?? null} onMaxSessions={tr && canSetMax(st.ops) ? setMaxSessions : null} />
     {:else if p === 'box-aspetta' || p === 'box-lavoro' || p === 'box-esiti'}
       <HomeBox box={p === 'box-aspetta' ? 'aspetta' : p === 'box-lavoro' ? 'lavoro' : 'esiti'} st={stShown} page={kpiPage} {now} onSession={(n) => { openPage(null); pick(n) }} onProve={() => openPage('prove')} />

@@ -53,6 +53,9 @@ const it = {
   ctxHandoffClear: 'Handoff, poi /clear', ctxHandoffClearSub: 'Scrive il punto in docs, poi svuota il contesto a turno finito',
   ctxCompactSub: '/compact: riassume e tiene il filo', ctxWiderSub: 'Stesso modello, più spazio',
   ctxHandoffClearPrompt: (c: string) => `Scrivi l'handoff con ${c}.`,
+  // app-tasti-riscontro-20-11 (Franz 20/11 08:35: «ogni tasto dia un feedback»): «Handoff, poi /clear» dice cosa succede.
+  tapSending: 'Mando al PC', tapDone: 'Fatto', tapQueued: 'In coda: la sessione lo legge a fine turno',
+  handoffSending: (n: string) => `Mando l'handoff a ${n}`, handoffSent: (n: string) => `Handoff mandato a ${n}`, handoffSentClear: (n: string) => `Handoff mandato a ${n}: il /clear parte a turno finito`, handoffQueued: (n: string) => `Handoff in coda: ${n} lavora, lo legge a fine turno`, handoffFailed: (n: string, why: string) => `Handoff a ${n} non mandato: ${why}`, handoffNone: (n: string) => `${n} non ha un comando di handoff`, handoffGone: (n: string) => `${n} non c'è più fra le sessioni`,
   ctxNudge: (p: number) => `Contesto al ${p}%`, ctxNudgeSub: 'Handoff, poi /clear', ctxNudgeGo: 'Fallo',
   cleanupOpen: 'aperta', cleanupFinished: 'ha finito il compito', cleanupFinishedAt: (hm: string) => `ha finito il compito alle ${hm}`,
   cleanupAttached: 'Finestra aperta sul PC: si chiude da lì',
@@ -540,6 +543,8 @@ const en: typeof it = {
   ctxHandoffClear: 'Handoff, then /clear', ctxHandoffClearSub: 'Writes where things stand in docs, then clears the context when the turn ends',
   ctxCompactSub: '/compact: summarises and keeps the thread', ctxWiderSub: 'Same model, more room',
   ctxHandoffClearPrompt: (c: string) => `Write the handoff with ${c}.`,
+  tapSending: 'Sending to the PC', tapDone: 'Done', tapQueued: 'Queued: the session reads it when the turn ends',
+  handoffSending: (n: string) => `Sending the handoff to ${n}`, handoffSent: (n: string) => `Handoff sent to ${n}`, handoffSentClear: (n: string) => `Handoff sent to ${n}: /clear runs when the turn ends`, handoffQueued: (n: string) => `Handoff queued: ${n} is working, it reads it when the turn ends`, handoffFailed: (n: string, why: string) => `Handoff to ${n} not sent: ${why}`, handoffNone: (n: string) => `${n} has no handoff command`, handoffGone: (n: string) => `${n} is no longer among the sessions`,
   ctxNudge: (p: number) => `Context at ${p}%`, ctxNudgeSub: 'Handoff, then /clear', ctxNudgeGo: 'Do it',
   cleanupOpen: 'open', cleanupFinished: 'finished its task', cleanupFinishedAt: (hm: string) => `finished its task at ${hm}`,
   cleanupAttached: 'Window open on the PC: close it there',

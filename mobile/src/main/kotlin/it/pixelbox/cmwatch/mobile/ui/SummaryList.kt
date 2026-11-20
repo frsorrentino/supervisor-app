@@ -2199,13 +2199,17 @@ private fun detailLabel(k: Lavori.Detail): Int = when (k) {
 @Composable
 private fun ServiceLine(row: MasterHome.Row, onAction: () -> Unit) {
     val (title, detail, action) = serviceText(row)
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Icon(Icons.Rounded.WarningAmber, null, tint = Cm.briefWarn, modifier = Modifier.size(22.dp))
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium), color = Cm.text, maxLines = 1, overflow = TextOverflow.Clip)
-            detail?.let { Text(it, style = MonoSmall.copy(color = Cm.text2), maxLines = 1, overflow = TextOverflow.Clip) }
+    // Il testo intero e il tasto sotto, a destra (app-tasti-riscontro-20-11: nella scheda K a 80 % si leggeva «Contesto di» /
+    // «Conviene un», il resto tagliato dal tasto accanto).
+    Column(Modifier.fillMaxWidth().testTag("service-${row.kind.name.lowercase()}"), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Icon(Icons.Rounded.WarningAmber, null, tint = Cm.briefWarn, modifier = Modifier.size(22.dp))
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                Text(title, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium), color = Cm.text)
+                detail?.let { Text(it, style = MonoSmall.copy(color = Cm.text2)) }
+            }
         }
-        MiniButton(stringResource(action), filled = false, onClick = onAction)
+        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) { MiniButton(stringResource(action), filled = false, onClick = onAction) }
     }
 }
 

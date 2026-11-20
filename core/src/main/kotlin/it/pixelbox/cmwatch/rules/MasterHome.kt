@@ -71,7 +71,9 @@ object MasterHome {
                 }
                 .sortedByDescending { it.second.at }
                 .forEach { (s, o) -> add(Row(Kind.FINISHED, s.name, o.full, s.name, key = finishedKey(s.name, o.at), at = o.at)) }
-            live.filter { ContextActions.urgent(it.context) }.sortedByDescending { it.context }
+            // app-tasti-riscontro-20-11: «Handoff, poi /clear» solo dove la sessione ha un comando di handoff (contratto 1.51); su
+            // win:supervisor (handoff null) il tasto c'era e il tocco non mandava niente.
+            live.filter { ContextActions.urgent(it.context) && ContextActions.handoffPrompt(state, it) { c -> c } != null }.sortedByDescending { it.context }
                 .forEach { s -> add(Row(Kind.CONTEXT, s.name, session = s.name, number = s.context)) }
             if (local.hour < MORNING_END) events.filter { it.kind == EventKind.NIGHT_REPORT }.maxByOrNull { it.ts }
                 ?.takeIf { e -> Instant.ofEpochSecond(e.ts).atZone(zone).toLocalDate() == today && e.key !in read }

@@ -552,6 +552,29 @@
     <string name="ctx_title">Context %1$d%%</string>
     <string name="ctx_handoff">Write the handoff and restart clean</string>
     <string name="ctx_handoff_prompt">Write the handoff with %1$s, then I send /clear.</string>
+    <!-- app-tasti-riscontro-20-11: «Handoff, poi /clear» dalla home dice cosa succede. -->
+    <string name="handoff_sending">Sending the handoff to %1$s</string>
+    <string name="handoff_sent">Handoff sent to %1$s</string>
+    <string name="handoff_sent_clear">Handoff sent to %1$s: /clear runs when the turn ends</string>
+    <string name="handoff_queued">Handoff queued: %1$s is working, it reads it when the turn ends</string>
+    <string name="handoff_failed">Handoff to %1$s not sent: %2$s</string>
+    <string name="handoff_none">%1$s has no handoff command</string>
+    <string name="handoff_gone">%1$s is no longer among the sessions</string>
+    <string name="handoff_no_answer">the PC did not answer</string>
+    <!-- app-tasti-riscontro-20-11: il riscontro comune dei tocchi che mandano un comando (tapResult). -->
+    <string name="tap_sending">Sending to the PC</string>
+    <string name="tap_not_sent">Not sent: %1$s</string>
+    <string name="tap_no_answer">The PC did not answer: try again</string>
+    <string name="tap_refused">The PC says no: %1$s</string>
+    <string name="tap_queued">Queued: the session reads it when the turn ends</string>
+    <string name="tap_done">Done</string>
+    <string name="tap_revoked">Device revoked</string>
+    <string name="tap_sent_to">Sent to %1$s</string>
+    <string name="tap_launched">Started %1$s</string>
+    <string name="tap_permission">Permissions changed</string>
+    <string name="tap_interrupted">Stopped %1$s</string>
+    <string name="tap_answered">Answer sent to %1$s</string>
+    <string name="tap_reopening">Reopening %1$s</string>
     <string name="ctx_compact">Compact the conversation</string>
     <string name="ctx_wider">Switch to the 1M window</string>
     <string name="ask_master">Ask the master to check</string>

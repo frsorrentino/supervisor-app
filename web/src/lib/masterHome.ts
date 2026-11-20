@@ -2,6 +2,7 @@ import type { Event, Session, State } from './contract'
 import { blockingOf, parseSteps } from './nextSteps'
 import { FINISHED_S, MASTER, finishedKey, type Sent } from './summary'
 import { dtf } from './dtf'
+import { handoffPrompt } from './masterService'
 
 // La casa della master, porta di MasterHome.kt: l'ultimo esito in testa, «Per te» e il gruppo «al lavoro». «Per te» in
 // ordine di urgenza: domande, turni finiti, contesto dall'80 %, resoconto della notte (la mattina, finché non è letto), notte
@@ -50,7 +51,8 @@ export function forYou(
       })
       .sort((a, b) => b.outcome!.at - a.outcome!.at)
       .map(s => ({ kind: 'finished' as const, title: s.name, detail: s.outcome!.full, session: s.name, key: finishedKey(s.name, s.outcome!.at), at: s.outcome!.at })),
-    ...live.filter(s => s.context != null && s.context >= URGENT).sort((a, b) => b.context! - a.context!)
+    // app-tasti-riscontro-20-11: «Handoff, poi /clear» solo dove la sessione ha un comando di handoff (contratto 1.51).
+    ...live.filter(s => s.context != null && s.context >= URGENT && handoffPrompt(state, s, c => c) != null).sort((a, b) => b.context! - a.context!)
       .map(s => ({ kind: 'context' as const, title: s.name, session: s.name, number: s.context! })),
   ]
   if (hour < MORNING_END) {

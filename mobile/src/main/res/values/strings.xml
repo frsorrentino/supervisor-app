@@ -562,6 +562,29 @@
     <string name="ctx_title">Contesto %1$d%%</string>
     <string name="ctx_handoff">Scrivi l\'handoff e riparti pulita</string>
     <string name="ctx_handoff_prompt">Scrivi l\'handoff con %1$s, poi io mando /clear.</string>
+    <!-- app-tasti-riscontro-20-11: «Handoff, poi /clear» dalla home dice cosa succede. -->
+    <string name="handoff_sending">Mando l\'handoff a %1$s</string>
+    <string name="handoff_sent">Handoff mandato a %1$s</string>
+    <string name="handoff_sent_clear">Handoff mandato a %1$s: il /clear parte a turno finito</string>
+    <string name="handoff_queued">Handoff in coda: %1$s lavora, lo legge a fine turno</string>
+    <string name="handoff_failed">Handoff a %1$s non mandato: %2$s</string>
+    <string name="handoff_none">%1$s non ha un comando di handoff</string>
+    <string name="handoff_gone">%1$s non c\'è più fra le sessioni</string>
+    <string name="handoff_no_answer">il PC non ha risposto</string>
+    <!-- app-tasti-riscontro-20-11: il riscontro comune dei tocchi che mandano un comando (tapResult). -->
+    <string name="tap_sending">Mando al PC</string>
+    <string name="tap_not_sent">Non partito: %1$s</string>
+    <string name="tap_no_answer">Il PC non ha risposto: riprova</string>
+    <string name="tap_refused">Il PC dice di no: %1$s</string>
+    <string name="tap_queued">In coda: la sessione lo legge a fine turno</string>
+    <string name="tap_done">Fatto</string>
+    <string name="tap_revoked">Dispositivo revocato</string>
+    <string name="tap_sent_to">Mandato a %1$s</string>
+    <string name="tap_launched">Avviata %1$s</string>
+    <string name="tap_permission">Permessi cambiati</string>
+    <string name="tap_interrupted">Fermata %1$s</string>
+    <string name="tap_answered">Risposta mandata a %1$s</string>
+    <string name="tap_reopening">Riapro %1$s</string>
     <string name="ctx_compact">Compatta la conversazione</string>
     <string name="ctx_wider">Passa alla finestra da 1M</string>
     <string name="ask_master">Fai controllare alla master</string>

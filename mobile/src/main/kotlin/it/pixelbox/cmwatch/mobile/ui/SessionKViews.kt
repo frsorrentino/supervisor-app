@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -100,7 +101,9 @@ internal fun KRow(label: String, mono: Boolean = false, onTap: (() -> Unit)? = n
             .padding(vertical = 10.dp),
         verticalAlignment = Alignment.Top,
     ) {
-        Text(label, style = if (mono) V3.Meter.copy(color = V3.Tx2) else V3.Small.copy(color = V3.Tx2), maxLines = 2, modifier = Modifier.width(KLabel).padding(top = 1.dp))
+        // Mai una parola spezzata (app-tasti-riscontro-20-11: col testo grande di Franz «Contest» / «o»): la colonna è larga KLabel
+        // o quanto la parola più lunga dell'etichetta, e va a capo solo fra le parole.
+        Text(label, style = if (mono) V3.Meter.copy(color = V3.Tx2) else V3.Small.copy(color = V3.Tx2), maxLines = 2, modifier = Modifier.widthIn(min = KLabel).width(IntrinsicSize.Min).padding(top = 1.dp))
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) { content() }
         if (action != null) Row(Modifier.padding(start = 10.dp).align(Alignment.CenterVertically), verticalAlignment = Alignment.CenterVertically) { action() }

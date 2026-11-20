@@ -98,6 +98,29 @@ class MainActivity : ComponentActivity() {
     }
 
     private val app get() = application as PhoneApp
+
+    /**
+     * app-tasti-riscontro-20-11 (Franz 20/11 08:35: «Occorre che ogni tasto dia un feedback all'utente»): un tocco che manda un
+     * comando dice subito «Mando al PC», poi [ok], «in coda» o il motivo del no detto dal PC; un invio che non parte o un PC che non
+     * risponde lo dicono in chiaro. [sent] riceve l'id quando il comando è partito (la voce della chat, il ricaricamento).
+     */
+    private fun tapResult(scope: kotlinx.coroutines.CoroutineScope, ok: String, sent: (String) -> Unit = {}, send: suspend () -> String) {
+        fun say(text: String) = android.widget.Toast.makeText(this, text, android.widget.Toast.LENGTH_SHORT).show()
+        say(getString(R.string.tap_sending))
+        scope.launch {
+            val r0 = runCatching { send() }
+            val id = r0.getOrNull()
+            if (id == null) { say(getString(R.string.tap_not_sent, r0.exceptionOrNull()?.message ?: getString(R.string.queue_full))); return@launch }
+            sent(id)
+            val r = kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(id) }[id] }
+            say(when {
+                r == null -> getString(R.string.tap_no_answer)
+                !r.ok -> getString(R.string.tap_refused, r.text)
+                r.text.startsWith("queued:") -> getString(R.string.tap_queued)
+                else -> ok
+            })
+        }
+    }
     private val speech get() = (application as PhoneApp).speech
     private val readingOverlay = it.pixelbox.cmwatch.mobile.ui.ReadingOverlay()
     private val localeManager by lazy { getSystemService(android.app.LocaleManager::class.java) }
@@ -368,7 +391,7 @@ class MainActivity : ComponentActivity() {
         // Le frecce della home e della plancia (app-frecce-plancia-tablet-07-11): quello che è aperto resta quando la lista si rifà.
         val homeFolds = remember { it.pixelbox.cmwatch.mobile.ui.HomeFolds() }
         // Contratto 1.80: «Fatto» su una ferma: la richiesta si chiude sul PC (kind e ref, since per una ferma del turno).
-        val attentionDone: (it.pixelbox.cmwatch.rules.AttentionQueue.Done) -> Unit = { d -> scope.launch { runCatching { app.repo.command(CmdOp.ATTENTION_DONE, null, d.ref, kind = d.kind, since = d.since) } } }
+        val attentionDone: (it.pixelbox.cmwatch.rules.AttentionQueue.Done) -> Unit = { d -> tapResult(scope, getString(R.string.tap_done)) { app.repo.command(CmdOp.ATTENTION_DONE, null, d.ref, kind = d.kind, since = d.since) } }
         // La chat dal cui banner si è aperta la coda: non è in fila, come nel conto del banner (23/10, come la web).
         var queueSkip by rememberSaveable { mutableStateOf<String?>(null) }
         // La Panoramica in un foglio dal basso sopra la scheda (Franz, 01/10 12:34): si guarda la quota e si torna.
@@ -836,7 +859,7 @@ class MainActivity : ComponentActivity() {
                 // Contratto 1.32: lo schema dei collegamenti con i dispositivi veri; «questo» è il primo uid dell'accoppiamento.
                 linked = it.pixelbox.cmwatch.rules.SettingsDevices.linked(state, r?.uids?.firstOrNull(), now),
                 // Contratto 1.89: Revoca dall'elenco; il relay toglie il dispositivo e lo stato dopo lo mostra senza.
-                onRevoke = if (!demo && state?.ops?.contains("unpair") == true) ({ uid -> scope.launch { runCatching { app.repo.command(CmdOp.UNPAIR, null, uid) } } }) else null,
+                onRevoke = if (!demo && state?.ops?.contains("unpair") == true) ({ uid -> tapResult(scope, getString(R.string.tap_revoked)) { app.repo.command(CmdOp.UNPAIR, null, uid) } }) else null,
             ) }
             return
         }
@@ -1013,17 +1036,16 @@ class MainActivity : ComponentActivity() {
                     if (n == it.pixelbox.cmwatch.rules.ContextActions.MASTER) { open = null; masterChat = true } else open = n
                 },
                 onTranscript = { title, sid -> sidOf[title] = sid; nightOpen = false; tab = StartRoute.Tab.OVERVIEW; open = title },
-                onAnswer = { n, x -> scope.launch { runCatching { app.repo.answer(n, x) } } },
+                onAnswer = { n, x -> tapResult(scope, getString(R.string.tap_sent_to, n)) { app.repo.answer(n, x) } },
                 onApprove = { task -> okPending.add(task); scope.launch {
                     val also = state?.approvals?.firstOrNull { a -> a.task == task }?.let { a -> it.pixelbox.cmwatch.rules.OkInformato.also(a) }
                     val id = runCatching { app.repo.command(CmdOp.APPROVE, null, task, it.pixelbox.cmwatch.rules.MasterService.approveText(""), also = also) }.getOrNull()
                     val r = id?.let { kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(it) }[it] } }
                     if (r?.ok != true) okPending.remove(task)
+                    android.widget.Toast.makeText(this@MainActivity, if (r?.ok == true) getString(R.string.approved) else r?.text ?: getString(R.string.approve_refused), android.widget.Toast.LENGTH_SHORT).show()
                 } },
                 onSend = { n, text ->
-                    scope.launch {
-                        runCatching { app.repo.prompt(n, text) }.getOrNull()?.let { id -> app.chatLog.add(Sent(id, n, text, System.currentTimeMillis() / 1000)) }
-                    }
+                    tapResult(scope, getString(R.string.tap_sent_to, n), { id -> app.chatLog.add(Sent(id, n, text, System.currentTimeMillis() / 1000)) }) { app.repo.prompt(n, text) }
                 },
             ) }
             return
@@ -1051,14 +1073,14 @@ class MainActivity : ComponentActivity() {
         if (queueOpen && state != null) {
             // La coda usa solo la card della domanda: risposta, «Parliamone», «Consenti tutto» e la lettura a voce.
             it.pixelbox.cmwatch.mobile.ui.PageIn { QueueScreen(state, now, skip = queueSkip, onDone = attentionDone, onOk = { name, text ->
-                scope.launch { runCatching { app.repo.prompt(name, text) }.getOrNull()?.let { id -> app.chatLog.add(Sent(id, name, text, System.currentTimeMillis() / 1000)) } }
+                tapResult(scope, getString(R.string.tap_sent_to, name), { id -> app.chatLog.add(Sent(id, name, text, System.currentTimeMillis() / 1000)) }) { app.repo.prompt(name, text) }
             }, actionsFor = { s ->
                 SheetActions(
-                    answer = { n -> scope.launch { app.repo.answer(s.name, n) } },
-                    allowAll = { scope.launch { app.repo.command(CmdOp.ALLOW_ALL, s.name, null) } },
+                    answer = { n -> tapResult(scope, getString(R.string.tap_answered, s.name)) { app.repo.answer(s.name, n) } },
+                    allowAll = { tapResult(scope, getString(R.string.tap_done)) { app.repo.command(CmdOp.ALLOW_ALL, s.name, null) } },
                     send = { _, _ -> }, follow = {}, reopen = {}, terminal = {}, openInClaude = {},
                     speak = { t -> speech.toggle(t, s.name) }, retry = {},
-                    chat = { scope.launch { app.repo.chat(s.name) }; queueOpen = false; open = s.name },
+                    chat = { tapResult(scope, getString(R.string.tap_sent_to, s.name)) { app.repo.chat(s.name) }; queueOpen = false; open = s.name },
                 )
             }, onSession = { n -> queueOpen = false; open = n }) }
             return
@@ -1364,8 +1386,37 @@ class MainActivity : ComponentActivity() {
         val speaking by speech.speaking.collectAsStateWithLifecycle()
         // Un prompt a una sessione, registrato nella sua chat come quelli scritti a mano.
         val sendPrompt: (String, String) -> Unit = { name, text ->
-            scope.launch {
-                runCatching { app.repo.prompt(name, text) }.getOrNull()?.let { id -> app.chatLog.add(Sent(id, name, text, System.currentTimeMillis() / 1000)) }
+            tapResult(scope, getString(R.string.tap_sent_to, name), { id -> app.chatLog.add(Sent(id, name, text, System.currentTimeMillis() / 1000)) }) { app.repo.prompt(name, text) }
+        }
+        // app-tasti-riscontro-20-11 (Franz 20/11 08:35: «ogni tasto dia un feedback»): «Handoff, poi /clear» dalla home dice subito
+        // «Mando l'handoff», poi fatto, in coda o il motivo del no. Prima l'invio fallito si perdeva e quello riuscito finiva solo in chat.
+        val handoffHome: (String) -> Unit = { n ->
+            fun say(text: String) = android.widget.Toast.makeText(this@MainActivity, text, android.widget.Toast.LENGTH_LONG).show()
+            val st0 = state
+            val s0 = st0?.sessions?.firstOrNull { x -> x.name == n }
+            val clear = st0 != null && it.pixelbox.cmwatch.rules.ContextActions.canClear(st0)
+            val prompt = if (st0 != null && s0 != null) it.pixelbox.cmwatch.rules.ContextActions.handoffPrompt(st0, s0) { c -> getString(if (clear) R.string.ctx_handoff_clear_prompt else R.string.ctx_handoff_prompt, c) } else null
+            when {
+                s0 == null -> say(getString(R.string.handoff_gone, n))
+                prompt == null -> say(getString(R.string.handoff_none, n))
+                else -> {
+                    say(getString(R.string.handoff_sending, n))
+                    scope.launch {
+                        val sent = runCatching { app.repo.prompt(n, prompt) }
+                        val id = sent.getOrNull()
+                        if (id == null) { say(getString(R.string.handoff_failed, n, sent.exceptionOrNull()?.message ?: getString(R.string.queue_full))); return@launch }
+                        app.chatLog.add(Sent(id, n, prompt, System.currentTimeMillis() / 1000))
+                        val r = kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(id) }[id] }
+                        when {
+                            r == null -> say(getString(R.string.handoff_failed, n, getString(R.string.handoff_no_answer)))
+                            !r.ok -> say(getString(R.string.handoff_failed, n, r.text))
+                            else -> {
+                                if (clear) clearAfter.edit().putLong(n, System.currentTimeMillis() / 1000).apply()
+                                say(getString(if (r.text.startsWith("queued:")) R.string.handoff_queued else if (clear) R.string.handoff_sent_clear else R.string.handoff_sent, n))
+                            }
+                        }
+                    }
+                }
             }
         }
         // La pagina e la sezione «Lavori» (mockup approvato il 22/10): l'ok a un compito, «Fatto» su una pausa che aspetta te
@@ -1507,14 +1558,16 @@ class MainActivity : ComponentActivity() {
         }
         val decApprove: (String, String?) -> Unit = { task, choice -> scope.launch {
             val also = state?.approvals?.firstOrNull { a -> a.task == task }?.let { a -> it.pixelbox.cmwatch.rules.OkInformato.also(a) }
-            runCatching { app.repo.command(CmdOp.APPROVE, null, task, it.pixelbox.cmwatch.rules.MasterService.approveText(""), choice = choice, also = also) }
+            val id = runCatching { app.repo.command(CmdOp.APPROVE, null, task, it.pixelbox.cmwatch.rules.MasterService.approveText(""), choice = choice, also = also) }.getOrNull()
+            val r = id?.let { kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(it) }[it] } }
+            android.widget.Toast.makeText(this@MainActivity, if (r?.ok == true) getString(R.string.approved) else r?.text ?: getString(R.string.approve_refused), android.widget.Toast.LENGTH_SHORT).show()
             readDecide()
         } }
         // Contratto 1.104: Procedi su una pausa, una scelta e Parliamone arrivano alla master come messaggio; Parliamone spiega senza eseguire.
         val decAsk: (String) -> Unit = { text -> sendPrompt(it.pixelbox.cmwatch.rules.ContextActions.MASTER, text) }
         val decDone: (it.pixelbox.cmwatch.contract.DecisionItem) -> Unit = { i ->
             val c = i.task?.let { t -> state?.commitments?.firstOrNull { x -> x.task == t } }
-            if (i.kind == "needs_you") scope.launch { i.session?.let { n -> runCatching { app.repo.command(CmdOp.ATTENTION_DONE, null, n, kind = "needs_you", since = i.since) } }; readDecide() }
+            if (i.kind == "needs_you") i.session?.let { n -> tapResult(scope, getString(R.string.tap_done), { scope.launch { kotlinx.coroutines.delay(1500); readDecide() } }) { app.repo.command(CmdOp.ATTENTION_DONE, null, n, kind = "needs_you", since = i.since) } }
             else c?.let { x -> sendPrompt(it.pixelbox.cmwatch.rules.ContextActions.MASTER, getString(R.string.lavori_done_prompt, x.paused?.reason ?: i.reason.orEmpty(), x.task)) }
         }
         // I corpi delle voci nuove, gli stessi delle pagine: si aprono sul posto nella home.
@@ -1965,27 +2018,14 @@ class MainActivity : ComponentActivity() {
                 else -> Unit
             }
         }
-        val restartClean: (String) -> Unit = { n ->
-            state?.let { st0 ->
-                st0.sessions.firstOrNull { x -> x.name == n }?.let { s0 ->
-                    val clear = it.pixelbox.cmwatch.rules.ContextActions.canClear(st0)
-                    it.pixelbox.cmwatch.rules.ContextActions.handoffPrompt(st0, s0) { c -> getString(if (clear) R.string.ctx_handoff_clear_prompt else R.string.ctx_handoff_prompt, c) }?.let { p ->
-                        sendPrompt(n, p)
-                        if (clear) clearAfter.edit().putLong(n, System.currentTimeMillis() / 1000).apply()
-                    }
-                }
-            }
-        }
+        val restartClean: (String) -> Unit = handoffHome
         val forYouAction: (it.pixelbox.cmwatch.rules.MasterHome.Row) -> Unit = { row ->
             when (row.kind) {
                 // Variante 3 (02/10 21:11): la riga si apre sul posto; «Apri la conversazione» porta alla sessione.
                 it.pixelbox.cmwatch.rules.MasterHome.Kind.QUESTION -> { open = row.session }
                 it.pixelbox.cmwatch.rules.MasterHome.Kind.FINISHED -> { row.key?.let(markRead); open = row.session }
-                it.pixelbox.cmwatch.rules.MasterHome.Kind.CONTEXT -> row.session?.let { n ->
-                    val st0 = state ?: return@let
-                    val s0 = st0.sessions.firstOrNull { it.name == n } ?: return@let
-                    it.pixelbox.cmwatch.rules.ContextActions.handoffPrompt(st0, s0) { c -> getString(R.string.ctx_handoff_prompt, c) }?.let { p -> sendPrompt(n, p) }
-                }
+                // Il tasto della riga dice «Handoff, poi /clear»: anche qui il /clear a turno finito, come dal menu (app-tasti-riscontro-20-11).
+                it.pixelbox.cmwatch.rules.MasterHome.Kind.CONTEXT -> row.session?.let(handoffHome)
                 it.pixelbox.cmwatch.rules.MasterHome.Kind.NIGHT_REPORT -> { row.detail?.let { speech.toggle(it) }; row.key?.let(markRead) }
                 it.pixelbox.cmwatch.rules.MasterHome.Kind.NIGHT -> nightAdding = true
                 it.pixelbox.cmwatch.rules.MasterHome.Kind.NEXT_STEP -> {
@@ -1993,7 +2033,7 @@ class MainActivity : ComponentActivity() {
                     val n = row.session
                     markRead(it.pixelbox.cmwatch.rules.MasterHome.nextKey(row.title, text))
                     // Con la coda senza rete piena il comando si rifiuta: niente chiusura dell'app (revisione finale 02/10).
-                    if (n != null) sendPrompt(n, text) else row.project?.let { p -> scope.launch { runCatching { app.repo.command(CmdOp.LAUNCH, null, p, text.ifBlank { null }) } } }
+                    if (n != null) sendPrompt(n, text) else row.project?.let { p -> tapResult(scope, getString(R.string.tap_launched, p)) { app.repo.command(CmdOp.LAUNCH, null, p, text.ifBlank { null }) } }
                 }
                 it.pixelbox.cmwatch.rules.MasterHome.Kind.SCHEDULED -> { open = row.session }
             }
@@ -2139,8 +2179,8 @@ class MainActivity : ComponentActivity() {
                         val seenPath: (String) -> Unit = { p -> it.pixelbox.cmwatch.rules.Guardare.seenByPath(state?.results?.items.orEmpty(), p).forEach { id -> guardare.seen(it.pixelbox.cmwatch.contract.ResultItem(id)) } }
                         CompositionLocalProvider(it.pixelbox.cmwatch.mobile.ui.LocalSeenPath provides seenPath, it.pixelbox.cmwatch.mobile.ui.LocalWaitFiles provides waitFiles(), LocalFileOpener provides FileOpener({ k, f -> seenPath(f.path); openFile(session.name, k, f) }, fileLoading.toSet(), fileLocal.toMap(), { k, f, a -> fileAct(session.name, k, f, a) }, { k, f -> withFile(session.name, k, f, true) { _, _ -> } }, unmetered, actAll = { all, a -> fileActAll(session.name, all, a) }), LocalDiffOpener provides readDiff(session.name).copy(got = remember(session.name) { mutableMapOf() })) {
                         SessionSheet(session, now, snap.pending, ttsMinChars, SheetActions(
-                            answer = { n -> scope.launch { app.repo.answer(session.name, n) } },
-                            allowAll = { scope.launch { app.repo.command(CmdOp.ALLOW_ALL, session.name, null) } },
+                            answer = { n -> tapResult(scope, getString(R.string.tap_answered, session.name)) { app.repo.answer(session.name, n) } },
+                            allowAll = { tapResult(scope, getString(R.string.tap_done)) { app.repo.command(CmdOp.ALLOW_ALL, session.name, null) } },
                             send = { target, text -> sendAndLog(target, text) },
                             // «@nome» dalla chat della master: il messaggio va a quella sessione e ci si resta.
                             sessions = state?.sessions.orEmpty(),
@@ -2161,8 +2201,8 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             }) else null,
-                            follow = { on -> scope.launch { app.repo.command(if (on) CmdOp.FOLLOW else CmdOp.UNFOLLOW, session.name, null) } },
-                            reopen = { scope.launch { app.repo.command(CmdOp.REOPEN, session.name, null) } },
+                            follow = { on -> tapResult(scope, getString(R.string.tap_done)) { app.repo.command(if (on) CmdOp.FOLLOW else CmdOp.UNFOLLOW, session.name, null) } },
+                            reopen = { tapResult(scope, getString(R.string.tap_reopening, session.name)) { app.repo.command(CmdOp.REOPEN, session.name, null) } },
                             terminal = { terminal = session.name; screenId = null },
                             openInClaude = { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(session.link))) },
                             // Il tasto «Apri in supervisor» di un messaggio (Franz, 21/10 19:04): sul tablet in colonna, sul telefono come pagina;
@@ -2197,7 +2237,7 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             },
-                            chat = { scope.launch { app.repo.chat(session.name) } },
+                            chat = { tapResult(scope, getString(R.string.tap_sent_to, session.name)) { app.repo.chat(session.name) } },
                             // La scelta si vede subito, finché il PC non la riporta al turno dopo (segnalazione 01/10 20:25).
                             setModel = { v -> scope.launch {
                                 val was = session.model?.id
@@ -2213,9 +2253,9 @@ class MainActivity : ComponentActivity() {
                             } },
                             // Contratto 1.69: la modalità dei permessi, solo con un relay che sa cambiarla.
                             setPermission = if (it.pixelbox.cmwatch.rules.PermissionModes.canChange(state, session)) ({ v ->
-                                scope.launch { runCatching { app.repo.command(CmdOp.PERMISSION_MODE, session.name, v) } }
+                                tapResult(scope, getString(R.string.tap_permission)) { app.repo.command(CmdOp.PERMISSION_MODE, session.name, v) }
                             }) else null,
-                            interrupt = { scope.launch { app.repo.command(CmdOp.INTERRUPT, session.name, null) } },
+                            interrupt = { tapResult(scope, getString(R.string.tap_interrupted, session.name)) { app.repo.command(CmdOp.INTERRUPT, session.name, null) } },
                             // Contratto 1.25: il comando resta nella chat come un messaggio, con l'esito del PC.
                             slash = { c, a -> val at = System.currentTimeMillis() / 1000
                                 if (c == "exit") leaving = CloseSplash.Leaving(session.name, at, null)
@@ -2277,9 +2317,9 @@ class MainActivity : ComponentActivity() {
                             updating = session.name == chatName && session.state != it.pixelbox.cmwatch.contract.SessionState.GONE && freshFor != chatName && ChatFeed.behind(session, bgReads[session.name]),
                             quotaLimit = it.pixelbox.cmwatch.rules.AlertEvents.openLimit(events, session, now, state?.let { s -> s.attention.orEmpty() }),
                             passTargets = it.pixelbox.cmwatch.rules.AlertEvents.passTargets(state?.sessions.orEmpty(), session.name),
-                            onQuotaRoute = { arg -> scope.launch { runCatching { app.repo.command(CmdOp.QUOTA_ROUTE, session.name, arg) } } },
+                            onQuotaRoute = { arg -> tapResult(scope, getString(R.string.tap_done)) { app.repo.command(CmdOp.QUOTA_ROUTE, session.name, arg) } },
                             turnFailed = it.pixelbox.cmwatch.rules.AlertEvents.openFailure(events, session, now, state?.let { s -> s.attention.orEmpty() }),
-                            onContinue = { text -> scope.launch { runCatching { app.repo.prompt(session.name, text) } } },
+                            onContinue = { text -> tapResult(scope, getString(R.string.tap_sent_to, session.name), { id -> app.chatLog.add(Sent(id, session.name, text, System.currentTimeMillis() / 1000)) }) { app.repo.prompt(session.name, text) } },
                             more = more && session.name == chatName,
                             model = tunePicks[session.name + "/model"].let { p -> Tune.model(session, p, p?.let { results[it.cmd] }, now) },
                             effort = tunePicks[session.name + "/effort"].let { p -> Tune.effort(session, p, p?.let { results[it.cmd] }, now) },
@@ -2541,7 +2581,7 @@ class MainActivity : ComponentActivity() {
                         // app-scheda-sostituisce-04-11; prima apriva e chiudeva). Il + nel bordo aggiunge, il filo chiude.
                         if (wide) saveCols(it.pixelbox.cmwatch.rules.Tablet.replace(tabletCols, n)) else open = n
                     },
-                    onAnswer = { n, k -> scope.launch { runCatching { app.repo.answer(n, k) } } },
+                    onAnswer = { n, k -> tapResult(scope, getString(R.string.tap_answered, n)) { app.repo.answer(n, k) } },
                     onStep = sendPrompt, onService = forYouAction, onClosed = { closedOpen = true },
                     // Contratto 1.37: approvazioni in cima e «Chiudi» per le sessioni finite o doppie senza finestra.
                     onApprove = approveTask,
@@ -2564,7 +2604,7 @@ class MainActivity : ComponentActivity() {
                         val r = id?.let { i -> kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(i) }[i] } }
                         android.widget.Toast.makeText(this@MainActivity, if (r?.ok == true) getString(R.string.closed_saved) else r?.text ?: getString(R.string.close_refused), android.widget.Toast.LENGTH_SHORT).show()
                     } },
-                    onFollow = { n, f -> scope.launch { runCatching { app.repo.command(if (f) CmdOp.FOLLOW else CmdOp.UNFOLLOW, n, null) } } },
+                    onFollow = { n, f -> tapResult(scope, getString(R.string.tap_done)) { app.repo.command(if (f) CmdOp.FOLLOW else CmdOp.UNFOLLOW, n, null) } },
                     onAskMaster = it.pixelbox.cmwatch.rules.ContextActions.master(state)?.let { m -> { n: String -> if (n != m.name) askMasterAbout(m.name, n) } },
                     menuState = state, mineOf = mineOf, onMine = openMine, onRestartClean = restartClean,
                     onOpenInClaude = { n -> state?.sessions?.firstOrNull { x -> x.name == n }?.link?.takeIf { l -> l.isNotBlank() }?.let { l -> startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(l))) } },
@@ -2718,7 +2758,7 @@ class MainActivity : ComponentActivity() {
                     st, agenda, events, now, onWait = if (uItems != null) ({ id -> waitOpen = id }) else null,
                     onBack = { tab = StartRoute.Tab.OVERVIEW }, onApprove = approveTask, onAgendaEdit = editAgenda,
                     onStart = { a -> sendPrompt(a.to, a.send) }, onDoneForPerson = doneForPerson,
-                    onAddNight = { nightAdding = true }, onRemoveNight = { id -> scope.launch { app.repo.command(CmdOp.NIGHT_REMOVE, null, id) } },
+                    onAddNight = { nightAdding = true }, onRemoveNight = { id -> tapResult(scope, getString(R.string.tap_done)) { app.repo.command(CmdOp.NIGHT_REMOVE, null, id) } },
                     onNight = { nightOpen = true },
                     // Una riga di Lavori apre la sessione del progetto, se è viva.
                     onSession = { n -> if (st.sessions.any { s -> s.name == n && s.state != it.pixelbox.cmwatch.contract.SessionState.GONE }) { open = n; tab = StartRoute.Tab.OVERVIEW } },
@@ -2850,7 +2890,7 @@ class MainActivity : ComponentActivity() {
                                 CloseSplashOverlay(
                                     ph, onHome = drop, onDismiss = { leaving = null }, onArm = { w -> armClose(name, w) },
                                     onReopen = if (ph is CloseSplash.Phase.Closed && st.ops?.contains("reopen") == true) ({
-                                        scope.launch { runCatching { app.repo.command(CmdOp.REOPEN, name, null) } }
+                                        tapResult(scope, getString(R.string.tap_reopening, name)) { app.repo.command(CmdOp.REOPEN, name, null) }
                                         drop()
                                     }) else null,
                                     column = true,
