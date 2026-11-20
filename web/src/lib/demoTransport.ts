@@ -1,3 +1,4 @@
+import { TransportError } from './transport'
 import changesRaw from '../../../contract/changes-sample.json?raw'
 import { decodeChanges, type ChangesView, type Cmd, type CmdResult, type Event, type Session, type State, type TranscriptEntry } from './contract'
 import type { FileBlob, Transport } from './transport'
@@ -87,9 +88,32 @@ export class DemoTransport implements Transport {
     return JSON.stringify({ entries: all.slice(-n), more: all.length > n })
   }
 
+  /**
+   * app-tasti-riscontro-20-11: il comando appeso della demo, come in FakeTransport. «Interrompi» su una sessione al lavoro resta in /cmd 8 s, poi il PC lo
+   * prende e l'esito arriva dopo 30 s, oltre l'attesa normale di 20 s: si vedono tutte le righe di un comando che non torna.
+   */
+  private hanging = new Map<string, { at: number; name: string }>()
+  async taken(id: string): Promise<boolean | null> { const h = this.hanging.get(id); return h == null ? true : this.now() - h.at >= 8 }
+  async peekResult(id: string): Promise<CmdResult | null> {
+    const h = this.hanging.get(id)
+    if (h == null || this.results.has(id)) return this.results.get(id) ?? null
+    if (this.now() - h.at < 30) return null
+    // L'esito tardi ferma davvero il turno, come lo Stop puntuale.
+    const ses = this.st.sessions.find(x => x.name === h.name)
+    if (ses) this.replace({ ...ses, state: 'idle', turn_started: null })
+    const r: CmdResult = { id, ok: true, text: `${h.name}: stopped`, at: this.now() }
+    this.results.set(id, r)
+    return r
+  }
+
   async send(cmd: Cmd): Promise<CmdResult> {
     const seen = this.results.get(cmd.id)
     if (seen) return seen
+    const busy = this.st.sessions.find(x => x.name === cmd.session && (x.state === 'busy' || x.state === 'awaiting'))
+    if (cmd.op === 'interrupt' && busy) {
+      if (!this.hanging.has(cmd.id)) this.hanging.set(cmd.id, { at: this.now(), name: busy.name })
+      return new Promise((_, no) => setTimeout(() => no(new TransportError(0, 'timeout')), 20_000))
+    }
     const s = this.st
     const ses = s.sessions.find(x => x.name === cmd.session)
     const t = this.now()

@@ -80,7 +80,7 @@ describe('il PC finto della demo (FakeTransport)', () => {
   })
   it('stop, riapri, approva, segui, notte e chiusura', async () => {
     const d = tr()
-    expect((await d.send(newCmd('interrupt', 'storefront'))).text).toBe('storefront: stopped')
+    // Lo Stop su una sessione al lavoro è il comando appeso della demo (app-tasti-riscontro-20-11): lo prova cmdTrack.test.ts.
     expect((await d.send(newCmd('reopen', 'pricing-page'))).ok).toBe(true)
     expect(d.state.sessions.find(s => s.name === 'pricing-page')!.state).toBe('idle')
     const task = d.state.approvals[0].task
@@ -104,7 +104,7 @@ describe('il PC finto della demo (FakeTransport)', () => {
   })
   it('lo stesso comando due volte ha la stessa risposta', async () => {
     const d = tr()
-    const c = newCmd('interrupt', 'storefront')
+    const c = newCmd('interrupt', 'blog')
     const a = await d.send(c), b = await d.send(c)
     expect(b).toBe(a)
   })

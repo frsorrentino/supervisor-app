@@ -100,11 +100,13 @@ class MainActivity : ComponentActivity() {
     private val app get() = application as PhoneApp
 
     /**
-     * app-tasti-riscontro-20-11 (Franz 20/11 08:35: «Occorre che ogni tasto dia un feedback all'utente»): un tocco che manda un
-     * comando dice subito «Mando al PC», poi [ok], «in coda» o il motivo del no detto dal PC; un invio che non parte o un PC che non
-     * risponde lo dicono in chiaro. [sent] riceve l'id quando il comando è partito (la voce della chat, il ricaricamento).
+     * app-tasti-riscontro-20-11 (Franz 20/11 08:35: «Occorre che ogni tasto dia un feedback all'utente»; 09:46: «Estendi il
+     * controllo ai comandi appesi»): un tocco che manda un comando dice subito «Mando al PC»; se l'esito non arriva, dice a che punto è
+     * («Il PC non ha ancora preso il comando», «Il PC ci sta lavorando»), aggiorna quando l'esito arriva anche tardi, e oltre
+     * CmdTrack.MAX_S chiude con «nessuna risposta». «In coda» porta il nome della sessione e diventa «consegnato» quando la sessione
+     * lo prende. [sent] riceve l'id quando il comando è partito. Le fasi in CmdTrack (core), uguali alla web.
      */
-    private fun tapResult(scope: kotlinx.coroutines.CoroutineScope, ok: String, sent: (String) -> Unit = {}, send: suspend () -> String) {
+    private fun tapResult(scope: kotlinx.coroutines.CoroutineScope, ok: String, sent: (String) -> Unit = {}, session: String? = null, send: suspend () -> String) {
         fun say(text: String) = android.widget.Toast.makeText(this, text, android.widget.Toast.LENGTH_SHORT).show()
         say(getString(R.string.tap_sending))
         scope.launch {
@@ -112,13 +114,31 @@ class MainActivity : ComponentActivity() {
             val id = r0.getOrNull()
             if (id == null) { say(getString(R.string.tap_not_sent, r0.exceptionOrNull()?.message ?: getString(R.string.queue_full))); return@launch }
             sent(id)
-            val r = kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(id) }[id] }
-            say(when {
-                r == null -> getString(R.string.tap_no_answer)
-                !r.ok -> getString(R.string.tap_refused, r.text)
-                r.text.startsWith("queued:") -> getString(R.string.tap_queued)
-                else -> ok
-            })
+            val sentAt = System.currentTimeMillis() / 1000
+            var shown = it.pixelbox.cmwatch.rules.CmdTrack.Phase.SENDING
+            while (true) {
+                val elapsed = System.currentTimeMillis() / 1000 - sentAt
+                val r = app.repo.resultsById.value[id] ?: if (elapsed >= it.pixelbox.cmwatch.rules.CmdTrack.WAIT_S) app.repo.peek(id) else null
+                val taken = if (r == null && elapsed >= it.pixelbox.cmwatch.rules.CmdTrack.WAIT_S) app.repo.taken(id) else null
+                val ses = session?.let { n -> app.repo.snapshot.value.state?.sessions?.firstOrNull { x -> x.name == n } }
+                val p = it.pixelbox.cmwatch.rules.CmdTrack.phase(elapsed, r, taken, ses, sentAt)
+                if (p != shown) {
+                    shown = p
+                    say(when (p) {
+                        it.pixelbox.cmwatch.rules.CmdTrack.Phase.SENDING -> getString(R.string.tap_sending)
+                        it.pixelbox.cmwatch.rules.CmdTrack.Phase.NOT_TAKEN -> getString(R.string.track_not_taken)
+                        it.pixelbox.cmwatch.rules.CmdTrack.Phase.WORKING -> getString(R.string.track_working)
+                        it.pixelbox.cmwatch.rules.CmdTrack.Phase.DONE -> ok
+                        it.pixelbox.cmwatch.rules.CmdTrack.Phase.QUEUED -> session?.let { n -> getString(R.string.track_queued, n) } ?: getString(R.string.tap_queued)
+                        it.pixelbox.cmwatch.rules.CmdTrack.Phase.DELIVERED -> getString(R.string.track_delivered, session ?: "")
+                        it.pixelbox.cmwatch.rules.CmdTrack.Phase.REFUSED -> getString(R.string.tap_refused, r?.text.orEmpty())
+                        it.pixelbox.cmwatch.rules.CmdTrack.Phase.NO_ANSWER -> getString(R.string.track_no_answer)
+                    })
+                }
+                // Un «in coda» senza sessione da guardare non diventa mai «consegnato»: ci si ferma lì.
+                if (it.pixelbox.cmwatch.rules.CmdTrack.final(p) || (p == it.pixelbox.cmwatch.rules.CmdTrack.Phase.QUEUED && (session == null || elapsed >= 3_600))) break
+                kotlinx.coroutines.delay(it.pixelbox.cmwatch.rules.CmdTrack.POLL_MS)
+            }
         }
     }
     private val speech get() = (application as PhoneApp).speech
@@ -1045,7 +1065,7 @@ class MainActivity : ComponentActivity() {
                     android.widget.Toast.makeText(this@MainActivity, if (r?.ok == true) getString(R.string.approved) else r?.text ?: getString(R.string.approve_refused), android.widget.Toast.LENGTH_SHORT).show()
                 } },
                 onSend = { n, text ->
-                    tapResult(scope, getString(R.string.tap_sent_to, n), { id -> app.chatLog.add(Sent(id, n, text, System.currentTimeMillis() / 1000)) }) { app.repo.prompt(n, text) }
+                    tapResult(scope, getString(R.string.tap_sent_to, n), { id -> app.chatLog.add(Sent(id, n, text, System.currentTimeMillis() / 1000)) }, session = n) { app.repo.prompt(n, text) }
                 },
             ) }
             return
@@ -1073,7 +1093,7 @@ class MainActivity : ComponentActivity() {
         if (queueOpen && state != null) {
             // La coda usa solo la card della domanda: risposta, «Parliamone», «Consenti tutto» e la lettura a voce.
             it.pixelbox.cmwatch.mobile.ui.PageIn { QueueScreen(state, now, skip = queueSkip, onDone = attentionDone, onOk = { name, text ->
-                tapResult(scope, getString(R.string.tap_sent_to, name), { id -> app.chatLog.add(Sent(id, name, text, System.currentTimeMillis() / 1000)) }) { app.repo.prompt(name, text) }
+                tapResult(scope, getString(R.string.tap_sent_to, name), { id -> app.chatLog.add(Sent(id, name, text, System.currentTimeMillis() / 1000)) }, session = name) { app.repo.prompt(name, text) }
             }, actionsFor = { s ->
                 SheetActions(
                     answer = { n -> tapResult(scope, getString(R.string.tap_answered, s.name)) { app.repo.answer(s.name, n) } },
@@ -1386,7 +1406,7 @@ class MainActivity : ComponentActivity() {
         val speaking by speech.speaking.collectAsStateWithLifecycle()
         // Un prompt a una sessione, registrato nella sua chat come quelli scritti a mano.
         val sendPrompt: (String, String) -> Unit = { name, text ->
-            tapResult(scope, getString(R.string.tap_sent_to, name), { id -> app.chatLog.add(Sent(id, name, text, System.currentTimeMillis() / 1000)) }) { app.repo.prompt(name, text) }
+            tapResult(scope, getString(R.string.tap_sent_to, name), { id -> app.chatLog.add(Sent(id, name, text, System.currentTimeMillis() / 1000)) }, session = name) { app.repo.prompt(name, text) }
         }
         // app-tasti-riscontro-20-11 (Franz 20/11 08:35: «ogni tasto dia un feedback»): «Handoff, poi /clear» dalla home dice subito
         // «Mando l'handoff», poi fatto, in coda o il motivo del no. Prima l'invio fallito si perdeva e quello riuscito finiva solo in chat.
@@ -1399,24 +1419,11 @@ class MainActivity : ComponentActivity() {
             when {
                 s0 == null -> say(getString(R.string.handoff_gone, n))
                 prompt == null -> say(getString(R.string.handoff_none, n))
-                else -> {
-                    say(getString(R.string.handoff_sending, n))
-                    scope.launch {
-                        val sent = runCatching { app.repo.prompt(n, prompt) }
-                        val id = sent.getOrNull()
-                        if (id == null) { say(getString(R.string.handoff_failed, n, sent.exceptionOrNull()?.message ?: getString(R.string.queue_full))); return@launch }
-                        app.chatLog.add(Sent(id, n, prompt, System.currentTimeMillis() / 1000))
-                        val r = kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(id) }[id] }
-                        when {
-                            r == null -> say(getString(R.string.handoff_failed, n, getString(R.string.handoff_no_answer)))
-                            !r.ok -> say(getString(R.string.handoff_failed, n, r.text))
-                            else -> {
-                                if (clear) clearAfter.edit().putLong(n, System.currentTimeMillis() / 1000).apply()
-                                say(getString(if (r.text.startsWith("queued:")) R.string.handoff_queued else if (clear) R.string.handoff_sent_clear else R.string.handoff_sent, n))
-                            }
-                        }
-                    }
-                }
+                // Le fasi di un comando che non torna (in coda col nome, preso, appeso) le dice tapResult, come per gli altri tasti.
+                else -> tapResult(scope, getString(if (clear) R.string.handoff_sent_clear else R.string.handoff_sent, n), { id ->
+                    app.chatLog.add(Sent(id, n, prompt, System.currentTimeMillis() / 1000))
+                    if (clear) clearAfter.edit().putLong(n, System.currentTimeMillis() / 1000).apply()
+                }, session = n) { app.repo.prompt(n, prompt) }
             }
         }
         // La pagina e la sezione «Lavori» (mockup approvato il 22/10): l'ok a un compito, «Fatto» su una pausa che aspetta te
@@ -2319,7 +2326,7 @@ class MainActivity : ComponentActivity() {
                             passTargets = it.pixelbox.cmwatch.rules.AlertEvents.passTargets(state?.sessions.orEmpty(), session.name),
                             onQuotaRoute = { arg -> tapResult(scope, getString(R.string.tap_done)) { app.repo.command(CmdOp.QUOTA_ROUTE, session.name, arg) } },
                             turnFailed = it.pixelbox.cmwatch.rules.AlertEvents.openFailure(events, session, now, state?.let { s -> s.attention.orEmpty() }),
-                            onContinue = { text -> tapResult(scope, getString(R.string.tap_sent_to, session.name), { id -> app.chatLog.add(Sent(id, session.name, text, System.currentTimeMillis() / 1000)) }) { app.repo.prompt(session.name, text) } },
+                            onContinue = { text -> tapResult(scope, getString(R.string.tap_sent_to, session.name), { id -> app.chatLog.add(Sent(id, session.name, text, System.currentTimeMillis() / 1000)) }, session = session.name) { app.repo.prompt(session.name, text) } },
                             more = more && session.name == chatName,
                             model = tunePicks[session.name + "/model"].let { p -> Tune.model(session, p, p?.let { results[it.cmd] }, now) },
                             effort = tunePicks[session.name + "/effort"].let { p -> Tune.effort(session, p, p?.let { results[it.cmd] }, now) },

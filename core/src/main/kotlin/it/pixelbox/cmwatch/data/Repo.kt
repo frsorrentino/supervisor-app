@@ -409,6 +409,23 @@ class Repo(
         store.savePending(queued + cmd)
     }
 
+    /** app-tasti-riscontro-20-11 (comandi appesi): il PC ha preso il comando? false = ancora in /cmd, null = non si sa o è in coda senza rete. */
+    suspend fun taken(id: String): Boolean? =
+        if (_snapshot.value.pending.any { p -> p.cmd.id == id && p.status == PendingStatus.QUEUED }) null else transport.taken(id)
+
+    /**
+     * L'esito di un comando, anche arrivato dopo che l'attesa normale è finita: la prima volta che lo si trova sul bus entra in
+     * `resultsById` e nei risultati, e la voce in attesa sparisce, come per un esito puntuale.
+     */
+    suspend fun peek(id: String): CmdResult? {
+        _resultsById.value[id]?.let { return it }
+        val r = runCatching { transport.peekResult(id) }.getOrNull() ?: return null
+        _snapshot.update { it.copy(pending = it.pending.filter { p -> p.cmd.id != id }) }
+        _resultsById.update { m -> (m + (r.id to r)).entries.toList().takeLast(MAX_RESULTS).associate { e -> e.key to e.value } }
+        _results.emit(r)
+        return r
+    }
+
     private fun dispatch(cmd: Cmd) {
         _snapshot.update { it.copy(pending = it.pending.filter { p -> p.cmd.id != cmd.id } + Pending(cmd, PendingStatus.SENDING)) }
         if (cmd.op in OPTIMISTIC) optimistic(cmd)

@@ -40,6 +40,13 @@ interface Transport {
      * appena il comando è sul canale, prima del risultato: la chat lo mostra come «inviato al PC» (30/09 22:13).
      */
     suspend fun send(cmd: Cmd, onWritten: () -> Unit = {}): CmdResult
+    /**
+     * app-tasti-riscontro-20-11 (comandi appesi): il PC ha preso il comando? false = è ancora in /cmd/<id>, true = non c'è più,
+     * null = non si sa (rete giù, trasporto che non lo dice).
+     */
+    suspend fun taken(id: String): Boolean? = null
+    /** L'esito in /result/<id>, se c'è, anche dopo che [send] ha smesso di aspettarlo; null se non c'è o non si sa. */
+    suspend fun peekResult(id: String): CmdResult? = null
     suspend fun pair(code: String, deviceName: String): PairingInfo
     /** Contratto 1.19: scrive l'immagine cifrata in /share/<id> prima del comando `report`. */
     /** Contratto 1.28: `name` è il nome originale di un file di qualunque formato; null per le immagini. */

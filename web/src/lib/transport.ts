@@ -13,6 +13,10 @@ export interface Transport {
   /** Eventi con ts > since, dal più recente. */
   fetchEvents(since?: number): Promise<Event[]>
   send(cmd: Cmd): Promise<CmdResult>
+  /** app-tasti-riscontro-20-11 (comandi appesi): false = il comando è ancora in /cmd, true = il PC l'ha preso, null = non si sa. */
+  taken?(id: string): Promise<boolean | null>
+  /** L'esito in /result/<id>, anche dopo che `send` ha smesso di aspettarlo; null se non c'è. */
+  peekResult?(id: string): Promise<CmdResult | null>
   share(id: string, mime: string, data: Uint8Array, name?: string | null): Promise<void>
   fetchFile(id: string): Promise<FileBlob | null>
   /** Contratto 1.59: le ultime voci da /tail; solo il trasporto remoto, il relay locale non lo serve. */
@@ -65,6 +69,8 @@ export class LocalTransport implements Transport {
   async fetchEvents(since = 0): Promise<Event[]> { return (await this.call(`/api/events?since=${since}`)).json() }
 
   async send(cmd: Cmd): Promise<CmdResult> { return (await this.post('/api/cmd', cmd, resultTimeoutMs(cmd.op))).json() }
+  /** Il relay locale prende il comando nella stessa richiesta: preso, sempre. */
+  async taken(): Promise<boolean | null> { return true }
 
   async share(id: string, mime: string, data: Uint8Array, name?: string | null) {
     const body: Record<string, string> = { mime, data: toB64(data as Uint8Array<ArrayBuffer>) }

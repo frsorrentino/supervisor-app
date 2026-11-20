@@ -206,6 +206,9 @@ class FirebaseTransport(
         return FileBlob(plain.getValue("mime").jsonPrimitive.content, java.util.Base64.getDecoder().decode(plain.getValue("data").jsonPrimitive.content))
     }
 
+    override suspend fun taken(id: String): Boolean? = runCatching { k(); rtdb.get("cmd/$id") == null }.getOrNull()
+    override suspend fun peekResult(id: String): CmdResult? = runCatching { k(); rtdb.get("result/$id")?.let { ContractJson.decodeResult(open(Json.parseToJsonElement(it))) } }.getOrNull()
+
     override suspend fun send(cmd: Cmd, onWritten: () -> Unit): CmdResult {
         k()
         // Contratto 1.89: l'uid dell'abbinamento in ogni comando, per l'ultimo segno di vita del dispositivo.

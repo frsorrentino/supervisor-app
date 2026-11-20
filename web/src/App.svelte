@@ -64,6 +64,7 @@
   import { currentSubscription, pushStatus, subscribe, subscriptionDoc } from './lib/push'
   import PairPage from './lib/PairPage.svelte'
   import { approveText, canClear, clearDue, handoffPrompt } from './lib/masterService'
+  import { POLL_MS, WAIT_S, final, phase, type Phase } from './lib/cmdTrack'
   import { toggle } from './lib/speech.svelte'
   import Home from './lib/Home.svelte'
   import Chat from './lib/Chat.svelte'
@@ -225,7 +226,8 @@
   let notice = $state<string | null>(null)
   let addDlg: AddDevice | undefined = $state()
   let noticeTimer: ReturnType<typeof setTimeout> | undefined
-  function say(text: string) { notice = text; clearTimeout(noticeTimer); noticeTimer = setTimeout(() => (notice = null), 6000) }
+  /** `sticky`: resta finché non arriva il messaggio dopo (le fasi di un comando che aspetta, app-tasti-riscontro-20-11). */
+  function say(text: string, sticky = false) { notice = text; clearTimeout(noticeTimer); if (!sticky) noticeTimer = setTimeout(() => (notice = null), 6000) }
 
   function record(s: State) {
     const next = { ...samples }
@@ -330,12 +332,10 @@
     const clear = canClear(st)
     const prompt = handoffPrompt(st, s, clear ? t.ctxHandoffClearPrompt : t.ctxHandoffPrompt)
     if (prompt == null) { say(`✗ ${t.handoffNone(name)}`); return }
-    say(t.handoffSending(name))
-    const r = await sendResult(name, prompt)
-    if (!tr) return
-    if (!r?.ok) { say(`✗ ${t.handoffFailed(name, r ? r.text : t.noAnswer)}`); return }
+    // Le fasi di un comando che non torna (in coda col nome, preso, appeso) le dice track, come per gli altri tasti.
+    const id = crypto.randomUUID()
     if (clear) { clearAfter = { ...clearAfter, [name]: nowS() }; if (!demo) save('cm.clear_after', JSON.stringify(clearAfter)) }
-    say(`✓ ${r.text?.startsWith('queued:') ? t.handoffQueued(name) : clear ? t.handoffSentClear(name) : t.handoffSent(name)}`)
+    await track({ ...newCmd('prompt', name, prompt), id }, clear ? t.handoffSentClear(name) : t.handoffSent(name), name, () => sendResult(name, prompt, id))
   }
   function clearsDue(s: State) {
     const next = { ...clearAfter }
@@ -431,11 +431,41 @@
 
   /** Un comando al relay; il rifiuto si mostra in basso. */
   /** Contratto 1.80: «Fatto» su una ferma: la richiesta si chiude sul PC (kind e ref, since per una ferma del turno). */
-  const attentionDone = (d: { kind: string; ref: string; since?: number }) => (say(t.tapSending), run(newCmd('attention_done', null, d.ref, undefined, undefined, { kind: d.kind, since: d.since }))).then(r => (tapSaid(r), r)).then(r => !!r?.ok)
+  const attentionDone = (d: { kind: string; ref: string; since?: number }) => track(newCmd('attention_done', null, d.ref, undefined, undefined, { kind: d.kind, since: d.since }), t.tapDone).then(r => !!r?.ok)
   /** app-chiudi-esito-04-11: i «not closed» del relay, col motivo in italiano. */
   const refusals = (text: string) => closeRefusals(text, t.closeBlocked, t.closeRefusedOther)
   /** app-tasti-riscontro-20-11 (Franz 20/11 08:35: «ogni tasto dia un feedback»): l'esito riuscito di un tocco; il no lo dice `run`. */
-  function tapSaid(r: CmdResult | null) { if (r?.ok) say(`✓ ${r.text?.startsWith('queued:') ? t.tapQueued : t.tapDone}`) }
+  /**
+   * app-tasti-riscontro-20-11 (Franz 20/11 08:35 e 09:46, «Estendi il controllo ai comandi appesi»): manda un comando da un tasto e
+   * dice a che punto è finché non c'è un esito, come tapResult sul telefono (le fasi in cmdTrack.ts, uguali a CmdTrack.kt): «Mando
+   * al PC», «Il PC non ha ancora preso il comando», «Il PC ci sta lavorando», l'esito anche tardi, «in coda» col nome della sessione
+   * fino alla consegna, e oltre MAX_S «nessuna risposta». `send` cambia il modo di mandare (il prompt passa per la chat).
+   */
+  async function track(c: Cmd, ok: string, session: string | null = null, send?: () => Promise<CmdResult | null>): Promise<CmdResult | null> {
+    if (!tr) { console.info('[cm] comando', c.session, c.op, c.arg, c.text); return null }
+    const t0 = tr
+    say(t.tapSending, true)
+    const sentAt = nowS()
+    let r: CmdResult | null = null
+    const p = (send ? send() : t0.send(c)).then(x => { if (x) r = x }, () => {})
+    let shown: Phase = 'sending'
+    for (;;) {
+      await Promise.race([p, new Promise(res => setTimeout(res, POLL_MS))])
+      const el = nowS() - sentAt
+      if (!r && el >= WAIT_S) r = (await t0.peekResult?.(c.id)) ?? null
+      const taken = !r && el >= WAIT_S ? ((await t0.taken?.(c.id)) ?? null) : null
+      const ph = phase(el, r, taken, session ? st.sessions.find(x => x.name === session) ?? null : null, sentAt)
+      if (ph !== shown) {
+        shown = ph
+        const rr = r as CmdResult | null
+        const text = ph === 'sending' ? t.tapSending : ph === 'not_taken' ? t.trackNotTaken : ph === 'working' ? t.trackWorking
+          : ph === 'done' ? `✓ ${ok}` : ph === 'queued' ? (session ? t.trackQueued(session) : t.tapQueued) : ph === 'delivered' ? `✓ ${t.trackDelivered(session ?? '')}`
+          : ph === 'refused' ? `✗ ${rr ? refusalText(rr, c.question ?? null, st.sessions, t.answerAlreadyResolved) : ''}` : `✗ ${t.trackNoAnswer}`
+        say(text, !final(ph))
+      }
+      if (final(ph) || (ph === 'queued' && (!session || el > 3600))) return r
+    }
+  }
   async function run(c: Cmd): Promise<CmdResult | null> {
     if (!tr) { console.info('[cm] comando', c.session, c.op, c.arg, c.text); return null }
     try {
@@ -1878,8 +1908,8 @@
     return tr ? !!r?.ok : true
   }
   /** Il prompt e la risposta del PC; null se il PC non ha risposto (o senza trasporto). */
-  async function sendResult(name: string, text: string): Promise<CmdResult | null> {
-    const m: Sent = { id: crypto.randomUUID(), session: name, text, sentAt: nowS() }
+  async function sendResult(name: string, text: string, id: string = crypto.randomUUID()): Promise<CmdResult | null> {
+    const m: Sent = { id, session: name, text, sentAt: nowS() }
     msgs = [...msgs, m]
     if (!tr) return null
     pend = { ...pend, [m.id]: 'sending' }
@@ -2086,9 +2116,8 @@
     } else {
       const c = newCmd(op, name || null, arg, text, rawSt.sessions.find(x => x.name === name)?.question?.id)
       const done = name && (op === 'answer' || op === 'allow_all') ? answering(name) : null
-      // app-tasti-riscontro-20-11: ogni tasto dice «Mando al PC», poi fatto o in coda; il no del PC lo dice già `run`.
-      say(t.tapSending)
-      run(c).then(r => { done?.(r); tapSaid(r) })
+      // app-tasti-riscontro-20-11: ogni tasto dice a che punto è il suo comando, anche quando non torna.
+      void track(c, t.tapDone, name || null).then(r => done?.(r))
     }
   }
   // La conversazione di quello che è a schermo, la master sempre (vive nella home), alla cadenza del telefono e una lettura
@@ -2365,7 +2394,7 @@
         devices={linkedDevices(st, remote?.uid ?? null, now) ?? []} now={now} channel={access ? t.channelLocal : remote ? t.channelFirebase : t.channelDemo} onRate={setRate} onVoice={setVoice}
         details={wide ? details : null} onDetails={(on) => { details = on; save('cm.details', on ? '1' : '0') }} {push} onPush={setPush}
         onFeatures={() => openPage('features')} onHomeOrder={st.ops?.includes('home_order') ? () => openPage('homeorder') : null} onAdd={tr && st.ops?.includes('pair_add') ? () => addDlg?.open() : null} demo={!!demo}
-        onRevoke={tr && !demo && st.ops?.includes('unpair') ? (uid) => { say(t.tapSending); return run(newCmd('unpair', null, uid)).then(r => (tapSaid(r), r)) } : null}
+        onRevoke={tr && !demo && st.ops?.includes('unpair') ? (uid) => track(newCmd('unpair', null, uid), t.tapRevoked) : null}
         maxSessions={kpiData?.kpi_health?.sessions_max ?? null} onMaxSessions={tr && canSetMax(st.ops) ? setMaxSessions : null} />
     {:else if p === 'box-aspetta' || p === 'box-lavoro' || p === 'box-esiti'}
       <HomeBox box={p === 'box-aspetta' ? 'aspetta' : p === 'box-lavoro' ? 'lavoro' : 'esiti'} st={stShown} page={kpiPage} {now} onSession={(n) => { openPage(null); pick(n) }} onProve={() => openPage('prove')} />

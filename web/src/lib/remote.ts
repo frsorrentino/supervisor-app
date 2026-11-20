@@ -143,6 +143,11 @@ export class RemoteTransport implements Transport {
     return out.sort((a, b) => b.ts - a.ts)
   }
 
+  async taken(id: string): Promise<boolean | null> { try { return (await this.bus.get(`cmd/${id}`)) == null } catch { return null } }
+  async peekResult(id: string): Promise<CmdResult | null> {
+    try { const doc = await this.bus.get(`result/${id}`); return doc ? JSON.parse(await this.open(doc)) as CmdResult : null } catch { return null }
+  }
+
   async send(cmd: Cmd): Promise<CmdResult> {
     // Contratto 1.89: l'uid dell'abbinamento in ogni comando, per l'ultimo segno di vita del browser.
     await this.bus.put(`cmd/${cmd.id}`, await this.seal(JSON.stringify({ ...cmd, uid: cmd.uid ?? this.o.uid })))

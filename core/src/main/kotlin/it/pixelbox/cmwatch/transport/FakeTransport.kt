@@ -306,8 +306,26 @@ class FakeTransport(
         shared += id
     }
 
+    /**
+     * app-tasti-riscontro-20-11: il comando appeso della demo. «Interrompi» su una sessione al lavoro resta in /cmd per [HANG_TAKEN_S] secondi, poi il PC lo
+     * prende e l'esito arriva dopo [HANG_RESULT_S], oltre l'attesa normale: così si vedono tutte le righe di un comando che non torna.
+     */
+    private val hanging = java.util.concurrent.ConcurrentHashMap<String, Pair<Long, String>>()
+    override suspend fun taken(id: String): Boolean? = hanging[id]?.let { (at, _) -> now() - at >= HANG_TAKEN_S } ?: true
+    override suspend fun peekResult(id: String): CmdResult? {
+        val (at, name) = hanging[id] ?: return results[id]
+        if (now() - at < HANG_RESULT_S) return null
+        // L'esito tardi ferma davvero il turno, come lo Stop puntuale.
+        return results.getOrPut(id) {
+            current.value = current.value.let { st -> st.copy(sessions = st.sessions.map { if (it.name == name) it.copy(state = SessionState.IDLE, turnStarted = null) else it }) }
+            CmdResult(id, true, "$name: stopped", now())
+        }
+    }
+
     override suspend fun send(cmd: Cmd, onWritten: () -> Unit): CmdResult {
         onWritten()
+        current.value.sessions.firstOrNull { it.name == cmd.session }?.takeIf { cmd.op == CmdOp.INTERRUPT && (it.state == SessionState.BUSY || it.state == SessionState.AWAITING) }
+            ?.let { ses -> if (cmd.id !in results) { hanging.putIfAbsent(cmd.id, now() to ses.name); kotlinx.coroutines.awaitCancellation() } }
         results[cmd.id]?.let { return it }
         val s = current.value
         val ses = s.sessions.firstOrNull { it.name == cmd.session }
@@ -710,3 +728,7 @@ private const val DEMO_WINDOW_LEFT_S = 2L * 3600
 /** Contratto 1.133 nella demo: quanto gira «Aggiorna adesso» e quanto resta spento dopo. */
 private const val DEMO_REFRESH_S = 4L
 private const val DEMO_RETRY_S = 20L
+
+/** app-tasti-riscontro-20-11: il comando appeso della demo (Interrompi su una sessione al lavoro), preso dal PC finto dopo 8 s e con l'esito dopo 30 s (oltre i 20 s di attesa). */
+internal const val HANG_TAKEN_S = 8L
+internal const val HANG_RESULT_S = 30L
