@@ -56,8 +56,8 @@ class ProvaCardsHost(
     val open: (Long) -> Unit,
     val ok: suspend (Long) -> Boolean,
     val ko: suspend (ProvaOne, String) -> Boolean,
-    /** app-carte-stato-vivo-20-11: le prove aperte secondo `attese` (CardLive.openProve); null = non si sa. */
-    val openProve: () -> Set<Long>? = { null },
+    /** app-carte-stato-vivo-20-11: le prove uscite dalle aperte di `attese` (CardLive.closedProve). */
+    val closedProve: () -> Set<Long> = { emptySet() },
 )
 
 val LocalProvaCards = staticCompositionLocalOf<ProvaCardsHost?> { null }
@@ -69,14 +69,14 @@ fun ProvaCards(text: String) {
     val ns = remember(text) { ProvaLinks.find(text).map { it.n }.distinct() }
     ns.forEach { n ->
         LaunchedEffect(n) { host.ask(n) }
-        ProvaCard(n, host.read(n), onOpen = { host.open(n) }, onOk = { host.ok(n) }, onKo = { p, why -> host.ko(p, why) }, open = host.openProve())
+        ProvaCard(n, host.read(n), onOpen = { host.open(n) }, onOk = { host.ok(n) }, onKo = { p, why -> host.ko(p, why) }, closed = host.closedProve())
     }
 }
 
 /** La scheda compatta di una prova. Un numero che non esiste, o un relay che non sa leggerla, non dà scheda: resta il link. */
 @Composable
 @Suppress("UNUSED_PARAMETER")
-fun ProvaCard(n: Long, read: ProvaLinks.Read?, onOpen: () -> Unit, onOk: suspend () -> Boolean, onKo: suspend (ProvaOne, String) -> Boolean, open: Set<Long>? = null) {
+fun ProvaCard(n: Long, read: ProvaLinks.Read?, onOpen: () -> Unit, onOk: suspend () -> Boolean, onKo: suspend (ProvaOne, String) -> Boolean, closed: Set<Long> = emptySet()) {
     if (read is ProvaLinks.Read.Refused || read is ProvaLinks.Read.Unsupported) return
     val p = (read as? ProvaLinks.Read.Found)?.prova
     val scope = rememberCoroutineScope()
@@ -85,7 +85,7 @@ fun ProvaCard(n: Long, read: ProvaLinks.Read?, onOpen: () -> Unit, onOk: suspend
     // titolo, cosa fare su una riga e il tasto principale, Ok; «Non va» e il resto stanno nella prova aperta, a un tocco.
     // app-carte-stato-vivo-20-11: lo stato dalla stessa fonte di «Per te» (CardLive): l'esito letto decide; fuori dalle aperte ma ancora
     // da fare, nessun tasto e «non è più da fare». Un Ok appena partito da qui vale come esito finché la prova non si rilegge.
-    val v = if (p != null && p.state == "todo" && sent) it.pixelbox.cmwatch.rules.CardLive.View(it.pixelbox.cmwatch.rules.CardLive.Kind.OK) else it.pixelbox.cmwatch.rules.CardLive.prova(p, open)
+    val v = if (p != null && p.state == "todo" && sent) it.pixelbox.cmwatch.rules.CardLive.View(it.pixelbox.cmwatch.rules.CardLive.Kind.OK) else it.pixelbox.cmwatch.rules.CardLive.prova(p, closed)
     val title = stringResource(R.string.prova_title, n.toString()).let { t -> p?.let { "$t · ${it.title ?: it.short ?: it.task}" } ?: t }
     val sub = provaDoneLine(v) ?: when (v.kind) {
         it.pixelbox.cmwatch.rules.CardLive.Kind.LOADING -> stringResource(R.string.prova_loading)

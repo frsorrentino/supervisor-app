@@ -202,10 +202,11 @@ class MainActivity : ComponentActivity() {
         open = { n -> provaOpenFn(n) },
         ok = { n -> provaOkFn(n).also { provaRead(n) } },
         ko = { p, why -> provaKoFn(p, why).also { provaRead(p.id) } },
-        openProve = { provaOpenSet },
+        closedProve = { provaClosedSet },
     )
-    /** app-carte-stato-vivo-20-11: le prove aperte secondo `attese`, le stesse di «Per te»; null con un relay senza `attese`. */
-    private var provaOpenSet by mutableStateOf<Set<Long>?>(null)
+    /** app-carte-stato-vivo-20-11: le prove viste fra le aperte di `attese` (le stesse di «Per te»), e quelle uscite poi. */
+    private val provaSeenOpen = mutableSetOf<Long>()
+    private var provaClosedSet by mutableStateOf<Set<Long>>(emptySet())
     /**
      * Le richieste citate nelle chat e fisse in home come schede compatte (app-scheda-scelta-12-11, contratto 1.137): una lettura `attesa`
      * con `archive` per id, poi la cache; un rifiuto (una richiesta che il PC non conosce più, o un relay di prima) lascia il link. Si
@@ -499,10 +500,11 @@ class MainActivity : ComponentActivity() {
         // app-carte-stato-vivo-20-11: le carte delle prove nella chat leggono le aperte da qui; quelle che mostrano ancora da fare una prova
         // che non è più aperta si rileggono, e l'esito letto decide come appaiono.
         val openProveNow = if (unified) it.pixelbox.cmwatch.rules.CardLive.openProve(waitOthers) else null
-        androidx.compose.runtime.SideEffect { provaOpenSet = openProveNow }
         LaunchedEffect(openProveNow) {
+            openProveNow?.let { o -> provaSeenOpen += o }
+            provaClosedSet = it.pixelbox.cmwatch.rules.CardLive.closedProve(provaSeenOpen.toSet(), openProveNow)
             val cached = provaCache.mapValues { (_, r) -> (r as? it.pixelbox.cmwatch.rules.ProvaLinks.Read.Found)?.prova }
-            it.pixelbox.cmwatch.rules.CardLive.stale(cached, openProveNow).forEach { n -> provaRead(n) }
+            it.pixelbox.cmwatch.rules.CardLive.stale(cached, provaClosedSet).forEach { n -> provaRead(n) }
         }
         // La risposta da una voce, uguale in ogni vista: esce subito da tutte; se il PC rifiuta, torna.
         val answerWait: (it.pixelbox.cmwatch.contract.WaitItem, Int) -> Unit = { w, i ->

@@ -29,10 +29,10 @@ class ProvaCardsTest {
     private fun cards() = paparazzi.snapshot {
         CmPhoneTheme(still = true) {
             Column(Modifier.background(V3.Bg).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                ProvaCard(569, ProvaLinks.Read.Found(prova(569, "todo")), {}, { true }, { _, _ -> true }, open = setOf(569L))
+                ProvaCard(569, ProvaLinks.Read.Found(prova(569, "todo")), {}, { true }, { _, _ -> true })
                 // app-carte-stato-vivo-20-11: confermata o risolta altrove, la scheda dice l'esito con l'ora; fuori dalle aperte ma ancora da fare,
                 // nessun tasto e «Non è più da fare».
-                ProvaCard(1348, ProvaLinks.Read.Found(prova(1348, "todo")), {}, { true }, { _, _ -> true }, open = setOf(569L))
+                ProvaCard(1348, ProvaLinks.Read.Found(prova(1348, "todo")), {}, { true }, { _, _ -> true }, closed = setOf(1348L))
                 ProvaCard(558, ProvaLinks.Read.Found(prova(558, "ok")), {}, { true }, { _, _ -> true })
                 ProvaCard(551, ProvaLinks.Read.Found(prova(551, "ko", "si apre la pagina di dettaglio, non Verifica")), {}, { true }, { _, _ -> true })
                 ProvaCard(570, null, {}, { true }, { _, _ -> true })

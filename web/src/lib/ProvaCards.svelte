@@ -12,7 +12,7 @@
   // titolo, cosa fare su una riga e il tasto principale, Ok; «Non va» e il resto stanno nella prova aperta, a un tocco.
   // app-carte-stato-vivo-20-11: lo stato dalla stessa fonte di «Per te» (`openProve`, cardLive.ts); l'esito letto decide, e fuori dalle
   // aperte ma ancora da fare la scheda non ha tasti e dice «Non è più da fare».
-  export type ProvaCardsHost = { read: (n: number) => ProvaRead | null | undefined; ask: (n: number) => void; open: (n: number) => void; ok: (n: number) => Promise<boolean>; ko: (n: number, why: string) => Promise<boolean>; openProve?: () => Set<number> | null }
+  export type ProvaCardsHost = { read: (n: number) => ProvaRead | null | undefined; ask: (n: number) => void; open: (n: number) => void; ok: (n: number) => Promise<boolean>; ko: (n: number, why: string) => Promise<boolean>; closedProve?: () => Set<number> }
   let { text }: { text: string } = $props()
   const host = getContext<ProvaCardsHost | undefined>('prova-cards')
   const ns = $derived([...new Set(provaRefs(text).map(r => r.n))])
@@ -26,7 +26,7 @@
     {@const r = host.read(n)}
     {#if r == null || r.kind === 'found'}
       {@const p = r?.kind === 'found' ? r.prova : null}
-      {@const v = p && p.state === 'todo' && sent[n] ? { kind: 'ok' as const } : provaView(p, host.openProve?.() ?? null)}
+      {@const v = p && p.state === 'todo' && sent[n] ? { kind: 'ok' as const } : provaView(p, host.closedProve?.() ?? new Set())}
       {@const line = provaDoneLine(v, Date.now() / 1000, t)}
       <Voce card group="prova" testid={`prova-scheda-${n}`} title={p ? `${t.provaTitle(n)} · ${p.title ?? p.short ?? p.task}` : t.provaTitle(n)}
         sub={!p ? t.provaLoading : line ?? [t.perTeGroup.prova, p.fai].filter(Boolean).join(' · ')}

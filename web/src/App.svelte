@@ -140,7 +140,7 @@
   import MonitorView from './lib/MonitorView.svelte'
   import ProvaView from './lib/ProvaView.svelte'
   import { inVerify, provaOf, readProva, type ProvaRead } from './lib/provaLinks'
-  import { openProve, provaAlreadyDone, staleProve } from './lib/cardLive'
+  import { closedProve, openProve, provaAlreadyDone, staleProve } from './lib/cardLive'
   import { monitorsDemo } from './lib/demo'
   import { build, finishedKey, MASTER } from './lib/summary'
   import { nextKey, type ForYouRow } from './lib/masterHome'
@@ -763,7 +763,7 @@
     open: (n: number) => openProva(n),
     ok: async (n: number) => { const r = await run(newCmd('prova', null, String(n), undefined, undefined, { result: 'ok' })); void provaCardRead(n); return proveDone(r?.ok ?? null, r?.text) },
     ko: async (n: number, why: string) => { const r = await run(newCmd('prova', null, String(n), why, undefined, { result: 'ko' })); void provaCardRead(n); return !!r?.ok },
-    openProve: () => openProveNow,
+    closedProve: () => closedProveNow,
   })
   // Le richieste citate nelle chat come schede compatte (app-scheda-scelta-12-11, contratto 1.137): una lettura `attesa` con `archive`
   // per id, poi la cache; una lettura senza risposta riprova al più tre volte, poi la scheda resta «in arrivo»; un rifiuto (un relay
@@ -1318,7 +1318,16 @@
   // app-carte-stato-vivo-20-11: le schede delle prove nella chat leggono le aperte da qui; quelle che mostrano ancora da fare una prova
   // non più aperta si rileggono, e l'esito letto decide come appaiono. Le schede delle richieste si rileggono anche a ogni `attese.rev`.
   const openProveNow = $derived(uItems ? openProve(uItems) : null)
-  $effect(() => { const open = openProveNow; untrack(() => { for (const n of staleProve(Object.fromEntries(Object.entries(provaCards).map(([k, r]) => [k, r?.kind === 'found' ? r.prova : null])), open)) void provaCardRead(n) }) })
+  const provaSeenOpen = new Set<number>()
+  let closedProveNow = $state<Set<number>>(new Set())
+  $effect(() => {
+    const open = openProveNow
+    untrack(() => {
+      for (const n of open ?? []) provaSeenOpen.add(n)
+      closedProveNow = closedProve(provaSeenOpen, open)
+      for (const n of staleProve(Object.fromEntries(Object.entries(provaCards).map(([k, r]) => [k, r?.kind === 'found' ? r.prova : null])), closedProveNow)) void provaCardRead(n)
+    })
+  })
   let waitRev: string | null = null
   $effect(() => { const rev = st.attese?.rev ?? null; if (waitRev != null && rev !== waitRev) untrack(() => waitCardsRefresh()); waitRev = rev })
   let askedRev: string | null = null

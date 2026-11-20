@@ -3,31 +3,44 @@ import type { ProvaOne, WaitItem } from './contract'
 // app-carte-stato-vivo-20-11 (Franz 20/11 20:38: «ci sono ancora incoerenze dopo approvazioni in un punto risultano da approvare in
 // altri»): la carta di una prova nei messaggi della chat legge lo stesso stato di «Per te» e «Dalla master». L'aperto viene da `attese`
 // (contratto 1.151); l'esito lo decide la prova letta con `prove N`, mai la sola assenza dalle aperte: fuori dalle aperte ma ancora
-// `todo` (ritirata, compito chiuso, non ancora riletta) niente tasti e «non è più da fare», senza dirla confermata. Porta di CardLive.kt.
+// `todo` (ritirata, compito chiuso, non ancora riletta) niente tasti e «non è più da fare», senza dirla confermata. «Uscita» vuol dire vista
+// fra le aperte e poi non più: una prova che `attese` non ha mai nominato resta come la dice la prova letta. Porta di CardLive.kt.
 
 export type CardKind = 'loading' | 'open' | 'ok' | 'ko' | 'red' | 'not_open'
 export type CardView = { kind: CardKind; at?: number | null; text?: string | null }
 
-/** Le prove aperte secondo `attese`: le prove `todo` delle verifiche ancora aperte. null = non si sa. */
+/**
+ * Le prove aperte secondo `attese`, dalle voci ancora aperte: i numeri nei comandi `prova` dei tasti e della risposta (`arg` = «1412» o
+ * «1412,1413»), più le prove `todo` di `tests` (contratto 1.151). null = non si sa.
+ */
 export function openProve(items: WaitItem[] | null | undefined): Set<number> | null {
   if (!items) return null
-  return new Set(items.filter(w => (w.state ?? 'open') === 'open').flatMap(w => (w.tests ?? []).filter(t => t.state === 'todo').map(t => t.id)))
+  const nums = (s: string | null | undefined) => (s ?? '').split(',').map(x => Number(x.trim())).filter(x => Number.isInteger(x) && x > 0)
+  return new Set(items.filter(w => (w.state ?? 'open') === 'open').flatMap(w => [
+    ...(w.actions ?? []).filter(a => a.cmd?.op === 'prova').flatMap(a => nums(a.cmd?.arg as string | null | undefined)),
+    ...(w.answer?.op === 'prova' ? nums(w.answer.arg) : []),
+    ...(w.tests ?? []).filter(t => t.state === 'todo').map(t => t.id),
+  ]))
 }
 
-/** La carta della prova `p` (null = in arrivo) con le aperte `open`. */
-export function provaView(p: ProvaOne | null | undefined, open: Set<number> | null): CardView {
+/** Le prove uscite dalle aperte: viste fra le aperte (`seen`) e ora non più fra quelle di `open`. */
+export function closedProve(seen: Set<number>, open: Set<number> | null): Set<number> {
+  return open ? new Set([...seen].filter(n => !open.has(n))) : new Set()
+}
+
+/** La carta della prova `p` (null = in arrivo); `closed` le prove uscite dalle aperte (`closedProve`). */
+export function provaView(p: ProvaOne | null | undefined, closed: Set<number>): CardView {
   if (!p) return { kind: 'loading' }
   const at = p.at > 0 ? p.at : null
   const text = p.text?.trim() ? p.text : null
   if (p.state === 'ok' || p.state === 'ko' || p.state === 'red') return { kind: p.state, at, text }
-  if (open && !open.has(p.id)) return { kind: 'not_open' }
+  if (closed.has(p.id)) return { kind: 'not_open' }
   return { kind: 'open' }
 }
 
-/** Le carte in cache da rileggere: quelle che mostrano ancora da fare una prova che `attese` non ha più fra le aperte. */
-export function staleProve(cached: Record<number, ProvaOne | null | undefined>, open: Set<number> | null): number[] {
-  if (!open) return []
-  return Object.entries(cached).filter(([n, p]) => p && p.state === 'todo' && !open.has(Number(n))).map(([n]) => Number(n)).sort((a, b) => a - b)
+/** Le carte in cache da rileggere: quelle che mostrano ancora da fare una prova uscita dalle aperte. */
+export function staleProve(cached: Record<number, ProvaOne | null | undefined>, closed: Set<number>): number[] {
+  return Object.entries(cached).filter(([n, p]) => p && p.state === 'todo' && closed.has(Number(n))).map(([n]) => Number(n)).sort((a, b) => a - b)
 }
 
 /** L'ora dell'esito: «20:31» oggi, «12/11 20:31» un altro giorno (ora locale). */
