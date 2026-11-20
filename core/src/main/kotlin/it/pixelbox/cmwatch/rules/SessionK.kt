@@ -2,6 +2,7 @@ package it.pixelbox.cmwatch.rules
 
 import it.pixelbox.cmwatch.contract.Commitment
 import it.pixelbox.cmwatch.contract.KpiData
+import it.pixelbox.cmwatch.contract.KpiResult
 import it.pixelbox.cmwatch.contract.KpiTurn
 import it.pixelbox.cmwatch.contract.TimelinePage
 
@@ -13,7 +14,7 @@ import it.pixelbox.cmwatch.contract.TimelinePage
  */
 object SessionK {
     /** Un turno di oggi: inizio, minuti (almeno 1), riuscito o no, il testo dell'esito se il relay lo manda. */
-    data class Turn(val start: Long, val minutes: Long, val ok: Boolean, val text: String?)
+    data class Turn(val start: Long, val minutes: Long, val ok: Boolean, val text: String?, val entry: String? = null)
 
     /** Prima: gli ultimi [shown] turni dal più vecchio al più nuovo, quanti ne restano sopra, il totale e i minuti di oggi. */
     data class Before(val turns: List<Turn>, val hidden: Int, val total: Int, val minutes: Long, val failed: Int)
@@ -26,9 +27,33 @@ object SessionK {
         val shown = if (all) t else t.takeLast(SHOWN)
         val sum = Kpi.turnsSummary(t)
         return Before(
-            shown.map { Turn(it.start, ((it.end - it.start).coerceAtLeast(0) + 30) / 60, it.outcome != "fail", it.text?.trim()?.takeIf { x -> x.isNotEmpty() }) }.map { it.copy(minutes = it.minutes.coerceAtLeast(1)) },
+            shown.map { Turn(it.start, ((it.end - it.start).coerceAtLeast(0) + 30) / 60, it.outcome != "fail", it.text?.trim()?.takeIf { x -> x.isNotEmpty() }, it.entry?.trim()?.takeIf { x -> x.isNotEmpty() }) }.map { it.copy(minutes = it.minutes.coerceAtLeast(1)) },
             t.size - shown.size, t.size, sum.minutes, sum.failed,
         )
+    }
+
+    /** Contratto 1.156: un risultato da mostrare — il tocco apre il link, o la voce della chat che ha mandato il file. */
+    data class Result(val kind: String, val label: String, val url: String?, val entry: String?, val at: Long)
+    data class Results(val shown: List<Result>, val hidden: Int, val total: Int)
+
+    const val RESULTS_SHOWN = 4
+    private val KINDS = setOf("image", "file", "link", "release")
+    private val HTTP = Regex("^https?://")
+
+    /** Risultati: i più nuovi per primi, al massimo 20; fuori quelli senza nome o che non si possono aprire; null quando non ce n'è. */
+    fun results(list: List<KpiResult>?, all: Boolean = false): Results? {
+        val l = list.orEmpty().mapNotNull { x ->
+            val label = x.label.trim().takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+            if (x.kind !in KINDS) return@mapNotNull null
+            val web = x.kind == "link" || x.kind == "release"
+            val url = x.url?.takeIf { HTTP.containsMatchIn(it) }
+            val entry = x.entry?.trim()?.takeIf { it.isNotEmpty() }
+            if (if (web) url == null else entry == null) return@mapNotNull null
+            Result(x.kind, label, if (web) url else null, entry, x.at)
+        }.sortedByDescending { it.at }.take(20)
+        if (l.isEmpty()) return null
+        val shown = if (all || l.size <= RESULTS_SHOWN + 1) l else l.take(RESULTS_SHOWN)
+        return Results(shown, l.size - shown.size, l.size)
     }
 
     /** Il compito del registro su cui lavora la sessione: il più recente fra quelli aperti col suo nome. */

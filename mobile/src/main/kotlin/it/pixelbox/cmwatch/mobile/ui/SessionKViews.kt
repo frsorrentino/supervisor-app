@@ -21,6 +21,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Description
+import androidx.compose.material.icons.rounded.Image
+import androidx.compose.material.icons.rounded.Link
+import androidx.compose.material.icons.rounded.Sell
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -105,13 +109,13 @@ internal fun KRow(label: String, mono: Boolean = false, onTap: (() -> Unit)? = n
 
 /** Prima: «Altri N turni prima» in cima, poi gli ultimi turni dal più vecchio; il tocco apre la conversazione. */
 @Composable
-internal fun KTurns(b: SessionK.Before, onAll: () -> Unit, onOpen: () -> Unit) {
+internal fun KTurns(b: SessionK.Before, onAll: () -> Unit, onOpen: (entry: String?) -> Unit) {
     if (b.hidden > 0) Text(
         pluralStringResource(R.plurals.k_more_turns, b.hidden, b.hidden), style = V3.Body.copy(color = V3.Busy),
         modifier = Modifier.heightIn(min = 44.dp).handCursor().clickable(onClick = onAll).padding(vertical = 12.dp).testTag("k-altri-turni"),
     )
     b.turns.forEach { t ->
-        KRow(hhmmOf(t.start), mono = true, onTap = onOpen, action = {
+        KRow(hhmmOf(t.start), mono = true, onTap = { onOpen(t.entry) }, action = {
             Text(stringResource(R.string.k_minutes, t.minutes), style = V3.Meter.copy(color = V3.Tx3), maxLines = 1, modifier = Modifier.widthIn(min = 44.dp))
         }) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -123,6 +127,40 @@ internal fun KTurns(b: SessionK.Before, onAll: () -> Unit, onOpen: () -> Unit) {
                 )
             }
         }
+    }
+}
+
+/**
+ * Contratto 1.156, Risultati: i risultati di oggi come pillole, il più nuovo per primo, che vanno a capo; un link o una release si apre
+ * fuori, un file o un'immagine sulla sua voce della chat. Oltre cinque, quattro e «Altri N». Come la sezione k-risultati di Home.svelte.
+ */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@Composable
+internal fun KResults(r: SessionK.Results, onAll: () -> Unit, onEntry: (String?) -> Unit) {
+    val uri = androidx.compose.ui.platform.LocalUriHandler.current
+    androidx.compose.foundation.layout.FlowRow(
+        Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        r.shown.forEach { x ->
+            val icon = when (x.kind) {
+                "image" -> Icons.Rounded.Image; "file" -> Icons.Rounded.Description
+                "release" -> Icons.Rounded.Sell; else -> Icons.Rounded.Link
+            }
+            Row(
+                Modifier.heightIn(min = 44.dp).clip(CircleShape).background(V3.S2).handCursor()
+                    .clickable { val u = x.url; if (u != null) runCatching { uri.openUri(u) } else onEntry(x.entry) }
+                    .padding(horizontal = 14.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Icon(icon, null, tint = V3.Tx2, modifier = Modifier.size(16.dp))
+                Text(x.label, style = V3.Body, maxLines = 1, softWrap = false, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f, fill = false).fadeEnd())
+            }
+        }
+        if (r.hidden > 0) Text(
+            pluralStringResource(R.plurals.k_more_results, r.hidden, r.hidden), style = V3.Body.copy(color = V3.Busy),
+            modifier = Modifier.align(Alignment.CenterVertically).heightIn(min = 44.dp).handCursor().clickable(onClick = onAll).padding(vertical = 12.dp).testTag("k-altri-risultati"),
+        )
     }
 }
 

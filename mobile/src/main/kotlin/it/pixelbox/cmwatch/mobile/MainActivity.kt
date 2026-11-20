@@ -2590,6 +2590,8 @@ class MainActivity : ComponentActivity() {
                     system = state?.system, ops = state?.ops,
                     sheetOpen = masterHalf,
                     kpiPage = kpiPage, kpiState = state?.let { s -> decisionsPage?.let { p -> it.pixelbox.cmwatch.rules.ProveFuse.withoutTests(p) }?.let { d -> s.copy(decisions = s.decisions?.copy(n = d.n, here = d.here, tasks = d.tasks)) } ?: s }?.let { s -> it.pixelbox.cmwatch.rules.ToccaRules.withItems(s, uItems) }, kpiData = kpiData,
+                    // Contratto 1.156: un turno o un file di «Risultati» apre la sessione su quella voce, come un risultato della ricerca.
+                    onJump = { n, e -> if (wide) saveCols(it.pixelbox.cmwatch.rules.Tablet.replace(tabletCols, n)) else open = n; searchFocus = n to e },
                     onBox = { b -> boxOpen = b },
                     // Contratto 1.95: «Plugin e skill»; l'elenco è una lettura passiva, gli aggiornamenti mostrano il testo del relay.
                     plugins = state?.plugins?.takeIf { !demo && state.ops?.contains("plugins") == true && state.ops?.contains("plugin_update") == true },

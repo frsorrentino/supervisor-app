@@ -597,6 +597,8 @@
     <!-- app-scheda-sessione-semplice-19-11: la scheda K della sessione. -->
     <string name="k_before">Prima</string>
     <string name="k_results">Risultati</string>
+    <string name="k_results_today">%1$d oggi</string>
+    <plurals name="k_more_results"><item quantity="one">Un altro</item><item quantity="other">Altri %1$d</item></plurals>
     <string name="k_now">Adesso</string>
     <string name="k_next">Prossimo</string>
     <plurals name="k_turns_today"><item quantity="one">%1$d turno oggi, %2$d min</item><item quantity="other">%1$d turni oggi, %2$d min</item></plurals>

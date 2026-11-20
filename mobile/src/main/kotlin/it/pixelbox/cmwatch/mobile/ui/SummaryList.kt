@@ -236,6 +236,8 @@ fun SummaryList(
     onQuota: () -> Unit = {},
     /** Contratto 1.96: le cifre dell'op `kpi` (proposte 10, 12, 13, 17, compito app-kpi-dati-relay-25-10); null finché non arrivano. */
     kpiData: it.pixelbox.cmwatch.contract.KpiData? = null,
+    /** Contratto 1.156: il tocco su un turno o su un file di «Risultati» apre la sessione su quella voce della chat. */
+    onJump: ((session: String, entry: String) -> Unit)? = null,
     /** Contratto 1.95: la sezione «Plugin e skill»; null = relay senza le op. `pluginsInitial` per i test. */
     plugins: it.pixelbox.cmwatch.contract.PluginsSummary? = null,
     onPluginsLoad: (suspend () -> it.pixelbox.cmwatch.contract.PluginsPage?)? = null,
@@ -822,6 +824,7 @@ fun SummaryList(
                 works = placed?.inCards?.get(s.name).orEmpty(), services = outsidePlaced.inCards[s.name].orEmpty(), onService = onService,
                 kpiEvents = kpiEvents?.let { m -> m[s.name].orEmpty() },
                 kpiTurns = kpiData?.let { d -> it.pixelbox.cmwatch.rules.Kpi.turnsOf(d, s.name) },
+                kpiResults = kpiData?.turnsToday?.firstOrNull { x -> x.session == s.name }?.results, onJump = onJump?.let { j -> { e: String -> j(s.name, e) } },
                 todayShare = kpiState?.let { st -> it.pixelbox.cmwatch.rules.Kpi.todayShare(st, s.name) },
                 onWorkDone = { w -> w.agenda?.let { row -> onAgendaEdit(RecapAgenda.Edit(RecapAgenda.Item.DONE, row)) }; w.commitment?.let(onDoneForPerson) },
                 onWorkStart = { w -> w.agenda?.let { row -> onStart(RecapAgenda.doIt(row)) } },
@@ -1272,6 +1275,8 @@ private fun SummaryCard(
     kpiEvents: List<it.pixelbox.cmwatch.contract.TimelineEvent>? = null,
     /** Proposta 10 (1.96): i turni di oggi della sessione col costo; null = op `kpi` non ancora arrivata. */
     kpiTurns: List<it.pixelbox.cmwatch.contract.KpiTurn>? = null,
+    /** Contratto 1.156: i risultati di oggi della sessione e il tocco che apre la sessione su una voce della chat. */
+    kpiResults: List<it.pixelbox.cmwatch.contract.KpiResult>? = null, onJump: ((String) -> Unit)? = null,
     /** Proposta 5: la parte di token di oggi della sessione sul suo account; null senza dati. */
     todayShare: Int? = null,
     /** Stile «Studio e Diretta»: il «Fatto» è pieno solo per la prima che aspetta; l'ora dell'ultimo rosso di oggi; `firstInList` senza il filo sopra. */
@@ -1605,6 +1610,9 @@ private fun SummaryCard(
             // I KPI che stavano qui sono andati nelle pagine Utilizzo (giornata a fasce, attività per ora) e quote (token per turno,
             // parte di oggi del contesto).
             var allTurns by rememberSaveable(s.name) { mutableStateOf(false) }
+            var allResults by rememberSaveable(s.name) { mutableStateOf(false) }
+            val results = androidx.compose.runtime.remember(kpiResults, allResults) { it.pixelbox.cmwatch.rules.SessionK.results(kpiResults, allResults) }
+            val toEntry: (String?) -> Unit = { e -> if (e != null && onJump != null) onJump(e) else openNeck() }
             val before = androidx.compose.runtime.remember(kpiTurns, allTurns) { it.pixelbox.cmwatch.rules.SessionK.before(kpiTurns, allTurns) }
             val task = androidx.compose.runtime.remember(menuState?.commitments, s.name) { it.pixelbox.cmwatch.rules.SessionK.task(menuState?.commitments, s.name) }
             val stepList = if (waiting) detail.steps else parsed.steps
@@ -1612,7 +1620,12 @@ private fun SummaryCard(
             KTimeline(Modifier.padding(top = 10.dp)) {
                 before?.let { b ->
                     KGroup(stringResource(R.string.k_before), KTone.PAST, pluralStringResource(R.plurals.k_turns_today, b.total, b.total, b.minutes.toInt()), "k-prima") {
-                        KTurns(b, onAll = { allTurns = true }, onOpen = openNeck)
+                        KTurns(b, onAll = { allTurns = true }, onOpen = toEntry)
+                    }
+                }
+                results?.let { r ->
+                    KGroup(stringResource(R.string.k_results), KTone.PAST, stringResource(R.string.k_results_today, r.total), "k-risultati") {
+                        KResults(r, onAll = { allResults = true }, onEntry = toEntry)
                     }
                 }
                 KGroup(stringResource(R.string.k_now), KTone.NOW, tag = "k-adesso") {

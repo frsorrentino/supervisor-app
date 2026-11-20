@@ -1201,9 +1201,11 @@ const val LEGACY_HANDOFF = "/fable-director:handoff --here"
 @Serializable data class KpiChecksDay(val date: String, val green: Int = 0, val red: Int = 0)
 
 /** 10 · `outcome` ok | fail | question | running; `tokens` = input + scritture in cache + output, `cache_read` a parte. */
-@Serializable data class KpiSessionTurns(val session: String, val turns: List<KpiTurn> = emptyList())
+@Serializable data class KpiSessionTurns(val session: String, val turns: List<KpiTurn> = emptyList(), val results: List<KpiResult> = emptyList())
+/** Contratto 1.156: un risultato di oggi — un file mandato (`image`, `file`: `path`) o un link nel messaggio finale (`link`, `release`: `url`); `entry` la voce della chat. */
+@Serializable data class KpiResult(val kind: String, val label: String = "", val path: String? = null, val url: String? = null, val at: Long = 0, val entry: String? = null)
 /** app-scheda-sessione-semplice-19-11: `text` la prima riga dell'esito del turno, chiesto al relay; null con un relay precedente. */
-@Serializable data class KpiTurn(val start: Long, val end: Long, val outcome: String, val tokens: Long = 0, @SerialName("cache_read") val cacheRead: Long = 0, val text: String? = null)
+@Serializable data class KpiTurn(val start: Long, val end: Long, val outcome: String, val tokens: Long = 0, @SerialName("cache_read") val cacheRead: Long = 0, val text: String? = null, val entry: String? = null)
 
 /** 12 · la latenza dalla push alla lettura nell'ultima ora, le sessioni di questo computer e le altre macchine. */
 @Serializable data class KpiHealth(

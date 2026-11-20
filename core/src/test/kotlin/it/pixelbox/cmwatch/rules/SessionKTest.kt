@@ -2,6 +2,7 @@ package it.pixelbox.cmwatch.rules
 
 import it.pixelbox.cmwatch.contract.Commitment
 import it.pixelbox.cmwatch.contract.KpiData
+import it.pixelbox.cmwatch.contract.KpiResult
 import it.pixelbox.cmwatch.contract.KpiSessionTurns
 import it.pixelbox.cmwatch.contract.KpiTurn
 import it.pixelbox.cmwatch.contract.TimelineEvent
@@ -58,5 +59,35 @@ class SessionKTest {
         val data = KpiData(0, turnsToday = listOf(KpiSessionTurns("joyconceptstore", joy)))
         assertEquals(listOf("joyconceptstore", "supervisor", "app"), SessionK.todaySessions(page, data, 100))
         assertEquals(emptyList<String>(), SessionK.todaySessions(null, null, 100))
+    }
+
+    // Contratto 1.156: la voce di ogni turno e la riga «Risultati», come in web/src/lib/sessionK.test.ts.
+    @Test fun `il turno porta la sua voce della chat`() {
+        val b = SessionK.before(listOf(t(9, 0, 5, text = "categorie corrette").copy(entry = "u-1.2"), t(10, 0, 3)))!!
+        assertEquals(listOf("u-1.2", null), b.turns.map { it.entry })
+    }
+
+    private fun r(kind: String, at: Long, label: String = kind + at, entry: String? = "e$at", url: String? = null): KpiResult {
+        val web = kind == "link" || kind == "release"
+        return KpiResult(kind, label, path = if (web) null else "/w/$at", url = url ?: if (web) "https://x.dev/$at" else null, at = at, entry = entry)
+    }
+
+    @Test fun `i risultati vanno dal più nuovo e quelli che non si aprono restano fuori`() {
+        val l = listOf(r("image", 1), r("link", 3), r("release", 2), r("file", 4, entry = null), r("link", 5, url = "javascript:alert(1)"), r("video", 6), r("file", 7, label = " "))
+        val k = SessionK.results(l)!!
+        assertEquals(listOf(3L, 2L, 1L), k.shown.map { it.at })
+        assertEquals(listOf(true, true, false), k.shown.map { it.url != null })
+        assertEquals(listOf(0, 3), listOf(k.hidden, k.total))
+    }
+
+    @Test fun `oltre cinque se ne vedono quattro, al massimo venti`() {
+        val many = (0 until 25).map { r("image", it.toLong()) }
+        assertEquals(0, SessionK.results(many.take(5))!!.hidden)
+        val k = SessionK.results(many)!!
+        assertEquals(listOf(4, 16, 20), listOf(k.shown.size, k.hidden, k.total))
+        assertEquals(24L, k.shown[0].at)
+        assertEquals(20, SessionK.results(many, all = true)!!.shown.size)
+        assertNull(SessionK.results(emptyList()))
+        assertNull(SessionK.results(null))
     }
 }
