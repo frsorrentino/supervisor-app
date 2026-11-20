@@ -87,5 +87,6 @@ export function stepDetail(e: TranscriptEntry): { note: string | null; text: str
   const line = stepLine(e)
   const text = (e.text ?? '').trim()
   const note = e.note?.trim() || null
-  return { note: note && (line.prose || note !== line.arg) ? note : null, text: text && text !== line.arg ? text : null }
+  // app-voci-espandibili-20-11: ogni passo con un testo o una nota si apre sul chiesto intero, come StepDetail in ChatTurns.kt.
+  return { note: note && (line.prose || note !== line.arg || !text) ? note : null, text: text || null }
 }

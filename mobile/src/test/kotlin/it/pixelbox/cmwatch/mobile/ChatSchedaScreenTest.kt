@@ -52,6 +52,8 @@ Prossimi: ok al deploy della 2.8.1 · prova il rimborso dal vivo · apri la PR""
         TranscriptEntry("a3", "assistant", text = "L'importo si divide in euro con i decimali: 12,34 € in tre rate fa 4,1133 € a rata, e l'arrotondamento di ogni rata perde un centesimo. Passo ai centesimi interi e do il resto all'ultima rata.", at = t + 20),
         TranscriptEntry("a4", "tool", text = "/home/dev/payments-api/src/refunds/partial.ts", at = t + 30, tool = "Edit", diff = diff),
         TranscriptEntry("a5", "tool", text = "npm run test:staging", at = t + 50, tool = "Bash", note = "Prova su staging"),
+        // app-voci-espandibili-20-11: una ricerca sul web ha la freccia come Bash.
+        TranscriptEntry("a5w", "tool", text = "rimborso parziale arrotondamento centesimi ultima rata", at = t + 60, tool = "WebSearch"),
         TranscriptEntry("a6", "assistant", text = answer, at = t + 82, turn = TranscriptTurn(started = t, ended = t + 82, out = 640), outcomeType = "done"),
     )
     // Un turno ancora al lavoro: nessuna risposta, un passo fallito, il lavoro lungo chiuso sulle ultime voci.

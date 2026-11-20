@@ -647,20 +647,20 @@
    }
   },
   {
-   "name": "un MCP senza testo: il nome corto e la nota",
+   "name": "un MCP senza testo: il nome corto e la nota, che aprendo si legge intera",
    "tool": "mcp__chrome-bridge__click",
    "text": null,
    "note": "Tocca Invia",
    "out": {
     "name": "click",
     "arg": "Tocca Invia",
-    "note": null,
+    "note": "Tocca Invia",
     "text": null,
     "prose": false
    }
   },
   {
-   "name": "un comando senza descrizione: resta il comando",
+   "name": "un comando senza descrizione: resta il comando, e aprendo si legge intero",
    "tool": "Bash",
    "text": "npm run build",
    "note": null,
@@ -669,7 +669,7 @@
     "arg": "npm run build",
     "prose": false,
     "note": null,
-    "text": null
+    "text": "npm run build"
    }
   },
   {
@@ -696,6 +696,32 @@
     "prose": false,
     "note": "Corregge il totale",
     "text": "/w/app/src/a.ts"
+   }
+  },
+  {
+   "name": "una ricerca sul web (app-voci-espandibili-20-11): la query sulla riga, intera aprendo",
+   "tool": "WebSearch",
+   "text": "Android Linux Terminal Pixel Tablet developer options",
+   "note": null,
+   "out": {
+    "name": "WebSearch",
+    "arg": "Android Linux Terminal Pixel Tablet developer options",
+    "prose": false,
+    "note": null,
+    "text": "Android Linux Terminal Pixel Tablet developer options"
+   }
+  },
+  {
+   "name": "un pattern (app-voci-espandibili-20-11): si apre anche se è uguale alla riga",
+   "tool": "Grep",
+   "text": "closePairFits",
+   "note": null,
+   "out": {
+    "name": "Grep",
+    "arg": "closePairFits",
+    "prose": false,
+    "note": null,
+    "text": "closePairFits"
    }
   }
  ],

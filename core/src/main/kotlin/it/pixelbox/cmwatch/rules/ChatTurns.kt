@@ -97,11 +97,16 @@ object ChatTurns {
 
     data class Detail(val note: String?, val text: String?)
 
-    /** Il dettaglio che il tocco apre: la nota e il testo intero, solo se dicono più della riga. */
+    /**
+     * Il dettaglio che il tocco apre, uguale per ogni passo (app-voci-espandibili-20-11, Franz 20/11 20:59: «websearch non è espandibile
+     * come ad es. le voci bash»): quello che il passo ha chiesto, intero e a capo (comando, query, indirizzo, pattern, percorso), e la
+     * nota quando dice altro dalla riga o il passo non ha testo. Ogni passo con un testo o una nota si apre; prima si apriva solo se il
+     * testo era diverso dalla riga, e WebSearch, Grep e WebFetch, con la riga tagliata, non si aprivano mai.
+     */
     fun stepDetail(e: TranscriptEntry): Detail {
         val line = stepLine(e)
         val text = e.text?.trim().orEmpty()
         val note = e.note?.trim()?.takeIf { it.isNotEmpty() }
-        return Detail(note?.takeIf { line.prose || it != line.arg }, text.takeIf { it.isNotEmpty() && it != line.arg })
+        return Detail(note?.takeIf { line.prose || it != line.arg || text.isEmpty() }, text.takeIf { it.isNotEmpty() })
     }
 }
