@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { provaDoneLine, provaView } from './cardLive'
   import { getContext } from 'svelte'
   import { provaRefs, type ProvaRead } from './provaLinks'
   import { t } from './t'
@@ -9,7 +10,9 @@
   // una lettura per scheda con l'etag e poi in cache (App), riletta solo dopo un tocco. Senza il contesto (provini) niente schede.
   // Dal formato unico (app-formato-unico-12-11, variante A di Franz del 12/11 alle 07:29) la scheda è una voce: icona, «Prova #N» col
   // titolo, cosa fare su una riga e il tasto principale, Ok; «Non va» e il resto stanno nella prova aperta, a un tocco.
-  export type ProvaCardsHost = { read: (n: number) => ProvaRead | null | undefined; ask: (n: number) => void; open: (n: number) => void; ok: (n: number) => Promise<boolean>; ko: (n: number, why: string) => Promise<boolean> }
+  // app-carte-stato-vivo-20-11: lo stato dalla stessa fonte di «Per te» (`openProve`, cardLive.ts); l'esito letto decide, e fuori dalle
+  // aperte ma ancora da fare la scheda non ha tasti e dice «Non è più da fare».
+  export type ProvaCardsHost = { read: (n: number) => ProvaRead | null | undefined; ask: (n: number) => void; open: (n: number) => void; ok: (n: number) => Promise<boolean>; ko: (n: number, why: string) => Promise<boolean>; openProve?: () => Set<number> | null }
   let { text }: { text: string } = $props()
   const host = getContext<ProvaCardsHost | undefined>('prova-cards')
   const ns = $derived([...new Set(provaRefs(text).map(r => r.n))])
@@ -23,10 +26,11 @@
     {@const r = host.read(n)}
     {#if r == null || r.kind === 'found'}
       {@const p = r?.kind === 'found' ? r.prova : null}
-      {@const done = p && p.state !== 'todo' ? p.state : sent[n] ?? null}
+      {@const v = p && p.state === 'todo' && sent[n] ? { kind: 'ok' as const } : provaView(p, host.openProve?.() ?? null)}
+      {@const line = provaDoneLine(v, Date.now() / 1000, t)}
       <Voce card group="prova" testid={`prova-scheda-${n}`} title={p ? `${t.provaTitle(n)} · ${p.title ?? p.short ?? p.task}` : t.provaTitle(n)}
-        sub={!p ? t.provaLoading : done ? [done === 'ok' ? t.provaStateOk : done === 'red' ? t.provaStateRed : t.provaStateKo, p.text].filter(Boolean).join(': ') : [t.perTeGroup.prova, p.fai].filter(Boolean).join(' · ')}
-        tone={done ? (done === 'ok' ? 'good' : 'red') : null} main={p && !done ? t.proveOk : null} onOpen={() => host.open(n)} onMain={() => void ok(n)} />
+        sub={!p ? t.provaLoading : line ?? [t.perTeGroup.prova, p.fai].filter(Boolean).join(' · ')}
+        tone={v.kind === 'ok' ? 'good' : v.kind === 'ko' || v.kind === 'red' ? 'red' : null} main={v.kind === 'open' ? t.proveOk : null} onOpen={() => host.open(n)} onMain={() => void ok(n)} />
     {/if}
   {/each}
 {/if}

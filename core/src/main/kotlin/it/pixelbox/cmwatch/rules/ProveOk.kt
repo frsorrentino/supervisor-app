@@ -11,4 +11,11 @@ object ProveOk {
 
     /** [ok] null: nessun risultato in tempo. */
     fun done(ok: Boolean?, text: String?): Boolean = ok != false || DONE.containsMatchIn(text.orEmpty())
+
+    /**
+     * Il no del relay che vuol dire «già fatto» (app-carte-stato-vivo-20-11): non è un errore, e lo snackbar non lo mostra più
+     * (Franz 20/11 20:37: «prova 1347: non c'è più o è già confermata» su una prova confermata altrove).
+     */
+    fun alreadyDone(text: String?): Boolean = PROVA.containsMatchIn(text.orEmpty()) && DONE.containsMatchIn(text.orEmpty())
+    private val PROVA = Regex("""\bprova \d+""", RegexOption.IGNORE_CASE)
 }

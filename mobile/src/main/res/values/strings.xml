@@ -2030,6 +2030,10 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="prova_state_ok">Va</string>
     <string name="prova_state_ko">Non va</string>
     <string name="prova_state_red">Confermata, controllo rosso</string>
+    <!-- app-carte-stato-vivo-20-11: la carta di una prova risolta, uguale nella web (t.ts provaDoneOk, provaDoneKo, provaNotOpen). -->
+    <string name="prova_done_ok">Confermata: va</string>
+    <string name="prova_done_ko">Non va</string>
+    <string name="prova_not_open">Non è più da fare</string>
     <string name="prova_where">Dove</string>
     <string name="prova_do">Cosa fare</string>
     <string name="prova_expected">Cosa vedere</string>

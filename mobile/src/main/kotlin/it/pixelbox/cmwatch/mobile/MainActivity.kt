@@ -202,7 +202,10 @@ class MainActivity : ComponentActivity() {
         open = { n -> provaOpenFn(n) },
         ok = { n -> provaOkFn(n).also { provaRead(n) } },
         ko = { p, why -> provaKoFn(p, why).also { provaRead(p.id) } },
+        openProve = { provaOpenSet },
     )
+    /** app-carte-stato-vivo-20-11: le prove aperte secondo `attese`, le stesse di «Per te»; null con un relay senza `attese`. */
+    private var provaOpenSet by mutableStateOf<Set<Long>?>(null)
     /**
      * Le richieste citate nelle chat e fisse in home come schede compatte (app-scheda-scelta-12-11, contratto 1.137): una lettura `attesa`
      * con `archive` per id, poi la cache; un rifiuto (una richiesta che il PC non conosce più, o un relay di prima) lascia il link. Si
@@ -303,7 +306,7 @@ class MainActivity : ComponentActivity() {
                             val refusals = remember(resolvedWord) {
                                 // app-chiudi-scheda-20-11: il no di una chiusura lo dice una volta sola la carta della chiusura, in
                                 // italiano; qui sotto ripeteva il testo del relay («not closed: it is attached to the PC»).
-                                app.repo.userResults.filter { r -> it.pixelbox.cmwatch.rules.CloseSplash.refusals(r.text).isEmpty() }.map { r ->
+                                app.repo.userResults.filter { r -> it.pixelbox.cmwatch.rules.CloseSplash.refusals(r.text).isEmpty() && !it.pixelbox.cmwatch.rules.ProveOk.alreadyDone(r.text) }.map { r ->
                                     r.copy(text = it.pixelbox.cmwatch.rules.QuestionRules.refusalText(
                                         r, app.repo.answeredQuestion(r.id), app.repo.snapshot.value.state?.sessions.orEmpty(), resolvedWord,
                                     ))
@@ -474,7 +477,8 @@ class MainActivity : ComponentActivity() {
             ask(CmdOp.ATTESE, null)?.takeIf { r -> r.ok }?.let { r -> runCatching { ContractJson.decodeWaits(r.text) }.onSuccess { p -> waitOthers = p.items } }
         }
         val openWids = (snap.state?.approvals.orEmpty().mapNotNull { a -> a.wid } + snap.state?.attention.orEmpty().mapNotNull { a -> a.wid }).sorted().joinToString(",")
-        LaunchedEffect(openWids) { waitRefresh { w -> (w.state ?: "open") == "open" } }
+        // app-carte-stato-vivo-20-11: anche quando cambia `attese.rev` (una risposta data altrove), non solo le richieste nello stato.
+        LaunchedEffect(openWids, snap.state?.attese?.rev) { waitRefresh { w -> (w.state ?: "open") == "open" } }
         // «Per te» in cima alla chat di una sessione (app-formato-unico-12-11): le richieste aperte si leggono con `attese` quando
         // cambiano nello stato e dopo una risposta partita da una voce; `perTeSent` sono le voci a cui è già partita la risposta.
         val perTeSent = remember { androidx.compose.runtime.mutableStateMapOf<String, Boolean>() }
@@ -492,6 +496,14 @@ class MainActivity : ComponentActivity() {
         LaunchedEffect(closedNow) { closedNow.forEach { id -> perTeSent[id] = true } }
         val unified = snap.state?.attese != null
         val uItems = if (unified) it.pixelbox.cmwatch.rules.Attese.visible(waitOthers, perTeSent.keys) else null
+        // app-carte-stato-vivo-20-11: le carte delle prove nella chat leggono le aperte da qui; quelle che mostrano ancora da fare una prova
+        // che non è più aperta si rileggono, e l'esito letto decide come appaiono.
+        val openProveNow = if (unified) it.pixelbox.cmwatch.rules.CardLive.openProve(waitOthers) else null
+        androidx.compose.runtime.SideEffect { provaOpenSet = openProveNow }
+        LaunchedEffect(openProveNow) {
+            val cached = provaCache.mapValues { (_, r) -> (r as? it.pixelbox.cmwatch.rules.ProvaLinks.Read.Found)?.prova }
+            it.pixelbox.cmwatch.rules.CardLive.stale(cached, openProveNow).forEach { n -> provaRead(n) }
+        }
         // La risposta da una voce, uguale in ogni vista: esce subito da tutte; se il PC rifiuta, torna.
         val answerWait: (it.pixelbox.cmwatch.contract.WaitItem, Int) -> Unit = { w, i ->
             w.actions?.getOrNull(i)?.let { a ->

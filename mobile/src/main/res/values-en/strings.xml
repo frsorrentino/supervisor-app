@@ -1994,6 +1994,9 @@ It starts at your last message to the master.</string>
     <string name="prova_state_ok">Works</string>
     <string name="prova_state_ko">Doesn\'t work</string>
     <string name="prova_state_red">Confirmed, red check</string>
+    <string name="prova_done_ok">Confirmed: works</string>
+    <string name="prova_done_ko">Does not work</string>
+    <string name="prova_not_open">No longer to do</string>
     <string name="prova_where">Where</string>
     <string name="prova_do">What to do</string>
     <string name="prova_expected">What to see</string>

@@ -140,6 +140,7 @@
   import MonitorView from './lib/MonitorView.svelte'
   import ProvaView from './lib/ProvaView.svelte'
   import { inVerify, provaOf, readProva, type ProvaRead } from './lib/provaLinks'
+  import { openProve, provaAlreadyDone, staleProve } from './lib/cardLive'
   import { monitorsDemo } from './lib/demo'
   import { build, finishedKey, MASTER } from './lib/summary'
   import { nextKey, type ForYouRow } from './lib/masterHome'
@@ -465,7 +466,8 @@
       if (!r.ok && !superseded(r)) {
         const why = refusalText(r, c.question ?? null, st.sessions, t.answerAlreadyResolved)
         const rf = refusals(why)
-        if (!(quietClose && rf.length)) say(`✗ ${rf.length ? rf.map(x => t.closeRefusedSay(x.name, x.why)).join(' · ') : why}`)
+        // app-carte-stato-vivo-20-11: «prova N: già confermata» vuol dire fatta altrove, non è un errore.
+        if (!(quietClose && rf.length) && !provaAlreadyDone(why)) say(`✗ ${rf.length ? rf.map(x => t.closeRefusedSay(x.name, x.why)).join(' · ') : why}`)
       }
       return r
     } catch {
@@ -761,6 +763,7 @@
     open: (n: number) => openProva(n),
     ok: async (n: number) => { const r = await run(newCmd('prova', null, String(n), undefined, undefined, { result: 'ok' })); void provaCardRead(n); return proveDone(r?.ok ?? null, r?.text) },
     ko: async (n: number, why: string) => { const r = await run(newCmd('prova', null, String(n), why, undefined, { result: 'ko' })); void provaCardRead(n); return !!r?.ok },
+    openProve: () => openProveNow,
   })
   // Le richieste citate nelle chat come schede compatte (app-scheda-scelta-12-11, contratto 1.137): una lettura `attesa` con `archive`
   // per id, poi la cache; una lettura senza risposta riprova al più tre volte, poi la scheda resta «in arrivo»; un rifiuto (un relay
@@ -1312,6 +1315,12 @@
   // le voci chiuse altrove escono subito. Con un relay senza `state.attese` tutto resta come prima.
   const unified = $derived(!!st.attese)
   const uItems = $derived(unified ? openWaits() : null)
+  // app-carte-stato-vivo-20-11: le schede delle prove nella chat leggono le aperte da qui; quelle che mostrano ancora da fare una prova
+  // non più aperta si rileggono, e l'esito letto decide come appaiono. Le schede delle richieste si rileggono anche a ogni `attese.rev`.
+  const openProveNow = $derived(uItems ? openProve(uItems) : null)
+  $effect(() => { const open = openProveNow; untrack(() => { for (const n of staleProve(Object.fromEntries(Object.entries(provaCards).map(([k, r]) => [k, r?.kind === 'found' ? r.prova : null])), open)) void provaCardRead(n) }) })
+  let waitRev: string | null = null
+  $effect(() => { const rev = st.attese?.rev ?? null; if (waitRev != null && rev !== waitRev) untrack(() => waitCardsRefresh()); waitRev = rev })
   let askedRev: string | null = null
   $effect(() => { const rev = st.attese?.rev ?? null; if (!rev || rev === askedRev || !tr) return; askedRev = rev; untrack(() => void readWaits(run)) })
   $effect(() => { const ids = closedIds(st); if (ids.length) untrack(() => applyClosed(ids)) })
