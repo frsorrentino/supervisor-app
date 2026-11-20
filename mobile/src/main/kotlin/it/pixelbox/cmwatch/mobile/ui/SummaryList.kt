@@ -1573,21 +1573,18 @@ private fun SummaryCard(
             if (cleanup != null) {
                 // Su una riga sua (Franz 27/10 13:23): accanto, col nome lungo, lasciava allo stato due-tre lettere per riga.
                 if (closing) ClosingChip(s.name)
-                if (cleanup.canClose && closeAsk) androidx.compose.foundation.layout.FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    CloseAskButtons(closeSave, onKeep = { closeAsk = false }, onClose = { save -> closeAsk = false; onClose(save) })
+                // app-chiudi-scheda-20-11: la stessa domanda e gli stessi tasti della carta della pagina (CloseCard.kt).
+                if (cleanup.canClose && closeAsk) Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    CloseAskBody(s, closeSave, onKeep = { closeAsk = false }, onClose = { save -> closeAsk = false; onClose(save) }, inCard = true)
                 }
             }
             if (closing && it.pixelbox.cmwatch.rules.MasterService.cleanup(s, canExit, now) == null) ClosingChip(s.name)
             // Il Chiudi dà sempre un esito (Franz, 04/11): rifiutata, la card dice perché finché non tocchi «Va bene».
-            refused?.let { why -> RefusedRow(s.name, why, onRefusedSeen, onArm) }
+            refused?.let { why -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) { CloseRefusedBody(s.name, why, onArm, onRefusedSeen, inCard = true) } }
             // Contratto 1.120: armata dal relay, la card lo dice finché non si chiude.
             if (!closing) s.closing?.let { c -> ArmedChip(c.mode) }
-            if (menuClose) androidx.compose.foundation.layout.FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                CloseAskButtons(closeSave, onKeep = { menuClose = false }, onClose = { save -> menuClose = false; onClose(save) })
+            if (menuClose) Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                CloseAskBody(s, closeSave, onKeep = { menuClose = false }, onClose = { save -> menuClose = false; onClose(save) }, inCard = true)
             }
         }
 
@@ -2501,55 +2498,6 @@ internal fun expiryText(at: Long, now: Long): String {
 
 internal fun hhmmOf(epoch: Long): String =
     java.time.format.DateTimeFormatter.ofPattern("HH:mm").format(java.time.Instant.ofEpochSecond(epoch).atZone(java.time.ZoneId.systemDefault()))
-
-/** Il Chiudi rifiutato dal relay, col motivo, finché non lo togli (app-chiudi-esito-04-11). */
-@Composable
-private fun RefusedRow(name: String, why: String, onSeen: () -> Unit, onArm: ((String) -> Unit)? = null) {
-    var forceAsk by remember(name, why) { androidx.compose.runtime.mutableStateOf(false) }
-    androidx.compose.foundation.layout.FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp), itemVerticalAlignment = Alignment.CenterVertically,
-    ) {
-        if (forceAsk && onArm != null) {
-            // La conferma di «Chiudi comunque» nella card (contratto 1.120).
-            Text(stringResource(R.string.close_force_what), style = MaterialTheme.typography.bodySmall, color = Cm.text2, modifier = Modifier.padding(end = 4.dp))
-            androidx.compose.material3.TextButton(onClick = { forceAsk = false }) { Text(stringResource(R.string.close_force_cancel), color = Cm.actionIcon) }
-            androidx.compose.material3.Button(
-                onClick = { forceAsk = false; onArm("force") },
-                colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = V3.S3, contentColor = Cm.gone),
-            ) { Text(stringResource(R.string.close_force)) }
-        } else {
-            Text(stringResource(R.string.splash_refused, name), style = MaterialTheme.typography.bodySmall, color = Cm.waiting)
-            Text(why, style = MaterialTheme.typography.bodySmall, color = Cm.text2, modifier = Modifier.padding(end = 4.dp))
-            if (onArm != null) {
-                androidx.compose.material3.TextButton(onClick = { forceAsk = true }) { Text(stringResource(R.string.close_force), color = Cm.actionIcon) }
-                Surface(onClick = { onArm("after") }, shape = CircleShape, color = Cm.surfaceHigh, contentColor = Cm.text) {
-                    Text(stringResource(R.string.close_after), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
-                }
-            }
-            androidx.compose.material3.TextButton(onClick = onSeen) { Text(stringResource(if (onArm != null) R.string.close_keep else R.string.splash_refused_ok), color = Cm.actionIcon) }
-        }
-    }
-}
-
-/**
- * La conferma del Chiudi nella card, dentro una FlowRow: con [save] (contratto 1.155) «Salva e chiudi» è il pieno e «Chiudi senza
- * salvare» un tasto di testo rosso; senza, il «Chiudi» di prima.
- */
-@Composable
-private fun CloseAskButtons(save: Boolean, onKeep: () -> Unit, onClose: (Boolean) -> Unit) {
-    Text(stringResource(if (save) R.string.close_inline_save else R.string.close_inline), style = MaterialTheme.typography.bodySmall, color = Cm.text2, modifier = Modifier.padding(end = 4.dp))
-    androidx.compose.material3.TextButton(onClick = onKeep) { Text(stringResource(R.string.close_keep), color = Cm.actionIcon) }
-    if (save) {
-        androidx.compose.material3.TextButton(onClick = { onClose(false) }) { Text(stringResource(R.string.close_no_save), color = Cm.gone) }
-        androidx.compose.material3.Button(
-            onClick = { onClose(true) },
-            colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary),
-        ) { Text(stringResource(R.string.close_save)) }
-    } else androidx.compose.material3.Button(
-        onClick = { onClose(false) },
-        colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = V3.S3, contentColor = Cm.gone),
-    ) { Text(stringResource(R.string.cleanup_close_short)) }
-}
 
 /** Contratto 1.120: la chiusura armata, «si chiude appena finisce» o, per «Chiudi comunque», con la rotella; 1.155 save ed exit. */
 @Composable

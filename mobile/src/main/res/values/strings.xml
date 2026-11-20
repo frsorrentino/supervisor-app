@@ -1426,6 +1426,9 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="close_blocked_question">resta aperta: ha una domanda</string>
     <string name="close_blocked_background">resta aperta: ha un lavoro in sottofondo</string>
     <string name="close_blocked_attached">resta aperta: è aperta al PC</string>
+    <!-- app-chiudi-scheda-20-11: la finestra sul PC si dice prima di chiudere; con supervisor-chiudi-attaccate-20-11 si chiude anche quella. -->
+    <string name="close_attached">È aperta anche in una finestra sul PC</string>
+    <string name="close_attached_line">Chiudendo si chiude anche quella.</string>
     <string name="close_blocked_gone">non è più in esecuzione: niente da chiudere</string>
     <string name="close_blocked_other">resta aperta</string>
     <string name="closed_saved">Chiuse, stato salvato</string>

@@ -79,6 +79,7 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -300,7 +301,9 @@ class MainActivity : ComponentActivity() {
                             // Contratto 1.55: una risposta a una domanda già risolta al PC lo dice in chiaro.
                             val resolvedWord = androidx.compose.ui.res.stringResource(R.string.answer_already_resolved)
                             val refusals = remember(resolvedWord) {
-                                app.repo.userResults.map { r ->
+                                // app-chiudi-scheda-20-11: il no di una chiusura lo dice una volta sola la carta della chiusura, in
+                                // italiano; qui sotto ripeteva il testo del relay («not closed: it is attached to the PC»).
+                                app.repo.userResults.filter { r -> it.pixelbox.cmwatch.rules.CloseSplash.refusals(r.text).isEmpty() }.map { r ->
                                     r.copy(text = it.pixelbox.cmwatch.rules.QuestionRules.refusalText(
                                         r, app.repo.answeredQuestion(r.id), app.repo.snapshot.value.state?.sessions.orEmpty(), resolvedWord,
                                     ))
@@ -2415,6 +2418,7 @@ class MainActivity : ComponentActivity() {
                 when (x.kind) {
                     "busy" -> getString(R.string.close_blocked_busy); "question" -> getString(R.string.close_blocked_question)
                     "background" -> getString(R.string.close_blocked_background); "attached" -> getString(R.string.close_blocked_attached)
+                    "gone" -> getString(R.string.close_blocked_gone)
                     else -> getString(R.string.close_refused_other, x.reason)
                 }
             } ?: r.text

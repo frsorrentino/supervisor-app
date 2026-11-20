@@ -1,0 +1,28 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><title>Chiudi A</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_style.css"><style>
+/* A: un foglio dal basso a tutta larghezza, i tasti in colonna sotto il pollice. Il foglio resta lo stesso dalla domanda all'esito. */
+.sh{position:absolute;left:0;right:0;bottom:0;background:var(--s2);border-radius:28px 28px 0 0;padding:10px 22px 48px;max-height:90%;overflow:auto;box-shadow:0 -8px 24px rgba(0,0,0,.45)}
+.sh .hd{width:36px;height:4px;border-radius:2px;background:var(--s4);margin:0 auto 18px}
+.sh .ico{display:block;margin-bottom:10px}
+.acts{display:flex;flex-direction:column-reverse;gap:10px;margin-top:22px}
+.acts.two{flex-direction:row-reverse}
+.acts.two .b{flex:1}
+</style></head><body>
+<h1>A · Foglio dal basso</h1>
+<p class="intro">La domanda, i passi e l'esito stanno nello stesso foglio a tutta larghezza, ancorato in basso dove arriva il pollice. I tasti sono in colonna: ognuno occupa una riga intera e nessuno va a capo. Il rosso resta un tasto tonale, il pieno è uno solo.</p>
+<p class="mv"><b>Pollice e bordo sicuro.</b> Il tasto pieno è l'ultimo in basso, il più vicino al pollice; «Chiudi senza salvare» è il più lontano, così non parte per sbaglio. Sotto i tasti restano 24 dp sopra la barra dei gesti. <b>Movimento.</b> Il foglio sale dal basso in 300 ms con la curva dei cassetti di iOS e scende per la stessa strada; fra le fasi resta fermo e cambia solo il contenuto, in dissolvenza con 2 px di sfocatura. Alla pressione ogni tasto si stringe a 0,97 in 140 ms. Con il movimento ridotto resta solo la dissolvenza.</p>
+<div class="row" id="row"></div>
+<script src="_c.js"></script><script>
+const B = (c, t) => `<div class="b ${c}">${t}</div>`
+build({
+  veil: true,
+  wrap: (body, acts, ico) => `<div class="sh"><div class="hd"></div>${ico}${body}${acts}</div>`,
+  acts: {
+    ask: `<div class="acts">${B('fill', 'Salva e chiudi')}${B('txt', 'Lascia aperta')}${B('ton red', 'Chiudi senza salvare')}</div>`,
+    closing: `<div class="acts">${B('txt', 'Torna alla home')}</div>`,
+    closed: `<div class="acts two">${B('fill', 'Torna alla home')}${B('txt', 'Riapri')}</div>`,
+    refused: `<div class="acts">${B('fill', 'Va bene')}</div>`,
+  },
+})
+</script></body></html>

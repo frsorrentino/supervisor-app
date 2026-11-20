@@ -9,6 +9,8 @@
   // Contratto 1.120: rifiutata per lavoro, domanda o sottofondo, «Chiudi quando finisce» e «Chiudi comunque» con conferma.
   // Contratto 1.155 (app-chiudi-salva-19-11): «Salva e chiudi» mostra i passi del relay (closing.mode save, poi exit) e, chiusa,
   // se c'è il passaggio di consegne e dove, o perché non c'è.
+  // app-chiudi-scheda-20-11 (bozza C, senza tasto bianco): niente velo; la carta sta in fondo, al posto del campo di scrittura,
+  // coi tasti della chiusura di v3.css (.ck). Come CloseSplash.kt.
   let { phase, onHome, onDismiss = onHome, onReopen = null, onArm = null, column = false }: { phase: Phase; onHome: () => void; onDismiss?: () => void; onReopen?: (() => void) | null; onArm?: ((when: 'after' | 'force') => void) | null; column?: boolean } = $props()
   let forceAsk = $state(false)
   const hm = (at: number) => new Date(at * 1000).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
@@ -19,9 +21,9 @@
   })
 </script>
 
-<div class="veil" role="presentation">
+<div class="dock" role="presentation">
   <div class="card" role="status">
-    <svg class="pw" class:off={phase.kind === 'closed'} class:no={phase.kind === 'refused'} viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3v9" /><path d="M6.3 6.8a8 8 0 1 0 11.4 0" /></svg>
+    <svg class="pw" class:off={phase.kind === 'closed'} class:no={phase.kind === 'refused'} viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3v9" /><path d="M6.3 6.8a8 8 0 1 0 11.4 0" /></svg>
     {#if phase.kind === 'closing'}
       <h3>{t.splashClosing(phase.name)}</h3>
       {#if phase.save}
@@ -41,20 +43,22 @@
       <div class="bar"><b class="run"></b></div>
       {#if phase.slow}
         <small class="slow">{t.splashSlow}</small>
-        <button class="tx" onclick={onHome}>{column ? t.splashDrop : t.splashHome}</button>
+        <div class="ck-keys"><button class="ck" onclick={onHome}>{column ? t.splashDrop : t.splashHome}</button></div>
       {:else}<small>{phase.save ? t.splashSaveUsually : phase.force ? t.splashForceUsually : t.splashUsually}</small>{/if}
     {:else if phase.kind === 'refused' && forceAsk && onArm}
       <h3>{t.closeForceAsk(phase.name)}</h3>
       <p>{t.closeForceWhat}</p>
-      <div class="btns"><button class="tx" onclick={() => (forceAsk = false)}>{t.closeForceCancel}</button><button class="danger" onclick={() => { forceAsk = false; onArm?.('force') }}>{t.closeForce}</button></div>
+      <div class="ck-keys"><div class="ck-pair"><button class="ck" onclick={() => (forceAsk = false)}>{t.closeForceCancel}</button><button class="ck red" onclick={() => { forceAsk = false; onArm?.('force') }}>{t.closeForce}</button></div></div>
     {:else if phase.kind === 'refused'}
       <h3>{t.splashRefused(phase.name)}</h3>
       <p>{phase.why}</p>
       {#if phase.armable && onArm}
-        <div class="btns"><button class="tx" onclick={() => (forceAsk = true)}>{t.closeForce}</button><button class="fill" onclick={() => onArm?.('after')}>{t.closeAfter}</button></div>
-        <button class="tx" onclick={onDismiss}>{t.closeKeep}</button>
+        <div class="ck-keys">
+          <button class="ck main" onclick={() => onArm?.('after')}>{t.closeAfter}</button>
+          <div class="ck-pair"><button class="ck" onclick={onDismiss}>{t.closeKeep}</button><button class="ck red" onclick={() => (forceAsk = true)}>{t.closeForce}</button></div>
+        </div>
       {:else}
-        <div class="btns"><button class="fill" onclick={onDismiss}>{t.splashRefusedOk}</button></div>
+        <div class="ck-keys"><button class="ck main" onclick={onDismiss}>{t.splashRefusedOk}</button></div>
       {/if}
     {:else}
       <h3>{t.splashClosed(phase.name)}</h3>
@@ -66,22 +70,22 @@
       {:else if phase.save}<p class="ho">{t.splashNoHandoff}</p>{/if}
       {#key phase}<div class="bar"><b class="left" style:animation-duration="{CLOSED_SHOW_MS}ms"></b></div>{/key}
       <small>{column ? t.splashDropSoon : t.splashBackSoon}</small>
-      <div class="btns">
-        {#if onReopen}<button class="tx" onclick={onReopen}>{t.splashReopen}</button>{/if}
-        <button class="fill" onclick={onHome}>{column ? t.splashDrop : t.splashHome}</button>
+      <div class="ck-keys">
+        {#if onReopen}<div class="ck-pair"><button class="ck" onclick={onReopen}>{t.splashReopen}</button><button class="ck main" onclick={onHome}>{column ? t.splashDrop : t.splashHome}</button></div>
+        {:else}<button class="ck main" onclick={onHome}>{column ? t.splashDrop : t.splashHome}</button>{/if}
       </div>
     {/if}
   </div>
 </div>
 
 <style>
-  .veil { position: absolute; inset: 0; z-index: 15; display: grid; place-items: center; padding: 16px; background: rgb(0 0 0 / .62); animation: fade .2s; }
-  .card { width: min(420px, 100%); background: var(--surface); border-radius: 28px; padding: 26px 22px 16px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px;
-    animation: pop .25s cubic-bezier(.2, .8, .2, 1); }
-  .pw { color: var(--icon); }
+  .dock { position: absolute; inset: auto 0 0; z-index: 15; display: flex; justify-content: center; padding: 0 12px max(12px, env(safe-area-inset-bottom)); pointer-events: none; }
+  .card { pointer-events: auto; width: min(560px, 100%); background: var(--s2); border: 1px solid var(--line); border-radius: 20px; padding: 18px 18px 14px; display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
+    box-shadow: 0 -10px 28px rgb(0 0 0 / .55); animation: up 250ms cubic-bezier(.23, 1, .32, 1); }
+  .pw { color: var(--busy); }
   .pw.off { color: var(--text2); }
   .pw.no { color: var(--wait); }
-  h3 { margin: 0; font-size: 22px; font-weight: 500; }
+  h3 { margin: 0; font: 600 21px/1.2 var(--display); }
   p { margin: 0; color: var(--text2); font-size: 14px; }
   ul { list-style: none; margin: 6px 0 0; padding: 0; align-self: stretch; text-align: left; font-size: 14px; color: var(--text2); }
   li { display: flex; gap: 10px; margin: 6px 0; }
@@ -90,7 +94,7 @@
   .ho { color: var(--text); }
   .ho.ok { color: var(--good); }
   .ho.no { color: var(--wait); }
-  .file { align-self: stretch; font: 12.5px var(--mono); color: var(--text2); white-space: nowrap; overflow: hidden; direction: rtl; text-align: center; mask-image: linear-gradient(to right, transparent, #000 12%); }
+  .file { align-self: stretch; font: 12.5px var(--mono); color: var(--text2); white-space: nowrap; overflow: hidden; direction: rtl; text-align: left; mask-image: linear-gradient(to right, transparent, #000 12%); }
   li i { font-style: normal; width: 18px; text-align: center; }
   small { font-size: 12.5px; color: var(--text2); }
   small.slow { color: var(--wait); }
@@ -98,16 +102,8 @@
   .bar b { display: block; height: 100%; background: var(--icon); }
   .bar .run { width: 40%; animation: run 1.2s ease-in-out infinite; }
   .bar .left { width: 100%; transform-origin: left; animation: left linear forwards; }
-  .btns { display: flex; gap: 8px; margin-top: 4px; }
-  button { padding: 10px 18px; border-radius: 999px; font-weight: 500; font-size: 14px; }
-  .tx { color: var(--icon); }
-  .tx:hover { background: var(--high); }
-  .fill { background: var(--act); color: var(--on-act); }
-  .fill:hover { filter: brightness(1.05); }
-  .danger { background: var(--gone); color: #fff; }
   @keyframes run { from { translate: -100% 0; } to { translate: 250% 0; } }
   @keyframes left { to { scale: 0 1; } }
-  @keyframes fade { from { opacity: 0; } }
-  @keyframes pop { from { opacity: 0; scale: .96; } }
-  @media (prefers-reduced-motion: reduce) { .veil, .card, .bar .run { animation: none; } }
+  @keyframes up { from { opacity: 0; translate: 0 16px; } }
+  @media (prefers-reduced-motion: reduce) { .card, .bar .run { animation: none; } }
 </style>

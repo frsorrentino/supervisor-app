@@ -7,6 +7,8 @@
   // scritto nel campo (Franz, 06/10 10:57, mockup approvato 12:25): il nome nel titolo e nel tasto, lo stato, cosa succede.
   // Contratto 1.155 (app-chiudi-salva-19-11, Franz 19/11 15:16): con `canSave` due tasti, «Salva e chiudi» (il pieno) e
   // «Chiudi senza salvare»; senza, il «Chiudi <nome>» di prima.
+  // app-chiudi-scheda-20-11 (Franz 20/11 19:08, bozza C senza tasto bianco): non più al centro ma la carta in fondo alla pagina,
+  // dove sta il campo di scrittura, senza velo; prima di chiudere dice se è aperta anche in una finestra sul PC. Come CloseCard.kt.
   let { onConfirm, canSave = false }: { onConfirm: (name: string, save: boolean) => void; canSave?: boolean } = $props()
   let dlg: HTMLDialogElement | undefined = $state()
   let s = $state<Session | null>(null)
@@ -27,41 +29,28 @@
   {#if s}
     <h3>{t.closeTitle(s.name)}</h3>
     <p>{line}</p>
-    <ul>{#each canSave ? t.closeWhatSave : t.closeWhat as w}<li>{w}</li>{/each}</ul>
-    {#if canSave}
-      <div class="btns save">
-        <button class="keep" onclick={() => dlg?.close()}>{t.closeKeep}</button>
-        <button class="plain" onclick={() => go(false)}>{t.closeNoSave}</button>
-        <button class="fill" onclick={() => go(true)}>{t.closeSave}</button>
-      </div>
-    {:else}
-      <div class="btns">
-        <button class="keep" onclick={() => dlg?.close()}>{t.closeKeep}</button>
-        <button class="danger" onclick={() => go(false)}>{t.closeOk(s.name)}</button>
-      </div>
+    {#if s.attached}
+      <div class="ck-attached"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2" /><path d="M8 20h8M12 16v4" /></svg><span><b>{t.closeAttached}</b><small>{t.closeAttachedLine}</small></span></div>
     {/if}
+    <ul>{#each canSave ? t.closeWhatSave : t.closeWhat as w}<li>{w}</li>{/each}</ul>
+    <div class="ck-keys">
+      {#if canSave}<button class="ck main" onclick={() => go(true)}>{t.closeSave}</button>{/if}
+      <div class="ck-pair">
+        <button class="ck" onclick={() => dlg?.close()}>{t.closeKeep}</button>
+        <button class="ck red" onclick={() => go(false)}>{canSave ? t.closeNoSave : t.closeOk(s.name)}</button>
+      </div>
+    </div>
   {/if}
 </dialog>
 
 <style>
-  dialog { margin: auto; border: 0; color: var(--text); background: var(--surface); padding: 22px 24px 14px; width: min(420px, 92vw); border-radius: 28px; }
-  dialog::backdrop { background: rgb(0 0 0 / .6); }
-  h3 { font-size: 22px; font-weight: 500; margin: 0 0 10px; }
-  p { color: var(--text2); font-size: 14px; margin: 0 0 8px; }
-  ul { margin: 4px 0 6px; padding-left: 18px; color: var(--text2); font-size: 14px; }
+  /* In fondo, al posto del campo di scrittura, sopra la barra dei gesti; la pagina resta leggibile, senza velo. */
+  dialog { margin: auto auto max(12px, env(safe-area-inset-bottom)); border: 1px solid var(--line); color: var(--text); background: var(--s2); padding: 18px 18px 14px; width: min(560px, calc(100vw - 24px)); max-width: none; border-radius: 20px; box-shadow: 0 -10px 28px rgb(0 0 0 / .55); }
+  dialog::backdrop { background: transparent; }
+  h3 { font-size: 21px; margin: 0 0 4px; }
+  p { color: var(--text2); font-size: 14px; margin: 0 0 4px; }
+  ul { margin: 10px 0 0; padding-left: 18px; color: var(--text2); font-size: 14px; }
   li { margin: 3px 0; }
-  .btns { display: flex; justify-content: flex-end; gap: 6px; margin-top: 12px; }
-  .btns button { padding: 10px 16px; border-radius: 999px; font-weight: 500; font-size: 14px; }
-  .keep { color: var(--icon); }
-  .keep:hover { background: var(--high); }
-  .danger { background: var(--gone); color: #fff; }
-  .danger:hover { filter: brightness(1.1); }
-  /* Il pieno in fondo a destra, sotto il pollice; sullo stretto va a capo da solo e prende la riga intera. */
-  .btns.save { flex-wrap: wrap; }
-  .btns.save .fill { background: var(--primary); color: var(--on-primary, #fff); }
-  .btns.save .plain { color: var(--gone); }
-  .btns.save .plain:hover { background: var(--high); }
-  .btns.save .fill:hover { filter: brightness(1.1); }
-  .btns button:active { transform: scale(.97); }
-  @media (max-width: 420px) { .btns.save .fill { flex: 1 0 100%; order: 3; } }
+  @media (prefers-reduced-motion: no-preference) { dialog[open] { animation: up 250ms cubic-bezier(.23, 1, .32, 1); } }
+  @keyframes up { from { opacity: 0; translate: 0 16px; } }
 </style>

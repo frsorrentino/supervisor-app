@@ -87,6 +87,24 @@ class CloseSplashTest {
         assertEquals(false, CloseSplash.refusals("kb not closed: it is attached to a terminal").single().armable)
     }
 
+    // Relay 0.8.196 (app-chiudi-scheda-20-11): l'esito della chiusura in italiano; l'inglese resta per i relay di prima.
+    @Test fun readsTheItalianRefusalsOfTheRelay() {
+        assertEquals(
+            listOf(
+                CloseSplash.Refusal("atlas-shop", "busy", "sta lavorando"), CloseSplash.Refusal("kb", "question", "c'è una domanda in attesa"),
+                CloseSplash.Refusal("notes", "background", "c'è un lavoro in sottofondo"), CloseSplash.Refusal("old", "gone", "non è in esecuzione"),
+                CloseSplash.Refusal("stuck", null, "non si riesce a fermarla"),
+            ),
+            CloseSplash.refusals(
+                "chiusa: field-notes\natlas-shop non chiusa: sta lavorando\nkb non chiusa: c'è una domanda in attesa\n" +
+                    "notes non chiusa: c'è un lavoro in sottofondo\nold non chiusa: non è in esecuzione\nstuck non chiusa: non si riesce a fermarla",
+            ),
+        )
+        assertEquals(listOf(true, true, true), CloseSplash.refusals("a non chiusa: sta lavorando\nb non chiusa: c'è una domanda in attesa\nc non chiusa: c'è un lavoro in sottofondo").map { it.armable })
+        assertEquals("gone", CloseSplash.refusals("old not closed: it is not running").single().kind)
+        assertEquals(emptyList<CloseSplash.Refusal>(), CloseSplash.refusals("kb si chiude appena finisce"))
+    }
+
     @Test fun aForcedCloseIsNotSlowBeforeIts180s() {
         val f = sent.copy(force = true)
         assertEquals(false, (CloseSplash.of("kb", listOf(s("kb", SessionState.BUSY)), f, null, now = 1_000 + CloseSplash.FORCE_S) as CloseSplash.Phase.Closing).slow)

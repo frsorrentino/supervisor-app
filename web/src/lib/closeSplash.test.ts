@@ -52,6 +52,13 @@ describe('close refused', () => {
   it('an unknown reason stays as the relay wrote it', () =>
     expect(closeRefusals('kb not closed: something else', texts, other)).toEqual([{ name: 'kb', why: 'resta aperta: something else', armable: false }]))
   it('no refusal in a plain close', () => expect(closeRefusals('closed: kb', texts, other)).toEqual([]))
+  // Relay 0.8.196 (app-chiudi-scheda-20-11): l'esito in italiano, una riga per sessione dopo «chiusa: …».
+  it('reads the Italian refusals of the relay', () => {
+    const text = "chiusa: field-notes\natlas-shop non chiusa: sta lavorando\nkb non chiusa: c'è una domanda in attesa\n" +
+      "notes non chiusa: c'è un lavoro in sottofondo\nold non chiusa: non è in esecuzione\nstuck non chiusa: non si riesce a fermarla"
+    expect(closeRefusals(text, texts, other).map(r => [r.name, r.armable])).toEqual([['atlas-shop', true], ['kb', true], ['notes', true], ['old', false], ['stuck', false]])
+    expect(closeRefusals('kb si chiude appena finisce', texts, other)).toEqual([])
+  })
 })
 
 // Contratto 1.120: «Chiudi quando finisce» e «Chiudi comunque» solo dove il relay arma la chiusura.

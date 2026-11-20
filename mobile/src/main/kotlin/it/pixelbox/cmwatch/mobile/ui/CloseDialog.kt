@@ -1,14 +1,16 @@
 package it.pixelbox.cmwatch.mobile.ui
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import it.pixelbox.cmwatch.contract.Session
@@ -33,45 +35,26 @@ internal fun closeStateLine(s: Session): String {
 internal fun clockHm(at: Long): String = DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault()).format(Instant.ofEpochSecond(at))
 
 /**
- * La domanda prima di chiudere una sessione dal menu o con /exit scritto nel campo (Franz, 06/10 10:57, mockup approvato
- * 12:25): il nome nel titolo e nel tasto, lo stato, cosa succede. Dalla card della home la conferma sta nella card.
- * Contratto 1.155 (app-chiudi-salva-19-11, Franz 19/11 15:16): con [onSave] «Salva e chiudi» è il tasto pieno, e
- * [onConfirm] diventa «Chiudi senza salvare» accanto a «Lascia aperta».
+ * La domanda prima di chiudere una sessione dal menu o con /exit scritto nel campo (Franz, 06/10 10:57; nome nel titolo, lo stato,
+ * cosa succede). app-chiudi-scheda-20-11 (Franz 20/11 19:08, bozza C): non più una finestra al centro ma la carta della chiusura in
+ * fondo alla pagina, dove sta il campo di scrittura, senza velo; un tocco fuori la lascia aperta. Contratto 1.155: con [onSave]
+ * «Salva e chiudi» è l'azione principale e [onConfirm] diventa «Chiudi senza salvare».
  */
 @Composable
-internal fun CloseDialog(s: Session, onDismiss: () -> Unit, onConfirm: () -> Unit, onSave: (() -> Unit)? = null) = if (onSave != null) AlertDialog(
-    onDismissRequest = onDismiss, containerColor = Cm.surface,
-    title = { Text(stringResource(R.string.close_title, s.name)) },
-    text = {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(closeStateLine(s), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
-            Text(stringResource(R.string.close_what_save), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
+internal fun CloseDialog(s: Session, onDismiss: () -> Unit, onConfirm: () -> Unit, onSave: (() -> Unit)? = null) = androidx.compose.ui.window.Dialog(
+    onDismissRequest = onDismiss, properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
+) {
+    // Niente velo: la pagina resta leggibile sopra la carta.
+    (androidx.compose.ui.platform.LocalView.current.parent as? androidx.compose.ui.window.DialogWindowProvider)?.window?.setDimAmount(0f)
+    Box(
+        Modifier.fillMaxSize().clickable(remember { MutableInteractionSource() }, indication = null, onClick = onDismiss),
+        contentAlignment = Alignment.BottomCenter,
+    ) {
+        CloseCardFrame(
+            Modifier.navigationBarsPadding().imePadding().padding(start = 12.dp, end = 12.dp, bottom = 12.dp)
+                .clickable(remember { MutableInteractionSource() }, indication = null) {},
+        ) {
+            CloseAskBody(s, save = onSave != null, onKeep = onDismiss, onClose = { save -> if (save) onSave?.invoke() else onConfirm() })
         }
-    },
-    confirmButton = {
-        Button(onClick = onSave, colors = ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary)) {
-            Text(stringResource(R.string.close_save))
-        }
-    },
-    dismissButton = {
-        androidx.compose.foundation.layout.Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.close_keep), color = Cm.actionIcon) }
-            TextButton(onClick = onConfirm) { Text(stringResource(R.string.close_no_save), color = Cm.gone) }
-        }
-    },
-) else AlertDialog(
-    onDismissRequest = onDismiss, containerColor = Cm.surface,
-    title = { Text(stringResource(R.string.close_title, s.name)) },
-    text = {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(closeStateLine(s), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
-            Text(stringResource(R.string.close_what), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
-        }
-    },
-    confirmButton = {
-        Button(onClick = onConfirm, colors = ButtonDefaults.buttonColors(containerColor = V3.S3, contentColor = Cm.gone)) {
-            Text(stringResource(R.string.cleanup_close, s.name))
-        }
-    },
-    dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.close_keep), color = Cm.actionIcon) } },
-)
+    }
+}

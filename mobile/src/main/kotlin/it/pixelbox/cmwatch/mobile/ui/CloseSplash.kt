@@ -1,6 +1,5 @@
 package it.pixelbox.cmwatch.mobile.ui
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -9,30 +8,25 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.PowerSettingsNew
 import androidx.compose.material.icons.rounded.RadioButtonUnchecked
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -45,8 +39,8 @@ import java.time.format.DateTimeFormatter
 private val SPLASH_HM = DateTimeFormatter.ofPattern("HH:mm")
 
 /**
- * Il pannello di chiusura sopra la pagina della sessione (Franz, 08/10 18:29, variante A): la pagina resta sotto, velata,
- * e il pannello dice che cosa succede. «Si sta chiudendo» con i passi veri; «è chiusa» con l'ora, «Riapri» e «Torna alla
+ * Il pannello di chiusura della pagina della sessione (Franz, 08/10 18:29, variante A; dal 20/11 la carta C di
+ * app-chiudi-scheda-20-11, in fondo e senza velo): dice che cosa succede. «Si sta chiudendo» con i passi veri; «è chiusa» con l'ora, «Riapri» e «Torna alla
  * home», e dopo 3 s il ritorno da solo, con la barra che si consuma.
  */
 @Composable
@@ -61,79 +55,44 @@ fun CloseSplashOverlay(
 ) {
     val home by rememberUpdatedState(onHome)
     val hm = { at: Long -> SPLASH_HM.format(Instant.ofEpochSecond(at).atZone(ZoneId.systemDefault())) }
-    // Il velo prende i tocchi: la pagina sotto non si usa più.
-    Box(
-        Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.62f))
-            .clickable(remember { MutableInteractionSource() }, indication = null) {},
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(
-            Modifier.padding(horizontal = 16.dp).widthIn(max = 420.dp).fillMaxWidth()
-                .background(Cm.surface, RoundedCornerShape(28.dp)).padding(start = 22.dp, end = 22.dp, top = 26.dp, bottom = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp),
+    // app-chiudi-scheda-20-11 (bozza C): niente velo; la carta sta in fondo, al posto del campo di scrittura, sopra la barra dei gesti.
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
+        CloseCardFrame(
+            Modifier.navigationBarsPadding().imePadding().padding(start = 12.dp, end = 12.dp, bottom = 12.dp)
+                .clickable(remember { MutableInteractionSource() }, indication = null) {},
         ) {
             val closed = phase is CloseSplash.Phase.Closed
-            Icon(Icons.Rounded.PowerSettingsNew, null, tint = if (closed) Cm.text2 else if (phase is CloseSplash.Phase.Refused) Cm.waiting else Cm.actionIcon, modifier = Modifier.size(44.dp))
+            Icon(Icons.Rounded.PowerSettingsNew, null, tint = if (closed) Cm.text2 else if (phase is CloseSplash.Phase.Refused) Cm.waiting else V3.Busy, modifier = Modifier.size(32.dp).padding(bottom = 2.dp))
             when (phase) {
                 is CloseSplash.Phase.Closing -> {
-                    Text(stringResource(R.string.splash_closing, phase.name), style = MaterialTheme.typography.titleLarge, color = Cm.text, textAlign = TextAlign.Center)
+                    CloseTitle(stringResource(R.string.splash_closing, phase.name))
                     // Contratto 1.155 (app-chiudi-salva-19-11): «Salva e chiudi» segue closing.mode, save e poi exit.
-                    Text(stringResource(if (phase.save) R.string.splash_save_sent_at else R.string.splash_sent_at, hm(phase.sentAt)), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
-                    Column(Modifier.fillMaxWidth().padding(top = 6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    CloseLine(stringResource(if (phase.save) R.string.splash_save_sent_at else R.string.splash_sent_at, hm(phase.sentAt)))
+                    Column(Modifier.fillMaxWidth().padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (phase.save) {
                             SplashStep(phase.step == "exit", stringResource(R.string.splash_saving), now = phase.step != "exit")
                             SplashStep(false, stringResource(R.string.splash_exiting), now = phase.step == "exit")
                         } else SplashStep(phase.delivered, stringResource(R.string.splash_step_delivered))
                         SplashStep(false, stringResource(R.string.splash_step_confirmed))
                     }
-                    LinearProgressIndicator(Modifier.fillMaxWidth().padding(top = 8.dp), color = Cm.actionIcon, trackColor = Cm.surfaceHigh)
+                    LinearProgressIndicator(Modifier.fillMaxWidth().padding(top = 10.dp), color = V3.Busy, trackColor = Cm.surfaceHigh)
                     if (phase.slow) {
                         Text(stringResource(R.string.splash_slow), style = MaterialTheme.typography.labelMedium, color = Cm.waiting)
-                        TextButton(onClick = onHome) { Text(stringResource(if (column) R.string.splash_drop_column else R.string.splash_home), color = Cm.actionIcon) }
+                        CloseKey(stringResource(if (column) R.string.splash_drop_column else R.string.splash_home), CloseKeyKind.TONAL, onHome, Modifier.fillMaxWidth().padding(top = 8.dp))
                     } else Text(stringResource(if (phase.save) R.string.splash_save_usually else if (phase.force) R.string.splash_force_usually else R.string.splash_usually), style = MaterialTheme.typography.labelMedium, color = Cm.text2)
                 }
-                is CloseSplash.Phase.Refused -> {
-                    var forceAsk by remember(phase) { androidx.compose.runtime.mutableStateOf(false) }
-                    val arm = onArm.takeIf { phase.armable }
-                    if (forceAsk && arm != null) {
-                        Text(stringResource(R.string.close_force_ask, phase.name), style = MaterialTheme.typography.titleLarge, color = Cm.text, textAlign = TextAlign.Center)
-                        Text(stringResource(R.string.close_force_what), style = MaterialTheme.typography.bodyMedium, color = Cm.text2, textAlign = TextAlign.Center)
-                        Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                            TextButton(onClick = { forceAsk = false }) { Text(stringResource(R.string.close_force_cancel), color = Cm.actionIcon) }
-                            Button(onClick = { forceAsk = false; arm("force") }, colors = ButtonDefaults.buttonColors(containerColor = Cm.gone, contentColor = Color.White)) {
-                                Text(stringResource(R.string.close_force))
-                            }
-                        }
-                    } else {
-                        Text(stringResource(R.string.splash_refused, phase.name), style = MaterialTheme.typography.titleLarge, color = Cm.text, textAlign = TextAlign.Center)
-                        Text(phase.why, style = MaterialTheme.typography.bodyMedium, color = Cm.text2, textAlign = TextAlign.Center)
-                        if (arm != null) {
-                            Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                TextButton(onClick = { forceAsk = true }) { Text(stringResource(R.string.close_force), color = Cm.actionIcon) }
-                                Button(onClick = { arm("after") }, colors = ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary)) {
-                                    Text(stringResource(R.string.close_after))
-                                }
-                            }
-                            TextButton(onClick = onDismiss) { Text(stringResource(R.string.close_keep), color = Cm.actionIcon) }
-                        } else Button(onClick = onDismiss, Modifier.padding(top = 4.dp), colors = ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary)) {
-                            Text(stringResource(R.string.splash_refused_ok))
-                        }
-                    }
-                }
+                is CloseSplash.Phase.Refused -> CloseRefusedBody(phase.name, phase.why, onArm.takeIf { phase.armable }, onDismiss)
                 is CloseSplash.Phase.Closed -> {
-                    Text(stringResource(R.string.splash_closed, phase.name), style = MaterialTheme.typography.titleLarge, color = Cm.text, textAlign = TextAlign.Center)
-                    Text(
-                        stringResource(if (phase.byMe) R.string.splash_closed_line else R.string.splash_closed_line_other, hm(phase.at)),
-                        style = MaterialTheme.typography.bodyMedium, color = Cm.text2, textAlign = TextAlign.Center,
-                    )
+                    CloseTitle(stringResource(R.string.splash_closed, phase.name))
+                    CloseLine(stringResource(if (phase.byMe) R.string.splash_closed_line else R.string.splash_closed_line_other, hm(phase.at)))
                     // Contratto 1.155: col passaggio di consegne (e il suo file, la fine visibile), salvataggio scaduto, o niente da salvare.
                     when {
                         phase.handoff -> {
-                            Text(stringResource(R.string.splash_handoff), style = MaterialTheme.typography.bodyMedium, color = V3.Good, textAlign = TextAlign.Center)
+                            Text(stringResource(R.string.splash_handoff), style = MaterialTheme.typography.bodyMedium, color = V3.Good)
                             phase.file?.let { p -> Text(p, style = MaterialTheme.typography.labelMedium.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace), color = Cm.text2, maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Clip) }
                         }
-                        phase.reason != null -> Text(stringResource(R.string.splash_expired, phase.reason!!), style = MaterialTheme.typography.bodyMedium, color = Cm.waiting, textAlign = TextAlign.Center)
-                        phase.save -> Text(stringResource(R.string.splash_no_handoff), style = MaterialTheme.typography.bodyMedium, color = Cm.text, textAlign = TextAlign.Center)
+                        phase.reason != null -> Text(stringResource(R.string.splash_expired, phase.reason!!), style = MaterialTheme.typography.bodyMedium, color = Cm.waiting)
+                        phase.save -> Text(stringResource(R.string.splash_no_handoff), style = MaterialTheme.typography.bodyMedium, color = Cm.text)
                     }
                     // La barra si consuma nei 3 s prima del ritorno alla home.
                     val left = remember(phase) { androidx.compose.animation.core.Animatable(1f) }
@@ -141,14 +100,11 @@ fun CloseSplashOverlay(
                         left.animateTo(0f, androidx.compose.animation.core.tween(CloseSplash.CLOSED_SHOW_MS.toInt(), easing = androidx.compose.animation.core.LinearEasing))
                         home()
                     }
-                    LinearProgressIndicator({ left.value }, Modifier.fillMaxWidth().padding(top = 8.dp), color = Cm.actionIcon, trackColor = Cm.surfaceHigh, drawStopIndicator = {})
+                    LinearProgressIndicator({ left.value }, Modifier.fillMaxWidth().padding(top = 10.dp), color = Cm.text2, trackColor = Cm.surfaceHigh, drawStopIndicator = {})
                     Text(stringResource(if (column) R.string.splash_drop_soon else R.string.splash_back_soon), style = MaterialTheme.typography.labelMedium, color = Cm.text2)
-                    Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        onReopen?.let { TextButton(onClick = it) { Text(stringResource(R.string.splash_reopen), color = Cm.actionIcon) } }
-                        Button(onClick = onHome, colors = ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary)) {
-                            Text(stringResource(if (column) R.string.splash_drop_column else R.string.splash_home))
-                        }
-                    }
+                    val homeKey = @Composable { CloseKey(stringResource(if (column) R.string.splash_drop_column else R.string.splash_home), CloseKeyKind.MAIN, onHome) }
+                    if (onReopen != null) CloseKeyPair({ CloseKey(stringResource(R.string.splash_reopen), CloseKeyKind.TONAL, onReopen) }, homeKey, Modifier.padding(top = 10.dp))
+                    else CloseKey(stringResource(if (column) R.string.splash_drop_column else R.string.splash_home), CloseKeyKind.MAIN, onHome, Modifier.fillMaxWidth().padding(top = 10.dp))
                 }
             }
         }

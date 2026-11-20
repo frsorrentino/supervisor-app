@@ -61,15 +61,19 @@ export function ghostSession(name: string, lastSeen: Record<string, Session>): S
   return x ? { ...x, state: 'gone', question: null } : { id: name, name, account: '', project: '', state: 'gone', since: 0, question: null }
 }
 
-/** Una riga «<nome> not closed: <motivo>» del relay (op close e /exit), col motivo già in chiaro. */
+/** Una riga «<nome> non chiusa: <motivo>» (relay 0.8.196) o «<nome> not closed: <motivo>» (prima), col motivo già in chiaro. */
 export type Refusal = { name: string; why: string; armable: boolean }
-const NOT_CLOSED = /(?:^|\s)(\S+) not closed: (.+)$/
+const NOT_CLOSED = /(?:^|\s)(\S+) (?:non chiusa|not closed): (.+)$/
 
-/** Il motivo del relay come una delle chiavi di `close_preview.blocked_by`; null se non lo riconosce. */
+/**
+ * Il motivo del relay come una delle chiavi di `close_preview.blocked_by`; null se non lo riconosce. In italiano dalla 0.8.196
+ * (app-chiudi-scheda-20-11), in inglese prima; il sottofondo per primo, perché «c'è un lavoro in sottofondo» dice anche «lavoro».
+ */
 export function refusalKind(reason: string): string | null {
-  if (/background/i.test(reason)) return 'background'
-  if (/question/i.test(reason)) return 'question'
-  if (/working|busy/i.test(reason)) return 'busy'
+  if (/background|sottofondo/i.test(reason)) return 'background'
+  if (/question|domanda/i.test(reason)) return 'question'
+  if (/working|busy|lavorando/i.test(reason)) return 'busy'
+  if (/not running|non è in esecuzione/i.test(reason)) return 'gone'
   if (/attached|terminal|open at the PC/i.test(reason)) return 'attached'
   return null
 }

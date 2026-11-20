@@ -814,17 +814,21 @@
 
 <!-- La testata di sezione dello stile «Studio e Diretta» (30/10): l'icona grigia nel binario dei glifi, il titolo allineato ai
      nomi, il numero accanto; a destra il riepilogo e la freccina che apre e chiude. -->
-<!-- Contratto 1.155 (app-chiudi-salva-19-11): la conferma nella card, «Salva e chiudi» il pieno, «Chiudi senza salvare» accanto. -->
+<!-- Contratto 1.155 (app-chiudi-salva-19-11): la conferma nella card. app-chiudi-scheda-20-11: gli stessi testi e tasti della carta
+     della pagina (CloseDialog.svelte, CloseCard.kt), coi tasti .ck di v3.css; prima di chiudere dice la finestra sul PC. -->
 {#snippet closeAsk(s: Session)}
   {@const sv = closeSave && !s.master && s.name !== MASTER}
   <span>{sv ? t.closeInlineSave : t.closeInline}</span>
-  <button class="keep" onclick={(e) => { e.stopPropagation(); confirming = null }}>{t.closeKeep}</button>
-  {#if sv}
-    <button class="plain" onclick={(e) => { e.stopPropagation(); confirming = null; onClose(s.name, false) }}>{t.closeNoSave}</button>
-    <button class="fill" onclick={(e) => { e.stopPropagation(); confirming = null; onClose(s.name, true) }}>{t.closeSave}</button>
-  {:else}
-    <button class="danger" onclick={(e) => { e.stopPropagation(); confirming = null; onClose(s.name, false) }}>{t.closeOk(s.name)}</button>
+  {#if s.attached}
+    <div class="ck-attached"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2" /><path d="M8 20h8M12 16v4" /></svg><span><b>{t.closeAttached}</b><small>{t.closeAttachedLine}</small></span></div>
   {/if}
+  <div class="ck-keys">
+    {#if sv}<button class="ck main" onclick={(e) => { e.stopPropagation(); confirming = null; onClose(s.name, true) }}>{t.closeSave}</button>{/if}
+    <div class="ck-pair">
+      <button class="ck" onclick={(e) => { e.stopPropagation(); confirming = null }}>{t.closeKeep}</button>
+      <button class="ck red" onclick={(e) => { e.stopPropagation(); confirming = null; onClose(s.name, false) }}>{sv ? t.closeNoSave : t.closeOk(s.name)}</button>
+    </div>
+  </div>
 {/snippet}
 {#snippet sec(key: string, title: string, icon: string, count: string | null = null, testid: string | null = null, right: string | null = null, o: { isOpen?: boolean; onclick?: () => void; nav?: boolean; dot?: string | null; hot?: boolean } = {})}
   <!-- In cima ogni voce ha la stessa scheda (Franz 03/11 08:25, app-in-cima-uguali-03-11): senza un dato in più, il riassunto sotto. -->
@@ -1362,7 +1366,7 @@
         {/if}
         <!-- La conferma sta nella card, senza finestre (Franz, 06/10 12:40): il secondo tocco, col nome, chiude. -->
         {#if c.canClose && confirming === s.name}
-          <div class="confirm" role="group" aria-label={t.closeTitle(s.name)}>
+          <div class="ckbox" role="group" aria-label={t.closeTitle(s.name)}>
             {@render closeAsk(s)}
           </div>
         {/if}
@@ -1372,25 +1376,31 @@
       {/if}
       <!-- Il Chiudi dà sempre un esito (Franz, 04/11): rifiutata, la card dice perché finché non tocchi «Va bene». -->
       {#if closeRefused?.name === s.name && forceAsk === s.name && onCloseArm}
-        <div class="confirm" role="group" aria-label={t.closeForceAsk(s.name)}>
+        <div class="ckbox" role="group" aria-label={t.closeForceAsk(s.name)}>
           <span>{t.closeForceWhat}</span>
-          <button class="keep" onclick={(e) => { e.stopPropagation(); forceAsk = null }}>{t.closeForceCancel}</button>
-          <button class="danger" onclick={(e) => { e.stopPropagation(); forceAsk = null; onCloseArm(s.name, 'force') }}>{t.closeForce}</button>
+          <div class="ck-keys"><div class="ck-pair">
+            <button class="ck" onclick={(e) => { e.stopPropagation(); forceAsk = null }}>{t.closeForceCancel}</button>
+            <button class="ck red" onclick={(e) => { e.stopPropagation(); forceAsk = null; onCloseArm(s.name, 'force') }}>{t.closeForce}</button>
+          </div></div>
         </div>
       {:else if closeRefused?.name === s.name}
-        <div class="clean" role="status"><span class="refused"><b>{t.splashRefused(s.name)}</b> · {closeRefused.why}</span>
-          {#if closeRefused.armable && onCloseArm}
-            <button class="keep" onclick={(e) => { e.stopPropagation(); forceAsk = s.name }}>{t.closeForce}</button>
-            <button class="close" onclick={(e) => { e.stopPropagation(); onCloseArm(s.name, 'after') }}>{t.closeAfter}</button>
-          {/if}
-          <button class="keep" onclick={(e) => { e.stopPropagation(); onCloseSeen() }}>{closeRefused.armable && onCloseArm ? t.closeKeep : t.splashRefusedOk}</button></div>
+        <div class="ckbox" role="status"><span class="refused"><b>{t.splashRefused(s.name)}</b> · {closeRefused.why}</span>
+          <div class="ck-keys">
+            {#if closeRefused.armable && onCloseArm}
+              <button class="ck main" onclick={(e) => { e.stopPropagation(); onCloseArm(s.name, 'after') }}>{t.closeAfter}</button>
+              <div class="ck-pair">
+                <button class="ck" onclick={(e) => { e.stopPropagation(); onCloseSeen() }}>{t.closeKeep}</button>
+                <button class="ck red" onclick={(e) => { e.stopPropagation(); forceAsk = s.name }}>{t.closeForce}</button>
+              </div>
+            {:else}<button class="ck main" onclick={(e) => { e.stopPropagation(); onCloseSeen() }}>{t.splashRefusedOk}</button>{/if}
+          </div></div>
       {/if}
       <!-- Contratto 1.120: armata dal relay, la card lo dice finché non si chiude. -->
       {#if s.closing && closing !== s.name}
         <div class="clean"><span class="closing" role="status">{#if s.closing.mode !== 'after'}<i class="spin" aria-hidden="true"></i>{/if}{s.closing.mode === 'force' ? t.closingForce : s.closing.mode === 'save' ? t.closingSave : s.closing.mode === 'exit' ? t.closingExit : t.closingAfter}</span></div>
       {/if}
       {#if confirming === s.name && !c?.canClose}
-        <div class="confirm" role="group" aria-label={t.closeTitle(s.name)}>
+        <div class="ckbox" role="group" aria-label={t.closeTitle(s.name)}>
           {@render closeAsk(s)}
         </div>
       {/if}
@@ -1721,6 +1731,8 @@
   @keyframes turn { to { rotate: 360deg; } }
   @media (prefers-reduced-motion: reduce) { .closing .spin { animation: none; } }
   .confirm { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 14px; color: var(--text2); }
+  /* app-chiudi-scheda-20-11: la chiusura nella card, una colonna con i tasti .ck di v3.css. */
+  .ckbox { display: flex; flex-direction: column; align-items: stretch; gap: 6px; font-size: 14px; color: var(--text2); }
   .confirm span { flex: 1 1 160px; min-width: 0; }
   .confirm button { border-radius: 999px; padding: 8px 14px; font-weight: 500; flex: none; }
   .confirm .keep, .clean .keep { color: var(--icon); }

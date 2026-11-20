@@ -470,7 +470,8 @@
       if (final(ph) || (ph === 'queued' && (!session || el > 3600))) return r
     }
   }
-  async function run(c: Cmd): Promise<CmdResult | null> {
+  // `quietClose` (app-chiudi-scheda-20-11): il no di una chiusura lo dice una volta sola la carta della chiusura, non anche l'avviso.
+  async function run(c: Cmd, quietClose = false): Promise<CmdResult | null> {
     if (!tr) { console.info('[cm] comando', c.session, c.op, c.arg, c.text); return null }
     try {
       const r = await tr.send(c)
@@ -479,7 +480,7 @@
       if (!r.ok && !superseded(r)) {
         const why = refusalText(r, c.question ?? null, st.sessions, t.answerAlreadyResolved)
         const rf = refusals(why)
-        say(`✗ ${rf.length ? rf.map(x => t.closeRefusedSay(x.name, x.why)).join(' · ') : why}`)
+        if (!(quietClose && rf.length)) say(`✗ ${rf.length ? rf.map(x => t.closeRefusedSay(x.name, x.why)).join(' · ') : why}`)
       }
       return r
     } catch {
@@ -2111,7 +2112,7 @@
       leaving = l
       // Rifiutata, pannello e card dicono perché finché non li togli (Franz, 04/11: il Chiudi dà sempre un esito); senza
       // risposta la chiusura può essere in corso.
-      run(save ? newCmd('close', null, name, undefined, undefined, { save: true }) : newCmd(op, name, arg, text)).then(r => {
+      run(save ? newCmd('close', null, name, undefined, undefined, { save: true }) : newCmd(op, name, arg, text), true).then(r => {
         if (r && leaving?.name === name && leaving.sentAt === l.sentAt) {
           const rf = r.ok ? null : refusals(r.text)[0]
           leaving = r.ok ? { ...l, delivered: true } : { ...l, refused: rf?.why ?? r.text, armable: rf?.armable ?? false }

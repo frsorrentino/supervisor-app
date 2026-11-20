@@ -71,13 +71,19 @@ object CloseSplash {
         val armable get() = kind in ARMABLE
     }
 
-    private val NOT_CLOSED = Regex("""(?:^|\s)(\S+) not closed: (.+)$""")
+    /** «<nome> non chiusa: <motivo>» (relay 0.8.196, in italiano) e «<nome> not closed: <motivo>» (relay di prima). */
+    private val NOT_CLOSED = Regex("""(?:^|\s)(\S+) (?:non chiusa|not closed): (.+)$""")
 
-    /** Il motivo del relay come una delle chiavi di `close_preview.blocked_by`; null se non lo riconosce. Come la web. */
+    /**
+     * Il motivo del relay come una delle chiavi di `close_preview.blocked_by`; null se non lo riconosce. Come la web. In italiano
+     * dalla 0.8.196 (app-chiudi-scheda-20-11), in inglese prima: il sottofondo per primo, perché «c'è un lavoro in sottofondo»
+     * dice anche «lavoro».
+     */
     fun refusalKind(reason: String): String? = when {
-        reason.contains("background", ignoreCase = true) -> "background"
-        reason.contains("question", ignoreCase = true) -> "question"
-        reason.contains("working", ignoreCase = true) || reason.contains("busy", ignoreCase = true) -> "busy"
+        reason.contains("background", ignoreCase = true) || reason.contains("sottofondo", ignoreCase = true) -> "background"
+        reason.contains("question", ignoreCase = true) || reason.contains("domanda", ignoreCase = true) -> "question"
+        reason.contains("working", ignoreCase = true) || reason.contains("busy", ignoreCase = true) || reason.contains("lavorando", ignoreCase = true) -> "busy"
+        reason.contains("not running", ignoreCase = true) || reason.contains("non è in esecuzione", ignoreCase = true) -> "gone"
         Regex("attached|terminal|open at the PC", RegexOption.IGNORE_CASE).containsMatchIn(reason) -> "attached"
         else -> null
     }
