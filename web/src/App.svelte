@@ -447,10 +447,14 @@
     say(t.tapSending, true)
     const sentAt = nowS()
     let r: CmdResult | null = null
-    const p = (send ? send() : t0.send(c)).then(x => { if (x) r = x }, () => {})
+    let settled = false
+    const p = (send ? send() : t0.send(c)).then(x => { if (x) r = x }, () => {}).finally(() => { settled = true })
     let shown: Phase = 'sending'
     for (;;) {
-      await Promise.race([p, new Promise(res => setTimeout(res, POLL_MS))])
+      // Finché l'invio aspetta, il suo esito sveglia subito il giro; dopo, solo il passo: un invio già chiuso vinceva ogni corsa
+      // all'istante e il giro non lasciava più la pagina (la demo bloccata sul comando appeso, «in coda» uguale).
+      const tick = new Promise(res => setTimeout(res, POLL_MS))
+      await (settled ? tick : Promise.race([p, tick]))
       const el = nowS() - sentAt
       if (!r && el >= WAIT_S) r = (await t0.peekResult?.(c.id)) ?? null
       const taken = !r && el >= WAIT_S ? ((await t0.taken?.(c.id)) ?? null) : null
