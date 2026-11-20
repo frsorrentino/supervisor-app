@@ -92,4 +92,30 @@ class CloseSplashTest {
         assertEquals(false, (CloseSplash.of("kb", listOf(s("kb", SessionState.BUSY)), f, null, now = 1_000 + CloseSplash.FORCE_S) as CloseSplash.Phase.Closing).slow)
         assertEquals(true, (CloseSplash.of("kb", listOf(s("kb", SessionState.BUSY)), f, null, now = 1_000 + CloseSplash.FORCE_S + CloseSplash.SLOW_S) as CloseSplash.Phase.Closing).slow)
     }
+
+    // Contratto 1.155 (app-chiudi-salva-19-11): «Salva e chiudi» segue i passi del relay e dice com'è finita. Come la web.
+    private val saving = sent.copy(save = true)
+    private fun armed(mode: String) = s("kb", SessionState.IDLE).copy(closing = it.pixelbox.cmwatch.contract.Closing(mode, at = 1_001, deadline = if (mode == "save") 1_181 else null))
+
+    @Test fun closingModeSaveIsWritingTheHandoffExitIsClosing() {
+        assertEquals(null, (CloseSplash.of("kb", listOf(s("kb", SessionState.IDLE)), saving, null, 1_002) as CloseSplash.Phase.Closing).step)
+        assertEquals("save", (CloseSplash.of("kb", listOf(armed("save")), saving, null, 1_010) as CloseSplash.Phase.Closing).step)
+        assertEquals("exit", (CloseSplash.of("kb", listOf(armed("exit")), saving, null, 1_020) as CloseSplash.Phase.Closing).step)
+        assertNull((CloseSplash.of("kb", listOf(armed("save")), sent, null, 1_010) as CloseSplash.Phase.Closing).step)
+    }
+
+    @Test fun aSaveIsNotSlowBeforeIts180Seconds() {
+        assertEquals(false, (CloseSplash.of("kb", listOf(armed("save")), saving, null, 1_000 + CloseSplash.FORCE_S) as CloseSplash.Phase.Closing).slow)
+        assertEquals(true, (CloseSplash.of("kb", listOf(armed("save")), saving, null, 1_000 + CloseSplash.FORCE_S + CloseSplash.SLOW_S) as CloseSplash.Phase.Closing).slow)
+    }
+
+    @Test fun goneWithAHandoffSaysWhereItIs() {
+        val g = s("kb", SessionState.GONE, 1_050).copy(closed = it.pixelbox.cmwatch.contract.ClosedState(at = 1_050, handoff = true, file = "docs/handoff-2026-11-20.md"))
+        assertEquals(CloseSplash.Phase.Closed("kb", 1_050, byMe = true, save = true, handoff = true, file = "docs/handoff-2026-11-20.md"), CloseSplash.of("kb", listOf(g), saving, null, 1_060))
+    }
+
+    @Test fun goneAfterTheSaveExpiredCarriesTheReason() {
+        val g = s("kb", SessionState.GONE, 1_190).copy(closed = it.pixelbox.cmwatch.contract.ClosedState(at = 1_190, reason = "salvataggio scaduto"))
+        assertEquals(CloseSplash.Phase.Closed("kb", 1_190, byMe = true, save = true, reason = "salvataggio scaduto"), CloseSplash.of("kb", listOf(g), saving, null, 1_200))
+    }
 }

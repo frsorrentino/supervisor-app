@@ -15,6 +15,15 @@ describe('contratto', () => {
     }
   })
 
+  it('porta il «Salva e chiudi» della 1.155: closing save sulla viva, il salvataggio scaduto sulla chiusa, save nel comando', () => {
+    const idle = decodeState(fixture('state-2-idle.json'))
+    expect(idle.sessions.find(x => x.name === 'atlas-shop')?.closing).toEqual({ mode: 'save', at: 1789214300, deadline: 1789214480 })
+    const stale = decodeState(fixture('state-3-stale.json'))
+    expect(stale.sessions.find(x => x.closed?.reason)?.closed?.reason).toBe('salvataggio scaduto')
+    expect(newCmd('close', null, 'kb', undefined, undefined, { save: true })).toMatchObject({ op: 'close', arg: 'kb', save: true })
+    expect(newCmd('close', null, 'kb')).not.toHaveProperty('save')
+  })
+
   it('porta host e pubblicazioni di oggi della 1.75, vuoti con un relay precedente', () => {
     const idle = decodeState(fixture('state-2-idle.json'))
     expect(idle.hosts_status).toEqual([expect.objectContaining({ name: 'win', up: true, cpu: 0.42, ram_total: 17063350272, sessions: [] })])

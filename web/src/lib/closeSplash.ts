@@ -11,10 +11,13 @@ export const ARMABLE = ['busy', 'question', 'background']
 
 // `refused`: il motivo per cui il relay non l'ha chiusa, già in chiaro, e `armable` se si può chiudere quando finisce o
 // comunque (app-chiudi-esito-04-11, contratto 1.120); `force`: la chiusura è un «Chiudi comunque».
-export type Leaving = { name: string; sentAt: number; delivered: boolean; refused?: string | null; armable?: boolean; force?: boolean }
+// `save`: «Salva e chiudi» (contratto 1.155), prima il passaggio di consegne se serve, entro 180 s.
+export type Leaving = { name: string; sentAt: number; delivered: boolean; refused?: string | null; armable?: boolean; force?: boolean; save?: boolean }
+/** Dove è arrivato un «Salva e chiudi»: `save` scrive il passaggio di consegne, `exit` lo chiude (closing.mode). */
+export type SaveStep = 'save' | 'exit' | null
 export type Phase =
-  | { kind: 'closing'; name: string; sentAt: number; delivered: boolean; slow: boolean; force: boolean }
-  | { kind: 'closed'; name: string; at: number; byMe: boolean }
+  | { kind: 'closing'; name: string; sentAt: number; delivered: boolean; slow: boolean; force: boolean; save: boolean; step: SaveStep }
+  | { kind: 'closed'; name: string; at: number; byMe: boolean; save: boolean; handoff: boolean; file: string | null; reason: string | null }
   | { kind: 'refused'; name: string; why: string; armable: boolean }
 
 /**
@@ -26,8 +29,14 @@ export function closeSplash(name: string, sessions: Session[], leaving: Leaving 
   const mine = leaving?.name === name
   // Per una gone `since` è l'ultimo avvistamento, cioè quando si è chiusa; per una viva no: allora vale adesso.
   const at = s?.since ?? (lastSeen?.state === 'gone' ? lastSeen.since : now)
-  if (!s) return { kind: 'closed', name, at, byMe: mine }
-  if (s.state === 'gone') return mine ? { kind: 'closed', name, at, byMe: true } : null
+  const save = mine && !!leaving!.save
+  // Contratto 1.155: la gone dice se si è chiusa col passaggio di consegne (e dove) o se il salvataggio è scaduto.
+  const done = (x: Session | null | undefined, byMe: boolean): Phase => {
+    const c = x?.state === 'gone' ? x.closed : null
+    return { kind: 'closed', name, at, byMe, save, handoff: !!c?.handoff, file: c?.file ?? null, reason: c?.reason ?? null }
+  }
+  if (!s) return done(lastSeen, mine)
+  if (s.state === 'gone') return mine ? done(s, true) : null
   // Il Chiudi dà sempre un esito (Franz, 04/11): rifiutata, il pannello dice perché finché non lo togli.
   if (mine && leaving!.refused) return { kind: 'refused', name, why: leaving!.refused, armable: !!leaving!.armable }
   // Dal vivo 08/10 19:29: dopo /exit Claude Code può chiedere cosa fare dei lavori in background; il pannello non copre la
@@ -35,7 +44,9 @@ export function closeSplash(name: string, sessions: Session[], leaving: Leaving 
   if (mine && s.question) return null
   if (mine) {
     const force = !!leaving!.force
-    return { kind: 'closing', name, sentAt: leaving!.sentAt, delivered: leaving!.delivered, slow: now - leaving!.sentAt >= (force ? FORCE_S + SLOW_S : SLOW_S), force }
+    const m = s.closing?.mode
+    const step: SaveStep = save ? (m === 'exit' ? 'exit' : m === 'save' ? 'save' : null) : null
+    return { kind: 'closing', name, sentAt: leaving!.sentAt, delivered: leaving!.delivered, slow: now - leaving!.sentAt >= (force || save ? FORCE_S + SLOW_S : SLOW_S), force, save, step }
   }
   return null
 }

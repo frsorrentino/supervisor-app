@@ -13,7 +13,7 @@ describe('contratto 1.83: le domande dei server MCP', () => {
   it('in /state, ops con elicit, aperte fino a expires_at', () => {
     expect(st.ops).toContain('elicit')
     expect(form.fields!.map(x => x.kind)).toEqual(['choice', 'boolean', 'text', 'integer'])
-    expect(st.elicitations![1]).toMatchObject({ mode: 'url', url: 'https://www.figma.com/oauth?client_id=demo' })
+    expect(st.elicitations![1]).toMatchObject({ mode: 'url', url: 'https://figma.com/oauth' })
     expect(openElicitations(st, form.asked_at)).toHaveLength(2)
     expect(openElicitations(st, form.expires_at).map(e => e.id)).toEqual(['e-9a0b1c2d3e4f'])
     expect(openElicitations(fixture('state-1-question.json'), 0)).toEqual([])

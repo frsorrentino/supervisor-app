@@ -9,18 +9,18 @@ const sent = (delivered = false) => ({ name: 'kb', sentAt: 1_000, delivered })
 describe('closeSplash', () => {
   it('a live session without exit shows nothing', () => expect(closeSplash('kb', [s('kb', 'idle')], null, null, 1_010)).toBeNull())
   it('after exit the session is closing until the PC confirms', () => {
-    expect(closeSplash('kb', [s('kb', 'idle')], sent(), null, 1_002)).toEqual({ kind: 'closing', name: 'kb', sentAt: 1_000, delivered: false, slow: false, force: false })
-    expect(closeSplash('kb', [s('kb', 'idle')], sent(true), null, 1_004)).toEqual({ kind: 'closing', name: 'kb', sentAt: 1_000, delivered: true, slow: false, force: false })
+    expect(closeSplash('kb', [s('kb', 'idle')], sent(), null, 1_002)).toEqual({ kind: 'closing', name: 'kb', sentAt: 1_000, delivered: false, slow: false, force: false, save: false, step: null })
+    expect(closeSplash('kb', [s('kb', 'idle')], sent(true), null, 1_004)).toEqual({ kind: 'closing', name: 'kb', sentAt: 1_000, delivered: true, slow: false, force: false, save: false, step: null })
   })
   it('a closing that takes longer than usual says so', () =>
     expect(closeSplash('kb', [s('kb', 'idle')], sent(true), null, 1_000 + SLOW_S)).toMatchObject({ kind: 'closing', slow: true }))
   it('gone after my exit is closed by me at its last sighting', () =>
-    expect(closeSplash('kb', [s('kb', 'gone', 1_003)], sent(), null, 1_005)).toEqual({ kind: 'closed', name: 'kb', at: 1_003, byMe: true }))
+    expect(closeSplash('kb', [s('kb', 'gone', 1_003)], sent(), null, 1_005)).toEqual({ kind: 'closed', name: 'kb', at: 1_003, byMe: true, save: false, handoff: false, file: null, reason: null }))
   it('vanished after my exit is closed by me', () =>
-    expect(closeSplash('kb', [], sent(), s('kb', 'gone', 1_003), 1_005)).toEqual({ kind: 'closed', name: 'kb', at: 1_003, byMe: true }))
+    expect(closeSplash('kb', [], sent(), s('kb', 'gone', 1_003), 1_005)).toEqual({ kind: 'closed', name: 'kb', at: 1_003, byMe: true, save: false, handoff: false, file: null, reason: null }))
   it('gone on its own stays as a page', () => expect(closeSplash('kb', [s('kb', 'gone')], null, null, 1_005)).toBeNull())
   it('vanished on its own is closed not by me, now', () =>
-    expect(closeSplash('kb', [], null, s('kb', 'idle', 900), 1_005)).toEqual({ kind: 'closed', name: 'kb', at: 1_005, byMe: false }))
+    expect(closeSplash('kb', [], null, s('kb', 'idle', 900), 1_005)).toEqual({ kind: 'closed', name: 'kb', at: 1_005, byMe: false, save: false, handoff: false, file: null, reason: null }))
   it('a question after exit shows the question, not the panel', () =>
     expect(closeSplash('kb', [{ ...s('kb', 'waiting'), question: { id: 'q1', kind: 'ask', text: 'Background tasks are running', options: [{ n: 3, label: 'Stay' }], tier: 'low', asked_at: 1_010 } }], sent(true), null, 1_030)).toBeNull())
   it("another session's exit does not count", () => expect(closeSplash('atlas', [s('atlas', 'idle')], sent(), null, 1_005)).toBeNull())
@@ -67,4 +67,31 @@ describe('close armed', () => {
     expect(closeSplash('kb', [s('kb', 'busy')], { ...sent(true), force: true }, null, 1_000 + FORCE_S)).toMatchObject({ kind: 'closing', slow: false, force: true })
     expect(closeSplash('kb', [s('kb', 'busy')], { ...sent(true), force: true }, null, 1_000 + FORCE_S + SLOW_S)).toMatchObject({ slow: true })
   })
+})
+
+// Contratto 1.155 (app-chiudi-salva-19-11): «Salva e chiudi» segue i passi del relay e dice com'è finita.
+describe('close with save', () => {
+  const saving = { ...sent(true), save: true }
+  const arm = (mode: 'save' | 'exit') => ({ ...s('kb', 'idle'), closing: { mode, at: 1_001, deadline: mode === 'save' ? 1_181 : null } })
+  it('before the relay arms it, the save has no step yet', () =>
+    expect(closeSplash('kb', [s('kb', 'idle')], saving, null, 1_002)).toMatchObject({ kind: 'closing', save: true, step: null }))
+  it('closing.mode save is writing the handoff, exit is closing', () => {
+    expect(closeSplash('kb', [arm('save')], saving, null, 1_010)).toMatchObject({ save: true, step: 'save' })
+    expect(closeSplash('kb', [arm('exit')], saving, null, 1_020)).toMatchObject({ save: true, step: 'exit' })
+  })
+  it('a plain exit ignores closing.mode', () =>
+    expect(closeSplash('kb', [arm('save')], sent(true), null, 1_010)).toMatchObject({ save: false, step: null }))
+  it('a save is not slow before its 180 s', () => {
+    expect(closeSplash('kb', [arm('save')], saving, null, 1_000 + FORCE_S)).toMatchObject({ slow: false })
+    expect(closeSplash('kb', [arm('save')], saving, null, 1_000 + FORCE_S + SLOW_S)).toMatchObject({ slow: true })
+  })
+  it('gone with a handoff says where it is', () =>
+    expect(closeSplash('kb', [{ ...s('kb', 'gone', 1_050), closed: { at: 1_050, handoff: true, file: 'docs/handoff-2026-11-20.md' } }], saving, null, 1_060))
+      .toEqual({ kind: 'closed', name: 'kb', at: 1_050, byMe: true, save: true, handoff: true, file: 'docs/handoff-2026-11-20.md', reason: null }))
+  it('gone after the save expired carries the reason', () =>
+    expect(closeSplash('kb', [{ ...s('kb', 'gone', 1_190), closed: { at: 1_190, reason: 'salvataggio scaduto' } }], saving, null, 1_200))
+      .toMatchObject({ kind: 'closed', save: true, handoff: false, reason: 'salvataggio scaduto' }))
+  it('vanished after the save reads the last sighting', () =>
+    expect(closeSplash('kb', [], saving, { ...s('kb', 'gone', 1_050), closed: { at: 1_050, handoff: true, file: 'h.md' } }, 1_060))
+      .toMatchObject({ kind: 'closed', handoff: true, file: 'h.md' }))
 })

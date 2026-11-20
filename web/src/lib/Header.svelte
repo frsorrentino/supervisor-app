@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { MASTER } from './summary'
   import { MENU_ICON, mineOf, sessionMenu, type MenuKind } from './sessionMenu'
   import { genie } from './motion'
   import CloseDialog from './CloseDialog.svelte'
@@ -382,7 +383,7 @@
   {/if}
 </dialog>
 
-<CloseDialog bind:this={closer} onConfirm={() => onCmd('slash', 'exit')} />
+<CloseDialog bind:this={closer} canSave={!s.master && s.name !== MASTER && !!st.ops?.includes('close')} onConfirm={(_, save) => (save ? onCmd('close', 'save') : onCmd('slash', 'exit'))} />
 
 <style>
   header { border-bottom: 1px solid var(--line); padding: 2px 0 6px; background: var(--bg); }

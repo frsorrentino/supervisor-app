@@ -345,7 +345,7 @@
   <ReadingPill onOpen={onPick} {slots} here={s.name} />
   <Composer bind:this={composer} {st} {s} bind:draft field={stepsBox.field} toMaster={s.name === MASTER} {onSend}
     onAnswerText={(arg) => onCmd('answer', arg)} onSlash={(c, a) => onCmd('slash', c, a ?? undefined)} onStop={() => onCmd('interrupt')}
-    onReopen={() => onCmd('reopen')} {onAttach}
+    onReopen={() => onCmd('reopen')} {onAttach} onCloseSave={s.name !== MASTER && st.ops?.includes('close') ? () => onCmd('close', 'save') : null}
     onRecurring={recurringRows.length ? () => { recurringOpen = !recurringOpen; save('cm.recurring_open', recurringOpen) } : null}
     {onSendAt} {onSendTo} bind:quotes />
   {#if qsel}{@const p = qsel}

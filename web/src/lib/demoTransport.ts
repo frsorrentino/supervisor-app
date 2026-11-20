@@ -383,6 +383,23 @@ ${it.caption ?? ''}`.trim() }))
           }) }))
         }
         case 'close': {
+          // Contratto 1.155: «Salva e chiudi» passa dai due passi del relay (closing save, poi exit) e si chiude col passaggio
+          // di consegne, così la demo mostra il pannello intero.
+          if (cmd.save) {
+            const x = s.sessions.find(y => y.name === cmd.arg?.trim())
+            if (!x || x.state === 'gone') return ko(`${cmd.arg} not closed: it is not running`)
+            const step = (ms: number, f: () => void) => setTimeout(f, ms)
+            const cur = () => this.st.sessions.find(y => y.id === x.id)
+            this.replace({ ...x, closing: { mode: 'save', at: t, deadline: t + 180 } })
+            step(2_500, () => { const y = cur(); if (y) this.replace({ ...y, closing: { mode: 'exit', at: this.now(), deadline: null } }) })
+            step(4_000, () => {
+              const y = cur(); if (!y) return
+              const at = this.now()
+              this.replace({ ...y, state: 'gone', since: at, closing: null, question: null, needs_you: null, turn_blocking: null,
+                closed: { at, outcome: y.outcome?.short ?? null, next: y.next_steps?.[0]?.text ?? null, session_id: `demo-${y.id}`, handoff: true, file: `docs/handoff-${new Date(at * 1000).toISOString().slice(0, 10)}.md` } })
+            })
+            return ok(`${x.name}: writing the handoff if needed, then it closes (within 180 s)`)
+          }
           const names = new Set((cmd.arg ?? '').split(',').map(x => x.trim()))
           const at = Math.round(Date.now() / 1000)
           this.set({ ...s, sessions: s.sessions.map(x => (names.has(x.name) && x.state === 'idle' ? { ...x, state: 'gone' as const, closed: { at, outcome: x.outcome?.short ?? null, next: x.next_steps?.[0]?.text ?? null, session_id: `demo-${x.id}`, dirty_n: 0, dirty: [] } } : x)) })

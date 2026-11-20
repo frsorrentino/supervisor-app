@@ -332,7 +332,8 @@ enum class CmdOp {
     val master: Boolean? = null,
 )
 
-/** Contratto 1.120, `sessions[].closing`: mode after o force, quando è stata armata, la scadenza (null per after). */
+/** Contratto 1.120, `sessions[].closing`: mode after o force, quando è stata armata, la scadenza (null per after).
+ * Contratto 1.155: mode `save` scrive il passaggio di consegne (deadline = quando chiude comunque), `exit` la sta chiudendo. */
 @Serializable data class Closing(val mode: String, val at: Long = 0, val deadline: Long? = null)
 
 /** Contratto 1.111, `sessions[].tocca`: contate come le pagine (prove comprende le pause con `prova`; guarda tutti i non visti). */
@@ -385,6 +386,8 @@ enum class CmdOp {
 @Serializable data class ClosedState(
     val at: Long = 0, val outcome: String? = null, val next: String? = null,
     @SerialName("dirty_n") val dirtyN: Int? = null, val dirty: List<String>? = null, @SerialName("session_id") val sessionId: String? = null,
+    /** Contratto 1.155: chiusa dopo il passaggio di consegne ([file] il suo percorso); [reason] = il salvataggio è scaduto. */
+    val handoff: Boolean? = null, val file: String? = null, val reason: String? = null,
 )
 
 /** Contratto 1.84: un suggerimento della master; `kind` = recurring | cleanup | deadline | quota, `key` stabile per «Mai». */
@@ -944,6 +947,10 @@ val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts
     @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
     @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
     @SerialName("when") val closeWhen: String? = null,
+    /** Contratto 1.155, `close`: true = «Salva e chiudi», prima il passaggio di consegne se serve. Assente, non scritto. */
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+    @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
+    val save: Boolean? = null,
     /** Contratto 1.121, `feedback_app`: i dati tecnici, l'id /share della schermata (solo con `screenshot_ok`), l'hash della bozza. */
     @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
     @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)

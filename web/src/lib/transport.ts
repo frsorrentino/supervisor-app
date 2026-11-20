@@ -122,7 +122,7 @@ const DEVICE_OPS = new Set<CmdOp>(['prompt', 'resume', 'launch', 'report', 'appr
  * Un comando nuovo dalla web app: `by` = "web" come mette il relay di default. `question` (contratto 1.52): per `answer` e
  * `allow_all`, l'id della domanda aperta al tocco; il relay non preme tasti se nel frattempo ne è arrivata un'altra.
  */
-export function newCmd(op: CmdOp, session: string | null, arg?: string | null, text?: string, question?: string, extra?: { product?: string; key?: string; value?: string; result?: 'ok' | 'ko'; hours?: number; reason?: string; also?: string[]; kind?: string; since?: number; choice?: string; sid?: string; action?: string; content?: Record<string, string | number | boolean>; pos_s?: number; when?: 'now' | 'after' | 'force'; tech?: Record<string, string>; share?: string; hash?: string; project?: string; device?: string }): Cmd {
+export function newCmd(op: CmdOp, session: string | null, arg?: string | null, text?: string, question?: string, extra?: { product?: string; key?: string; value?: string; result?: 'ok' | 'ko'; hours?: number; reason?: string; also?: string[]; kind?: string; since?: number; choice?: string; sid?: string; action?: string; content?: Record<string, string | number | boolean>; pos_s?: number; when?: 'now' | 'after' | 'force'; save?: boolean; tech?: Record<string, string>; share?: string; hash?: string; project?: string; device?: string }): Cmd {
   const c: Cmd = { id: crypto.randomUUID(), op, session, arg: arg ?? null, issued: Math.round(Date.now() / 1000), by: 'web' }
   if (text !== undefined) c.text = text
   // Contratto 1.34: il file della chat a pezzi da 1 MB fino a 25 MB, come il telefono (Repo.file); senza, il relay rifiuta
@@ -142,6 +142,7 @@ export function newCmd(op: CmdOp, session: string | null, arg?: string | null, t
   // Contratto 1.83, `elicit`: accept | decline | cancel e le risposte del modulo.
   if (extra?.action !== undefined) c.action = extra.action
   if (extra?.when !== undefined) c.when = extra.when
+  if (extra?.save !== undefined) c.save = extra.save
   // Contratto 1.121, `feedback_app`.
   if (extra?.tech !== undefined) c.tech = extra.tech
   if (extra?.share !== undefined) { c.share = extra.share; c.screenshot_ok = true }

@@ -73,7 +73,13 @@ class ContractTest {
     @Test fun staleFixtureHasNoLiveSessions() {
         val s = ContractJson.decodeState(Fixtures.stateStale)
         assertTrue(s.sessions.all { it.state == SessionState.GONE }); assertEquals(1789200000L, s.ts)
-        assertEquals(ClosedState(1789199000, "Pricing page draft ready for review", "Pick up the pricing page", 2, listOf("src/pages/pricing.md", "docs/notes.md"), "3d1b2c4e-0000-4000-8000-000000000004"), s.sessions.single().closed)
+        assertEquals(ClosedState(1789199000, "Pricing draft ready", "Pick up the pricing page", 2, listOf("src/pages/pricing.md", "docs/notes.md"), "3d1b2c4e-0000-4000-8000-000000000004", reason = "salvataggio scaduto"), s.sessions.single().closed)
+    }
+
+    /** Contratto 1.155 (app-chiudi-salva-19-11): atlas-shop scrive il passaggio di consegne prima di chiudersi; save nel comando. */
+    @Test fun contract155() {
+        val s = ContractJson.decodeState(Fixtures.stateIdle)
+        assertEquals(Closing("save", 1789214300, 1789214480), s.sessions.single { it.name == "atlas-shop" }.closing)
     }
 
     /** Contratto 1.88 (27/10): la coda dei suggerimenti; state-3 ha una voce per tipo nuovo, state-2 le tre con rank e source. */
@@ -206,7 +212,7 @@ class ContractTest {
         assertEquals(3, form.fields!![2].minLength); assertEquals(80, form.fields!![2].maxLength); assertEquals("One line", form.fields!![2].description)
         assertEquals(1.0, form.fields!![3].min); assertEquals(13.0, form.fields!![3].max)
         assertEquals(120, form.expiresAt - form.askedAt)
-        assertEquals("url", link.mode); assertEquals("https://www.figma.com/oauth?client_id=demo", link.url); assertNull(link.fields)
+        assertEquals("url", link.mode); assertEquals("https://figma.com/oauth", link.url); assertNull(link.fields)
         // Senza domande il campo manca: lista vuota, come prima della 1.83.
         assertTrue(ContractJson.decodeState(Fixtures.stateQuestion).elicitations.isEmpty())
         val ev = ContractJson.json.decodeFromString(ListSerializer(Event.serializer()), Fixtures.events).single { it.kind == EventKind.ELICITATION }

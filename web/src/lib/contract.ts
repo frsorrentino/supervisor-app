@@ -34,8 +34,9 @@ export type Session = {
   master?: boolean | null
   /** Contratto 1.153 (app-favicon-siti-18-11): l'impronta della favicon del sito; l'immagine con l'op `favicon`. */
   favicon?: string | null
-  /** Contratto 1.120: la chiusura armata (`close` con when after o force), solo finché è armata; deadline null per after. */
-  closing?: { mode: 'after' | 'force'; at: number; deadline: number | null } | null
+  /** Contratto 1.120: la chiusura armata (`close` con when after o force), solo finché è armata; deadline null per after.
+   * Contratto 1.155: `save` scrive il passaggio di consegne (deadline = quando chiude comunque), `exit` lo sta chiudendo. */
+  closing?: { mode: 'after' | 'force' | 'save' | 'exit'; at: number; deadline: number | null } | null
   /** Contratto 1.54 e 1.55. */
   permission_mode?: string | null; resolved?: Resolved | null
   /** Contratto 1.62: attaccata e con un tasto premuto al PC negli ultimi 2 minuti. */
@@ -69,7 +70,8 @@ export type Session = {
   /** Contratto 1.84: per una sessione chiusa, lo stato salvato alla chiusura; `session_id` per riprenderla con Riprendi. */
   closed?: ClosedState | null
 }
-export type ClosedState = { at: number; outcome?: string | null; next?: string | null; dirty_n?: number | null; dirty?: string[] | null; session_id?: string | null }
+/** Contratto 1.155: `handoff` e `file` = chiusa dopo il passaggio di consegne; `reason` = il salvataggio è scaduto. */
+export type ClosedState = { at: number; outcome?: string | null; next?: string | null; dirty_n?: number | null; dirty?: string[] | null; session_id?: string | null; handoff?: boolean | null; file?: string | null; reason?: string | null }
 
 export type NextStep = { text: string; blocking: boolean }
 
@@ -465,6 +467,8 @@ export type Cmd = {
   tech?: Record<string, string>; share?: string; screenshot_ok?: boolean; hash?: string
   /** Contratto 1.120, `close`: now (o assente), after = quando finisce, force = comunque. */
   when?: 'now' | 'after' | 'force'
+  /** Contratto 1.155, `close`: true = «Salva e chiudi», prima il passaggio di consegne se serve. */
+  save?: boolean
   /** Contratto 1.63: `prompt` da consegnare a quest'ora (epoch s). Contratto 1.64: `project_new`, conferma e primo messaggio. */
   at?: number; confirm?: boolean; prompt?: string
   /** Contratto 1.65: a una sessione chiusa, che il relay riapre e poi le consegna. */

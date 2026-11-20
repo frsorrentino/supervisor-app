@@ -2057,12 +2057,14 @@
   // «Chiedi alla master» arriva come `prompt` della sessione: va alla master, come messaggio nella sua chat.
   const cmd = (name: string) => (op: CmdOp, arg?: string, text?: string) => {
     if (op === 'prompt' && arg) sendTo(MASTER, arg)
-    else if (op === 'slash' && arg === 'exit' && name && name !== MASTER) {
-      const l: Leaving = { name, sentAt: nowS(), delivered: false }
+    else if (((op === 'slash' && arg === 'exit') || (op === 'close' && arg === 'save')) && name && name !== MASTER) {
+      // Contratto 1.155 (app-chiudi-salva-19-11): «Salva e chiudi» è `close` con save, «Chiudi senza salvare» resta /exit.
+      const save = op === 'close'
+      const l: Leaving = { name, sentAt: nowS(), delivered: false, save }
       leaving = l
       // Rifiutata, pannello e card dicono perché finché non li togli (Franz, 04/11: il Chiudi dà sempre un esito); senza
       // risposta la chiusura può essere in corso.
-      run(newCmd(op, name, arg, text)).then(r => {
+      run(save ? newCmd('close', null, name, undefined, undefined, { save: true }) : newCmd(op, name, arg, text)).then(r => {
         if (r && leaving?.name === name && leaving.sentAt === l.sentAt) {
           const rf = r.ok ? null : refusals(r.text)[0]
           leaving = r.ok ? { ...l, delivered: true } : { ...l, refused: rf?.why ?? r.text, armable: rf?.armable ?? false }
@@ -2273,7 +2275,7 @@
   onAll={() => { watchSession = null; watchOpenId = null; openPage('guardare') }} onOpen={(r) => { watchSession = null; watchOpenId = r.id; openPage('guardare') }} />{/snippet}
 {#snippet homeView(part: 'sessions' | 'you' | 'work' | 'out' | 'tools' | 'top' | null)}<Home st={stShown} {part} {perTeRows} {perTeOpen} onPerTeToggle={perTeToggle} {perTeFocus} perTeBySession={Object.fromEntries(perTeG.filter(g => g.session).map(g => [g.session, g.voci.length]))} perTeFirst={perTeG[0]?.voci[0]?.title ?? null} {monitors} conti={st.ops?.includes('conti') ? contiPage : null} monitorsSum={stShown.monitors ?? null} onMonitor={openMonitor} onNewMonitor={() => talk(t.monitorsNewDraft)} onMine={mineGo} onRestart={handoff} onHomeOrder={!part && st.ops?.includes('home_order') ? (a) => saveHomeOrder(a, false) : null} afterSessions={part === 'work' ? deskTasks : undefined} selected={[]} onPick={card} onAnswer={answer} onStep={(n, x) => { pick(n); sendTo(n, x) }} usage={quotaPanels} usageBlock={usageV3}
         night={nightBoxShown ? nightModel : undefined} {nightTitle} {justClosed} closing={leaving && !leaving.refused ? leaving.name : null} closeRefused={leaving?.refused ? { name: leaving.name, why: leaving.refused, armable: !!leaving.armable } : null} onCloseArm={arm} onCloseSeen={() => (leaving = null)} elicitations={openElicitations(st, now).filter(e => !elicitSent.has(e.id))} onElicit={elicit} newBody={sectionBody} suggestionNames={suggestionNamesOf(sug.all, k => t.sugKind[k] ?? t.sugKindOther)} suggestionsAt={sug.shown[0]?.at} suggestions={sugCard} suggestionsN={sug.shown.length} suggestionsTotal={sug.total} onClosePreview={st.ops?.includes('close_preview') && st.ops?.includes('close') ? closePreview : null} onCloseMany={closeMany} onSystem={tr && !demo ? sysAct : null} {kpiPage} {kpiData} onBox={(b) => openPage(`box-${b}`)} onQuota={() => openPage('overview')} pluginsLoad={tr && st.ops?.includes('plugins') ? pluginsLoad : null} pluginsRun={tr && st.ops?.includes('plugin_update') ? pluginsRun : null} onNight={() => openPage('night')}
-        onApprove={approve} {todo} {sessionTodo} onApprovalClose={closeApproval} onDone={attentionDone} onOk={(n, x) => sendTo(n, x)} onClose={(n) => cmd(n)('slash', 'exit')} onSessionCmd={(n, op, arg) => cmd(n)(op, arg)} agenda={agenda.page} {donePages} onLavori={() => openPage('lavori')} onEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
+        onApprove={approve} {todo} {sessionTodo} onApprovalClose={closeApproval} onDone={attentionDone} onOk={(n, x) => sendTo(n, x)} onClose={(n, save) => (save ? cmd(n)('close', 'save') : cmd(n)('slash', 'exit'))} closeSave={!!st.ops?.includes('close')} onSessionCmd={(n, op, arg) => cmd(n)(op, arg)} agenda={agenda.page} {donePages} onLavori={() => openPage('lavori')} onEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
         {usageFocus} onUsageFocused={() => (usageFocus = 0)} onSpeak={(x) => toggle(x)}
         {events} sent={scheduled} {read} {now} onService={service} lastNight={nightModel} onReopen={st.ops?.includes('reopen') ? (n) => cmd(n)('reopen') : null} />{/snippet}
 {#snippet masterQuick()}

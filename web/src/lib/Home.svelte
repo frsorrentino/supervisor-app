@@ -89,7 +89,7 @@
   import MonitorsList from './MonitorsList.svelte'
   import { looking as monitorsLooking, sectionOf as monitorsSection } from './monitors'
   import type { MonitorCard, MonitorsSummary } from './contract'
-  let { perTeRows = 0, perTeOpen = false, onPerTeToggle = () => {}, perTeFirst = null, perTeFocus = null, perTeBySession = {}, newBody, suggestionNames = [], suggestionsAt, onHomeOrder = null, st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, todo = {}, sessionTodo = null, onApprovalClose = null, onDone = () => {}, onOk = () => {}, onClose = () => {}, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, closeRefused = null, onCloseSeen = () => {}, onCloseArm = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0, suggestionsTotal, usageBlock, onMine = null, onRestart = null, monitors = null, conti = null, monitorsSum = null, onMonitor = () => {}, onNewMonitor = () => {} }: {
+  let { perTeRows = 0, perTeOpen = false, onPerTeToggle = () => {}, perTeFirst = null, perTeFocus = null, perTeBySession = {}, newBody, suggestionNames = [], suggestionsAt, onHomeOrder = null, st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, todo = {}, sessionTodo = null, onApprovalClose = null, onDone = () => {}, onOk = () => {}, onClose = () => {}, closeSave = false, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, closeRefused = null, onCloseSeen = () => {}, onCloseArm = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0, suggestionsTotal, usageBlock, onMine = null, onRestart = null, monitors = null, conti = null, monitorsSum = null, onMonitor = () => {}, onNewMonitor = () => {} }: {
     suggestionNames?: string[]
     /** I corpi delle voci del programma del 01/11, gli stessi delle pagine: si aprono sul posto (Franz 02/11 08:05). */
     newBody?: Snippet<[string]>
@@ -145,7 +145,9 @@
     footer?: Snippet
     onAnswer: (session: string, n: number) => void; onStep: (session: string, text: string) => void
     /** Contratto 1.37: l'ok a un compito (`approve`) e «Chiudi» per una sessione finita o doppione (/exit). */
-    onApprove?: (task: string, note: string, choice?: string) => void; onClose?: (name: string) => void
+    onApprove?: (task: string, note: string, choice?: string) => void; onClose?: (name: string, save: boolean) => void
+    /** Contratto 1.155: la conferma ha «Salva e chiudi» (pieno) e «Chiudi senza salvare». */
+    closeSave?: boolean
     /** Tocca a te dentro le sessioni (app-sessioni-compatte-06-11): quante decisioni e verifiche ha ogni sessione, e il loro corpo. */
     todo?: Record<string, { d: number; v: number }>; sessionTodo?: import('svelte').Snippet<[string]> | null
     /** «Superata» su una carta di scelta (app-scelte-chiudibili-06-11): null = niente tasto. */
@@ -803,6 +805,18 @@
 
 <!-- La testata di sezione dello stile «Studio e Diretta» (30/10): l'icona grigia nel binario dei glifi, il titolo allineato ai
      nomi, il numero accanto; a destra il riepilogo e la freccina che apre e chiude. -->
+<!-- Contratto 1.155 (app-chiudi-salva-19-11): la conferma nella card, «Salva e chiudi» il pieno, «Chiudi senza salvare» accanto. -->
+{#snippet closeAsk(s: Session)}
+  {@const sv = closeSave && !s.master && s.name !== MASTER}
+  <span>{sv ? t.closeInlineSave : t.closeInline}</span>
+  <button class="keep" onclick={(e) => { e.stopPropagation(); confirming = null }}>{t.closeKeep}</button>
+  {#if sv}
+    <button class="plain" onclick={(e) => { e.stopPropagation(); confirming = null; onClose(s.name, false) }}>{t.closeNoSave}</button>
+    <button class="fill" onclick={(e) => { e.stopPropagation(); confirming = null; onClose(s.name, true) }}>{t.closeSave}</button>
+  {:else}
+    <button class="danger" onclick={(e) => { e.stopPropagation(); confirming = null; onClose(s.name, false) }}>{t.closeOk(s.name)}</button>
+  {/if}
+{/snippet}
 {#snippet sec(key: string, title: string, icon: string, count: string | null = null, testid: string | null = null, right: string | null = null, o: { isOpen?: boolean; onclick?: () => void; nav?: boolean; dot?: string | null; hot?: boolean } = {})}
   <!-- In cima ogni voce ha la stessa scheda (Franz 03/11 08:25, app-in-cima-uguali-03-11): senza un dato in più, il riassunto sotto. -->
   <!-- Le voci In cima stanno nel tabellone come righe (app-utilizzo-una-barra-03-11, Franz 03/11 13:11): la scheda resta solo per la voce dello slot. -->
@@ -1340,9 +1354,7 @@
         <!-- La conferma sta nella card, senza finestre (Franz, 06/10 12:40): il secondo tocco, col nome, chiude. -->
         {#if c.canClose && confirming === s.name}
           <div class="confirm" role="group" aria-label={t.closeTitle(s.name)}>
-            <span>{t.closeInline}</span>
-            <button class="keep" onclick={(e) => { e.stopPropagation(); confirming = null }}>{t.closeKeep}</button>
-            <button class="danger" onclick={(e) => { e.stopPropagation(); confirming = null; onClose(s.name) }}>{t.closeOk(s.name)}</button>
+            {@render closeAsk(s)}
           </div>
         {/if}
       {/if}
@@ -1366,13 +1378,11 @@
       {/if}
       <!-- Contratto 1.120: armata dal relay, la card lo dice finché non si chiude. -->
       {#if s.closing && closing !== s.name}
-        <div class="clean"><span class="closing" role="status">{#if s.closing.mode === 'force'}<i class="spin" aria-hidden="true"></i>{/if}{s.closing.mode === 'force' ? t.closingForce : t.closingAfter}</span></div>
+        <div class="clean"><span class="closing" role="status">{#if s.closing.mode !== 'after'}<i class="spin" aria-hidden="true"></i>{/if}{s.closing.mode === 'force' ? t.closingForce : s.closing.mode === 'save' ? t.closingSave : s.closing.mode === 'exit' ? t.closingExit : t.closingAfter}</span></div>
       {/if}
       {#if confirming === s.name && !c?.canClose}
         <div class="confirm" role="group" aria-label={t.closeTitle(s.name)}>
-          <span>{t.closeInline}</span>
-          <button class="keep" onclick={(e) => { e.stopPropagation(); confirming = null }}>{t.closeKeep}</button>
-          <button class="danger" onclick={(e) => { e.stopPropagation(); confirming = null; onClose(s.name) }}>{t.closeOk(s.name)}</button>
+          {@render closeAsk(s)}
         </div>
       {/if}
       {/snippet}
@@ -1687,6 +1697,9 @@
   .clean .keep { border-radius: 999px; padding: 8px 14px; font-weight: 500; flex: none; }
   .confirm .keep:hover, .clean .keep:hover { background: var(--high); }
   .confirm .danger { background: var(--gone); color: #fff; }
+  .confirm .fill { background: var(--primary); color: var(--on-primary); }
+  .confirm .plain { color: var(--gone); }
+  .confirm button:active { transform: scale(.97); }
   .close { display: flex; align-items: center; gap: 8px; background: var(--high); border-radius: 999px; padding: 8px 14px; color: var(--text); font-weight: 500; flex: none; }
   dialog.alert { margin: auto; border: 0; color: var(--text); background: var(--surface); padding: 22px; width: min(400px, 92vw); border-radius: 28px; }
   dialog.alert::backdrop { background: rgb(0 0 0 / .55); }

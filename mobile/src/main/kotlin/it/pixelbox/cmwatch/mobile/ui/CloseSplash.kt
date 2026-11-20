@@ -77,16 +77,20 @@ fun CloseSplashOverlay(
             when (phase) {
                 is CloseSplash.Phase.Closing -> {
                     Text(stringResource(R.string.splash_closing, phase.name), style = MaterialTheme.typography.titleLarge, color = Cm.text, textAlign = TextAlign.Center)
-                    Text(stringResource(R.string.splash_sent_at, hm(phase.sentAt)), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
+                    // Contratto 1.155 (app-chiudi-salva-19-11): «Salva e chiudi» segue closing.mode, save e poi exit.
+                    Text(stringResource(if (phase.save) R.string.splash_save_sent_at else R.string.splash_sent_at, hm(phase.sentAt)), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
                     Column(Modifier.fillMaxWidth().padding(top = 6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        SplashStep(phase.delivered, stringResource(R.string.splash_step_delivered))
+                        if (phase.save) {
+                            SplashStep(phase.step == "exit", stringResource(R.string.splash_saving), now = phase.step != "exit")
+                            SplashStep(false, stringResource(R.string.splash_exiting), now = phase.step == "exit")
+                        } else SplashStep(phase.delivered, stringResource(R.string.splash_step_delivered))
                         SplashStep(false, stringResource(R.string.splash_step_confirmed))
                     }
                     LinearProgressIndicator(Modifier.fillMaxWidth().padding(top = 8.dp), color = Cm.actionIcon, trackColor = Cm.surfaceHigh)
                     if (phase.slow) {
                         Text(stringResource(R.string.splash_slow), style = MaterialTheme.typography.labelMedium, color = Cm.waiting)
                         TextButton(onClick = onHome) { Text(stringResource(if (column) R.string.splash_drop_column else R.string.splash_home), color = Cm.actionIcon) }
-                    } else Text(stringResource(if (phase.force) R.string.splash_force_usually else R.string.splash_usually), style = MaterialTheme.typography.labelMedium, color = Cm.text2)
+                    } else Text(stringResource(if (phase.save) R.string.splash_save_usually else if (phase.force) R.string.splash_force_usually else R.string.splash_usually), style = MaterialTheme.typography.labelMedium, color = Cm.text2)
                 }
                 is CloseSplash.Phase.Refused -> {
                     var forceAsk by remember(phase) { androidx.compose.runtime.mutableStateOf(false) }
@@ -122,6 +126,15 @@ fun CloseSplashOverlay(
                         stringResource(if (phase.byMe) R.string.splash_closed_line else R.string.splash_closed_line_other, hm(phase.at)),
                         style = MaterialTheme.typography.bodyMedium, color = Cm.text2, textAlign = TextAlign.Center,
                     )
+                    // Contratto 1.155: col passaggio di consegne (e il suo file, la fine visibile), salvataggio scaduto, o niente da salvare.
+                    when {
+                        phase.handoff -> {
+                            Text(stringResource(R.string.splash_handoff), style = MaterialTheme.typography.bodyMedium, color = V3.Good, textAlign = TextAlign.Center)
+                            phase.file?.let { p -> Text(p, style = MaterialTheme.typography.labelMedium.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace), color = Cm.text2, maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Clip) }
+                        }
+                        phase.reason != null -> Text(stringResource(R.string.splash_expired, phase.reason!!), style = MaterialTheme.typography.bodyMedium, color = Cm.waiting, textAlign = TextAlign.Center)
+                        phase.save -> Text(stringResource(R.string.splash_no_handoff), style = MaterialTheme.typography.bodyMedium, color = Cm.text, textAlign = TextAlign.Center)
+                    }
                     // La barra si consuma nei 3 s prima del ritorno alla home.
                     val left = remember(phase) { androidx.compose.animation.core.Animatable(1f) }
                     LaunchedEffect(phase) {
@@ -143,7 +156,8 @@ fun CloseSplashOverlay(
 }
 
 @Composable
-private fun SplashStep(done: Boolean, text: String) = Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-    Icon(if (done) Icons.Rounded.Check else Icons.Rounded.RadioButtonUnchecked, null, tint = if (done) Cm.text else Cm.text2, modifier = Modifier.size(18.dp))
-    Text(text, style = MaterialTheme.typography.bodyMedium, color = if (done) Cm.text else Cm.text2)
+private fun SplashStep(done: Boolean, text: String, now: Boolean = false) = Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+    Icon(if (done) Icons.Rounded.Check else Icons.Rounded.RadioButtonUnchecked, null, tint = if (done || now) Cm.text else Cm.text2, modifier = Modifier.size(18.dp))
+    // Il passo in corso in grassetto, come nella web.
+    Text(text, style = MaterialTheme.typography.bodyMedium, color = if (done || now) Cm.text else Cm.text2, fontWeight = if (now) androidx.compose.ui.text.font.FontWeight.Medium else null)
 }

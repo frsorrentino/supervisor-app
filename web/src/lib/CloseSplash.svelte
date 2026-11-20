@@ -7,6 +7,8 @@
   // ritorno da solo, con la barra che si consuma. In una colonna della plancia toglie la colonna.
   // Rifiutata dal relay (app-chiudi-esito-04-11): il motivo resta finché non lo togli con `onDismiss`, sulla pagina com'era.
   // Contratto 1.120: rifiutata per lavoro, domanda o sottofondo, «Chiudi quando finisce» e «Chiudi comunque» con conferma.
+  // Contratto 1.155 (app-chiudi-salva-19-11): «Salva e chiudi» mostra i passi del relay (closing.mode save, poi exit) e, chiusa,
+  // se c'è il passaggio di consegne e dove, o perché non c'è.
   let { phase, onHome, onDismiss = onHome, onReopen = null, onArm = null, column = false }: { phase: Phase; onHome: () => void; onDismiss?: () => void; onReopen?: (() => void) | null; onArm?: ((when: 'after' | 'force') => void) | null; column?: boolean } = $props()
   let forceAsk = $state(false)
   const hm = (at: number) => new Date(at * 1000).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
@@ -22,16 +24,25 @@
     <svg class="pw" class:off={phase.kind === 'closed'} class:no={phase.kind === 'refused'} viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3v9" /><path d="M6.3 6.8a8 8 0 1 0 11.4 0" /></svg>
     {#if phase.kind === 'closing'}
       <h3>{t.splashClosing(phase.name)}</h3>
-      <p>{t.splashSentAt(hm(phase.sentAt))}</p>
-      <ul>
-        <li class:done={phase.delivered}><i>{phase.delivered ? '✓' : '○'}</i>{t.splashDelivered}</li>
-        <li><i>○</i>{t.splashConfirmed}</li>
-      </ul>
+      {#if phase.save}
+        <p>{t.splashSaveSentAt(hm(phase.sentAt))}</p>
+        <ul>
+          <li class:done={phase.step === 'exit'} class:now={phase.step !== 'exit'}><i>{phase.step === 'exit' ? '✓' : '○'}</i>{t.splashSaving}</li>
+          <li class:now={phase.step === 'exit'}><i>○</i>{t.splashExiting}</li>
+          <li><i>○</i>{t.splashConfirmed}</li>
+        </ul>
+      {:else}
+        <p>{t.splashSentAt(hm(phase.sentAt))}</p>
+        <ul>
+          <li class:done={phase.delivered}><i>{phase.delivered ? '✓' : '○'}</i>{t.splashDelivered}</li>
+          <li><i>○</i>{t.splashConfirmed}</li>
+        </ul>
+      {/if}
       <div class="bar"><b class="run"></b></div>
       {#if phase.slow}
         <small class="slow">{t.splashSlow}</small>
         <button class="tx" onclick={onHome}>{column ? t.splashDrop : t.splashHome}</button>
-      {:else}<small>{phase.force ? t.splashForceUsually : t.splashUsually}</small>{/if}
+      {:else}<small>{phase.save ? t.splashSaveUsually : phase.force ? t.splashForceUsually : t.splashUsually}</small>{/if}
     {:else if phase.kind === 'refused' && forceAsk && onArm}
       <h3>{t.closeForceAsk(phase.name)}</h3>
       <p>{t.closeForceWhat}</p>
@@ -48,6 +59,11 @@
     {:else}
       <h3>{t.splashClosed(phase.name)}</h3>
       <p>{phase.byMe ? t.splashClosedLine(hm(phase.at)) : t.splashClosedOther(hm(phase.at))}</p>
+      {#if phase.handoff}
+        <p class="ho ok">{t.splashHandoff}</p>
+        {#if phase.file}<code class="file" title={phase.file}><bdi>{phase.file}</bdi></code>{/if}
+      {:else if phase.reason}<p class="ho no">{t.splashExpired(phase.reason)}</p>
+      {:else if phase.save}<p class="ho">{t.splashNoHandoff}</p>{/if}
       {#key phase}<div class="bar"><b class="left" style:animation-duration="{CLOSED_SHOW_MS}ms"></b></div>{/key}
       <small>{column ? t.splashDropSoon : t.splashBackSoon}</small>
       <div class="btns">
@@ -70,6 +86,11 @@
   ul { list-style: none; margin: 6px 0 0; padding: 0; align-self: stretch; text-align: left; font-size: 14px; color: var(--text2); }
   li { display: flex; gap: 10px; margin: 6px 0; }
   li.done { color: var(--text); }
+  li.now { color: var(--text); font-weight: 500; }
+  .ho { color: var(--text); }
+  .ho.ok { color: var(--good); }
+  .ho.no { color: var(--wait); }
+  .file { align-self: stretch; font: 12.5px var(--mono); color: var(--text2); white-space: nowrap; overflow: hidden; direction: rtl; text-align: center; mask-image: linear-gradient(to right, transparent, #000 12%); }
   li i { font-style: normal; width: 18px; text-align: center; }
   small { font-size: 12.5px; color: var(--text2); }
   small.slow { color: var(--wait); }

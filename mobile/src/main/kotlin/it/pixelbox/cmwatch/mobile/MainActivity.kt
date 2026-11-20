@@ -2225,6 +2225,11 @@ class MainActivity : ComponentActivity() {
                                     app.chatLog.add(Sent(id, session.name, "/$c" + (a?.let { t -> " $t" } ?: ""), System.currentTimeMillis() / 1000))
                                 }
                             } },
+                            // Contratto 1.155 (app-chiudi-salva-19-11): «Salva e chiudi» è `close` con save; il pannello segue closing.mode.
+                            closeSave = if (session.master != true && session.name != it.pixelbox.cmwatch.rules.ContextActions.MASTER && state?.ops?.contains("close") == true) ({
+                                val l = CloseSplash.Leaving(session.name, System.currentTimeMillis() / 1000, null, save = true); leaving = l
+                                scope.launch { runCatching { app.repo.closeSave(session.name) }.getOrNull()?.let { id -> if (leaving == l) leaving = l.copy(cmd = id) } }
+                            }) else null,
                             attach = { uri, text -> attachAny(session.name, uri, text, state?.share) },
                             attachMany = if (ShareLimits.together(state?.share, 2)) ({ uris, text -> attachMany(session.name, uris, text, state?.share) }) else null,
                             // Avviso quota (piano 30/09, Task 4): il testo resta nella chat come «parte alle …».
@@ -2541,8 +2546,9 @@ class MainActivity : ComponentActivity() {
                     // Contratto 1.37: approvazioni in cima e «Chiudi» per le sessioni finite o doppie senza finestra.
                     onApprove = approveTask,
                     canExit = state?.ops?.contains("slash") == true && state.slash?.contains("exit") == true,
-                    onClose = { n -> val l = CloseSplash.Leaving(n, System.currentTimeMillis() / 1000, null); leaving = l
-                        scope.launch { runCatching { app.repo.command(CmdOp.SLASH, n, "exit", null) }.getOrNull()?.let { id -> if (leaving == l) leaving = l.copy(cmd = id) } } },
+                    onClose = { n, save -> val l = CloseSplash.Leaving(n, System.currentTimeMillis() / 1000, null, save = save); leaving = l
+                        scope.launch { runCatching { if (save) app.repo.closeSave(n) else app.repo.command(CmdOp.SLASH, n, "exit", null) }.getOrNull()?.let { id -> if (leaving == l) leaving = l.copy(cmd = id) } } },
+                    closeSave = state?.ops?.contains("close") == true,
                     closing = leaving?.takeIf { l -> l.refused == null }?.name,
                     closeRefused = leaving?.let { l -> l.refused?.let { why -> l.name to why } }, closeArmable = leaving?.armable == true, onCloseSeen = { leaving = null }, onCloseArm = armClose,
                     elicitations = it.pixelbox.cmwatch.rules.Elicit.open(state, now).filter { e -> e.id !in elicitSent }, onElicit = answerElicit,

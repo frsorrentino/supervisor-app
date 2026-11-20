@@ -183,6 +183,8 @@ data class SheetActions(
     val overview: () -> Unit = {},
     /** Contratto 1.25: un comando slash consentito, senza «/», con i suoi argomenti o null. */
     val slash: (cmd: String, args: String?) -> Unit = { _, _ -> },
+    /** Contratto 1.155 (app-chiudi-salva-19-11): «Salva e chiudi»; null sulla master o con un relay che non ha `close`. */
+    val closeSave: (() -> Unit)? = null,
     /** «Fai controllare alla master» dal menu ⋮; null sulla master stessa o senza master aperta. */
     val askMaster: (() -> Unit)? = null,
     /** La lettura a voce da un paragrafo toccato (Franz, 02/10 00:01: «come in orologio»). */
@@ -992,7 +994,7 @@ private fun Composer(
             }
         }
         // /exit passa dalla stessa domanda di ogni chiusura, col nome e lo stato (Franz, 06/10 12:25).
-        confirm?.takeIf { it.cmd == "exit" }?.let { c -> CloseDialog(s, onDismiss = { confirm = null }, onConfirm = { confirm = null; actions.slash(c.cmd, c.args); onSent() }) }
+        confirm?.takeIf { it.cmd == "exit" }?.let { c -> CloseDialog(s, onDismiss = { confirm = null }, onConfirm = { confirm = null; actions.slash(c.cmd, c.args); onSent() }, onSave = actions.closeSave?.let { save -> { confirm = null; save(); onSent() } }) }
         confirm?.takeIf { it.cmd != "exit" }?.let { c ->
             AlertDialog(
                 onDismissRequest = { confirm = null }, containerColor = Cm.surface,
@@ -2422,7 +2424,7 @@ private fun SheetHeader(
         Spacer(Modifier.height(if (notes.isEmpty() && (changes == null || changesMenu || changesInline)) 2.dp else 8.dp))
         HorizontalDivider(color = Cm.line)
     }
-    if (exitAsk) CloseDialog(s, onDismiss = { exitAsk = false }, onConfirm = { exitAsk = false; actions.slash("exit", null) })
+    if (exitAsk) CloseDialog(s, onDismiss = { exitAsk = false }, onConfirm = { exitAsk = false; actions.slash("exit", null) }, onSave = actions.closeSave?.let { save -> { exitAsk = false; save() } })
     if (ctxSheet) s.context?.let { pct -> ContextSheet(pct, it.pixelbox.cmwatch.rules.ContextActions.wider(s.copy(model = model), choices), actions) { ctxSheet = false } }
     // Il pannello Modello ed effort, dalla pillola (bozza approvata da Franz il 07/10 alle 00:06).
     if (picker != null && choices != null) TunePanel(choices, model?.id, effort, advice, onModel = actions.setModel, onEffort = actions.setEffort, onDismiss = { picker = null }, session = s, onPermission = actions.setPermission, modelNext = modelNext, effortNext = effortNext)

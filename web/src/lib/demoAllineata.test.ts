@@ -174,6 +174,7 @@ describe('demo_senza_dati', () => {
 // Le eccezioni stanno qui sotto, ognuna col suo perché.
 const NOT_IN_DEMO: Record<string, string> = {
   feedback: "le segnalazioni d'errore dei plugin: l'app non le legge ancora (non c'è nel tipo State)",
+  'sessions.closing': 'la chiusura armata dura pochi secondi: la demo la mostra quando la chiedi («Salva e chiudi», demoTransport)',
 }
 const filled = (v: unknown) => v != null && v !== '' && !(Array.isArray(v) && !v.length) && !(typeof v === 'object' && !Array.isArray(v) && !Object.keys(v as object).length)
 const fixtures = ['state-1-question', 'state-2-idle', 'state-3-stale'].map(f => JSON.parse(readFileSync(new URL(`../../../contract/${f}.json`, import.meta.url), 'utf8')) as Record<string, unknown>)

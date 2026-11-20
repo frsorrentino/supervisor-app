@@ -23,11 +23,13 @@ object CloseSplash {
      * in chiaro (app-chiudi-esito-04-11), e [armable] se si può chiudere quando finisce o comunque (contratto 1.120);
      * [force]: la chiusura è un «Chiudi comunque».
      */
-    data class Leaving(val name: String, val sentAt: Long, val cmd: String?, val refused: String? = null, val armable: Boolean = false, val force: Boolean = false)
+    data class Leaving(val name: String, val sentAt: Long, val cmd: String?, val refused: String? = null, val armable: Boolean = false, val force: Boolean = false, val save: Boolean = false)
 
     sealed interface Phase {
-        data class Closing(val name: String, val sentAt: Long, val delivered: Boolean, val slow: Boolean, val force: Boolean = false) : Phase
-        data class Closed(val name: String, val at: Long, val byMe: Boolean) : Phase
+        /** Contratto 1.155: [save] = «Salva e chiudi»; [step] "save" scrive il passaggio di consegne, "exit" la chiude. */
+        data class Closing(val name: String, val sentAt: Long, val delivered: Boolean, val slow: Boolean, val force: Boolean = false, val save: Boolean = false, val step: String? = null) : Phase
+        /** Contratto 1.155: [handoff] e [file] = chiusa col passaggio di consegne, [reason] = il salvataggio è scaduto. */
+        data class Closed(val name: String, val at: Long, val byMe: Boolean, val save: Boolean = false, val handoff: Boolean = false, val file: String? = null, val reason: String? = null) : Phase
         data class Refused(val name: String, val why: String, val armable: Boolean = false) : Phase
     }
 
@@ -42,15 +44,23 @@ object CloseSplash {
         val mine = leaving?.name == name
         // Per una gone `since` è l'ultimo avvistamento, cioè quando si è chiusa; per una viva no: allora vale adesso.
         val at = s?.since ?: lastSeen?.takeIf { it.state == SessionState.GONE }?.since ?: now
+        val save = mine && leaving!!.save
+        fun done(x: Session?, byMe: Boolean): Phase {
+            val c = x?.takeIf { it.state == SessionState.GONE }?.closed
+            return Phase.Closed(name, at, byMe, save, handoff = c?.handoff == true, file = c?.file, reason = c?.reason)
+        }
         return when {
-            s == null -> Phase.Closed(name, at, byMe = mine)
-            s.state == SessionState.GONE -> if (mine) Phase.Closed(name, at, byMe = true) else null
+            s == null -> done(lastSeen, mine)
+            s.state == SessionState.GONE -> if (mine) done(s, true) else null
             // Il Chiudi dà sempre un esito (Franz, 04/11): rifiutata, il pannello dice perché finché non lo togli.
             mine && leaving!!.refused != null -> Phase.Refused(name, leaving.refused!!, leaving.armable)
             // Dal vivo 08/10 19:29: dopo /exit Claude Code può chiedere cosa fare dei lavori in background; il pannello non
             // copre la domanda, e torna quando è risposta.
             mine && s.question != null -> null
-            mine -> Phase.Closing(name, leaving!!.sentAt, delivered, slow = now - leaving.sentAt >= (if (leaving.force) FORCE_S + SLOW_S else SLOW_S), force = leaving.force)
+            mine -> {
+                val step = if (save) s.closing?.mode?.takeIf { it == "save" || it == "exit" } else null
+                Phase.Closing(name, leaving!!.sentAt, delivered, slow = now - leaving.sentAt >= (if (leaving.force || save) FORCE_S + SLOW_S else SLOW_S), force = leaving.force, save = save, step = step)
+            }
             else -> null
         }
     }

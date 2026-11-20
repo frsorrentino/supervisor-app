@@ -145,7 +145,9 @@ fun SummaryList(
     /** Contratto 1.80: il tasto «Fatto» di una ferma nella card (op `attention_done`). */
     onDone: (AttentionQueue.Done) -> Unit = {},
     /** Contratto 1.37: «Chiudi» per le sessioni finite o doppie senza finestra; `canExit` = il PC accetta /exit. */
-    canExit: Boolean = false, onClose: (String) -> Unit = {},
+    canExit: Boolean = false, onClose: (String, Boolean) -> Unit = { _, _ -> },
+    /** Contratto 1.155 (app-chiudi-salva-19-11): la conferma nella card ha «Salva e chiudi» (pieno) e «Chiudi senza salvare». */
+    closeSave: Boolean = false,
     /** Il menu contestuale della card (pressione lunga, Franz 14/10 20:58): segui, fai controllare alla master. */
     onFollow: (String, Boolean) -> Unit = { _, _ -> }, onAskMaster: ((String) -> Unit)? = null,
     /** Il menu unico della sessione (app-menu-sessione-03-11): lo stesso della chat, dalle regole di SessionMenu. */
@@ -811,7 +813,7 @@ fun SummaryList(
             SummaryCard(
                 r, f.isOpen(s.name), onToggle = { f.toggle(s.name) },
                 onAnswer = { n -> onAnswer(s.name, n) }, onStep = { t -> onStep(s.name, t) }, onOpen = { onOpen(s.name) },
-                firstFilled = false, canExit = canExit, onClose = { onClose(s.name) }, closing = closing == s.name, refused = closeRefused?.takeIf { r -> r.first == s.name }?.second, onRefusedSeen = onCloseSeen,
+                firstFilled = false, canExit = canExit, onClose = { save -> onClose(s.name, save) }, closeSave = closeSave && s.master != true && s.name != it.pixelbox.cmwatch.rules.ContextActions.MASTER, closing = closing == s.name, refused = closeRefused?.takeIf { r -> r.first == s.name }?.second, onRefusedSeen = onCloseSeen,
                 onArm = onCloseArm?.takeIf { closeArmable }?.let { f -> { w: String -> f(s.name, w) } }, now = now,
                 onFollow = { f -> onFollow(s.name, f) }, onAskMaster = onAskMaster?.let { ask -> { ask(s.name) } },
                 menuState = menuState, mine = mineOf(s.name), onMine = onMine?.let { m -> { k -> m(s.name, k) } },
@@ -1247,7 +1249,7 @@ internal val LocalInColumn = androidx.compose.runtime.staticCompositionLocalOf {
 private fun SummaryCard(
     r: Summary.Row, open: Boolean, onToggle: () -> Unit,
     onAnswer: (Int) -> Unit, onStep: (String) -> Unit, onOpen: () -> Unit,
-    firstFilled: Boolean = true, canExit: Boolean = false, onClose: () -> Unit = {}, closing: Boolean = false, refused: String? = null, onRefusedSeen: () -> Unit = {}, onArm: ((String) -> Unit)? = null, now: Long = System.currentTimeMillis() / 1000,
+    firstFilled: Boolean = true, canExit: Boolean = false, onClose: (save: Boolean) -> Unit = {}, closeSave: Boolean = false, closing: Boolean = false, refused: String? = null, onRefusedSeen: () -> Unit = {}, onArm: ((String) -> Unit)? = null, now: Long = System.currentTimeMillis() / 1000,
     onFollow: (Boolean) -> Unit = {}, onAskMaster: (() -> Unit)? = null,
     menuState: it.pixelbox.cmwatch.contract.State? = null, mine: it.pixelbox.cmwatch.rules.SessionMenu.Mine = it.pixelbox.cmwatch.rules.SessionMenu.Mine(),
     onMine: ((it.pixelbox.cmwatch.rules.SessionMenu.Kind) -> Unit)? = null, onOpenInClaude: (() -> Unit)? = null, onRestartClean: (() -> Unit)? = null,
@@ -1569,28 +1571,18 @@ private fun SummaryCard(
                 if (cleanup.canClose && closeAsk) androidx.compose.foundation.layout.FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    Text(stringResource(R.string.close_inline), style = MaterialTheme.typography.bodySmall, color = Cm.text2, modifier = Modifier.padding(end = 4.dp))
-                    androidx.compose.material3.TextButton(onClick = { closeAsk = false }) { Text(stringResource(R.string.close_keep), color = Cm.actionIcon) }
-                    androidx.compose.material3.Button(
-                        onClick = { closeAsk = false; onClose() },
-                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = V3.S3, contentColor = Cm.gone),
-                    ) { Text(stringResource(R.string.cleanup_close_short)) }
+                    CloseAskButtons(closeSave, onKeep = { closeAsk = false }, onClose = { save -> closeAsk = false; onClose(save) })
                 }
             }
             if (closing && it.pixelbox.cmwatch.rules.MasterService.cleanup(s, canExit, now) == null) ClosingChip(s.name)
             // Il Chiudi dà sempre un esito (Franz, 04/11): rifiutata, la card dice perché finché non tocchi «Va bene».
             refused?.let { why -> RefusedRow(s.name, why, onRefusedSeen, onArm) }
             // Contratto 1.120: armata dal relay, la card lo dice finché non si chiude.
-            if (!closing) s.closing?.let { c -> ArmedChip(c.mode == "force") }
+            if (!closing) s.closing?.let { c -> ArmedChip(c.mode) }
             if (menuClose) androidx.compose.foundation.layout.FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Text(stringResource(R.string.close_inline), style = MaterialTheme.typography.bodySmall, color = Cm.text2, modifier = Modifier.padding(end = 4.dp))
-                androidx.compose.material3.TextButton(onClick = { menuClose = false }) { Text(stringResource(R.string.close_keep), color = Cm.actionIcon) }
-                androidx.compose.material3.Button(
-                    onClick = { menuClose = false; onClose() },
-                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = V3.S3, contentColor = Cm.gone),
-                ) { Text(stringResource(R.string.cleanup_close_short)) }
+                CloseAskButtons(closeSave, onKeep = { menuClose = false }, onClose = { save -> menuClose = false; onClose(save) })
             }
         }
 
@@ -2522,13 +2514,34 @@ private fun RefusedRow(name: String, why: String, onSeen: () -> Unit, onArm: ((S
     }
 }
 
-/** Contratto 1.120: la chiusura armata, «si chiude appena finisce» o, per «Chiudi comunque», con la rotella. */
+/**
+ * La conferma del Chiudi nella card, dentro una FlowRow: con [save] (contratto 1.155) «Salva e chiudi» è il pieno e «Chiudi senza
+ * salvare» un tasto di testo rosso; senza, il «Chiudi» di prima.
+ */
 @Composable
-private fun ArmedChip(force: Boolean) {
+private fun CloseAskButtons(save: Boolean, onKeep: () -> Unit, onClose: (Boolean) -> Unit) {
+    Text(stringResource(if (save) R.string.close_inline_save else R.string.close_inline), style = MaterialTheme.typography.bodySmall, color = Cm.text2, modifier = Modifier.padding(end = 4.dp))
+    androidx.compose.material3.TextButton(onClick = onKeep) { Text(stringResource(R.string.close_keep), color = Cm.actionIcon) }
+    if (save) {
+        androidx.compose.material3.TextButton(onClick = { onClose(false) }) { Text(stringResource(R.string.close_no_save), color = Cm.gone) }
+        androidx.compose.material3.Button(
+            onClick = { onClose(true) },
+            colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary),
+        ) { Text(stringResource(R.string.close_save)) }
+    } else androidx.compose.material3.Button(
+        onClick = { onClose(false) },
+        colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = V3.S3, contentColor = Cm.gone),
+    ) { Text(stringResource(R.string.cleanup_close_short)) }
+}
+
+/** Contratto 1.120: la chiusura armata, «si chiude appena finisce» o, per «Chiudi comunque», con la rotella; 1.155 save ed exit. */
+@Composable
+private fun ArmedChip(mode: String) {
     Surface(shape = CircleShape, color = Cm.surfaceHigh, contentColor = Cm.text) {
         Row(Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (force) androidx.compose.material3.CircularProgressIndicator(color = Cm.actionIcon, strokeWidth = 2.dp, modifier = Modifier.size(14.dp))
-            Text(stringResource(if (force) R.string.closing_force else R.string.closing_after), style = MaterialTheme.typography.labelLarge)
+            if (mode != "after") androidx.compose.material3.CircularProgressIndicator(color = Cm.actionIcon, strokeWidth = 2.dp, modifier = Modifier.size(14.dp))
+            // Contratto 1.155: save scrive il passaggio di consegne, exit la sta chiudendo.
+            Text(stringResource(when (mode) { "force" -> R.string.closing_force; "save" -> R.string.closing_save; "exit" -> R.string.closing_exit; else -> R.string.closing_after }), style = MaterialTheme.typography.labelLarge)
         }
     }
 }

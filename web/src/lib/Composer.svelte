@@ -16,13 +16,15 @@
 
   // La barra di scrittura (Composer dell'app): + per allegati (e le azioni ricorrenti nella master), il suggerimento
   // attenuato nel campo vuoto con «Usa», i comandi slash scrivendo «/», a destra Invia, Invia tonale o Stop.
-  let { st, s, draft = $bindable(), field, toMaster, onSend, onAnswerText, onSlash, onStop, onReopen, onAttach, onRecurring, onSendAt = null, onSendTo = null, quotes = $bindable([]) }: {
+  let { st, s, draft = $bindable(), field, toMaster, onSend, onAnswerText, onSlash, onStop, onReopen, onAttach, onRecurring, onSendAt = null, onSendTo = null, onCloseSave = null, quotes = $bindable([]) }: {
     st: State; s: Session; draft: string; field: string | null; toMaster: boolean
     onSend: (text: string) => void; onAnswerText: (arg: string) => void; onSlash: (cmd: string, args: string | null) => void
     onStop: () => void; onReopen: () => void; onAttach: (files: File[], text: string) => void; onRecurring: (() => void) | null
     /** Contratto 1.37: «Salva una decisione» nel + della master. */
     /** Contratto 1.63, «Manda alle…»: il testo e l'ora (epoch s); null = il relay non lo sa fare. */
     onSendAt?: ((text: string, at: number) => void) | null
+    /** Contratto 1.155: «Salva e chiudi» dalla domanda di /exit; null = solo il /exit di prima (la master, un relay vecchio). */
+    onCloseSave?: (() => void) | null
     /** «@nome» nella chat della master: il messaggio a quella sessione (Franz, 14/10 21:55). */
     onSendTo?: ((name: string, text: string) => void) | null
     /** I pezzi citati dalla trascrizione, sopra il campo; partono con la risposta in Markdown (app-citazione-trascrizione-07-11). */
@@ -213,7 +215,7 @@
     {#if !narrow}<div class="keys mono">{t.enterSends}</div>{/if}
   </div>
 
-<CloseDialog bind:this={closer} onConfirm={() => { onSlash('exit', exitArgs); draft = '' }} />
+<CloseDialog bind:this={closer} canSave={!!onCloseSave} onConfirm={(_, save) => { if (save) onCloseSave?.(); else onSlash('exit', exitArgs); draft = '' }} />
 <dialog bind:this={confirmDlg} onclose={() => (confirm = null)}>
   {#if confirm}
     <h3>{t.slashConfirmTitle(confirm.cmd, s.name)}</h3>

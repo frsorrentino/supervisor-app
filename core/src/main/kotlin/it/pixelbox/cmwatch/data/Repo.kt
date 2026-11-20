@@ -243,6 +243,8 @@ class Repo(
     suspend fun close(names: List<String>) = command(CmdOp.CLOSE, null, names.joinToString(","))
     /** Contratto 1.120: «Chiudi quando finisce» (after) o «Chiudi comunque» (force) di una sessione. */
     suspend fun closeWhen(name: String, whenMode: String) = command(CmdOp.CLOSE, null, name, closeWhen = whenMode)
+    /** Contratto 1.155: «Salva e chiudi». */
+    suspend fun closeSave(name: String) = command(CmdOp.CLOSE, null, name, save = true)
 
     /** Ritorna l'id del comando (uuid): stesso id in Riprova, il PC ignora i duplicati. */
     /** `text`: il primo messaggio di un `launch` (contratto 1.13); per gli altri comandi resta null. */
@@ -271,7 +273,7 @@ class Repo(
         /** Contratto 1.83, `elicit`: le risposte del modulo di un server MCP. */
         content: kotlinx.serialization.json.JsonObject? = null,
         /** Contratto 1.120, `close`: after o force. */
-        closeWhen: String? = null,
+        closeWhen: String? = null, save: Boolean? = null,
         /** Contratto 1.121, `feedback_app`. */
         tech: Map<String, String>? = null, share: String? = null, hash: String? = null,
         /** Contratto 1.137, `attesa`: la scheda anche dopo la risposta. */
@@ -284,7 +286,7 @@ class Repo(
             id, op, session, arg, now(), by, text = text, device = device, voice = voice, via = via, confirmations = confirmations,
             action = action, until = until, blocks = blocks, question = question, at = at, confirm = confirm, prompt = prompt, reopen = reopen,
             kind = kind, since = since, choice = choice, sid = sid, content = content, result = result, hours = hours, reason = reason, also = also, value = value, product = product, key = key, project = project, posS = posS,
-            closeWhen = closeWhen, tech = tech, share = share, screenshotOk = share?.let { true }, hash = hash, archive = archive,
+            closeWhen = closeWhen, save = save, tech = tech, share = share, screenshotOk = share?.let { true }, hash = hash, archive = archive,
         )
         question?.let { q -> _answered[cmd.id] = q }
         if (!online()) {
