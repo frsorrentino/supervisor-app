@@ -155,7 +155,13 @@ export const kpiDemo = (now: number): KpiData => {
     ] },
     kpi_checks_week: week.map((k, i) => ({ date: day(k), green: 3 + (i % 3), red: i === 4 ? 1 : 0 })),
     kpi_turns_today: [
-      { session: 'storefront', turns: [{ start: now - 5400, end: now - 4800, outcome: 'ok', tokens: 41000, cache_read: 380000 }, { start: now - 1500, end: now - 420, outcome: 'question', tokens: 22000, cache_read: 210000 }] },
+      // Contratto 1.156: l'esito del turno e la sua voce nella chat; i risultati di oggi, il più nuovo per primo.
+      { session: 'storefront', turns: [{ start: now - 5400, end: now - 4800, outcome: 'ok', tokens: 41000, cache_read: 380000, text: en ? 'The signature check now lives in the handler, with a test for a forged event' : 'Il controllo della firma ora sta nel gestore, con un test per un evento falso', entry: 'a4.0' }, { start: now - 1500, end: now - 420, outcome: 'question', tokens: 22000, cache_read: 210000 }], results: [
+        { kind: 'file', label: 'checkout-tests.pdf', path: '/w/storefront/docs/checkout-tests.pdf', at: now - 600, entry: 'a7.0' },
+        { kind: 'image', label: 'checkout-before.png', path: '/w/storefront/docs/checkout-before.png', at: now - 620, entry: 'a6.0' },
+        { kind: 'release', label: 'v0.4.12', url: 'https://github.com/example/storefront/releases/tag/v0.4.12', at: now - 4800, entry: 'a4.0' },
+        { kind: 'link', label: 'staging', url: 'https://staging.example.com/checkout', at: now - 4810, entry: 'a4.0' },
+      ] },
       { session: 'blog', turns: [{ start: now - 3000, end: now - 240, outcome: 'question', tokens: 18000, cache_read: 160000 }] },
     ],
     kpi_health: {

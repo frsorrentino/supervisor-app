@@ -1,5 +1,5 @@
 import { atWork } from './contract'
-import type { KpiChecksDay, KpiData, KpiSuggestions, KpiTask, KpiTasks, KpiTurn, KpiWaits, Session, State, TimelineEvent, TimelinePage } from './contract'
+import type { KpiChecksDay, KpiData, KpiResult, KpiSuggestions, KpiTask, KpiTasks, KpiTurn, KpiWaits, Session, State, TimelineEvent, TimelinePage } from './contract'
 import { shareable } from './questionRules'
 import { stop } from './strongAlert'
 import { dtf } from './dtf'
@@ -287,3 +287,5 @@ export function acceptRate(s: KpiSuggestions): number | null {
 /** 17 · le attese chiuse nella settimana e la mediana più alta, per la scala delle colonne. */
 export const waitsClosed = (w: KpiWaits) => w.week.reduce((n, d) => n + d.n, 0)
 export const waitsTop = (w: KpiWaits) => Math.max(0, ...w.week.map(d => d.median_min ?? 0))
+/** Contratto 1.156: i risultati di oggi della sessione, dal più nuovo; [] con un relay di prima. */
+export const resultsOf = (data: KpiData | null, session: string): KpiResult[] => data?.kpi_turns_today?.find(x => x.session === session)?.results ?? []

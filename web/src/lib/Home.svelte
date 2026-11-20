@@ -17,8 +17,8 @@
   import Kpi4 from './Kpi4.svelte'
   import PluginsSection from './PluginsSection.svelte'
   import type { KpiData, PluginsPage } from './contract'
-  import { day as kpiDay, dayFigures, HANDOFF, boardMatch, boardShown, boardTap, head as kpiHead, hourly, midnight, outcomes as kpiOutcomes, split as kpiSplit, todayShare, turnsOf, waitingSince } from './kpi'
-  import { before as kBefore, nextStep as kNext, task as kTask } from './sessionK'
+  import { day as kpiDay, dayFigures, HANDOFF, boardMatch, boardShown, boardTap, head as kpiHead, resultsOf, hourly, midnight, outcomes as kpiOutcomes, split as kpiSplit, todayShare, turnsOf, waitingSince } from './kpi'
+  import { before as kBefore, nextStep as kNext, results as kResultsOf, task as kTask } from './sessionK'
   import type { TimelinePage } from './contract'
   import { actionOf, consumersLine, isOpen as sysIsOpen, num as sysNum, summaryLine, type Manual } from './system'
   import PermGlyph from './PermGlyph.svelte'
@@ -89,7 +89,7 @@
   import MonitorsList from './MonitorsList.svelte'
   import { looking as monitorsLooking, sectionOf as monitorsSection } from './monitors'
   import type { MonitorCard, MonitorsSummary } from './contract'
-  let { perTeRows = 0, perTeOpen = false, onPerTeToggle = () => {}, perTeFirst = null, perTeFocus = null, perTeBySession = {}, newBody, suggestionNames = [], suggestionsAt, onHomeOrder = null, st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, todo = {}, sessionTodo = null, onApprovalClose = null, onDone = () => {}, onOk = () => {}, onClose = () => {}, closeSave = false, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, closeRefused = null, onCloseSeen = () => {}, onCloseArm = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0, suggestionsTotal, usageBlock, onMine = null, onRestart = null, monitors = null, conti = null, monitorsSum = null, onMonitor = () => {}, onNewMonitor = () => {} }: {
+  let { perTeRows = 0, perTeOpen = false, onPerTeToggle = () => {}, perTeFirst = null, perTeFocus = null, perTeBySession = {}, newBody, suggestionNames = [], suggestionsAt, onHomeOrder = null, st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, todo = {}, sessionTodo = null, onApprovalClose = null, onDone = () => {}, onOk = () => {}, onClose = () => {}, closeSave = false, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, closeRefused = null, onCloseSeen = () => {}, onCloseArm = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, onJump = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0, suggestionsTotal, usageBlock, onMine = null, onRestart = null, monitors = null, conti = null, monitorsSum = null, onMonitor = () => {}, onNewMonitor = () => {} }: {
     suggestionNames?: string[]
     /** I corpi delle voci del programma del 01/11, gli stessi delle pagine: si aprono sul posto (Franz 02/11 08:05). */
     newBody?: Snippet<[string]>
@@ -137,6 +137,8 @@
     donePages?: Record<string, DonePage>; events?: Event[]; sent?: Scheduled[]; read?: Set<string>; now?: number; onService?: (r: ForYouRow) => void
     /** «Chiuse»: l'elenco con «Riapri» (contratto 1.9), se il relay lo sa fare. */
     onReopen?: ((name: string) => void) | null
+    /** Contratto 1.156: il tocco su un turno o su un file di «Risultati» apre la sessione su quella voce della chat. */
+    onJump?: ((name: string, entry: string) => void) | null
     /** L'ultima notte in fondo alla scheda Stanotte, dal rapporto. */
     lastNight?: NightPage | null
     /** `selected`: le sessioni aperte, evidenziate; `withMaster`: la master nella lista come le altre (la plancia). */
@@ -563,7 +565,14 @@
   }
   let expanded = $state<string | null>(null)
   // app-scheda-sessione-semplice-19-11: la sessione di cui la scheda K mostra tutti i turni di oggi.
-  let kAll = $state<string | null>(null)
+  // Le icone di «Risultati»: immagine, file, link, release (un cartellino).
+  const K_RES_ICON: Record<string, string> = {
+    image: 'M4 5h16v14H4zM4 15l4.5-4.5 4 4 2.5-2.5L20 17M15.5 9.5h.01',
+    file: 'M14 3H6v18h12V7zM14 3v4h4M9 13h6M9 17h6',
+    link: 'M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1',
+    release: 'M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8zM7.5 7.5h.01',
+  }
+  let kAll = $state<string | null>(null), kResAll = $state<string | null>(null)
   const groups = $derived(withMaster ? deskGroups(model) : (['waiting', 'finished', 'working', 'still'] as Group[]).map(g => [g, model.rows.filter(r => r.group === g)] as [Group, Row[]]).filter(([, rows]) => rows.length > 0))
   // Il riordino (Franz 29/10 20:48, app-home-riordino-29-10): chi aspetta te in cima, in «Ti aspettano»; le altre in «Sessioni».
   // Franz 02/11 15:38 (app-feedback-azioni-02-11): Fatto e Ok rispondono al tocco (leave.ts): conferma sul tasto, la card esce
@@ -1398,6 +1407,7 @@
              giornata a fasce e l'attività per ora sono andate in Utilizzo, i token per turno e la parte di oggi del contesto nelle quote. -->
         <div class="details stats">{[s.model?.label, s.effort, s.account].filter(Boolean).join(' · ')}</div>
         {@const kb = kBefore(turnsOf(kpiData, s.name), kAll === s.name)}
+        {@const kres = kResultsOf(resultsOf(kpiData, s.name), kResAll === s.name)}
         {@const kt = kTask(st.commitments, s.name)}
         {@const kn = kNext(kt, unified ? [] : steps)}
         {@const kRest = unified ? [] : steps.filter(y => y.trim() !== kn)}
@@ -1407,12 +1417,24 @@
             <section class="kg past" data-testid="k-prima"><h4>{t.kBefore}<small>{t.kTurnsToday(kb.total, kb.minutes)}</small></h4>
               {#if kb.hidden}<button class="kmore" data-testid="k-altri-turni" onclick={(e) => { e.stopPropagation(); kAll = s.name }}>{t.kMoreTurns(kb.hidden)}</button>{/if}
               {#each kb.turns as tu (tu.start)}
-                <button class="kr tap" onclick={(e) => { e.stopPropagation(); onPick(s.name) }}>
+                <button class="kr tap" onclick={(e) => { e.stopPropagation(); if (tu.entry && onJump) onJump(s.name, tu.entry); else onPick(s.name) }}>
                   <span class="kl mono2">{hhmm(tu.start)}</span>
                   <span class="kx one"><svg class="ki" class:bad={!tu.ok} viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d={tu.ok ? 'M20 6 9 17l-5-5' : 'M18 6 6 18M6 6l12 12'} /></svg><span class:none={!tu.text}>{tu.text ?? (tu.ok ? t.kTurnOk : t.kTurnFailed)}</span></span>
                   <span class="kd mono2">{t.kMinutes(tu.minutes)}</span>
                 </button>
               {/each}
+            </section>
+          {/if}
+          {#if kres}
+            <!-- Contratto 1.156: i risultati di oggi, il più nuovo per primo; un link si apre fuori, un file sulla sua voce della chat. -->
+            <section class="kg res" data-testid="k-risultati"><h4>{t.kResults}<small>{t.kResultsToday(kres.total)}</small></h4>
+              <div class="kres">
+                {#each kres.shown as rr, j (j)}
+                  {#if rr.url}<a class="kpill" href={rr.url} target="_blank" rel="noopener noreferrer" onclick={(e) => e.stopPropagation()}><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d={K_RES_ICON[rr.kind]} /></svg><span>{rr.label}</span></a>
+                  {:else}<button class="kpill" onclick={(e) => { e.stopPropagation(); if (rr.entry && onJump) onJump(s.name, rr.entry); else onPick(s.name) }}><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d={K_RES_ICON[rr.kind]} /></svg><span>{rr.label}</span></button>{/if}
+                {/each}
+                {#if kres.hidden}<button class="kmore" data-testid="k-altri-risultati" onclick={(e) => { e.stopPropagation(); kResAll = s.name }}>{t.kMoreResults(kres.hidden)}</button>{/if}
+              </div>
             </section>
           {/if}
           <section class="kg now" data-testid="k-adesso"><h4>{t.kNow}</h4>
@@ -1576,6 +1598,14 @@
   .ki { flex: none; fill: none; stroke: var(--good); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   .ki.bad { stroke: var(--red); }
   .kd { font-size: 12.5px; line-height: 21px; color: var(--tx3); white-space: nowrap; text-align: right; min-width: 44px; font-variant-numeric: tabular-nums; }
+  .kres { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 0 4px; }
+  .kpill { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-height: 44px; padding: 0 14px; box-sizing: border-box; border: 0; border-radius: 999px; background: var(--high); color: var(--text); font: 400 14px/1 inherit; text-decoration: none; cursor: pointer; touch-action: manipulation; user-select: none; -webkit-user-select: none; transition: transform 160ms cubic-bezier(.23, 1, .32, 1); }
+  /* Un nome lungo arriva al bordo e sfuma negli ultimi 12 px; uno corto finisce prima, nel margine, e non sfuma. */
+  .kpill { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 12px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 12px), transparent); }
+  .kpill span { min-width: 0; white-space: nowrap; overflow: hidden; padding-right: 14px; margin-right: -14px; }
+  .kpill svg { flex: none; fill: none; stroke: var(--text2); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .kpill:active { transform: scale(.97); }
+  .kpill:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--busy); }
   .kmore { align-self: flex-start; min-height: 44px; padding: 0; border: 0; background: none; color: var(--busy); font: 600 15px/1 inherit; cursor: pointer; touch-action: manipulation; }
   .ktask { display: flex; align-items: baseline; gap: 8px; }
   .ktask b { font-weight: 500; }
@@ -1585,7 +1615,7 @@
   .kbar { flex: 1; height: 6px; border-radius: 3px; background: var(--s3); overflow: hidden; }
   .kbar > span { display: block; height: 100%; border-radius: 3px; }
   .kctx b { font-weight: 500; font-size: 14px; font-variant-numeric: tabular-nums; }
-  @media (prefers-reduced-motion: reduce) { .kr.tap { transition: none; } }
+  @media (prefers-reduced-motion: reduce) { .kr.tap, .kpill { transition: none; } }
   .alive { color: var(--idle); font-weight: 500; }
   .home { padding: 12px 16px 24px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; height: 100%; }
   .gh { display: flex; align-items: center; gap: 8px; margin: 6px 8px 0; font: 500 12.5px/1.4 var(--mono); letter-spacing: .08em; color: var(--t); }

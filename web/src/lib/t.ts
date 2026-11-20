@@ -355,7 +355,7 @@ const it = {
   chatEmpty: 'Conversazione nuova: ancora nessun messaggio. Scrivi qui sotto per cominciare.', menuGoto: 'Vai a', menuRowWaiting: (x: string) => `domanda · ${x}`, menuRowWorking: (x: string) => `al lavoro · ${x}`, menuRowStill: (x: string) => `ferma da ${x}`, menuHomeSub: 'La home: sessioni e chat della master',
   meterTitle: 'Fotogrammi', meterOff: 'Spegni il contatore', meterMax: 'il più lungo', meterOver: 'oltre 33 ms', meterScript: (n: string) => `script ${n}`, meterLayout: 'stile e impaginazione', meterPaint: 'disegno', meterHint: "Tocca o trascina: qui compare l'ultimo gesto.",
   // app-scheda-sessione-semplice-19-11: la scheda K della sessione.
-  kBefore: 'Prima', kResults: 'Risultati', kNow: 'Adesso', kNext: 'Prossimo', kTurnsToday: (n: number, m: number) => `${n} ${n === 1 ? 'turno' : 'turni'} oggi, ${m} min`,
+  kBefore: 'Prima', kResults: 'Risultati', kResultsToday: (n: number) => `${n} oggi`, kMoreResults: (n: number) => (n === 1 ? 'Un altro' : `Altri ${n}`), kNow: 'Adesso', kNext: 'Prossimo', kTurnsToday: (n: number, m: number) => `${n} ${n === 1 ? 'turno' : 'turni'} oggi, ${m} min`,
   kMoreTurns: (n: number) => (n === 1 ? 'Un altro turno prima' : `Altri ${n} turni prima`), kMinutes: (n: number) => `${n} min`,
   kTurnOk: 'riuscito, senza esito scritto', kTurnFailed: 'fallito', kTask: 'Compito', kTaskRunning: 'in corso', kTaskPaused: 'in pausa',
   kDoing: 'Sta facendo', kContext: 'Contesto', kWindow: 'Finestra', kStep: 'Passo', kWaits: 'Ti aspetta', kSaid: 'Ha detto',
@@ -827,7 +827,7 @@ const en: typeof it = {
   privacy: 'Privacy', privacySub: 'The policy, on the website',
   chatEmpty: 'New conversation: no messages yet. Write below to start.', menuGoto: 'Go to', menuRowWaiting: (x: string) => `question · ${x}`, menuRowWorking: (x: string) => `working · ${x}`, menuRowStill: (x: string) => `idle for ${x}`, menuHomeSub: "Home: sessions and the master's chat",
   meterTitle: 'Frames', meterOff: 'Turn the counter off', meterMax: 'longest', meterOver: 'over 33 ms', meterScript: (n: string) => `script ${n}`, meterLayout: 'style and layout', meterPaint: 'paint', meterHint: 'Tap or drag: the last gesture shows here.',
-  kBefore: 'Before', kResults: 'Results', kNow: 'Now', kNext: 'Next', kTurnsToday: (n: number, m: number) => `${n} ${n === 1 ? 'turn' : 'turns'} today, ${m} min`,
+  kBefore: 'Before', kResults: 'Results', kResultsToday: (n: number) => `${n} today`, kMoreResults: (n: number) => (n === 1 ? 'One more' : `${n} more`), kNow: 'Now', kNext: 'Next', kTurnsToday: (n: number, m: number) => `${n} ${n === 1 ? 'turn' : 'turns'} today, ${m} min`,
   kMoreTurns: (n: number) => (n === 1 ? 'One more turn before' : `${n} more turns before`), kMinutes: (n: number) => `${n} min`,
   kTurnOk: 'done, no outcome written', kTurnFailed: 'failed', kTask: 'Task', kTaskRunning: 'running', kTaskPaused: 'paused',
   kDoing: 'Doing', kContext: 'Context', kWindow: 'Window', kStep: 'Step', kWaits: 'Waiting for you', kSaid: 'Said',

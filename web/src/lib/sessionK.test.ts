@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { Commitment, KpiTurn } from './contract'
-import { before, nextStep, task, todaySessions } from './sessionK'
+import type { Commitment, KpiResult, KpiTurn } from './contract'
+import { before, nextStep, results, task, todaySessions } from './sessionK'
 
 // Gli stessi casi di SessionKTest in Kotlin: i turni veri di joyconceptstore del 19/11.
 const t = (h: number, m: number, min: number, outcome = 'ok', text?: string): KpiTurn => {
@@ -46,5 +46,33 @@ describe('la pagina Utilizzo dopo la K', () => {
       kpi_turns_today: [{ session: 'joyconceptstore', turns: joy }] }
     expect(todaySessions(page, data, 100)).toEqual(['joyconceptstore', 'supervisor', 'app'])
     expect(todaySessions(null, null, 100)).toEqual([])
+  })
+})
+
+// Contratto 1.156: l'esito di ogni turno con la sua voce, e la riga «Risultati».
+describe('la scheda K col relay 1.156', () => {
+  it('il turno porta la sua voce della chat; senza voce resta null', () => {
+    const b = before([{ ...t(9, 0, 5, 'ok', 'categorie corrette'), entry: 'u-1.2' }, t(10, 0, 3)])!
+    expect(b.turns.map(x => x.entry)).toEqual(['u-1.2', null])
+  })
+  const r = (kind: string, at: number, x: Partial<KpiResult> = {}): KpiResult => ({ kind, label: kind + at, at, ...(kind === 'link' || kind === 'release' ? { url: 'https://x.dev/' + at } : { path: '/w/' + at }), entry: 'e' + at, ...x })
+  it('i risultati vanno dal più nuovo, e quelli che non si aprono restano fuori', () => {
+    const l = [r('image', 1), r('link', 3), r('release', 2), r('file', 4, { entry: null }), r('link', 5, { url: 'javascript:alert(1)' }), r('video', 6), r('file', 7, { label: ' ' })]
+    const k = results(l)!
+    expect(k.shown.map(x => x.at)).toEqual([3, 2, 1])
+    expect(k.shown.map(x => x.url != null)).toEqual([true, true, false])
+    expect([k.hidden, k.total]).toEqual([0, 3])
+  })
+  it('oltre cinque se ne vedono quattro e «Altri N»; al massimo venti', () => {
+    const many = Array.from({ length: 25 }, (_, i) => r('image', i))
+    expect(results(many.slice(0, 5))!.hidden).toBe(0)
+    const k = results(many)!
+    expect([k.shown.length, k.hidden, k.total]).toEqual([4, 16, 20])
+    expect(k.shown[0].at).toBe(24)
+    expect(results(many, true)!.shown.length).toBe(20)
+  })
+  it('senza risultati, o con un relay di prima, la riga non c’è', () => {
+    expect(results([])).toBeNull()
+    expect(results(undefined)).toBeNull()
   })
 })
