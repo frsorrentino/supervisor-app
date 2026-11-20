@@ -412,7 +412,7 @@ const it = {
   tabletKind: { commit: 'commit', prompt: 'prompt', test: 'test', outcome: 'esito', task: 'compito' } as Record<string, string>,
   tabletDetails: 'Dettagli della sessione a destra', tabletDetailsSub: 'Progetto, turno, contesto e cronologia di oggi della prima colonna',
   soon: 'Questa pagina arriva nel prossimo passo.',
-  home: 'Home', toLatest: "Torna all'ultimo messaggio", dockMaster: 'MASTER', dockListen: "Ascolta l'ultimo esito della master", dockConversation: 'Apri la conversazione della master', dockCollapse: 'Riduci la master', dockClose: 'Chiudi', more: 'Altro', cancel: 'Annulla',
+  home: 'Home', toLatest: "Torna all'ultimo messaggio", mineJumpOpen: 'Vai ai tuoi messaggi', mineJump: 'I tuoi messaggi', mineJumpPos: (i: number, n: number) => `${i} di ${n}`, mineJumpPrev: 'Il tuo messaggio prima', mineJumpNext: 'Il tuo messaggio dopo', mineJumpClose: 'Torna al campo', dockMaster: 'MASTER', dockListen: "Ascolta l'ultimo esito della master", dockConversation: 'Apri la conversazione della master', dockCollapse: 'Riduci la master', dockClose: 'Chiudi', more: 'Altro', cancel: 'Annulla',
   notes: { goal: 'Obiettivo', lowPriority: 'bassa priorità', lowPriorityOffered: 'bassa priorità proposta', noWindow: 'senza finestra' },
   modelTitle: 'Modello', effortTitle: 'Effort', tuneHead: 'Modello ed effort · vale per questa sessione', tuneNextTurn: 'dal prossimo turno',
   modelSub: {
@@ -886,7 +886,7 @@ const en: typeof it = {
   tabletKind: { commit: 'commit', prompt: 'prompt', test: 'test', outcome: 'outcome', task: 'task' } as Record<string, string>,
   tabletDetails: 'Session details on the right', tabletDetailsSub: "Project, turn, context and today's timeline of the first column",
   soon: 'This page comes in the next step.',
-  home: 'Home', toLatest: 'Back to the latest message', dockMaster: 'MASTER', dockListen: "Listen to the master's last outcome", dockConversation: "Open the master's conversation", dockCollapse: 'Collapse the master', dockClose: 'Close', more: 'More', cancel: 'Cancel',
+  home: 'Home', toLatest: 'Back to the latest message', mineJumpOpen: 'Go to your messages', mineJump: 'Your messages', mineJumpPos: (i: number, n: number) => `${i} of ${n}`, mineJumpPrev: 'Your previous message', mineJumpNext: 'Your next message', mineJumpClose: 'Back to the field', dockMaster: 'MASTER', dockListen: "Listen to the master's last outcome", dockConversation: "Open the master's conversation", dockCollapse: 'Collapse the master', dockClose: 'Close', more: 'More', cancel: 'Cancel',
   notes: { goal: 'Goal', lowPriority: 'low priority', lowPriorityOffered: 'low priority offered', noWindow: 'no window' },
   modelTitle: 'Model', effortTitle: 'Effort', tuneHead: 'Model and effort · this session only', tuneNextTurn: 'from the next turn',
   modelSub: {

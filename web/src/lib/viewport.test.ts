@@ -46,7 +46,8 @@ describe("zoom delle dita: l'inquadratura va anche di lato", () => {
     // La chat porta in fondo solo così, mai con scrollHeight.
     const chat = read('./Chat.svelte')
     expect(chat).not.toMatch(/scrollTop = [a-z]+\.scrollHeight|top: [a-z]+\.scrollHeight/)
-    expect(chat.match(/endOf\((el|list)\)/g)?.length).toBe(4)
+    // app-trova-messaggi-20-11: la ✕ del salto fra i miei messaggi torna in fondo, anche lei con endOf.
+    expect(chat.match(/endOf\((el|list)\)/g)?.length).toBe(5)
   })
   it('main.ts mette html.zoomed', () => {
     expect(read('../main.ts')).toMatch(/root\.classList\.toggle\('zoomed', zoomed\)/)

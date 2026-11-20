@@ -36,6 +36,8 @@
   import { waitingPc } from './durations'
   import { ctxNudge, handoffPrompt } from './masterService'
   import { reducedMotion } from './motion'
+  import { minePosition, mineStep, mineStops } from './mineJump'
+  import { turns } from './chatTurns'
   import { cut, type Quote } from './quotes'
   import { dragHold } from './dragHold'
   let { onNewer = null, onLatest = null, focus = null, onFocused = () => {}, resultsRow = null, perTe = null, onHeadsUp = null, onTask = null, menuMove = null, st, s, entries, mine, onSend, onBack, onPick, onAnswer, onCmd, wide, events, sent, read, onRead, onPromptTo, slots, onAttach, onFile, onFiles = () => {}, onHandoff, elsewhere = null, elsewhereAway = null, onElsewhere = () => {}, onElsewhereDismiss = () => {}, waitingSince = null, updating = false, onSendAt = null, onSendTo = null, inject = null, onInjected = () => {}, onUsage = () => {}, onOlder = null, onGo = null, onReopen = null, appMenu = null, onDiff = null, onChanges = null, onMine = null }: {
@@ -215,6 +217,33 @@
     })
     onFocused()
   })
+  // app-trova-messaggi-20-11 (Franz 21:12, «ok A»): il salto fra i miei messaggi. Le fermate sono le richieste dei turni (mineJump.ts);
+  // il salto porta il messaggio al centro e lo accende col lampo di Cerca; si comincia dall'ultimo. La barra sta al posto del campo,
+  // sotto il pollice; arrivati al più vecchio con pagine prima, la freccia su le carica e prosegue.
+  let jumping = $state(false)
+  let jumpAt = $state<string | null>(null)
+  let jumpOlder = false
+  const stops = $derived(mineStops(turns(items)))
+  function jumpTo(id: string) {
+    const el = list?.querySelector<HTMLElement>(`[data-mine="${CSS.escape(id)}"]`)
+    jumpAt = id
+    if (!el) return
+    held = true; settled = true; atEnd = false
+    el.scrollIntoView({ block: 'center', behavior: reducedMotion() ? 'auto' : 'smooth' })
+    flash = id; setTimeout(() => { if (flash === id) flash = null }, 2200)
+  }
+  function jump(dir: -1 | 1) {
+    if (dir < 0 && jumpAt != null && jumpAt === stops[0] && onOlder) { jumpOlder = true; atEnd = false; onOlder(); return }
+    const n = mineStep(stops, jumpAt, dir)
+    if (n) jumpTo(n)
+  }
+  $effect(() => {
+    const s0 = stops
+    if (!jumpOlder) return
+    untrack(() => { const n = mineStep(s0, jumpAt, -1); if (n && n !== jumpAt) { jumpOlder = false; requestAnimationFrame(() => jumpTo(n)) } })
+  })
+  const jumpPos = $derived(minePosition(stops, jumpAt))
+  function jumpClose() { jumping = false; jumpAt = null; jumpOlder = false; if (list) { atEnd = true; auto = true; list.scrollTo({ top: endOf(list), behavior: 'smooth' }) } }
   let auto = false
   // Il fondo vero della lista, non mezzo pixel oltre: con lo zoom delle dita il gesto laterale sposta l'inquadratura (viewport.ts).
   const endOf = (el: HTMLElement) => listEnd(el.scrollHeight, parseFloat(getComputedStyle(el).height) || el.clientHeight)
@@ -315,6 +344,12 @@
     {/if}
     <!-- Aperta sul punto di un risultato con voci più nuove dopo (contratto 1.127): il tasto c'è anche in fondo alla pagina e
          porta all'ultima voce vera, non al fondo di quello che è caricato. -->
+    <!-- app-trova-messaggi-20-11: il tasto dei miei messaggi sopra «Torna all'ultimo», sotto il pollice. -->
+    {#if !jumping && stops.length && !home}
+      <div class="toend mj"><button aria-label={t.mineJumpOpen} title={t.mineJumpOpen} data-testid="chat-miei" onclick={() => { jumping = true; jumpAt = null; jump(-1) }}>
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v10H9l-5 4z" /></svg>
+      </button></div>
+    {/if}
     {#if (!atEnd || onLatest) && !home}
       <div class="toend"><button aria-label={t.toLatest} title={t.toLatest} data-testid="chat-in-fondo" onclick={() => { if (!list) return; onLatest?.(); atEnd = true; auto = true; list.scrollTo({ top: endOf(list), behavior: 'smooth' }) }}>
         <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 5v14M6 13l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
@@ -343,11 +378,20 @@
       onSend={(r) => { recurringOpen = false; save('cm.recurring_open', false); onSend(r.text) }} />
   {/if}
   <ReadingPill onOpen={onPick} {slots} here={s.name} />
+  {#if jumping}
+    <div class="mjbar" data-testid="chat-miei-barra">
+      <span class="mjl"><b>{t.mineJump}</b>{#if jumpPos}<small>{t.mineJumpPos(jumpPos[0], jumpPos[1])}</small>{/if}</span>
+      <button aria-label={t.mineJumpPrev} title={t.mineJumpPrev} disabled={jumpAt === stops[0] && !onOlder} onclick={() => jump(-1)}><svg viewBox="0 0 24 24" width="22" height="22"><path d="m6 15 6-6 6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" /></svg></button>
+      <button aria-label={t.mineJumpNext} title={t.mineJumpNext} disabled={jumpAt === stops[stops.length - 1]} onclick={() => jump(1)}><svg viewBox="0 0 24 24" width="22" height="22"><path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" /></svg></button>
+      <button aria-label={t.mineJumpClose} title={t.mineJumpClose} onclick={jumpClose}><svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" /></svg></button>
+    </div>
+  {:else}
   <Composer bind:this={composer} {st} {s} bind:draft field={stepsBox.field} toMaster={s.name === MASTER} {onSend}
     onAnswerText={(arg) => onCmd('answer', arg)} onSlash={(c, a) => onCmd('slash', c, a ?? undefined)} onStop={() => onCmd('interrupt')}
     onReopen={() => onCmd('reopen')} {onAttach} onCloseSave={s.name !== MASTER && st.ops?.includes('close') ? () => onCmd('close', 'save') : null}
     onRecurring={recurringRows.length ? () => { recurringOpen = !recurringOpen; save('cm.recurring_open', recurringOpen) } : null}
     {onSendAt} {onSendTo} bind:quotes />
+  {/if}
   {#if qsel}{@const p = qsel}
     <div class="qpick" role="toolbar" style="left:{p.x}px;top:{p.y}px">
       <button type="button" data-testid="cita" onmousedown={(e) => e.preventDefault()} onclick={() => quote(p.text, p.at)}>{t.quote}</button>
@@ -391,6 +435,16 @@
   .toend { position: sticky; bottom: 0; height: 0; margin-top: -16px; align-self: flex-end; }
   .toend button { position: absolute; right: 0; bottom: 8px; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--high); color: var(--icon); box-shadow: 0 4px 16px rgb(0 0 0 / .4); }
   .toend button:hover { filter: brightness(1.15); }
+  /* app-trova-messaggi-20-11: il tasto dei miei messaggi sopra «Torna all'ultimo»; la barra del salto al posto del campo. */
+  .toend.mj button { bottom: 62px; background: var(--high); color: var(--text); }
+  .mjbar { display: flex; align-items: center; gap: 6px; margin: 8px 12px max(8px, env(safe-area-inset-bottom)); padding: 6px 6px 6px 18px; border-radius: 28px; background: var(--s2); border: 1px solid var(--line); box-shadow: 0 -8px 24px rgb(0 0 0 / .35); }
+  .mjl { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .mjl b { font: 600 15px/1.2 var(--display); color: var(--text); }
+  .mjl small { font-size: 13px; color: var(--text2); font-variant-numeric: tabular-nums; }
+  .mjbar button { flex: none; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--s3); color: var(--text); touch-action: manipulation; transition: transform 140ms cubic-bezier(.23, 1, .32, 1); }
+  .mjbar button:active { transform: scale(.97); }
+  .mjbar button:disabled { color: var(--text2); opacity: .4; }
+  @media (prefers-reduced-motion: reduce) { .mjbar button:active { transform: none; } }
   .chat.master .toend button { background: var(--master-highest); }
   /* «Cita» e «Cita tutto» sopra la selezione, come il menu di sistema del telefono. */
   .qpick { position: fixed; z-index: 30; transform: translate(-50%, calc(-100% - 8px)); display: flex; gap: 2px; padding: 4px; border-radius: 12px; background: var(--s3); border: 1px solid var(--line); box-shadow: 0 6px 20px rgb(0 0 0 / .35); }

@@ -345,7 +345,8 @@
 <!-- La richiesta: il tuo fumetto a destra. data-quote: il testo che «Cita tutto» mette sopra il campo, con l'ora. -->
 {#snippet request(q: Request)}
   {@const text = reqText(q)}
-  <div class="me" class:found={flash != null && q.entry?.id === flash} data-entry={q.entry?.id}>
+  <!-- data-mine (app-trova-messaggi-20-11): la fermata del salto fra i miei messaggi, la voce o il mandato se non è ancora arrivato. -->
+  <div class="me" class:found={flash != null && (q.entry?.id === flash || (q.type === 'mine' && q.sent.id === flash))} data-entry={q.entry?.id} data-mine={q.entry?.id ?? (q.type === 'mine' ? q.sent.id : undefined)}>
     {#if q.type === 'mine'}
       {#if q.sent.attachment}<span class="att"><Icon name="file" size={16} />{q.sent.attachment}</span>{/if}
       {#each q.sent.attachments ?? [] as a}<span class="att"><Icon name="file" size={16} />{a}</span>{/each}

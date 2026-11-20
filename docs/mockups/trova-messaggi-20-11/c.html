@@ -1,0 +1,27 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><title>Trova C</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_style.css"><style>
+/* C: la ricerca nel testo della conversazione; i risultati evidenziati e il salto fra l'uno e l'altro. */
+.top.s{gap:8px}
+.field{flex:1;height:44px;border-radius:22px;background:var(--s3);display:flex;align-items:center;gap:8px;padding:0 14px;color:var(--tx);font-size:16px}
+.field svg{color:var(--tx2);flex:none}
+.field .caret{width:2px;height:20px;background:var(--amber);margin-left:-6px}
+.nav{position:absolute;left:12px;right:12px;bottom:34px;height:56px;border-radius:28px;background:var(--s2);border:1px solid var(--line);display:flex;align-items:center;gap:6px;padding:0 6px 0 8px;box-shadow:0 -8px 24px rgba(0,0,0,.45)}
+.nav .sp{flex:1}
+.chip{height:36px;border-radius:18px;padding:0 12px;display:inline-flex;align-items:center;font:500 14px 'Barlow';color:var(--tx2);border:1px solid var(--line)}
+.chip.on{background:rgba(255,178,63,.14);color:var(--amber);border-color:rgba(255,178,63,.6)}
+.cnt{font:500 14px/1 var(--mono);color:var(--tx);padding:0 6px}
+</style></head><body>
+<h1>C · Ricerca nella conversazione</h1>
+<p class="intro">La lente in alto apre un campo al posto del nome. Mentre scrivi, le parole trovate si accendono nella conversazione: la corrente in ambra pieno, le altre velate. In basso «2 di 4» e le due frecce passano dall'una all'altra; «Solo i miei» limita ai tuoi messaggi. Cerca anche nelle risposte della sessione e nei messaggi vecchi, che si caricano dal PC.</p>
+<p class="mv"><b>Pollice.</b> Il campo è in alto perché lì scrive la tastiera; frecce e filtro stanno in basso, sopra la tastiera, tasti da 44 dp. <b>Movimento.</b> Ogni salto scorre in 250 ms; nessuna animazione mentre si scrive. Con il movimento ridotto il salto è immediato. <b>Costo.</b> La ricerca nei messaggi vecchi chiede al PC le pagine della conversazione: la più lenta delle tre, e l'unica che trova una parola in una risposta.</p>
+<div class="row" id="row"></div>
+<script src="_t.js"></script><script>
+const head = q => `<div class="top s">${I.back}<div class="field">${I.search}<span>${q}</span><i class="caret"></i></div><span class="k icon">${I.x}</span></div>`
+const nav = (i, n, mine) => `<div class="nav"><span class="chip ${mine ? 'on' : ''}">Solo i miei</span><span class="sp"></span><span class="cnt">${i} di ${n}</span><span class="k icon">${I.up}</span><span class="k icon">${I.down}</span></div>`
+frames([
+  { cap: 'Mentre scrivi', sub: '«tasto»: quattro risultati, il più recente è il primo.', head: head('tasto'), feed: bubble('m1', { mark: /tasto/ }) + bubble('b1', { mark: /tasto/, now: true }) + bubble('m2') + bubble('b2', { dim: true }), bottom: nav(1, 4) },
+  { cap: 'Il risultato prima', sub: 'La freccia su porta al precedente: il bordo e l\'ambra pieno passano lì.', head: head('tasto'), feed: bubble('m1', { mark: /tasto/, now: true, hit: true }) + bubble('b1', { mark: /tasto/ }) + bubble('m2') + bubble('b2'), bottom: nav(2, 4) },
+  { cap: 'Solo i miei', sub: '«Linux» nei tuoi messaggi: il caso del 20/11, anche se il messaggio non è arrivato.', head: head('Linux'), feed: bubble('m2', { dim: true }) + bubble('b2', { dim: true }) + bubble('m3', { mark: /Linux/, now: true, hit: true, warn: true }), bottom: nav(1, 1, true) },
+])
+</script></body></html>

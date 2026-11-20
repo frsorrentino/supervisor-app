@@ -1,0 +1,46 @@
+/* app-trova-messaggi-20-11 (Franz 20/11 20:56: non ritrovava un suo messaggio, che non era mai arrivato): tre modi per ritrovare in
+   fretta un messaggio mandato nella conversazione di una sessione. Pixel 11 Pro XL a 412 dp, i colori e le famiglie dell'app. */
+:root{--bg:#0B0B0B;--s1:#111;--s2:#181818;--s3:#222;--s4:#2C2C2C;--line:#2A2A2A;--tx:#EEE;--tx2:#9B9B9B;--tx3:#8A8A8A;
+  --good:#71D083;--red:#FF5A5F;--busy:#8FA8D2;--amber:#FFB23F;--mono:'Geist Mono',ui-monospace,monospace;--cond:'Barlow Semi Condensed';
+  --ease-out:cubic-bezier(.23,1,.32,1);--ease-drawer:cubic-bezier(.32,.72,0,1)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#050505;color:var(--tx);font-family:'Barlow',system-ui,sans-serif;padding:20px 20px 28px;width:max-content}
+h1{font:600 22px/1.2 var(--cond);margin-bottom:4px}
+.intro,.mv{font-size:15px;line-height:1.45;color:var(--tx2);max-width:1290px;margin-bottom:10px}
+.mv{font-size:14px;margin-bottom:18px}
+.mv b{color:var(--tx);font-weight:600}
+.row{display:flex;gap:20px;align-items:flex-start}
+.col{width:412px}
+.cap{font:600 15px/1.2 var(--cond);margin-bottom:8px;min-height:54px}
+.cap small{display:block;font:400 13.5px/1.35 'Barlow';color:var(--tx2);margin-top:2px}
+
+/* Il telefono: la conversazione della master. */
+.ph{position:relative;width:412px;height:860px;border-radius:26px;overflow:hidden;background:var(--bg);border:1px solid #1d1d1d}
+.sb{height:40px;display:flex;justify-content:space-between;align-items:center;padding:0 24px;font:600 15px/1 'Barlow'}
+.top{display:flex;align-items:center;gap:12px;padding:8px 14px 10px}
+.top .ic{width:22px;height:22px;color:var(--tx2);flex:none}
+.top b{font:600 19px/1 var(--cond);flex:1}
+.top .find{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:var(--tx)}
+.top .find.on{background:var(--s3)}
+.chips{display:flex;gap:8px;padding:0 12px 12px;border-bottom:1px solid var(--line)}
+.chips span{font:500 14px/1 'Barlow';color:var(--tx2);border:1px solid var(--line);border-radius:999px;padding:9px 12px}
+.feed{padding:12px 14px;display:flex;flex-direction:column;gap:12px}
+.me{align-self:flex-end;max-width:86%;background:#1B2230;border-radius:18px 18px 4px 18px;padding:10px 14px;font-size:15.5px;line-height:1.4;position:relative}
+.me small{display:block;font:400 12.5px/1 var(--mono);color:var(--tx2);margin-top:6px;text-align:right}
+.me.hit{box-shadow:0 0 0 2px var(--amber)}
+.me.dim,.bot.dim{opacity:.35}
+.me .warn{color:var(--amber)}
+.bot{font-size:15.5px;line-height:1.45;color:var(--tx)}
+.bot small{display:block;font:400 12.5px/1 var(--mono);color:var(--tx3);margin-top:6px}
+mark{background:rgba(255,178,63,.28);color:var(--tx);border-radius:3px;padding:0 1px}
+mark.now{background:var(--amber);color:#111}
+.comp{position:absolute;left:12px;right:12px;bottom:34px;height:52px;border:1px solid var(--line);border-radius:26px;display:flex;align-items:center;padding:0 18px;color:var(--tx3);font-size:16px;background:var(--bg)}
+.gest{position:absolute;left:50%;bottom:10px;width:120px;height:4px;margin-left:-60px;border-radius:2px;background:#EDEDED;z-index:5}
+.veil{position:absolute;inset:0;background:rgba(0,0,0,.55)}
+
+/* Tasti: mai il bianco pieno (Franz 20/11 19:08); l'azione principale col velo ambra dei Tasti B, gli altri tonali. */
+.k{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:44px;min-width:44px;border-radius:22px;padding:0 14px;background:var(--s3);color:var(--tx);font:600 15px/1 var(--cond);white-space:nowrap}
+.k.main{background:rgba(255,178,63,.14);color:var(--amber);box-shadow:inset 0 0 0 1px rgba(255,178,63,.6)}
+.k.icon{padding:0;width:44px}
+.k svg{width:20px;height:20px}
+.n{font:500 14px/1 var(--mono);color:var(--tx);font-variant-numeric:tabular-nums}

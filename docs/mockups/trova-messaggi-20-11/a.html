@@ -1,0 +1,21 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><title>Trova A</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_style.css"><style>
+/* A: il salto fra i miei messaggi. Una barra prende il posto del campo di scrittura: quale dei miei, su quanti, e le due frecce. */
+.jump{position:absolute;left:12px;right:12px;bottom:34px;height:56px;border-radius:28px;background:var(--s2);border:1px solid var(--line);display:flex;align-items:center;gap:6px;padding:0 6px 0 18px;box-shadow:0 -8px 24px rgba(0,0,0,.45)}
+.jump .l{flex:1;font:600 15px/1.2 var(--cond);color:var(--tx)}
+.jump .l small{display:block;font:400 13px/1.2 'Barlow';color:var(--tx2)}
+.k.off{opacity:.35}
+</style></head><body>
+<h1>A · Salto fra i miei messaggi</h1>
+<p class="intro">Un tasto in alto, accanto al nome della sessione, porta al tuo ultimo messaggio. Al posto del campo di scrittura compare una barra con «11 di 12» e due frecce, che vanno al messaggio tuo prima o dopo; la conversazione scorre fin lì e il messaggio ha il bordo ambra. La ✕ torna al campo, in fondo. Si legge tutto attorno al messaggio: domanda e risposta insieme.</p>
+<p class="mv"><b>Pollice.</b> Frecce e contatore stanno nella barra in basso, dove arriva il pollice, tasti da 44 dp. <b>Movimento.</b> La conversazione scorre fino al messaggio in 300 ms con la curva forte; il bordo ambra si accende quando arriva e si spegne dopo 2 s. Con il movimento ridotto il salto è immediato. <b>Cosa non fa.</b> Non cerca le parole: per un messaggio di una settimana fa servono molti tocchi.</p>
+<div class="row" id="row"></div>
+<script src="_t.js"></script><script>
+const bar = (i, n, last) => `<div class="jump"><div class="l">I tuoi messaggi<small>${i} di ${n}</small></div><div class="k icon">${I.up}</div><div class="k icon ${last ? 'off' : ''}">${I.down}</div><div class="k icon">${I.x}</div></div>`
+frames([
+  { cap: 'Il tasto', sub: 'In alto, accanto al nome: «i miei messaggi».', find: `<span class="find on">${I.mine}</span>`, feed: bubble('b1') + bubble('m2') + bubble('b2') + bubble('m3') },
+  { cap: 'Un messaggio indietro', sub: '«11 di 12»: la conversazione scorre fin lì, il messaggio ha il bordo ambra.', find: `<span class="find on">${I.mine}</span>`, feed: bubble('m1') + bubble('b1') + bubble('m2', { hit: true }) + bubble('b2'), bottom: bar(11, 12) },
+  { cap: 'L\'ultimo, mai arrivato', sub: '«12 di 12»: il caso del 20/11, il messaggio dice che non è arrivato al PC.', find: `<span class="find on">${I.mine}</span>`, feed: bubble('m2') + bubble('b2') + bubble('m3', { hit: true, warn: true }), bottom: bar(12, 12, true) },
+])
+</script></body></html>

@@ -421,6 +421,28 @@ fun SessionSheet(
             groupedFeed != null && !loadingFeed -> onFocused()
         }
     }
+    // app-trova-messaggi-20-11 (Franz 21:12, «ok A»): il salto fra i miei messaggi. Le fermate sono le richieste dei turni (MineJump); il
+    // salto porta il messaggio in vista e lo accende col lampo ambra di Cerca; si comincia dall'ultimo. Arrivati al più vecchio con pagine
+    // prima, la freccia su le carica e prosegue.
+    var jumping by remember(s.id) { mutableStateOf(false) }
+    var jumpAt by remember(s.id) { mutableStateOf<String?>(null) }
+    var jumpOlder by remember(s.id) { mutableStateOf(false) }
+    val stops = remember(turnRows) { turnRows?.let { r -> it.pixelbox.cmwatch.rules.MineJump.stops(r) }.orEmpty() }
+    val jumpScope = rememberCoroutineScope()
+    val jumpTo: (it.pixelbox.cmwatch.rules.MineJump.Stop) -> Unit = { st ->
+        follow = false; jumpAt = st.flash; flash = st.flash
+        jumpScope.launch { list.animateScrollToItem(st.row + if (more) 1 else 0, -list.layoutInfo.viewportSize.height / 4) }
+    }
+    val jump: (Int) -> Unit = { dir ->
+        val first = stops.firstOrNull()?.flash
+        if (dir < 0 && jumpAt != null && jumpAt == first && more) { jumpOlder = true; onOlder() }
+        else it.pixelbox.cmwatch.rules.MineJump.step(stops, jumpAt, dir)?.let(jumpTo)
+    }
+    LaunchedEffect(stops) {
+        if (!jumpOlder) return@LaunchedEffect
+        val n = it.pixelbox.cmwatch.rules.MineJump.step(stops, jumpAt, -1)
+        if (n != null && n.flash != jumpAt) { jumpOlder = false; jumpTo(n) }
+    }
     // Dopo «Riprova», finito il carico, la chat scorre fino alla voce mandata (Franz 31/10 16:10), anche se nel frattempo è arrivato altro.
     val retriedStatus = retried?.let { r -> chat.firstOrNull { it.sent.id == r }?.status ?: groupedFeed?.firstNotNullOfOrNull { i -> (i as? ChatFeed.Item.Mine)?.takeIf { it.sent.id == r }?.status } }
     LaunchedEffect(retried, retriedStatus) {
@@ -648,10 +670,15 @@ fun SessionSheet(
             // «Torna all'ultimo messaggio» (Franz, 10/10 08:18: «avevamo deliberato un tasto per tornare in diretta, ma non l'ho
             // mai visto»): c'è mentre rileggi più su; il tocco scende in fondo e la chat torna a seguire.
             val behind by remember(list) { derivedStateOf { list.canScrollForward } }
+            // app-trova-messaggi-20-11: il tasto dei miei messaggi sta sopra «Torna all'ultimo», sotto il pollice; piccolo, tonale.
+            Column(
+                Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 12.dp + if (niche) 0.dp else readingRoom()),
+                horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+            if (!jumping && stops.isNotEmpty() && feed != null) MineJumpKey { jumping = true; jumpAt = null; jump(-1) }
             androidx.compose.animation.AnimatedVisibility(
                 // Sul punto di un risultato con voci più nuove il tasto c'è anche in fondo alla pagina e porta all'ultima vera.
                 visible = ((!follow && behind) || newer) && feed != null,
-                modifier = Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 12.dp + if (niche) 0.dp else readingRoom()),
                 enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.scaleIn(initialScale = 0.8f),
                 exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.scaleOut(targetScale = 0.8f),
             ) {
@@ -663,6 +690,7 @@ fun SessionSheet(
                     },
                     containerColor = Cm.surfaceHigh, contentColor = Cm.actionIcon,
                 ) { Icon(Icons.Rounded.ArrowDownward, stringResource(R.string.to_latest)) }
+            }
             }
             }
             // Il box «Prossimi» (variante A del 03/10 15:20, rivista il 04/10 20:21): sopra la barra con la sessione ferma,
@@ -842,7 +870,10 @@ fun SessionSheet(
         if (niche && !(home != null && homeOpen)) Spacer(Modifier.height(readingRoom()))
         if (!(home != null && homeOpen)) ReadingSlot(s.name, overlay = true)
         if (home != null && LocalMasterLook.current.thread) MasterThread()
-        Composer(
+        if (jumping) MineJumpBar(
+            it.pixelbox.cmwatch.rules.MineJump.position(stops, jumpAt), canUp = jumpAt != stops.firstOrNull()?.flash || more, canDown = jumpAt != stops.lastOrNull()?.flash,
+            onUp = { jump(-1) }, onDown = { jump(+1) }, onClose = { jumping = false; jumpAt = null; jumpOlder = false; follow = true; jumpScope.launch { list.scrollToEnd(animate = true) } },
+        ) else Composer(
             s, draftHolder, onDraft = { draft = it }, ops, canAttach, actions, onSent = { draft = ""; follow = true }, quota, phrases, canTonight, slash,
             toMaster = home != null, canAttachFiles = canAttachFiles, fieldSuggestion = stepsBox.field,
             onRecurring = if (recurringRows.isEmpty()) null else ({ boxes.recurring(!boxes.recurringOpen) }), recurringOpen = boxes.recurringOpen,
@@ -2827,7 +2858,7 @@ private fun TurnRowBody(
 ) {
     Column(Modifier.widthIn(max = 780.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         when (val q = t.request) {
-            is ChatFeed.Item.Mine -> Column(Modifier.fillMaxWidth().flashed(flash != null && q.entry?.id == flash), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            is ChatFeed.Item.Mine -> Column(Modifier.fillMaxWidth().flashed(flash != null && (q.entry?.id == flash || q.sent.id == flash)), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 // Una voce ancora in coda nel turno (scritta mentre Claude lavora) si dice «in coda».
                 MineBubble(q.sent, if (q.entry?.queued == true && q.status != ChatRules.Status.FAILED) ChatRules.Status.QUEUED else q.status, reasonOf(q.sent.id), actions, onRetried, onEdit, onResend = { x -> actions.send(PhonePrimary.Target.PROMPT, x) })
                 // Il pannello che un comando slash ha aperto sul PC (/cost) risponde sotto il comando.
@@ -3516,3 +3547,43 @@ private fun elapsed(s: Long): String = when {
     else -> stringResource(R.string.live_hm, s / 3600, (s % 3600) / 60)
 }
 
+
+/** app-trova-messaggi-20-11: il tasto che apre il salto fra i miei messaggi, piccolo e tonale, sopra «Torna all'ultimo». */
+@Composable
+internal fun MineJumpKey(onClick: () -> Unit) {
+    val press = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    Surface(onClick = onClick, interactionSource = press, modifier = Modifier.size(44.dp).pressScale(press).testTag("mine-jump-open"), shape = CircleShape, color = Cm.surfaceHigh, contentColor = Cm.text, shadowElevation = 3.dp) {
+        Box(contentAlignment = Alignment.Center) { Icon(Icons.Rounded.ChatBubbleOutline, stringResource(R.string.mine_jump_open), modifier = Modifier.size(20.dp)) }
+    }
+}
+
+/**
+ * app-trova-messaggi-20-11: la barra del salto al posto del campo, sotto il pollice: «I tuoi messaggi», «11 di 12», le due frecce piccole
+ * (su il messaggio prima, giù quello dopo) e la ✕ che torna al campo e in fondo. Ai capi la freccia si spegne.
+ */
+@Composable
+internal fun MineJumpBar(pos: Pair<Int, Int>?, canUp: Boolean, canDown: Boolean, onUp: () -> Unit, onDown: () -> Unit, onClose: () -> Unit) {
+    Surface(
+        Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp).navigationBarsPadding().testTag("mine-jump-bar"),
+        shape = RoundedCornerShape(28.dp), color = V3.S2, border = androidx.compose.foundation.BorderStroke(1.dp, V3.Line), shadowElevation = 6.dp,
+    ) {
+        Row(Modifier.padding(start = 18.dp, end = 6.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(Modifier.weight(1f)) {
+                // Col testo grande va a capo, mai tagliato (una riga logica, due righe fisiche).
+                Text(stringResource(R.string.mine_jump), style = V3.Name.copy(fontSize = 15.sp))
+                pos?.let { (i, n) -> Text(stringResource(R.string.mine_jump_pos, i, n), style = MaterialTheme.typography.bodySmall.copy(fontFeatureSettings = "tnum"), color = V3.Tx2, maxLines = 1) }
+            }
+            MineJumpArrow(Icons.Rounded.KeyboardArrowUp, stringResource(R.string.mine_jump_prev), canUp, onUp)
+            MineJumpArrow(Icons.Rounded.KeyboardArrowDown, stringResource(R.string.mine_jump_next), canDown, onDown)
+            MineJumpArrow(Icons.Rounded.Close, stringResource(R.string.mine_jump_close), true, onClose)
+        }
+    }
+}
+
+@Composable
+private fun MineJumpArrow(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, on: Boolean, onClick: () -> Unit) {
+    val press = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    Surface(onClick = onClick, enabled = on, interactionSource = press, modifier = Modifier.size(44.dp).pressScale(press), shape = CircleShape, color = V3.S3, contentColor = if (on) V3.Tx else V3.Tx3.copy(alpha = .4f)) {
+        Box(contentAlignment = Alignment.Center) { Icon(icon, label, modifier = Modifier.size(22.dp)) }
+    }
+}

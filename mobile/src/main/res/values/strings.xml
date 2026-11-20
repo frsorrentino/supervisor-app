@@ -118,6 +118,13 @@
     <string name="file_saved">%1$s salvato in Download</string>
     <string name="file_saved_to">%1$s salvato</string>
     <string name="to_latest">Torna all\'ultimo messaggio</string>
+    <!-- app-trova-messaggi-20-11: il salto fra i miei messaggi. -->
+    <string name="mine_jump_open">Vai ai tuoi messaggi</string>
+    <string name="mine_jump">I tuoi messaggi</string>
+    <string name="mine_jump_pos">%1$d di %2$d</string>
+    <string name="mine_jump_prev">Il tuo messaggio prima</string>
+    <string name="mine_jump_next">Il tuo messaggio dopo</string>
+    <string name="mine_jump_close">Torna al campo</string>
     <string name="file_saved_downloads">Nella cartella Download del telefono.</string>
     <string name="file_saved_picked">Nella cartella che hai scelto.</string>
     <string name="file_open_folder">Apri la cartella</string>
