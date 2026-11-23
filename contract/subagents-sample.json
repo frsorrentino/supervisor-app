@@ -1,0 +1,19 @@
+{
+  "_doc": "Contratto 1.158 (supervisor-sottoagenti-23-11, supervisor 0.8.199): sessions[].subagents, copiati da D:/cm-sessions/dalla-master/contratto-1.158-sottoagenti.md. `win` è vera (Claude Code 2.1.329, 23/11/2026); `workflow` è il fixture del test del relay (tests/fixtures/subagents/), con un Workflow come uno vero; `op` è la risposta dell'op subagents.",
+  "win": {"n": 3, "running": 0, "at": 1795435922, "items": [
+    {"id": "ad1d30fb6e0891133", "type": "general-purpose", "desc": "Fixture sottoagente in corso", "model": "claude-haiku-5-5", "bg": true, "depth": 1, "started": 1795435922, "ended": 1795435968, "finished": true, "tokens": {"in": 211219, "out": 689}},
+    {"id": "aa8d950e34ac16438", "type": "general-purpose", "desc": "Fixture sottoagente background", "model": "claude-haiku-5-5", "bg": true, "depth": 1, "started": 1795435822, "ended": 1795435824, "finished": true, "tokens": {"in": 102430, "out": 200}},
+    {"id": "a76eb4828a2262868", "type": "Explore", "desc": "Fixture sottoagente primo piano", "model": "claude-haiku-5-5", "bg": true, "depth": 1, "started": 1795435821, "ended": 1795435826, "finished": true, "tokens": {"in": 69142, "out": 589}}
+  ]},
+  "workflow": {"n": 7, "running": 1, "at": 1795436084, "items": [
+    {"id": "b000000000000000c", "type": "workflow-subagent", "desc": "fixture wf 3", "model": "claude-haiku-5-5", "bg": false, "depth": 1, "started": 1795435922, "ended": null, "finished": false, "tokens": {"in": 211219, "out": 689}, "wf": "wf_fixture-1", "phase": "Review"},
+    {"id": "a1f3685a786f72627", "type": "fork", "desc": "fixture 1", "model": "inherit", "bg": true, "depth": 1, "started": 1795436084, "ended": null, "finished": true, "tokens": null},
+    {"id": "ad1d30fb6e0891133", "type": "general-purpose", "desc": "fixture 4", "model": "claude-haiku-5-5", "bg": true, "depth": 1, "started": 1795435922, "ended": 1795435968, "finished": true, "tokens": {"in": 211219, "out": 689}}
+  ], "workflows": [{"id": "wf_fixture-1", "n": 3, "running": 1}]},
+  "op": {"subagents": {"n": 3, "running": 0, "at": 1795435922, "items": [
+    {"id": "ad1d30fb6e0891133", "type": "general-purpose", "desc": "Fixture sottoagente in corso", "model": "claude-haiku-5-5", "bg": true, "depth": 1, "started": 1795435922, "ended": 1795435968, "finished": true, "tokens": {"in": 211219, "out": 689}},
+    {"id": "aa8d950e34ac16438", "type": "general-purpose", "desc": "Fixture sottoagente background", "model": "claude-haiku-5-5", "bg": true, "depth": 1, "started": 1795435822, "ended": 1795435824, "finished": true, "tokens": {"in": 102430, "out": 200}},
+    {"id": "a76eb4828a2262868", "type": "Explore", "desc": "Fixture sottoagente primo piano", "model": "claude-haiku-5-5", "bg": true, "depth": 1, "started": 1795435821, "ended": 1795435826, "finished": true, "tokens": {"in": 69142, "out": 589}}
+  ]}},
+  "op_none": {"subagents": null}
+}

@@ -86,6 +86,26 @@ class FakeTransport(
     }.getOrDefault(DemoFavicons())
     private fun faviconOf(name: String): String? = demoFavicons.hashes[when (name) { "atlas-shop" -> "storefront"; "field-notes" -> "blog"; else -> name }]
 
+    /**
+     * I sottoagenti della demo (app-sottoagenti-23-11, contratto 1.158), come nel mockup A scelto da Franz: atlas-shop ne ha lanciati
+     * 7, due al lavoro. [at] è l'inizio del più recente; lo stato ne porta 3, l'op `subagents` tutti.
+     */
+    private fun demoSubagents(name: String, at: Long): Subagents? {
+        if (name != "atlas-shop") return null
+        fun a(id: String, type: String, desc: String, model: String, bg: Boolean, start: Long, end: Long?, tin: Long = 0, tout: Long = 0) =
+            Subagent(id, type, desc, model, bg, 1, at - start, end?.let { at - it }, end != null, if (end != null) SubagentTokens(tin, tout) else null)
+        val items = listOf(
+            a("a01", "general-purpose", "Measure checkout on three browsers", "claude-sonnet-5-5", true, 240, null),
+            a("a02", "Explore", "Find where the cart total is recomputed", "claude-haiku-5-5", false, 0, null),
+            a("a03", "Explore", "Read the failing checkout tests", "claude-haiku-5-5", false, 420, 402, 69_142, 589),
+            a("a04", "general-purpose", "Compare the Stripe webhook payloads", "claude-sonnet-5-5", true, 900, 610, 182_400, 2_310),
+            a("a05", "Explore", "List the slow queries of the orders page", "claude-haiku-5-5", false, 1500, 1440, 54_020, 410),
+            a("a06", "general-purpose", "Draft the migration for saved carts", "claude-sonnet-5-5", true, 2600, 2100, 240_900, 5_800),
+            a("a07", "Explore", "Map the gift card flow", "claude-haiku-5-5", false, 3300, 3180, 41_200, 350),
+        )
+        return Subagents(items.size, items.count { !it.finished }, at, items)
+    }
+
     private val current = MutableStateFlow(stopped(rebase(ContractJson.decodeState(load("state-1-question")))).copy(prove = ProveSummary(2, 1), decisions = DecisionsSummary(2, 1, 3), results = ContractJson.decodeState(load("state-3-stale")).results, monitors = demoSummary(), ops = demoOps()))
 
     // Contratto 1.133 nella demo (app-monitoraggi-aggiorna-10-11): i Monitoraggi della fixture nella home, aggiornabili quelli che la fixture
@@ -93,7 +113,8 @@ class FakeTransport(
     private val refreshing = java.util.concurrent.ConcurrentHashMap<String, Long>()
     private val refreshed = java.util.concurrent.ConcurrentHashMap<String, Long>()
     private fun demoSummary(): MonitorsSummary? = runCatching { ContractJson.decodeMonitors(sampleText("monitors")).items }.getOrNull()?.let { l -> MonitorsSummary(l.size, l.count { it.status == "watch" }, l.mapNotNull { it.at }.maxOrNull()) }
-    private fun demoOps(): List<String>? = ContractJson.decodeState(load("state-1-question")).ops?.let { o -> if ("monitor_refresh" in o) o else o + "monitor_refresh" }
+    // Contratti 1.158 e 1.159: le op dei sottoagenti e del silenzio assenso, finché le fixture del relay non le portano.
+    private fun demoOps(): List<String>? = ContractJson.decodeState(load("state-1-question")).ops?.let { o -> o + listOf("monitor_refresh", "subagents", "silence").filter { it !in o } }
     private fun demoMonitor(c: MonitorCard): MonitorCard {
         if (!c.refreshable) return c.copy(refresh = null)
         val t = now()
@@ -246,6 +267,7 @@ class FakeTransport(
         // La pubblicazione (1.43) segue `ts`: con quella della fixture la demo era vecchia di mesi e la quota diceva «lettura di 66 g fa».
         return s.copy(ts = s.ts + d, publishedAt = null, sessions = s.sessions.map { ses ->
             ses.copy(since = ses.since + d, turnStarted = sh(ses.turnStarted), favicon = ses.favicon ?: faviconOf(ses.name),
+                subagents = ses.subagents ?: demoSubagents(ses.name, s.ts + d)?.let { it.copy(items = it.items.take(3)) },
                 question = ses.question?.let { it.copy(askedAt = it.askedAt + d) },
                 outcome = ses.outcome?.let { it.copy(at = it.at + d) },
                 // Contratto 1.72: i conteggi della pillola sono di adesso (nella fixture `at` non segue `ts`).
@@ -498,6 +520,14 @@ class FakeTransport(
             CmdOp.THUMB -> demoThumb(cmd.arg)?.let { ok(it) } ?: ko("result ${cmd.arg} not found")
             // Contratto 1.153 (app-favicon-siti-18-11): le favicon inventate della demo; un'impronta che non c'è è l'errore del relay.
             CmdOp.FAVICON -> demoFavicons.images[cmd.arg]?.let { f -> ok(ContractJson.json.encodeToString(FaviconImage.serializer(), f)) } ?: ko("favicon ${cmd.arg} not found")
+            // Contratto 1.158 (app-sottoagenti-23-11): tutti i sottoagenti di atlas-shop; le altre sessioni non ne hanno lanciati.
+            CmdOp.SUBAGENTS -> if (ses == null) ko("nessuna sessione ${cmd.session}") else
+                ok(ContractJson.json.encodeToString(SubagentsAnswer.serializer(), SubagentsAnswer(ses.subagents?.at?.let { demoSubagents(ses.name, it) })))
+            // Contratto 1.159 (app-silenzio-assenso-23-11): la demo risponde come il relay, senza registro dietro.
+            CmdOp.SILENCE -> when {
+                cmd.text == "off" -> ok("${cmd.arg}: silenzio assenso tolto, si aspetta la risposta")
+                else -> ok("${cmd.arg}: silenzio assenso alle ${java.time.format.DateTimeFormatter.ofPattern("dd/MM HH:mm").format(java.time.Instant.ofEpochSecond(now() + 3 * 86400).atZone(java.time.ZoneId.systemDefault()))}: senza risposta, col controllo verde si chiude da solo")
+            }
             CmdOp.RESULT_SEEN -> {
                 current.value = current.value.let { st -> st.copy(results = st.results?.items?.filterNot { it.id == cmd.arg }?.takeIf { it.isNotEmpty() }?.let { ResultsSummary(it.size, it) }) }
                 ok("seen")

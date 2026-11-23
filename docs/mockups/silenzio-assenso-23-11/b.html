@@ -1,0 +1,26 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><title>Silenzio B</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_style.css"><style>
+/* B: un interruttore sotto i tasti, separato da una linea: la risposta sopra, la regola del silenzio sotto. */
+.sw{display:flex;align-items:center;gap:12px;margin-top:6px;padding-top:12px;border-top:1px solid var(--line)}
+.sw .t{flex:1;min-width:0;display:flex;flex-direction:column}
+.sw b{font:600 15.5px/20px 'Barlow Semi Condensed'}
+.sw small{font-size:13.5px;line-height:19px;color:var(--tx2)}
+.sw.on small{color:var(--busy)}
+.tg{flex:none;width:52px;height:32px;border-radius:16px;background:var(--s4);position:relative;box-shadow:inset 0 0 0 1px #3a3a3a}
+.tg i{position:absolute;top:6px;left:6px;width:20px;height:20px;border-radius:50%;background:var(--tx2)}
+.sw.on .tg{background:rgba(143,168,210,.28);box-shadow:inset 0 0 0 1px rgba(143,168,210,.7)}
+.sw.on .tg i{left:26px;background:var(--busy)}
+</style></head><body>
+<h1>B · Un interruttore sotto i tasti</h1>
+<p class="intro">Sotto i tasti della risposta, oltre una linea, un interruttore «Dai per risolto se tace». Spento dice cosa farebbe; acceso dice la data in cui la carta si chiude da sola. Si spegne con lo stesso tocco. La risposta resta sopra, intatta.</p>
+<p class="mv"><b>Pollice.</b> L'interruttore è largo quanto la carta: si tocca tutta la riga, non solo il cursore. <b>Colore.</b> Il blu dell'attesa quando è acceso; mai ambra né verde. <b>Pro.</b> Si capisce che è una regola, non una risposta. <b>Contro.</b> Una riga in più su ogni carta di prova e di ok, anche quando non serve.</p>
+<div class="row" id="row"></div>
+<script src="_s.js"></script><script>
+const sw = (on) => `<div class="sw ${on ? 'on' : ''}"><span class="t"><b>Dai per risolto se tace</b><small>${on ? `Si chiude da sola ${DUE}` : 'Si chiude da sola dopo 3 giorni senza risposta'}</small></span><span class="tg"><i></i></span></div>`
+frames([
+  { cap: 'La prova, prima', sub: 'L\'interruttore spento dice cosa farebbe.', body: prova({ after: sw(false) }) },
+  { cap: 'Acceso', sub: 'La data in blu; lo stesso tocco lo spegne.', body: prova({ after: sw(true) }) + ok({ after: sw(false) }) },
+  { cap: 'In Per te e nella cronologia', sub: 'La data sta nella riga di contesto; chiuso per silenzio ha la sua etichetta.', title: 'Per te', body: perTe() + storia() },
+])
+</script></body></html>

@@ -141,6 +141,7 @@
   import ProvaView from './lib/ProvaView.svelte'
   import { inVerify, provaOf, readProva, type ProvaRead } from './lib/provaLinks'
   import { closedProve, openProve, provaAlreadyDone, staleProve } from './lib/cardLive'
+  import { parseAnswer as parseSubagents } from './lib/subagents'
   import { monitorsDemo } from './lib/demo'
   import { build, finishedKey, MASTER } from './lib/summary'
   import { nextKey, type ForYouRow } from './lib/masterHome'
@@ -2405,7 +2406,7 @@
         onRevoke={tr && !demo && st.ops?.includes('unpair') ? (uid) => track(newCmd('unpair', null, uid), t.tapRevoked) : null}
         maxSessions={kpiData?.kpi_health?.sessions_max ?? null} onMaxSessions={tr && canSetMax(st.ops) ? setMaxSessions : null} />
     {:else if p === 'box-aspetta' || p === 'box-lavoro' || p === 'box-esiti'}
-      <HomeBox box={p === 'box-aspetta' ? 'aspetta' : p === 'box-lavoro' ? 'lavoro' : 'esiti'} st={stShown} page={kpiPage} {now} onSession={(n) => { openPage(null); pick(n) }} onProve={() => openPage('prove')} />
+      <HomeBox box={p === 'box-aspetta' ? 'aspetta' : p === 'box-lavoro' ? 'lavoro' : 'esiti'} st={stShown} page={kpiPage} {now} onSession={(n) => { openPage(null); pick(n) }} onProve={() => openPage('prove')} onSubagents={(n) => run(newCmd('subagents', n, null)).then(r => (r?.ok ? parseSubagents(r.text) : null))} />
     {:else if p === 'queue'}
       <Queue {st} now={now} skip={queueSkip} onAnswer={(n, arg, op = 'answer') => cmd(n)(op, arg || undefined)} onSession={(n) => { openPage(null); pick(n) }} onDone={attentionDone} onOk={(n, x) => sendTo(n, x)} />
     {:else}

@@ -1,7 +1,7 @@
 import demoFaviconsRaw from '../../../core/src/main/resources/it/pixelbox/cmwatch/transport/demo-favicons.json?raw'
 import stateRaw from '../../../contract/state-1-question.json?raw'
 import monitorsMockup from '../../../core/src/test/resources/monitors-mockup.json'
-import type { Approval, MonitorCard, MonitorsPage } from './contract'
+import type { Approval, MonitorCard, MonitorsPage, Subagent, Subagents } from './contract'
 import { DEFAULT_CATS, encode as encodeCats, toTop } from './homeCats'
 import idleRaw from '../../../contract/state-2-idle.json?raw'
 import changesRaw from '../../../contract/changes-sample.json?raw'
@@ -193,6 +193,26 @@ const blogOutcome = (now: number) => en
   : { short: 'post pronto, manca solo la pubblicazione', at: now - 240, full: "Ho riletto il post e sistemato i link: la bozza è in content/posts/release-2-8.md e la copertina è già nel repo.\nLo pubblico adesso o lo programmo per domattina, quando parte la newsletter?\nEsito: post pronto, manca solo la pubblicazione\nProssimi: !ok alla pubblicazione del post · programmalo per domani alle 9 · mandami prima l'anteprima" }
 
 /** Da guardare nella demo (contratto 1.106): una schermata in due versioni con la nota di Franz, una pagina e un rapporto in PDF. */
+/**
+ * I sottoagenti della demo (app-sottoagenti-23-11, contratto 1.158), come nel mockup A scelto da Franz: admin-panel ne ha lanciati 7,
+ * due al lavoro. `at` è l'inizio del più recente; lo stato ne porta 3 (`all` falso), l'op `subagents` tutti.
+ */
+export function subagentsDemo(at: number, all: boolean): Subagents {
+  const en = lang === 'en'
+  const a = (id: string, type: string, it: string, enText: string, model: string, bg: boolean, start: number, end: number | null, tin = 0, tout = 0): Subagent =>
+    ({ id, type, desc: en ? enText : it, model, bg, depth: 1, started: at - start, ended: end == null ? null : at - end, finished: end != null, tokens: end == null ? null : { in: tin, out: tout } })
+  const items = [
+    a('a01', 'general-purpose', 'Misura la tabella utenti su 3 browser', 'Measure the users table on 3 browsers', 'claude-sonnet-5-5', true, 240, null),
+    a('a02', 'Explore', 'Cerca dove si filtrano gli utenti', 'Find where the users are filtered', 'claude-haiku-5-5', false, 0, null),
+    a('a03', 'Explore', 'Leggi i test che falliscono', 'Read the failing tests', 'claude-haiku-5-5', false, 420, 402, 69_142, 589),
+    a('a04', 'general-purpose', 'Confronta le query dei filtri', 'Compare the filter queries', 'claude-sonnet-5-5', true, 900, 610, 182_400, 2_310),
+    a('a05', 'Explore', 'Elenca le pagine lente del pannello', 'List the slow pages of the panel', 'claude-haiku-5-5', false, 1500, 1440, 54_020, 410),
+    a('a06', 'general-purpose', 'Scrivi la migrazione della tabella', 'Draft the table migration', 'claude-sonnet-5-5', true, 2600, 2100, 240_900, 5_800),
+    a('a07', 'Explore', 'Mappa i permessi degli utenti', 'Map the user permissions', 'claude-haiku-5-5', false, 3300, 3180, 41_200, 350),
+  ]
+  return { n: items.length, running: items.filter(x => !x.finished).length, at, items: all ? items : items.slice(0, 3) }
+}
+
 export function resultsDemo(now: number): ResultsPage {
   const img = { path: '/home/dev/storefront/checkout-before.png', mime: 'image/png', size: 182000 }
   const item = (x: Partial<ResultItem> & Pick<ResultItem, 'id' | 'session' | 'title' | 'kind' | 'path' | 'at'>): ResultItem => ({ mime: null, size: null, duration_s: null, version: 1, versions: 1, changed: null, seen_at: null, caption: null, files: [], notes: [], replaced: false, ...x })
@@ -240,7 +260,7 @@ export function world(now: number): World {
     }),
     // Al lavoro adesso: nella fixture l'unica in turno è ferma su un login, e il tabellone direbbe 0.
     { id: 'a', name: 'admin-panel', account: 'personal', account_kind: 'personal', project: 'personal/admin-panel', state: 'busy', since: now - 1500, turn_started: now - 1500, context: 41, bg: true,
-      tool: 'Bash npm test', model: { id: 'claude-sonnet-5', label: 'Sonnet 5' }, goal: { text: en ? 'New users table with filters' : 'Nuova tabella utenti con i filtri', since: now - 1500 } },
+      tool: 'Bash npm test', model: { id: 'claude-sonnet-5', label: 'Sonnet 5' }, goal: { text: en ? 'New users table with filters' : 'Nuova tabella utenti con i filtri', since: now - 1500 }, subagents: subagentsDemo(now - 60, false) },
   ]
   // Lavori: due aspettano te e tre lavorano. L'ok della fixture è della release di storefront e sta nella sua scheda; la pausa di blog
   // chiede un'altra cosa rispetto al suo «ok alla pubblicazione», così nessuna scheda chiede la stessa cosa due volte.
@@ -275,7 +295,7 @@ export function world(now: number): World {
       { kind: 'turn_blocking', session: 'blog', ref: 'blog', title: stopOk.text, since: stopOk.at },
     ].sort((a, b) => a.since - b.since),
     // Contratto 1.84: suggerimenti, anteprima e chiusura salvando lo stato.
-    ops: [...new Set([...(base.ops ?? []), 'suggestion', 'close_preview', 'close', 'home_order', 'prima_raccolta', 'prima_raccolta_azione', 'seguiti', 'seguiti_azione', 'conti', 'conti_azione', 'results', 'result_seen', 'result_note', 'thumb', 'plugins', 'plugin_check', 'plugin_update', 'plugin_update_all'])],
+    ops: [...new Set([...(base.ops ?? []), 'suggestion', 'close_preview', 'close', 'home_order', 'prima_raccolta', 'prima_raccolta_azione', 'seguiti', 'seguiti_azione', 'conti', 'conti_azione', 'results', 'result_seen', 'result_note', 'thumb', 'plugins', 'plugin_check', 'plugin_update', 'plugin_update_all', 'subagents', 'silence'])],
     commitments,
     // Contratto 1.99: le righe di Da provare e Da decidere, coi conti degli elenchi `proveDemo` e `decisionsDemo`.
     prove: { n: 2, builds: 1, red: 0, ko: 0 }, decisions: { n: 3, here: 2, tasks: 4, snoozed: 0 },

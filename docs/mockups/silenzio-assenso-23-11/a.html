@@ -1,0 +1,21 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><title>Silenzio A</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_style.css"><style>
+/* A: un terzo tasto tonale nella carta, accanto a quelli che ci sono; toccato, diventa la riga con la data e «Annulla». */
+.due{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 12px;border-radius:12px;background:rgba(143,168,210,.08);box-shadow:inset 0 0 0 1px rgba(143,168,210,.35);font-size:14.5px;line-height:20px;color:var(--tx)}
+.due svg{width:18px;height:18px;color:var(--busy);flex:none}
+.due span{flex:1;min-width:0}
+</style></head><body>
+<h1>A · Un tasto in più nella carta</h1>
+<p class="intro">«Dai per risolto se tace» è un tasto tonale accanto a «Va» e «Non va» (o «Approva» e «Rifai»). Toccato, sparisce e lascia una riga blu con la data in cui la carta si chiude da sola e «Annulla». I tasti della risposta restano: la persona può ancora rispondere fino alla scadenza.</p>
+<p class="mv"><b>Pollice.</b> I tre tasti stanno insieme in fondo alla carta; se non entrano in una riga il terzo va sotto, intero. <b>Colore.</b> Il blu dell'attesa, non l'ambra di «ti aspetta» né il verde dell'ok: chiuso per silenzio non è mai un ok di Franz. <b>Cosa non fa.</b> Sulle scelte fra opzioni e su release, push, deploy, pagamenti e invii il tasto non c'è.</p>
+<div class="row" id="row"></div>
+<script src="_s.js"></script><script>
+const key = `<span class="pill">${I.clock}Dai per risolto se tace</span>`
+const due = `<div class="due">${I.clock}<span>Si chiude da sola ${DUE}, se nessuno risponde.</span><span class="lk" style="flex:none">Annulla</span></div>`
+frames([
+  { cap: 'La prova, prima', sub: 'Il terzo tasto, tonale, accanto agli altri; a 360 dp va sotto, intero.', body: prova({ pills: `<span class="pill main">Va</span><span class="pill">Non va</span>${key}` }) },
+  { cap: 'Toccato', sub: 'La riga blu dice quando si chiude; «Annulla» toglie la scadenza.', body: prova({ after: due }) + ok({ pills: `<span class="pill main">Approva</span><span class="pill">Rifai</span>${key}` }) },
+  { cap: 'In Per te e nella cronologia', sub: 'La data sta nella riga di contesto; chiuso per silenzio ha la sua etichetta.', title: 'Per te', body: perTe() + storia() },
+])
+</script></body></html>

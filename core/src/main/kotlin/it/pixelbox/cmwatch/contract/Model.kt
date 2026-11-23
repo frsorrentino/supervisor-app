@@ -125,6 +125,10 @@ enum class CmdOp {
     @SerialName("thumb") THUMB,
     /** Contratto 1.153: la favicon di un'impronta di `sessions[].favicon`, una volta per impronta. */
     @SerialName("favicon") FAVICON,
+    /** Contratto 1.158: tutti i sottoagenti di una sessione (`session`), fino a 30; lettura passiva. */
+    @SerialName("subagents") SUBAGENTS,
+    /** Contratto 1.159: il silenzio assenso di un compito; `arg` = id del compito, `text` = «3d», una data, vuoto (3 giorni) o «off». */
+    @SerialName("silence") SILENCE,
     /** Contratto 1.37: una decisione da salvare nella memoria della master; `text` obbligatorio, `arg` = progetto o null. */
     @SerialName("decision") DECISION,
     /** Contratto 1.39: togliere un dispositivo accoppiato; `arg` = uid. Solo «Scollega questo browser», col proprio uid. */
@@ -330,7 +334,28 @@ enum class CmdOp {
     val favicon: String? = null,
     /** Contratto 1.154 (D9, app-master-avvia-19-11): true sulla master del PC (`workspace.root_session_name`), con un relay precedente assente. */
     val master: Boolean? = null,
+    /** Contratto 1.158 (app-sottoagenti-23-11): i sottoagenti lanciati dalla sessione; assente se nessuno. Tutti con l'op `subagents`. */
+    val subagents: Subagents? = null,
 )
+
+/**
+ * Contratto 1.158, `sessions[].subagents` e la risposta dell'op `subagents`: quanti ne ha lanciati la sessione ([n], anche finiti da
+ * giorni), quanti lavorano ancora, l'inizio del più recente; [items] al più 3 nello stato (prima quelli al lavoro), fino a 30 dall'op;
+ * sopra gli 8 KB dello stato [items] è vuoto. [workflows] solo coi Workflow.
+ */
+@Serializable data class Subagents(
+    val n: Int = 0, val running: Int = 0, val at: Long? = null, val items: List<Subagent> = emptyList(), val workflows: List<SubagentWorkflow>? = null,
+)
+/** Un sottoagente: [finished] decide se è finito (un fork senza trascrizione ha [ended] null anche da finito); [wf] e [phase] solo nei Workflow. */
+@Serializable data class Subagent(
+    val id: String, val type: String = "", val desc: String = "", val model: String? = null, val bg: Boolean = false, val depth: Int = 1,
+    val started: Long? = null, val ended: Long? = null, val finished: Boolean = false, val tokens: SubagentTokens? = null,
+    val wf: String? = null, val phase: String? = null,
+)
+@Serializable data class SubagentTokens(@SerialName("in") val input: Long = 0, val out: Long = 0)
+@Serializable data class SubagentWorkflow(val id: String, val n: Int = 0, val running: Int = 0)
+/** La risposta dell'op `subagents`: null se la sessione non ne ha lanciati. */
+@Serializable data class SubagentsAnswer(val subagents: Subagents? = null)
 
 /** Contratto 1.120, `sessions[].closing`: mode after o force, quando è stata armata, la scadenza (null per after).
  * Contratto 1.155: mode `save` scrive il passaggio di consegne (deadline = quando chiude comunque), `exit` la sta chiudendo. */
@@ -417,6 +442,8 @@ enum class CmdOp {
     /** Contratto 1.99, ognuno solo se dichiarato: assente vuol dire «non dichiarato», il relay non li riempie mai. */
     val untested: String? = null, val undo: String? = null, @SerialName("undo_how") val undoHow: String? = null,
     val precedent: ApprovalPrecedent? = null, val also: List<ApprovalAlso>? = null,
+    /** Contratto 1.159: la scadenza del silenzio assenso della carta, se c'è. */
+    @SerialName("silence_until") val silenceUntil: Long? = null,
 )
 @Serializable data class ApprovalPrecedent(val task: String, val short: String? = null, val relation: String = "")
 @Serializable data class ApprovalAlso(val task: String, val short: String? = null)
@@ -535,7 +562,7 @@ enum class CmdOp {
 @Serializable data class ToccaClosed(val task: String, val short: String? = null, val kind: String = "", val rule: Int = 0, val at: Long = 0)
 
 /** Contratto 1.99, op `prove`. `dove` è una chiave libera che l'app traduce in una schermata. */
-@Serializable data class ProveItem(val id: Long, val task: String, val short: String? = null, val title: String? = null, val session: String? = null, val project: String? = null, val build: String = "", val dove: String? = null, val fai: String = "", val atteso: String = "", val at: Long = 0, val wid: String? = null)
+@Serializable data class ProveItem(val id: Long, val task: String, val short: String? = null, val title: String? = null, val session: String? = null, val project: String? = null, val build: String = "", val dove: String? = null, val fai: String = "", val atteso: String = "", val at: Long = 0, val wid: String? = null, @SerialName("silence_until") val silenceUntil: Long? = null)
 @Serializable data class ProveGroup(val build: String, val n: Int = 0, val at: Long = 0, val tasks: List<String> = emptyList(), val prove: List<ProveItem> = emptyList())
 @Serializable data class ProveKo(val id: Long, val task: String, val short: String? = null, val build: String = "", val dove: String? = null, val fai: String = "", val atteso: String = "", val text: String = "", val at: Long = 0)
 @Serializable data class ProveRed(val task: String, val short: String? = null, val reason: String? = null, val at: Long = 0)
@@ -1099,7 +1126,10 @@ val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts
     val at: Long = 0, val outcome: String = "green", val proof: DoneProof? = null,
     /** Contratto 1.79: il titolo breve, come in `Commitment`; in coda per non spostare i parametri. */
     val short: String? = null,
+    /** Contratto 1.159: chiuso per silenzio assenso (kind ok o prova, la scadenza); assente = chiuso in un altro modo. */
+    val silence: DoneSilence? = null,
 )
+@Serializable data class DoneSilence(val kind: String = "", val until: Long = 0)
 /** Un giorno prima con almeno un compito chiuso, col conteggio: l'app lo apre con un'altra chiamata. */
 @Serializable data class DoneDayRef(val date: String, val n: Int = 0)
 @Serializable data class DonePage(val date: String = "", val rows: List<DoneRow> = emptyList(), val days: List<DoneDayRef> = emptyList(), val more: Boolean = false)
@@ -1258,6 +1288,8 @@ const val LEGACY_HANDOFF = "/fable-director:handoff --here"
     /** Contratto 1.151: il gruppo in Decidi, le prove di una verifica con la loro versione (la più nuova in [build]), il controllo rosso. */
     val decision: WaitDecision? = null, val tests: List<WaitTest>? = null, val build: String? = null, val red: WaitRed? = null,
     val asks: String? = null, val where: String? = null,
+    /** Contratto 1.159 (app-silenzio-assenso-23-11): la scadenza del silenzio assenso (epoch), su ok e prova; assente = nessuna. */
+    @SerialName("silence_until") val silenceUntil: Long? = null,
 )
 @Serializable data class WaitDecision(val key: String = "", val title: String? = null, val cause: String? = null, val where: String? = null, val weight: Double? = null, val unblocks: List<String>? = null, val note: String? = null, val since: Long? = null)
 @Serializable data class WaitTest(val id: Long = 0, val build: String = "", val dove: String? = null, val fai: String = "", val atteso: String = "", val state: String = "todo", val text: String? = null, val at: Long? = null)

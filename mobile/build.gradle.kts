@@ -112,4 +112,6 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.coroutines.test)
+    // I golden leggono una chiave di una fixture (contract/subagents-sample.json).
+    testImplementation(libs.serialization.json)
 }

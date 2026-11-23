@@ -3,7 +3,8 @@
 </script>
 
 <script lang="ts">
-  import type { State, TimelinePage } from './contract'
+  import type { State, Subagents, TimelinePage } from './contract'
+  import SubagentsFold from './SubagentsFold.svelte'
   import { publishedRows } from './dash'
   import { groupsBySession, groupsByType, head, outcomes as outcomesOf, stillRows, waitingRows, workingRows, type OutcomeType, type WaitKind } from './kpi'
   import { fold as foldIn } from './motion'
@@ -12,7 +13,12 @@
   import { t } from './t'
   // Le pagine dietro i tre box in alto della home (compito app-box-cliccabili-29-10, mockup approvato da Franz il 29/10
   // alle 18:57), porta di HomeBoxScreen.kt: il numero spiegato in una frase, sotto le righe che lo fanno.
-  let { box, st, page, now, onSession, onProve = null }: { box: Box; st: State; page: TimelinePage | null; now: number; onSession: (name: string) => void; onProve?: (() => void) | null } = $props()
+  let { box, st, page, now, onSession, onProve = null, onSubagents = null }: { box: Box; st: State; page: TimelinePage | null; now: number; onSession: (name: string) => void; onProve?: (() => void) | null
+    /** Contratto 1.158: tutti i sottoagenti di una sessione (op `subagents`). */
+    onSubagents?: ((session: string) => Promise<Subagents | null>) | null } = $props()
+  // app-sottoagenti-23-11: i sottoagenti sotto la sessione, solo per chi ne ha lanciati; «Tutti e N» solo se il relay ha l'op.
+  const subsOf = (name: string) => st.sessions.find(x => x.name === name)?.subagents ?? null
+  const allOf = (name: string) => (onSubagents && st.ops?.includes('subagents') ? () => onSubagents!(name) : null)
   // Le pubblicazioni di oggi stanno negli Esiti (web-pubblicazioni-voci-06-11, Franz 06/11 01:46: «sposta»): un gruppo che si apre
   // e si chiude col titolo, e su ogni voce le sue azioni: Apri (la release o il commit su GitHub, la web), Prove per una release,
   // Ricarica per una web pubblicata dopo quella aperta.
@@ -79,6 +85,7 @@
             </span>
             {@render chevron()}
           </button>
+          {#if subsOf(w.session)}<SubagentsFold subs={subsOf(w.session)!} {now} onAll={allOf(w.session)} />{/if}
         {/each}
       </div>
       <p class="note">{t.boxBusyNote}</p>
@@ -92,6 +99,7 @@
             <span class="bd"><span class="hd"><b>{s.session}</b>{#if s.at}<span>{hm(s.at)}</span>{/if}</span>{#if s.outcome}<span class="tx">{s.outcome}</span>{/if}</span>
             {@render chevron()}
           </button>
+          {#if subsOf(s.session)}<SubagentsFold subs={subsOf(s.session)!} {now} onAll={allOf(s.session)} />{/if}
         {/each}
       </div>
       {#if !stillAll && still.length > 2}<div class="more"><span>{t.boxMore(still.length - 2)}</span><button class="text" onclick={() => (stillAll = true)}>{t.boxShow}</button></div>{/if}

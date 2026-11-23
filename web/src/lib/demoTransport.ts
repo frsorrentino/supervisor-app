@@ -3,7 +3,7 @@ import changesRaw from '../../../contract/changes-sample.json?raw'
 import { decodeChanges, type ChangesView, type Cmd, type CmdResult, type Event, type Session, type State, type TranscriptEntry } from './contract'
 import type { FileBlob, Transport } from './transport'
 import { lang } from './lang'
-import { decisionsDemo, waitsDemo, kpiDemo, demoSearch, pluginsDemo, primaDemo, proveDemo, resultsDemo, seguitiDemo, contiDemo, demoFavicons, world, type World } from './demo'
+import { decisionsDemo, waitsDemo, kpiDemo, demoSearch, pluginsDemo, primaDemo, proveDemo, resultsDemo, seguitiDemo, contiDemo, demoFavicons, subagentsDemo, world, type World } from './demo'
 import type { DecisionsPage, PrimaRaccoltaPage, ProvePage, ResultsPage, SeguitiPage, WaitAnswered, WaitItem } from './contract'
 import { NIGHT_TARGET } from './recapAgenda'
 
@@ -240,6 +240,14 @@ export class DemoTransport implements Transport {
         case 'conti': return ok(JSON.stringify(contiDemo(this.now(), cmd.arg ?? null, cmd.project ?? null)))
         // Contratto 1.153: la favicon di un'impronta della demo; una che non c'è è l'errore del relay.
         case 'favicon': { const f = demoFavicons.images[cmd.arg ?? '']; return f ? ok(JSON.stringify(f)) : ko(`favicon ${cmd.arg} not found`) }
+        // Contratto 1.158 (app-sottoagenti-23-11): tutti i sottoagenti della sessione; null per chi non ne ha lanciati.
+        case 'subagents': {
+          const s = this.st.sessions.find(x => x.name === cmd.session)
+          if (!s) return ko(`nessuna sessione ${cmd.session}`)
+          return ok(JSON.stringify({ subagents: s.subagents?.at != null ? subagentsDemo(s.subagents.at, true) : null }))
+        }
+        // Contratto 1.159 (app-silenzio-assenso-23-11): la demo risponde come il relay.
+        case 'silence': return ok(cmd.text === 'off' ? `${cmd.arg}: silenzio assenso tolto, si aspetta la risposta` : `${cmd.arg}: silenzio assenso fra 3 giorni: senza risposta, col controllo verde si chiude da solo`)
         case 'conti_azione': return cmd.project ? ok('draft asked of the master') : ko('conti_azione: no project')
         // Contratto 1.106: Visto segna la versione e quelle prima; il lavoro esce da Da guardare; la nota si salva come fa il relay.
         case 'results': return ok(JSON.stringify(this.resultsPage ??= resultsDemo(this.now())))

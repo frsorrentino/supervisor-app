@@ -1,0 +1,27 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><title>Silenzio C</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_style.css"><style>
+/* C: un'etichetta con l'orologio in testa alla carta; toccata apre una scheda in basso che spiega e chiede conferma. */
+.hd{margin-left:auto;display:inline-flex;align-items:center;gap:5px;height:30px;padding:0 10px;border-radius:999px;font:600 13px 'Barlow';letter-spacing:0;text-transform:none;color:var(--tx2);background:var(--s3)}
+.hd svg{width:15px;height:15px}
+.hd.on{color:var(--busy);background:rgba(143,168,210,.1);box-shadow:inset 0 0 0 1px rgba(143,168,210,.45)}
+.sheet{position:absolute;left:10px;right:10px;bottom:28px;z-index:4;background:var(--s2);border:1px solid var(--line);border-radius:20px;padding:18px 18px 16px;display:flex;flex-direction:column;gap:10px}
+.sheet b{font:600 19px/24px 'Barlow Semi Condensed'}
+.sheet p{font-size:15px;line-height:22px;color:var(--tx2)}
+.sheet p em{font-style:normal;color:var(--busy)}
+.sheet .pills{margin-top:4px}
+.sheet .pill{flex:1;justify-content:center}
+</style></head><body>
+<h1>C · Un'etichetta in testa, con conferma</h1>
+<p class="intro">In testa alla carta, accanto a «Prova 1412», un'etichetta grigia con l'orologio: «Se tace». Toccata, una scheda in basso spiega cosa succede e chiede «Dai per risolto». Dopo, l'etichetta diventa blu con la data. I tasti della risposta restano come sono.</p>
+<p class="mv"><b>Pollice.</b> L'etichetta è in alto, ma la conferma è in basso, dove arriva il pollice, coi due tasti affiancati. <b>Pro.</b> La carta non cambia forma; la scheda spiega bene, adatto anche a chi non lo conosce. <b>Contro.</b> Due tocchi invece di uno; l'etichetta in alto si nota meno.</p>
+<div class="row" id="row"></div>
+<script src="_s.js"></script><script>
+const tag = (on) => `<span class="hd ${on ? 'on' : ''}">${I.clock}${on ? `si chiude ${DUE_S}` : 'Se tace'}</span>`
+const sheet = `<div class="sheet"><b>Dai per risolto se tace</b><p>Se nessuno risponde, la prova 1412 si chiude da sola <em>${DUE}</em>, solo se il controllo automatico è verde. Nella cronologia resta «silenzio assenso», non un tuo ok.</p><div class="pills"><span class="pill main">Dai per risolto</span><span class="pill">Annulla</span></div></div>`
+frames([
+  { cap: 'La prova, prima', sub: 'L\'etichetta grigia «Se tace» in testa alla carta.', body: prova({ head: tag(false) }) },
+  { cap: 'Toccata', sub: 'La scheda in basso spiega e chiede conferma.', body: prova({ head: tag(false) }), over: `<div class="veil"></div>${sheet}` },
+  { cap: 'Confermata, in Per te e nella cronologia', sub: 'L\'etichetta blu con la data; chiuso per silenzio ha la sua etichetta.', title: 'Per te', body: prova({ head: tag(true) }).replace('<p class="q">Chiudi una sessione dalla home: la scheda sale dal basso, senza velo, col tasto principale ambra.</p>', '') + perTe() + storia() },
+])
+</script></body></html>

@@ -27,9 +27,16 @@ export type Resolved = { id: string; text: string; at: number; by: string }
 /** Contratto 1.60: `preview` = short e full senza segreti, solo quando il relay ha nascosto qualcosa. */
 export type Outcome = { short: string; full: string; at: number; preview?: { short: string; full: string } | null }
 export type Model = { id: string; label?: string | null }
+/** Contratto 1.158: `sessions[].subagents` e la risposta dell'op `subagents`. `items` al più 3 nello stato (prima quelli al lavoro), fino a 30 dall'op. */
+export type Subagents = { n: number; running: number; at?: number | null; items: Subagent[]; workflows?: { id: string; n: number; running: number }[] | null }
+/** Un sottoagente: `finished` decide se è finito (un fork senza trascrizione ha `ended` null anche da finito); `wf` e `phase` solo nei Workflow. */
+export type Subagent = { id: string; type: string; desc: string; model?: string | null; bg: boolean; depth: number; started?: number | null; ended?: number | null; finished: boolean; tokens?: { in: number; out: number } | null; wf?: string; phase?: string }
+
 export type Goal = { text: string; since: number; met?: boolean | null }
 
 export type Session = {
+  /** Contratto 1.158 (app-sottoagenti-23-11): i sottoagenti lanciati dalla sessione; assente se nessuno. Tutti con l'op `subagents`. */
+  subagents?: Subagents | null
   /** Contratto 1.154 (D9, app-master-avvia-19-11): true sulla master del PC, assente con un relay precedente. */
   master?: boolean | null
   /** Contratto 1.153 (app-favicon-siti-18-11): l'impronta della favicon del sito; l'immagine con l'op `favicon`. */
@@ -86,7 +93,7 @@ export type Suggestion = { id: string; kind: SuggestionKind | string; key: strin
   url?: string | null }
 export type UsageToday = { session: string; account: string; tokens: number; share: number }
 /** Contratto 1.99: `untested`, `undo`, `undo_how`, `precedent`, `also`, ognuno solo se dichiarato: assente vuol dire «non dichiarato». */
-export type Approval = { task: string; title: string; what: string; where: string; deploy: boolean; requested_at: number; advice?: WaitAdvice | null; options?: string[]; untested?: string | null; undo?: string | null; undo_how?: string | null; precedent?: { task: string; short?: string | null; relation: string } | null; also?: { task: string; short?: string | null }[] | null; wid?: string | null }
+export type Approval = { task: string; title: string; what: string; where: string; deploy: boolean; requested_at: number; advice?: WaitAdvice | null; options?: string[]; untested?: string | null; undo?: string | null; undo_how?: string | null; precedent?: { task: string; short?: string | null; relation: string } | null; also?: { task: string; short?: string | null }[] | null; wid?: string | null; silence_until?: number | null }
 export type ProveSummary = { n: number; builds: number; red: number; ko: number }
 export type DecisionsSummary = { n: number; here: number; tasks: number; snoozed: number }
 /** Contratto 1.113: il conto unico di Tocca a te; `today` le voci chiuse da sole oggi (`kind` pause, prova, needs_you; `rule` 1-4). */
@@ -97,7 +104,7 @@ export type ToccaState = { n: number; prove: number; decidi: number; rispondi?: 
  * esce una voce, o ne cambiano titolo o tasti; `closed` le voci chiuse negli ultimi 10 minuti, da chiunque (cade per prima sopra gli 8 KB).
  */
 export type AtteseState = { rev: string; n: number; closed?: { id: string; at: number }[] | null }
-export type ProveItem = { id: number; task: string; short?: string | null; title?: string | null; session?: string | null; project?: string | null; build: string; dove?: string | null; fai: string; atteso: string; at: number; wid?: string | null }
+export type ProveItem = { id: number; task: string; short?: string | null; title?: string | null; session?: string | null; project?: string | null; build: string; dove?: string | null; fai: string; atteso: string; at: number; wid?: string | null; silence_until?: number | null }
 /** Contratto 1.106: un file consegnato da una sessione con SendUserFile; `caption`, `files`, `notes`, `replaced` solo nell'op `results`. */
 export type ResultItem = {
   id: string; session?: string | null; title: string; kind: 'video' | 'mockup' | 'image' | 'document' | 'other' | string; mime?: string | null
@@ -198,7 +205,9 @@ export type AgendaRow = {
 export type AgendaPage = { rows: AgendaRow[]; more: boolean; owner?: string | null }
 /** Contratto 1.77, op `done`: i compiti chiusi in un giorno con la prova (`kind` ∈ release|commit|file|check) e i giorni prima col conteggio. */
 export type DoneProof = { kind: string; value: string; url?: string | null }
-export type DoneRow = { task: string; title: string; short?: string | null; project?: string | null; session?: string | null; at: number; outcome: 'green' | 'cancelled' | 'failed' | string; proof?: DoneProof | null }
+export type DoneRow = { task: string; title: string; short?: string | null; project?: string | null; session?: string | null; at: number; outcome: 'green' | 'cancelled' | 'failed' | string; proof?: DoneProof | null
+  /** Contratto 1.159: chiuso per silenzio assenso; assente = chiuso in un altro modo. */
+  silence?: { kind: 'ok' | 'prova' | string; until: number } | null }
 export type DonePage = { date: string; rows: DoneRow[]; days: { date: string; n: number }[]; more: boolean }
 export type RecapItem = { project: string; done: string; next?: string | null }
 export type Recap = { date: string; items: RecapItem[] }
@@ -419,7 +428,7 @@ export type SystemStatus = {
 
 export type CmdOp = 'answer' | 'prompt' | 'launch' | 'follow' | 'unfollow' | 'resume' | 'screen' | 'allow_all' | 'last' | 'reopen' | 'done'
   | 'model' | 'effort' | 'night_add' | 'night_remove' | 'report' | 'interrupt' | 'transcript' | 'file' | 'slash' | 'projects'
-  | 'search' | 'timeline' | 'pair_add' | 'approve' | 'approval_close' | 'attese' | 'attesa' | 'monitors' | 'monitor_refresh' | 'thumb' | 'favicon' | 'decision' | 'unpair' | 'night' | 'agenda' | 'agenda_set' | 'quota_route' | 'project_new'
+  | 'search' | 'timeline' | 'pair_add' | 'approve' | 'approval_close' | 'attese' | 'attesa' | 'monitors' | 'monitor_refresh' | 'thumb' | 'favicon' | 'subagents' | 'silence' | 'decision' | 'unpair' | 'night' | 'agenda' | 'agenda_set' | 'quota_route' | 'project_new'
   | 'attention_done'
   /** Contratto 1.145: arg = il massimo di sessioni, intero in testo da 1 a 20; risposta `{"max_sessions": N}`. */
   | 'max_sessions_set'
@@ -566,6 +575,8 @@ export type WaitItem = {
   decision?: { key: string; title?: string | null; cause?: string | null; where?: string | null; weight?: number | null; unblocks?: string[] | null; note?: string | null; since?: number | null } | null
   tests?: { id: number; build: string; dove?: string | null; fai: string; atteso: string; state: 'todo' | 'ko' | string; text?: string | null; at?: number | null }[] | null
   build?: string | null; red?: { reason?: string | null; running?: boolean } | null; asks?: string | null; where?: string | null
+  /** Contratto 1.159 (app-silenzio-assenso-23-11): la scadenza del silenzio assenso (epoch), su ok e prova; assente = nessuna. */
+  silence_until?: number | null
   /** Contratto 1.149: il consiglio di chi chiede, su una carta ok o choice; null sulle carte nate prima e sulle altre voci. */
   advice?: WaitAdvice | null
 }

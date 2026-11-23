@@ -96,7 +96,13 @@ internal fun outcomeTone(t: Kpi.OutcomeType): Color = when (t) {
  * 18:57): il numero spiegato in una frase, sotto le righe che lo fanno. Un tocco su una riga apre la sessione, se è viva.
  */
 @Composable
-fun HomeBoxScreen(box: HomeBox, state: State, page: TimelinePage?, now: Long, onBack: () -> Unit, onSession: (String) -> Unit, zone: ZoneId = ZoneId.systemDefault(), startByType: Boolean? = null, embedded: Boolean = false) {
+fun HomeBoxScreen(box: HomeBox, state: State, page: TimelinePage?, now: Long, onBack: () -> Unit, onSession: (String) -> Unit, zone: ZoneId = ZoneId.systemDefault(), startByType: Boolean? = null, embedded: Boolean = false,
+    /** Contratto 1.158 (app-sottoagenti-23-11): tutti i sottoagenti di una sessione (op `subagents`); null nasconde «Tutti e N». */
+    onSubagents: (suspend (String) -> it.pixelbox.cmwatch.contract.Subagents?)? = null,
+) {
+    // app-sottoagenti-23-11: i sottoagenti sotto la sessione, solo per chi ne ha lanciati; «Tutti e N» solo se il relay ha l'op.
+    val subsOf = { name: String -> state.sessions.firstOrNull { it.name == name }?.subagents }
+    val allOf = { name: String -> onSubagents?.takeIf { state.ops?.contains("subagents") == true }?.let { f -> suspend { f(name) } } }
     val live = remember(state) { state.sessions.filter { it.state != SessionState.GONE }.map { it.name }.toSet() }
     val hm = { at: Long -> BOX_HM.format(Instant.ofEpochSecond(at).atZone(zone)) }
     var stillAll by rememberSaveable { mutableStateOf(false) }
@@ -158,6 +164,7 @@ fun HomeBoxScreen(box: HomeBox, state: State, page: TimelinePage?, now: Long, on
                                     }
                                     listOfNotNull(w.model, w.context?.let { "ctx $it%" }).takeIf { it.isNotEmpty() }?.let { Text(it.joinToString(" · "), style = MonoSmall) }
                                 }
+                                subsOf(w.session)?.let { SubagentsFold(it, now, allOf(w.session), Modifier.testTag("subagents-${w.session}")) }
                             }
                         }
                     }
@@ -171,6 +178,7 @@ fun HomeBoxScreen(box: HomeBox, state: State, page: TimelinePage?, now: Long, on
                                 BoxRow(i, Icons.Rounded.Check, Cm.idle, s.session, s.at?.let(hm), onClick = { onSession(s.session) }) {
                                     s.outcome?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Cm.text) }
                                 }
+                                subsOf(s.session)?.let { SubagentsFold(it, now, allOf(s.session), Modifier.testTag("subagents-${s.session}")) }
                             }
                         }
                     }

@@ -1128,7 +1128,14 @@ class MainActivity : ComponentActivity() {
             return
         }
         boxOpen?.let { b -> stateShown?.let { st ->
-            it.pixelbox.cmwatch.mobile.ui.PageIn { it.pixelbox.cmwatch.mobile.ui.HomeBoxScreen(b, st, kpiPage, now, onBack = { boxOpen = null }, onSession = { n -> boxOpen = null; open = n }) }
+            it.pixelbox.cmwatch.mobile.ui.PageIn { it.pixelbox.cmwatch.mobile.ui.HomeBoxScreen(b, st, kpiPage, now, onBack = { boxOpen = null }, onSession = { n -> boxOpen = null; open = n },
+                // Contratto 1.158 (app-sottoagenti-23-11): «Tutti e N» chiede al PC l'elenco intero dei sottoagenti della sessione.
+                onSubagents = { name ->
+                    val id = runCatching { app.repo.command(CmdOp.SUBAGENTS, name, null) }.getOrNull()
+                    val r = id?.let { x -> kotlinx.coroutines.withTimeoutOrNull(30_000) { app.repo.resultsById.first { m -> m.containsKey(x) }[x] } }
+                    id?.let { x -> app.repo.forget(x) }
+                    r?.takeIf { it.ok }?.let { ok -> runCatching { it.pixelbox.cmwatch.contract.ContractJson.decodeSubagents(ok.text) }.getOrNull() }
+                }) }
             return
         } }
         // Contratto 1.22: la conversazione della scheda aperta, a pagine, letta dal vivo finché la scheda resta aperta.

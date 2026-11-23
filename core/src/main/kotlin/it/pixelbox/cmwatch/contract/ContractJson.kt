@@ -42,6 +42,8 @@ object ContractJson {
     fun decodePlugins(raw: String): PluginsPage = json.decodeFromString(PluginsPage.serializer(), raw)
     /** Contratto 1.96: il `text` di un `kpi` riuscito. */
     fun decodeKpi(raw: String): KpiData = json.decodeFromString(KpiData.serializer(), raw)
+    /** Contratto 1.158: la risposta dell'op `subagents` (`{"subagents": {...}}` o `{"subagents": null}`). */
+    fun decodeSubagents(raw: String): Subagents? = json.decodeFromString(SubagentsAnswer.serializer(), raw).subagents
     fun decodePairAdd(raw: String): PairAddInvite =
         json.decodeFromString(PairAddOffer.serializer(), raw).let { PairAddInvite(it.qr?.toString(), it.code, it.exp) }
 }
