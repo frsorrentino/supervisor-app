@@ -108,3 +108,21 @@ export function groupsOf(waits: readonly WaitItem[], results: readonly ResultGro
   const loose = waits.filter(w => !w.session && open(w)).map(voceOf).filter(v => !answered.has(v.key)).sort(byOrder)
   return loose.length ? [...out, { session: null, voci: loose }] : out
 }
+
+/**
+ * Per te in ordine (app-per-te-ordine-23-11, Franz 23/11 19:00 e 19:01; contratto 1.160): in alto, aperte, le carte che bloccano un
+ * compito in corso (`blocking`), dalla più vecchia, ognuna con la sua sessione; sotto i gruppi per sessione con il resto (pause,
+ * domande, verifiche), chiusi di base. Un gruppo che resta senza voci non c'è. La stessa regola di PerTe.splitBlocking.
+ */
+export type Bloccante = Voce & { session: string | null }
+export function splitBlocking(groups: readonly Gruppo[]): { top: Bloccante[]; groups: Gruppo[] } {
+  const top: Bloccante[] = []
+  const rest: Gruppo[] = []
+  for (const g of groups) {
+    const mine = g.voci.filter(v => v.wait?.blocking === true)
+    top.push(...mine.map(v => ({ ...v, session: g.session })))
+    const left = g.voci.filter(v => v.wait?.blocking !== true)
+    if (left.length) rest.push({ session: g.session, voci: left })
+  }
+  return { top: top.sort((a, b) => a.since - b.since), groups: rest }
+}

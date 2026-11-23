@@ -8,10 +8,12 @@ import { isOpenItem } from './attese'
 /** La durata del tasto: 3 giorni, quella che il relay mette col testo vuoto. */
 export const SILENCE_DEFAULT = '3d'
 
-/** Il tasto c'è su una carta di ok o di prova aperta, con un compito, se il relay ha l'op; mai su una scelta né sulla produzione. */
+/**
+ * Il tasto c'è su una carta aperta con un compito, se il relay ha l'op e la voce dice `silence_ok: true` (contratto 1.160): la regola è
+ * quella del registro (mai su una scelta, né su ciò che pubblica o paga), l'app non ne ha una sua. Senza il campo, niente.
+ */
 export function silenceOffer(w: WaitItem, ops: string[] | null | undefined): boolean {
-  return !!ops?.includes('silence') && w.task != null && isOpenItem(w) && (w.kind === 'ok' || w.kind === 'prova') && w.label !== 'choose' &&
-    !w.options?.length && !(w.actions ?? []).some(a => a.style === 'option') && w.card?.deploy !== true
+  return !!ops?.includes('silence') && w.task != null && isOpenItem(w) && w.silence_ok === true
 }
 
 /** La scadenza c'è e non è passata. */

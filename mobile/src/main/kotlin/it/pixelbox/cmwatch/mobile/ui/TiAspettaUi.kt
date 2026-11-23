@@ -6,6 +6,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
@@ -80,7 +84,9 @@ fun TiAspettaPage(
     // Sul telefono la scheda prende lo schermo intero e lascia il posto alla barra di stato come le altre pagine (systemBarsPadding,
     // app-ti-aspetta-titolo-320-10-11: il titolo finiva sotto l'ora, screenshot di Franz dell'08/11 21:38); nella colonna del
     // tablet il posto lo lascia già la plancia.
-    Column(Modifier.fillMaxSize().background(LocalPageBg.current ?: V3.Bg).then(if (wide) Modifier else Modifier.systemBarsPadding()).testTag("ti-aspetta-${page.key}")) {
+    // app-tastiera-ti-aspetta-23-11 (Franz 23/11 19:59): la pagina si accorcia della tastiera (imePadding, dopo le barre di sistema),
+    // così il campo di una carta e i suoi tasti possono stare sopra; ImeBlock li porta in vista.
+    Column(Modifier.fillMaxSize().background(LocalPageBg.current ?: V3.Bg).then(if (wide) Modifier else Modifier.systemBarsPadding()).imePadding().testTag("ti-aspetta-${page.key}")) {
         Row(Modifier.fillMaxWidth().padding(start = if (wide) 18.dp else 6.dp, end = 6.dp, top = 10.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
             if (!wide) IconButton(onClick = onBack, modifier = Modifier.handCursor()) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.back), tint = V3.Tx) }
             Column(Modifier.weight(1f)) {
@@ -291,13 +297,15 @@ fun WaitCardBody(
         }
         writing?.let { i ->
             val a = actions.getOrNull(i) ?: return@let
-            androidx.compose.material3.OutlinedTextField(
-                written, { v -> written = v.take(2000) }, modifier = Modifier.fillMaxWidth().testTag("ti-aspetta-testo"),
-                label = { Text(a.label) }, minLines = 2,
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                V3Pill(stringResource(R.string.ti_aspetta_send), filled = true) { if (written.isNotBlank() || a.textField == "text") go(i, a) }
-                V3Pill(stringResource(R.string.cancel)) { writing = null }
+            ImeBlock {
+                androidx.compose.material3.OutlinedTextField(
+                    written, { v -> written = v.take(2000) }, modifier = Modifier.fillMaxWidth().testTag("ti-aspetta-testo"),
+                    label = { Text(a.label) }, minLines = 2,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    V3Pill(stringResource(R.string.ti_aspetta_send), filled = true) { if (written.isNotBlank() || a.textField == "text") go(i, a) }
+                    V3Pill(stringResource(R.string.cancel)) { writing = null }
+                }
             }
         }
         // Dall'archivio (contratto 1.137) una scheda che non aspetta più dice com'è finita; senza tasti e ancora aperta, la fa la master.
@@ -314,6 +322,25 @@ fun WaitCardBody(
             Text(listOfNotNull(said, o.reason).joinToString(": "), style = V3.Small)
         }
     }
+}
+
+/**
+ * app-tastiera-ti-aspetta-23-11 (Franz 23/11 19:59): il blocco di un campo di testo di una carta (l'etichetta, il campo, Annulla e Manda)
+ * torna in vista intero sopra la tastiera quando il campo ha il fuoco e la tastiera si apre o cambia altezza: la pagina si è accorciata
+ * della tastiera (imePadding in TiAspettaPage) e il blocco chiede di essere visto. Lo stesso per «Chiudi senza ok», «Nessuna, rifare»,
+ * il motivo di «Non va» e ogni risposta scritta.
+ */
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+@Composable
+internal fun ImeBlock(modifier: Modifier = Modifier, content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
+    val req = remember { androidx.compose.foundation.relocation.BringIntoViewRequester() }
+    var focused by remember { mutableStateOf(false) }
+    val ime = androidx.compose.foundation.layout.WindowInsets.ime.getBottom(androidx.compose.ui.platform.LocalDensity.current)
+    androidx.compose.runtime.LaunchedEffect(focused, ime) { if (focused && ime > 0) req.bringIntoView() }
+    Column(
+        modifier.fillMaxWidth().then(Modifier.bringIntoViewRequester(req)).onFocusChanged { f -> focused = f.hasFocus }.testTag("campo-sopra-tastiera"),
+        verticalArrangement = Arrangement.spacedBy(8.dp), content = content,
+    )
 }
 
 /**

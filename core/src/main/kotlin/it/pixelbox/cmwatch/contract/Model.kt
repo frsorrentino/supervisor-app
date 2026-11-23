@@ -45,6 +45,11 @@ enum class EventKind {
      * bloccante), `ref` = la sessione; `attention_reminder` dopo 10 e 30 minuti, `ref` = il ref della voce, con `attention_kind`.
      */
     @SerialName("needs_you") NEEDS_YOU, @SerialName("turn_blocking") TURN_BLOCKING, @SerialName("attention_reminder") ATTENTION_REMINDER,
+    /**
+     * Contratto 1.160 (app-per-te-ordine-23-11): una voce di `state.attention` si è chiusa, da qualsiasi via (app, web, orologio,
+     * terminale, master); `ref` e `wid` della voce, `attention_kind`, sempre `quiet`. Telefono e orologio tolgono la sua notifica.
+     */
+    @SerialName("attention_closed") ATTENTION_CLOSED,
     /** Contratto 1.83: un server MCP chiede qualcosa (elicitation); title = server, body = domanda, ref = id della domanda. */
     @SerialName("elicitation") ELICITATION,
     /** Contratto 1.76: impegni fermi da più di `tasks.stall_hours` senza un passo; `ref` = il primo compito, `session` = a chi tocca, una riga per compito nel body. */
@@ -444,6 +449,8 @@ enum class CmdOp {
     val precedent: ApprovalPrecedent? = null, val also: List<ApprovalAlso>? = null,
     /** Contratto 1.159: la scadenza del silenzio assenso della carta, se c'è. */
     @SerialName("silence_until") val silenceUntil: Long? = null,
+    /** Contratto 1.160: si può dare il silenzio assenso. */
+    @SerialName("silence_ok") val silenceOk: Boolean? = null,
 )
 @Serializable data class ApprovalPrecedent(val task: String, val short: String? = null, val relation: String = "")
 @Serializable data class ApprovalAlso(val task: String, val short: String? = null)
@@ -562,7 +569,7 @@ enum class CmdOp {
 @Serializable data class ToccaClosed(val task: String, val short: String? = null, val kind: String = "", val rule: Int = 0, val at: Long = 0)
 
 /** Contratto 1.99, op `prove`. `dove` è una chiave libera che l'app traduce in una schermata. */
-@Serializable data class ProveItem(val id: Long, val task: String, val short: String? = null, val title: String? = null, val session: String? = null, val project: String? = null, val build: String = "", val dove: String? = null, val fai: String = "", val atteso: String = "", val at: Long = 0, val wid: String? = null, @SerialName("silence_until") val silenceUntil: Long? = null)
+@Serializable data class ProveItem(val id: Long, val task: String, val short: String? = null, val title: String? = null, val session: String? = null, val project: String? = null, val build: String = "", val dove: String? = null, val fai: String = "", val atteso: String = "", val at: Long = 0, val wid: String? = null, @SerialName("silence_until") val silenceUntil: Long? = null, @SerialName("silence_ok") val silenceOk: Boolean? = null)
 @Serializable data class ProveGroup(val build: String, val n: Int = 0, val at: Long = 0, val tasks: List<String> = emptyList(), val prove: List<ProveItem> = emptyList())
 @Serializable data class ProveKo(val id: Long, val task: String, val short: String? = null, val build: String = "", val dove: String? = null, val fai: String = "", val atteso: String = "", val text: String = "", val at: Long = 0)
 @Serializable data class ProveRed(val task: String, val short: String? = null, val reason: String? = null, val at: Long = 0)
@@ -838,6 +845,8 @@ val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts
     val ok: Boolean? = null,
     /** Contratto 1.68, `attention_reminder`: il kind della voce di `state.attention` che aspetta ancora. */
     @SerialName("attention_kind") val attentionKind: String? = null,
+    /** Contratto 1.160, `attention_closed`: l'id dell'attesa della voce chiusa (null se la voce non ne ha una). */
+    val wid: String? = null,
     /** Relay 0.8.30: il `turn_failed` chiuso, riscritto senza `continue_text` e con l'ora della chiusura. */
     @SerialName("settled_at") val settledAt: Long? = null,
 ) {
@@ -1292,6 +1301,10 @@ const val LEGACY_HANDOFF = "/fable-director:handoff --here"
     val asks: String? = null, val where: String? = null,
     /** Contratto 1.159 (app-silenzio-assenso-23-11): la scadenza del silenzio assenso (epoch), su ok e prova; assente = nessuna. */
     @SerialName("silence_until") val silenceUntil: Long? = null,
+    /** Contratto 1.160: si può dare il silenzio assenso (la regola del registro); il tasto c'è solo con true. */
+    @SerialName("silence_ok") val silenceOk: Boolean? = null,
+    /** Contratto 1.160 (app-per-te-ordine-23-11): la carta blocca un compito in corso; assente sulle altre voci. */
+    val blocking: Boolean? = null,
 )
 @Serializable data class WaitDecision(val key: String = "", val title: String? = null, val cause: String? = null, val where: String? = null, val weight: Double? = null, val unblocks: List<String>? = null, val note: String? = null, val since: Long? = null)
 @Serializable data class WaitTest(val id: Long = 0, val build: String = "", val dove: String? = null, val fai: String = "", val atteso: String = "", val state: String = "todo", val text: String? = null, val at: Long? = null)

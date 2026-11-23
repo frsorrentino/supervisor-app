@@ -598,6 +598,8 @@ const cartChoice = (now: number): WaitItem => {
       { n: 2, label: B, value: Bv, recommended: true, description: en ? 'Pay is always under the thumb; it covers one row of the list.' : 'Paga è sempre sotto il pollice; copre una riga della lista.', files: [b] },
     ],
     at: now - 540, card: null, link: '#/attesa/w00000000c3', answer: { op: 'approve', arg: 'demo-cart-layout' },
+    // Contratto 1.160: la scelta blocca il compito del carrello (app-per-te-ordine-23-11); una scelta non si dà per risolta col silenzio.
+    blocking: true, silence_ok: false,
     actions: [
       { label: A, style: 'option', cmd: { op: 'approve', session: null, arg: 'demo-cart-layout', text: 'ok', choice: A } },
       { label: B, style: 'primary', recommended: true, cmd: { op: 'approve', session: null, arg: 'demo-cart-layout', text: 'ok', choice: Bv } },
@@ -635,6 +637,8 @@ const cartProva = (now: number): WaitItem => ({
   ],
   files: [demoShot('checkout-before.png', 35449), { ...demoShot('checkout-tests.pdf', 1872), mime: 'application/pdf', kind: 'document' }],
   description: null, card_id: 'w00000000d4', state: 'open', answered: null,
+  // Contratto 1.160: una prova del carrello si può dare per risolta se tace, e blocca il compito finché non ha risposta.
+  silence_ok: true, blocking: true,
 })
 
 export const waitsDemo = (now: number): WaitItem[] => [

@@ -93,7 +93,9 @@ export type Suggestion = { id: string; kind: SuggestionKind | string; key: strin
   url?: string | null }
 export type UsageToday = { session: string; account: string; tokens: number; share: number }
 /** Contratto 1.99: `untested`, `undo`, `undo_how`, `precedent`, `also`, ognuno solo se dichiarato: assente vuol dire «non dichiarato». */
-export type Approval = { task: string; title: string; what: string; where: string; deploy: boolean; requested_at: number; advice?: WaitAdvice | null; options?: string[]; untested?: string | null; undo?: string | null; undo_how?: string | null; precedent?: { task: string; short?: string | null; relation: string } | null; also?: { task: string; short?: string | null }[] | null; wid?: string | null; silence_until?: number | null }
+export type Approval = { task: string; title: string; what: string; where: string; deploy: boolean; requested_at: number; advice?: WaitAdvice | null; options?: string[]; untested?: string | null; undo?: string | null; undo_how?: string | null; precedent?: { task: string; short?: string | null; relation: string } | null; also?: { task: string; short?: string | null }[] | null; wid?: string | null; silence_until?: number | null
+  /** Contratto 1.160: si può dare il silenzio assenso (false su scelte e su ciò che pubblica o paga). */
+  silence_ok?: boolean | null }
 export type ProveSummary = { n: number; builds: number; red: number; ko: number }
 export type DecisionsSummary = { n: number; here: number; tasks: number; snoozed: number }
 /** Contratto 1.113: il conto unico di Tocca a te; `today` le voci chiuse da sole oggi (`kind` pause, prova, needs_you; `rule` 1-4). */
@@ -104,7 +106,7 @@ export type ToccaState = { n: number; prove: number; decidi: number; rispondi?: 
  * esce una voce, o ne cambiano titolo o tasti; `closed` le voci chiuse negli ultimi 10 minuti, da chiunque (cade per prima sopra gli 8 KB).
  */
 export type AtteseState = { rev: string; n: number; closed?: { id: string; at: number }[] | null }
-export type ProveItem = { id: number; task: string; short?: string | null; title?: string | null; session?: string | null; project?: string | null; build: string; dove?: string | null; fai: string; atteso: string; at: number; wid?: string | null; silence_until?: number | null }
+export type ProveItem = { id: number; task: string; short?: string | null; title?: string | null; session?: string | null; project?: string | null; build: string; dove?: string | null; fai: string; atteso: string; at: number; wid?: string | null; silence_until?: number | null; silence_ok?: boolean | null }
 /** Contratto 1.106: un file consegnato da una sessione con SendUserFile; `caption`, `files`, `notes`, `replaced` solo nell'op `results`. */
 export type ResultItem = {
   id: string; session?: string | null; title: string; kind: 'video' | 'mockup' | 'image' | 'document' | 'other' | string; mime?: string | null
@@ -211,7 +213,7 @@ export type DoneRow = { task: string; title: string; short?: string | null; proj
 export type DonePage = { date: string; rows: DoneRow[]; days: { date: string; n: number }[]; more: boolean }
 export type RecapItem = { project: string; done: string; next?: string | null }
 export type Recap = { date: string; items: RecapItem[] }
-export type EventKind = 'reminder' | 'question' | 'answered' | 'outcome' | 'gone' | 'launched' | 'quota' | 'resumed' | 'recap' | 'night_report' | 'restart_failed' | 'relay_stale' | 'task_check' | 'quota_limit' | 'turn_failed' | 'week_unused' | 'week_pace' | 'needs_you' | 'turn_blocking' | 'attention_reminder' | 'task_stalled' | 'elicitation'
+export type EventKind = 'reminder' | 'question' | 'answered' | 'outcome' | 'gone' | 'launched' | 'quota' | 'resumed' | 'recap' | 'night_report' | 'restart_failed' | 'relay_stale' | 'task_check' | 'quota_limit' | 'turn_failed' | 'week_unused' | 'week_pace' | 'needs_you' | 'turn_blocking' | 'attention_reminder' | 'task_stalled' | 'elicitation' | 'attention_closed'
 export type Event = { key: string; kind: EventKind; session?: string | null; account?: string | null; ts: number; title: string; body?: string; ref?: string | null
   /** Contratto 1.56: titolo e corpo senza segreti. */
   preview?: { title: string; body?: string } | null
@@ -224,7 +226,9 @@ export type Event = { key: string; kind: EventKind; session?: string | null; acc
   /** Relay 0.8.30: il `turn_failed` chiuso, riscritto senza `continue_text` e con l'ora della chiusura. */
   settled_at?: number | null
   /** Contratto 1.78: sui `task_check` l'esito (true = verde), perché il titolo non porta più ✓ o ✗; null altrove e con un relay precedente. */
-  ok?: boolean | null }
+  ok?: boolean | null
+  /** Contratto 1.160, `attention_closed`: l'id dell'attesa della voce chiusa altrove. */
+  wid?: string | null }
 
 // Trascrizione (contratto 1.22): `in` comprende la cache; `queued` = scritta a turno in corso e non ancora presa; `cut` = accorciata dal PC.
 export type TranscriptTurn = { started?: number | null; ended?: number | null; in?: number | null; out?: number | null }
@@ -579,6 +583,10 @@ export type WaitItem = {
   build?: string | null; red?: { reason?: string | null; running?: boolean } | null; asks?: string | null; where?: string | null
   /** Contratto 1.159 (app-silenzio-assenso-23-11): la scadenza del silenzio assenso (epoch), su ok e prova; assente = nessuna. */
   silence_until?: number | null
+  /** Contratto 1.160: si può dare il silenzio assenso (la regola del registro); il tasto c'è solo con true. */
+  silence_ok?: boolean | null
+  /** Contratto 1.160 (app-per-te-ordine-23-11): la carta blocca un compito in corso; assente sulle altre voci. */
+  blocking?: boolean | null
   /** Contratto 1.149: il consiglio di chi chiede, su una carta ok o choice; null sulle carte nate prima e sulle altre voci. */
   advice?: WaitAdvice | null
 }

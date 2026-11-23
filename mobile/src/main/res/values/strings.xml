@@ -2154,6 +2154,12 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="per_te_no_session">Senza sessione</string>
     <string name="per_te_group_open">apri</string>
     <string name="per_te_group_this">questa</string>
+    <!-- app-per-te-ordine-23-11: in alto le carte che bloccano un lavoro; i gruppi chiusi dicono quante voci hanno. -->
+    <string name="per_te_blocking">Bloccano un lavoro</string>
+    <plurals name="per_te_group_n">
+        <item quantity="one">1 voce</item>
+        <item quantity="other">%d voci</item>
+    </plurals>
     <string name="lavori_to_voce">aspetta il tuo ok ›</string>
     <string name="cat_sig_for_you">Per te %1$d</string>
     <string name="per_te_version">versione %1$d</string>

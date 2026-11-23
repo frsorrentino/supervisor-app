@@ -1,7 +1,7 @@
 /// <reference lib="webworker" />
 // Il service worker della web app: apre subito anche senza rete, e non tiene mai in cache i dati. Mostra le notifiche
 // web push (fase 4) e al tocco apre la sessione. Vite lo costruisce a parte come /sw.js (vite.config.ts).
-import { notificationOf, type Payload } from './lib/pushView'
+import { isClosed, notificationOf, sameItem, type Payload } from './lib/pushView'
 
 declare const self: ServiceWorkerGlobalScope
 
@@ -39,9 +39,17 @@ self.addEventListener('push', (e: PushEvent) => {
   let p: Payload = null
   try { p = e.data?.json() ?? null } catch { p = { body: e.data?.text() ?? '' } }
   const n = notificationOf(p)
+  if (isClosed(p)) {
+    e.waitUntil((async () => {
+      for (const x of await self.registration.getNotifications()) if (sameItem(x.data as { ref?: string; wid?: string } | null, p)) x.close()
+      await self.registration.showNotification(n.title, { body: n.body, tag: n.tag, silent: true, icon: '/icon-192.png', badge: '/icon-192.png' })
+      for (const x of await self.registration.getNotifications({ tag: n.tag })) x.close()
+    })())
+    return
+  }
   // Contratto 1.68: un'interruzione resta finché non la tocchi e vibra come telefono e orologio (dove il browser lo fa).
   const strong = n.strong && !n.silent ? { requireInteraction: true, renotify: true, vibrate: [220, 120, 220] } : {}
-  e.waitUntil(self.registration.showNotification(n.title, { body: n.body, tag: n.tag, silent: n.silent, icon: '/icon-192.png', badge: '/icon-192.png', data: { url: n.url }, ...strong } as NotificationOptions))
+  e.waitUntil(self.registration.showNotification(n.title, { body: n.body, tag: n.tag, silent: n.silent, icon: '/icon-192.png', badge: '/icon-192.png', data: { url: n.url, ref: p?.ref ?? null, wid: p?.wid ?? null }, ...strong } as NotificationOptions))
 })
 
 self.addEventListener('notificationclick', (e: NotificationEvent) => {

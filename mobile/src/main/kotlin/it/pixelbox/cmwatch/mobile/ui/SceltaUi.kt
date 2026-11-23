@@ -396,7 +396,8 @@ fun SceltaAperta(item: WaitItem, rows: List<Pair<Int, String>>, onSend: (Int, St
         if (c.extra.isNotEmpty()) WaitFilesBlock(c.extra)
         writing?.let { i ->
             val a = acts.getOrNull(i) ?: return@let
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            // app-tastiera-ti-aspetta-23-11: il campo, Annulla e Manda tornano in vista sopra la tastiera.
+            ImeBlock {
                 Rule()
                 Text(if (isRedo) stringResource(R.string.scelta_reason_label) else a.label, style = V3.Name, modifier = Modifier.padding(top = 4.dp))
                 if (isRedo) Text(stringResource(R.string.scelta_reason_hint), style = V3.Small)

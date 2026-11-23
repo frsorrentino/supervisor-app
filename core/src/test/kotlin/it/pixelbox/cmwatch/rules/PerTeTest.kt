@@ -106,6 +106,21 @@ class PerTeTest {
         assertNull(adv(null, pick))
     }
     private fun act(label: String, style: String, rec: Boolean = false) = WaitAction(label = label, style = style, cmd = JsonObject(emptyMap()), recommended = rec)
+    // app-per-te-ordine-23-11 (contratto 1.160): le carte che bloccano un compito in alto, il resto nei gruppi. Come perTe.test.ts.
+    private fun w(id: String, session: String, at: Long, blocking: Boolean? = null) =
+        WaitItem(id, type = "carta", kind = "ok", label = "decide", labelText = "Decidi", session = session, task = id, text = id, at = at, state = "open", blocking = blocking)
+
+    @Test fun blockingOnTopOldestFirstWithTheirSession() {
+        val o = PerTe.splitBlocking(PerTe.groupsOf(listOf(w("a1", "albo", 100), w("a2", "albo", 200), w("s1", "shop", 300, true), w("a3", "albo", 50, true)), emptyList()))
+        assertEquals(listOf("a3" to "albo", "s1" to "shop"), o.top.map { it.voce.key to it.session })
+        assertEquals(listOf("albo" to listOf("a1", "a2")), o.groups.map { g -> g.session to g.voci.map { it.key } })
+    }
+
+    @Test fun beforeTheContractAllInGroups() {
+        val groups = PerTe.groupsOf(listOf(w("a1", "albo", 100), w("s1", "shop", 300)), emptyList())
+        assertEquals(PerTe.Ordine(emptyList(), groups), PerTe.splitBlocking(groups))
+    }
+
     private fun group(session: String, unseen: Boolean, id: String, title: String, at: Long) = ResultGroup(title = title, session = session, kind = "document", at = at, unseen = unseen,
         items = listOf(ResultItem(id = id, session = session, title = title, kind = "document", path = "out/x.md", at = at, seenAt = if (unseen) null else at)))
 }

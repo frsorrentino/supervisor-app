@@ -45,6 +45,7 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.SpanStyle
@@ -331,8 +332,10 @@ fun adviceText(a: PerTe.Advice?): String? {
 
 /** Una voce di «Per te», la stessa nella sessione e in Dalla master: contesto, da quanto aspetta, il consiglio e il tasto. */
 @Composable
-fun VoceItem(v: PerTe.Voce, now: Long, onOpen: (PerTe.Voce) -> Unit, onMain: (PerTe.Voce) -> Unit) {
+fun VoceItem(v: PerTe.Voce, now: Long, onOpen: (PerTe.Voce) -> Unit, onMain: (PerTe.Voce) -> Unit, session: String? = null) {
+    // [session]: una carta che blocca un lavoro, fuori dal gruppo della sua sessione, la dice in testa (app-per-te-ordine-23-11).
     val sub = listOfNotNull(
+        session,
         groupWord(v.group),
         v.result?.let { r -> listOfNotNull(kindWord(r.kind), r.version?.let { n -> stringResource(R.string.per_te_version, n) }).joinToString(", ") } ?: v.context,
     ).joinToString(" · ")
@@ -361,17 +364,42 @@ fun PerTeGroupsBody(
     onSession: (String) -> Unit, onOpen: (PerTe.Voce) -> Unit, onMain: (PerTe.Voce) -> Unit,
 ) {
     if (groups.isEmpty()) return
+    // app-per-te-ordine-23-11 (Franz 23/11 19:00 e 19:01; contratto 1.160): in alto, aperte, le carte che bloccano un compito in corso,
+    // ognuna con la sua sessione; sotto i gruppi per sessione col resto, chiusi di base, col nome, quante voci e da quanto, e la stessa
+    // freccia delle altre sezioni; «apri» porta alla sessione. Il rimando da una sessione apre il suo gruppo. I gruppi aperti a mano
+    // restano aperti finché l'app è aperta.
+    val order = PerTe.splitBlocking(groups)
+    val opened = androidx.compose.runtime.saveable.rememberSaveable(
+        saver = androidx.compose.runtime.saveable.listSaver<androidx.compose.runtime.snapshots.SnapshotStateList<String>, String>({ it.toList() }, { androidx.compose.runtime.mutableStateListOf(*it.toTypedArray()) }),
+    ) { androidx.compose.runtime.mutableStateListOf<String>() }
     val shape = RoundedCornerShape(16.dp)
     Column(Modifier.fillMaxWidth().clip(shape).background(V3.S1).border(1.dp, V3.Line, shape).testTag("per-te-gruppi")) {
-        groups.forEachIndexed { gi, g ->
-            if (gi > 0) HorizontalDivider(color = V3.Line)
+        if (order.top.isNotEmpty()) {
+            Row(
+                Modifier.fillMaxWidth().background(V3.Wait.copy(alpha = 0.10f).compositeOver(V3.S2)).heightIn(min = 48.dp).padding(horizontal = 16.dp).testTag("per-te-bloccanti"),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Box(Modifier.size(10.dp).clip(CircleShape).background(V3.Wait))
+                Text(stringResource(R.string.per_te_blocking), style = V3.Name.copy(fontSize = 16.sp), maxLines = 1, softWrap = false, overflow = TextOverflow.Clip)
+                Text(pluralStringResource(R.plurals.per_te_group_n, order.top.size, order.top.size), style = V3.Small.copy(fontSize = 13.sp, color = V3.Tx2), maxLines = 1, softWrap = false, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f))
+            }
+            order.top.forEach { bl ->
+                HorizontalDivider(color = V3.Line)
+                VoceItem(bl.voce, now, onOpen, onMain, session = bl.session)
+            }
+        }
+        order.groups.forEachIndexed { gi, g ->
+            if (gi > 0 || order.top.isNotEmpty()) HorizontalDivider(color = V3.Line)
             val name = g.session
+            val key = name.orEmpty()
+            val on = key in opened
             val here = name != null && name in current
             val req = androidx.compose.runtime.remember { androidx.compose.foundation.relocation.BringIntoViewRequester() }
             var lit by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
             val fx = focus?.takeIf { f -> f.session == name }
             androidx.compose.runtime.LaunchedEffect(fx?.n) {
                 if (fx == null || System.currentTimeMillis() - fx.at > 1500) return@LaunchedEffect
+                if (key !in opened) opened += key
                 lit = true
                 req.bringIntoView()
                 kotlinx.coroutines.delay(1600)
@@ -380,27 +408,37 @@ fun PerTeGroupsBody(
             val bg by androidx.compose.animation.animateColorAsState(
                 when { lit -> V3.Wait.copy(alpha = 0.26f).compositeOver(V3.S2); here -> V3.Wait.copy(alpha = 0.12f).compositeOver(V3.S2); else -> V3.S2 }, label = "gruppo",
             )
-            Row(
-                Modifier.fillMaxWidth().bringIntoViewRequester(req).background(bg).heightIn(min = 44.dp)
-                    .then(if (name != null) Modifier.handCursor().clickable(role = Role.Button) { onSession(name) } else Modifier)
-                    .testTag(if (name != null) "gruppo-$name" else "gruppo-senza-sessione").padding(start = 16.dp, end = 12.dp),
-                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                Box(Modifier.size(10.dp).clip(CircleShape).background(if (g.voci.any { v -> v.group != PerTe.Group.VERIFICA }) V3.Wait else V3.Tx3))
-                Text(name ?: stringResource(R.string.per_te_no_session), style = V3.Name.copy(fontSize = 16.sp), maxLines = 1, softWrap = false, overflow = TextOverflow.Clip)
-                if (name != null) {
+            Row(Modifier.fillMaxWidth().bringIntoViewRequester(req).background(bg).heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    Modifier.weight(1f).heightIn(min = 48.dp).handCursor().clickable(role = Role.Button) { if (on) opened -= key else opened += key }
+                        .testTag(if (name != null) "gruppo-$name" else "gruppo-senza-sessione").padding(start = 16.dp, end = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Box(Modifier.size(10.dp).clip(CircleShape).background(if (g.voci.any { v -> v.group != PerTe.Group.VERIFICA }) V3.Wait else V3.Tx3))
+                    Text(name ?: stringResource(R.string.per_te_no_session), style = V3.Name.copy(fontSize = 16.sp), maxLines = 1, softWrap = false, overflow = TextOverflow.Clip)
                     Text(
-                        if (here) stringResource(R.string.per_te_group_this) else TiAspetta.age(now - g.voci.minOf { v -> v.since }),
+                        pluralStringResource(R.plurals.per_te_group_n, g.voci.size, g.voci.size) + " · " +
+                            (if (here) stringResource(R.string.per_te_group_this) else TiAspetta.age(now - g.voci.minOf { v -> v.since })),
                         style = V3.Small.copy(fontSize = 13.sp, color = if (here) V3.Wait else V3.Tx2), maxLines = 1, softWrap = false, overflow = TextOverflow.Clip,
                         modifier = Modifier.weight(1f),
                     )
+                    TurnArrow(on, V3.Tx2, Modifier.size(20.dp))
+                }
+                if (name != null) Row(
+                    Modifier.heightIn(min = 48.dp).handCursor().clickable(role = Role.Button) { onSession(name) }.testTag("gruppo-apri-$name").padding(start = 6.dp, end = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     Text(stringResource(R.string.per_te_group_open), style = V3.Small.copy(fontSize = 13.sp, color = V3.Tx2), maxLines = 1, softWrap = false)
                     Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx2, modifier = Modifier.size(16.dp))
                 }
             }
-            g.voci.forEach { v ->
-                HorizontalDivider(color = V3.Line)
-                VoceItem(v, now, onOpen, onMain)
+            FoldIn(on) {
+                Column {
+                    g.voci.forEach { v ->
+                        HorizontalDivider(color = V3.Line)
+                        VoceItem(v, now, onOpen, onMain)
+                    }
+                }
             }
         }
     }

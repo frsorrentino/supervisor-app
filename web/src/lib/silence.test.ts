@@ -13,16 +13,19 @@ const ops = ['attese', 'silence']
 const item = (kind: string) => list.find(w => w.kind === kind)!
 
 describe('il silenzio assenso', () => {
-  it('solo su ok e prova', () => {
-    expect(list.filter(w => silenceOffer(w, ops)).map(w => w.kind)).toEqual(['ok', 'prova'])
-    expect(silenceOffer(item('ok'), ['attese'])).toBe(false)
+  // Contratto 1.160: la regola è del registro, `silence_ok`; l'app non ne ha una sua.
+  it('solo dove il relay dice silence_ok', () => {
+    const yes = { ...item('ok'), silence_ok: true }
+    expect(silenceOffer(yes, ops)).toBe(true)
+    expect(silenceOffer({ ...item('prova'), silence_ok: true }, ops)).toBe(true)
+    expect(silenceOffer({ ...item('ok'), silence_ok: false }, ops)).toBe(false)
+    // Un relay prima della 1.160 non ha il campo: niente tasto (la fixture ha «pubblica 1.4 sul Play Store»).
+    expect(list.filter(w => silenceOffer(w, ops))).toEqual([])
+    expect(silenceOffer(yes, ['attese'])).toBe(false)
   })
-  it('mai su una scelta né sulla produzione', () => {
-    expect(silenceOffer({ ...item('ok'), options: [{ n: 1, label: 'A', value: 'A' }, { n: 2, label: 'B', value: 'B' }] } as WaitItem, ops)).toBe(false)
-    expect(silenceOffer({ ...item('ok'), label: 'choose' }, ops)).toBe(false)
-    expect(silenceOffer({ ...item('ok'), card: { deploy: true } }, ops)).toBe(false)
-    expect(silenceOffer({ ...item('ok'), task: null }, ops)).toBe(false)
-    expect(silenceOffer({ ...item('ok'), state: 'approved' } as WaitItem, ops)).toBe(false)
+  it('mai su una carta chiusa o senza compito', () => {
+    expect(silenceOffer({ ...item('ok'), silence_ok: true, task: null }, ops)).toBe(false)
+    expect(silenceOffer({ ...item('ok'), silence_ok: true, state: 'approved' } as WaitItem, ops)).toBe(false)
   })
   it('le date', () => {
     const until = Date.UTC(2026, 10, 26, 12, 30) / 1000 // 13:30 a Roma

@@ -5,9 +5,7 @@ import it.pixelbox.cmwatch.contract.DonePage
 import it.pixelbox.cmwatch.contract.DoneRow
 import it.pixelbox.cmwatch.contract.DoneSilence
 import it.pixelbox.cmwatch.contract.WaitAnswered
-import it.pixelbox.cmwatch.contract.WaitCard
 import it.pixelbox.cmwatch.contract.WaitRound
-import it.pixelbox.cmwatch.contract.WaitOption
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -23,18 +21,21 @@ class SilenceTest {
     private val ops = listOf("attese", "silence")
     private fun item(kind: String) = list.first { it.kind == kind }
 
-    @Test fun onOkAndProvaOnly() {
-        assertEquals(listOf("ok", "prova"), list.filter { Silence.offer(it, ops) }.map { it.kind })
+    // Contratto 1.160: la regola è del registro, `silence_ok`; l'app non ne ha una sua.
+    @Test fun onlyWhereTheRelaySaysSo() {
+        val yes = item("ok").copy(silenceOk = true)
+        assertTrue(Silence.offer(yes, ops))
+        assertTrue(Silence.offer(item("prova").copy(silenceOk = true), ops))
+        assertFalse(Silence.offer(item("ok").copy(silenceOk = false), ops))
+        // Un relay prima della 1.160 non ha il campo: niente tasto (la fixture ha «pubblica 1.4 sul Play Store»).
+        assertEquals(emptyList<String>(), list.filter { Silence.offer(it, ops) }.map { it.kind })
         // Senza l'op il relay non sa farlo: niente tasto.
-        assertFalse(Silence.offer(item("ok"), listOf("attese")))
+        assertFalse(Silence.offer(yes, listOf("attese")))
     }
 
-    @Test fun neverOnAChoiceOrProduction() {
-        assertFalse(Silence.offer(item("ok").copy(options = listOf(WaitOption(1, "A"), WaitOption(2, "B"))), ops))
-        assertFalse(Silence.offer(item("ok").copy(label = "choose"), ops))
-        assertFalse(Silence.offer(item("ok").copy(card = WaitCard(deploy = true)), ops))
-        assertFalse(Silence.offer(item("ok").copy(task = null), ops))
-        assertFalse(Silence.offer(item("ok").copy(state = "approved"), ops))
+    @Test fun neverOnAClosedCardOrWithoutATask() {
+        assertFalse(Silence.offer(item("ok").copy(silenceOk = true, task = null), ops))
+        assertFalse(Silence.offer(item("ok").copy(silenceOk = true, state = "approved"), ops))
     }
 
     @Test fun theDates() {

@@ -22,6 +22,6 @@ object NotificationIcon {
         EventKind.ATTENTION_REMINDER, EventKind.REMINDER -> Icon.BELL
         EventKind.TASK_STALLED -> Icon.CLOCK
         EventKind.RECAP, EventKind.NIGHT_REPORT -> Icon.NIGHT
-        EventKind.ANSWERED, EventKind.LAUNCHED, EventKind.RESUMED -> Icon.APP
+        EventKind.ANSWERED, EventKind.LAUNCHED, EventKind.RESUMED, EventKind.ATTENTION_CLOSED -> Icon.APP
     }
 }

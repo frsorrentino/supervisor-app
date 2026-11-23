@@ -16,13 +16,11 @@ object Silence {
     const val DEFAULT = "3d"
 
     /**
-     * Il tasto c'è su una carta di ok o di prova aperta, con un compito, se il relay ha l'op. Mai su una scelta fra opzioni né su una
-     * carta che nomina la produzione (release, push, deploy, pagamenti e invii il relay li rifiuta comunque, e lo dice).
+     * Il tasto c'è su una carta aperta con un compito, se il relay ha l'op e la voce dice `silence_ok: true` (contratto 1.160): la
+     * regola è quella del registro (mai su una scelta, né su ciò che pubblica o paga), l'app non ne ha una sua. Senza il campo, niente.
      */
     fun offer(w: WaitItem, ops: List<String>?): Boolean =
-        ops?.contains("silence") == true && w.task != null && Attese.isOpen(w) &&
-            (w.kind == "ok" || w.kind == "prova") && w.label != "choose" && w.options.isNullOrEmpty() &&
-            w.actions.orEmpty().none { it.style == "option" } && w.card?.deploy != true
+        ops?.contains("silence") == true && w.task != null && Attese.isOpen(w) && w.silenceOk == true
 
     /** La scadenza c'è e non è passata: la carta dice quando si chiude da sola. Dopo la scadenza esce alla prossima passata del relay. */
     fun pending(until: Long?, now: Long): Boolean = until != null && until > now

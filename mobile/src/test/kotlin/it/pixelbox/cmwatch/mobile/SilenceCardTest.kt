@@ -21,8 +21,8 @@ import org.junit.Test
 import java.io.File
 
 /**
- * app-silenzio-assenso-23-11 (variante A, Franz 23/11 18:52): la carta di prova e quella di ok col tasto «Dai per risolto se tace»
- * accanto agli altri, la carta con la scadenza messa (la riga blu con la data e «Annulla»), e la riga di Per te con «si chiude da
+ * app-silenzio-assenso-23-11 (variante A, Franz 23/11 18:52): la carta di prova col tasto «Dai per risolto se tace» accanto agli
+ * altri e quella di ok che pubblica, senza (silence_ok false, contratto 1.160), la carta con la scadenza messa (la riga blu con la data e «Annulla»), e la riga di Per te con «si chiude da
  * sola». A 360 dp col testo normale e grande, sulla fixture delle attese del relay. Registrati in UTC come in CI.
  */
 abstract class SilenceCardShots(scale: Float) {
@@ -38,8 +38,9 @@ abstract class SilenceCardShots(scale: Float) {
     @Test fun keys() = paparazzi.snapshot {
         CmPhoneTheme(still = true) {
             Column(Modifier.fillMaxSize().background(Cm.bg).padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                WaitCardBody(item("prova"), ops, now, { null }) { _, _ -> }
-                WaitCardBody(item("ok"), ops, now, { null }) { _, _ -> }
+                WaitCardBody(item("prova").copy(silenceOk = true), ops, now, { null }) { _, _ -> }
+                // «pubblica 1.4 sul Play Store»: il registro dice silence_ok false (contratto 1.160), niente tasto.
+                WaitCardBody(item("ok").copy(silenceOk = false), ops, now, { null }) { _, _ -> }
             }
         }
     }
@@ -47,7 +48,7 @@ abstract class SilenceCardShots(scale: Float) {
     @Test fun set() = paparazzi.snapshot {
         CmPhoneTheme(still = true) {
             Column(Modifier.fillMaxSize().background(Cm.bg).padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                WaitCardBody(item("prova").copy(silenceUntil = until), ops, now, { null }) { _, _ -> }
+                WaitCardBody(item("prova").copy(silenceUntil = until, silenceOk = true), ops, now, { null }) { _, _ -> }
                 VoceItem(PerTe.voceOf(item("prova").copy(silenceUntil = until)), now, {}, {})
                 VoceItem(PerTe.voceOf(item("ok").copy(silenceUntil = until)), now, {}, {})
             }

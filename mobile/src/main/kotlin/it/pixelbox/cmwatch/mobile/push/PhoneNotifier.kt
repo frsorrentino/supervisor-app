@@ -227,6 +227,12 @@ class PhoneNotifier(private val ctx: Context) {
         }
     }
 
+    /** Contratto 1.160 (app-per-te-ordine-23-11): `attention_closed`, la voce ha avuto risposta altrove: via la sua notifica, per ref e wid. */
+    fun closedElsewhere(e: it.pixelbox.cmwatch.contract.Event) {
+        val kind = e.attentionKind ?: "card"
+        setOfNotNull(e.ref, e.wid).forEach { r -> closeAttention(it.pixelbox.cmwatch.contract.Attention(kind, e.session, r)) }
+    }
+
     fun closeTurnFailed(session: String) = nm.cancel(("turn-failed-$session").hashCode())
 
     private fun openSession(session: String?) = PendingIntent.getActivity(

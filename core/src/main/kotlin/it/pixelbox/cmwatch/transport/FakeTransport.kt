@@ -72,7 +72,11 @@ class FakeTransport(
         ?.let { w -> ContractJson.json.encodeToString(WaitItem.serializer(), silenced(w.copy(at = w.at + waitsShift()))) } ?: raw
     /** Contratto 1.159: le scadenze del silenzio assenso messe col tasto, per compito; le attese le portano come farebbe il relay. */
     private val silence = java.util.concurrent.ConcurrentHashMap<String, Long>()
-    private fun silenced(w: WaitItem): WaitItem = w.task?.let { t -> silence[t] }?.let { u -> w.copy(silenceUntil = u) } ?: w
+    // Contratto 1.160: la fixture è di prima; la demo dà `silence_ok` alle prove, come il registro su una prova che non pubblica.
+    private fun silenced(w0: WaitItem): WaitItem {
+        val w = if (w0.silenceOk == null) w0.copy(silenceOk = w0.kind == "prova") else w0
+        return w.task?.let { t -> silence[t] }?.let { u -> w.copy(silenceUntil = u) } ?: w
+    }
 
     fun sampleText(op: String): String {
         val root = kotlinx.serialization.json.Json.parseToJsonElement(load("cmd-result-sample")).let { it as kotlinx.serialization.json.JsonObject }

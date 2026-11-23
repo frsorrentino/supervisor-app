@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import type { ResultGroup, WaitAction, WaitItem } from './contract'
-import { adviceOf, groupOf, groupsOf, mainOf, voceOf, voci } from './perTe'
+import { adviceOf, groupOf, groupsOf, mainOf, splitBlocking, voceOf, voci } from './perTe'
 
 // Gli stessi casi di PerTeTest.kt.
 const file = JSON.parse(readFileSync(new URL('../../../core/src/test/resources/per-te-cases.json', import.meta.url), 'utf8')) as {
@@ -84,5 +84,21 @@ describe("le due viste: «Per te» nella sessione e Dalla master per sessione", 
   })
   it('le due viste usano la stessa riga e lo stesso tasto', () => {
     for (const f of ['./PerTe.svelte', './PerTeGruppi.svelte']) expect(read(f)).toMatch(/actVoce\(run, v, /)
+  })
+})
+
+// app-per-te-ordine-23-11 (contratto 1.160): le carte che bloccano un compito in alto, il resto nei gruppi. Come PerTeTest.kt.
+describe('Per te in ordine', () => {
+  const w = (id: string, session: string, at: number, blocking?: boolean): WaitItem =>
+    ({ id, type: 'carta', kind: 'ok', label: 'decide', label_text: 'Decidi', session, task: id, text: id, at, card: null, link: '', state: 'open', ...(blocking ? { blocking } : {}) }) as WaitItem
+  it('in alto le bloccanti dalla più vecchia, con la loro sessione; i gruppi tengono il resto', () => {
+    const groups = groupsOf([w('a1', 'albo', 100), w('a2', 'albo', 200), w('s1', 'shop', 300, true), w('a3', 'albo', 50, true)], [])
+    const { top, groups: rest } = splitBlocking(groups)
+    expect(top.map(v => [v.key, v.session])).toEqual([['a3', 'albo'], ['s1', 'shop']])
+    expect(rest.map(g => [g.session, g.voci.map(v => v.key)])).toEqual([['albo', ['a1', 'a2']]])
+  })
+  it('un relay prima della 1.160: niente in alto, tutto nei gruppi', () => {
+    const groups = groupsOf([w('a1', 'albo', 100), w('s1', 'shop', 300)], [])
+    expect(splitBlocking(groups)).toEqual({ top: [], groups })
   })
 })

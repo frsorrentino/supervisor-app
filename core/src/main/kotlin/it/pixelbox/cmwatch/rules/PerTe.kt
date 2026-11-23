@@ -107,6 +107,19 @@ object PerTe {
     data class Gruppo(val session: String?, val voci: List<Voce>)
 
     /**
+     * Per te in ordine (app-per-te-ordine-23-11, Franz 23/11 19:00 e 19:01; contratto 1.160): in alto, aperte, le carte che bloccano
+     * un compito in corso (`blocking`), dalla più vecchia, ognuna con la sua sessione; sotto i gruppi per sessione col resto (pause,
+     * domande, verifiche), chiusi di base. Un gruppo che resta senza voci non c'è. La stessa regola di splitBlocking in perTe.ts.
+     */
+    data class Bloccante(val session: String?, val voce: Voce)
+    data class Ordine(val top: List<Bloccante>, val groups: List<Gruppo>)
+    fun splitBlocking(groups: List<Gruppo>): Ordine {
+        val top = groups.flatMap { g -> g.voci.filter { v -> v.wait?.blocking == true }.map { v -> Bloccante(g.session, v) } }.sortedBy { it.voce.since }
+        val rest = groups.mapNotNull { g -> g.voci.filter { v -> v.wait?.blocking != true }.takeIf { it.isNotEmpty() }?.let { Gruppo(g.session, it) } }
+        return Ordine(top, rest)
+    }
+
+    /**
      * Dalla master (app-riall-2-viste-16-11, direzione A scelta da Franz il 16/11): le stesse voci di «Per te» di ogni sessione, una
      * sessione per gruppo; prima quella che aspetta da più tempo, in fondo le voci senza sessione (la prima raccolta). Le voci già
      * risposte ([answered]) restano fuori, e un gruppo senza voci non c'è. La stessa regola di groupsOf in perTe.ts.
