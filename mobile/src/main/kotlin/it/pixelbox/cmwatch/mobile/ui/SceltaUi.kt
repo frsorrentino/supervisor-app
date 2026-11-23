@@ -244,6 +244,7 @@ private fun outcomeText(o: Scelta.Outcome): String? = when (o.state) {
     Scelta.State.APPROVED -> stringResource(R.string.scelta_approved)
     Scelta.State.REDO -> stringResource(R.string.scelta_redo)
     Scelta.State.CLOSED -> stringResource(R.string.scelta_closed)
+    Scelta.State.SILENCE -> stringResource(R.string.scelta_done_silence)
     Scelta.State.OPEN -> null
 }
 
@@ -442,7 +443,7 @@ fun SceltaAperta(item: WaitItem, rows: List<Pair<Int, String>>, onSend: (Int, St
                         Text(roundName, style = V3.Name.copy(fontSize = 16.sp))
                         Text(sceltaWhen(r.answeredAt ?: r.at), style = V3.Meter)
                     }
-                    val why = stringResource(when (r.state) { "redo" -> R.string.scelta_round_redo; "replaced" -> R.string.scelta_round_replaced; else -> R.string.scelta_round_closed })
+                    val why = stringResource(when (r.state) { "redo" -> R.string.scelta_round_redo; "replaced" -> R.string.scelta_round_replaced; "silence" -> R.string.silence_label; else -> R.string.scelta_round_closed })
                     Text(buildAnnotatedString { withStyle(SpanStyle(color = V3.Tx2)) { append(why) }; r.reason?.let { append(": "); append(it) } }, style = V3.Body.copy(fontSize = 15.sp))
                     (r.description ?: r.text).takeIf { it.isNotBlank() }?.let { Text(it, style = V3.Small) }
                     val shown = r.options.filter { it.images.isNotEmpty() }

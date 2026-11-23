@@ -27,6 +27,7 @@ import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -47,6 +48,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.TiAspetta
 import java.time.Instant
@@ -203,7 +205,13 @@ internal fun kindLabel(k: TiAspetta.Kind): String = stringResource(
  * resta acceso quello toccato. `onSend` riceve il tasto e il testo scritto; il comando lo compone Repo.commandOf.
  */
 @Composable
-fun WaitCardBody(item: it.pixelbox.cmwatch.contract.WaitItem, onSend: (it.pixelbox.cmwatch.contract.WaitAction, String?) -> Unit) {
+fun WaitCardBody(
+    item: it.pixelbox.cmwatch.contract.WaitItem,
+    ops: List<String>? = null, now: Long = 0,
+    /** Contratto 1.159: l'op `silence` col testo («3d» o «off»); null senza relay. */
+    onSilence: (suspend (String) -> it.pixelbox.cmwatch.contract.CmdResult?)? = null,
+    onSend: (it.pixelbox.cmwatch.contract.WaitAction, String?) -> Unit,
+) {
     var sent by androidx.compose.runtime.saveable.rememberSaveable(item.id) { androidx.compose.runtime.mutableStateOf<Int?>(null) }
     var writing by androidx.compose.runtime.saveable.rememberSaveable(item.id) { androidx.compose.runtime.mutableStateOf<Int?>(null) }
     var written by androidx.compose.runtime.saveable.rememberSaveable(item.id) { androidx.compose.runtime.mutableStateOf("") }
@@ -278,6 +286,8 @@ fun WaitCardBody(item: it.pixelbox.cmwatch.contract.WaitItem, onSend: (it.pixelb
                     V3Pill(a.label, filled = TiAspetta.lookOf(a) == TiAspetta.Look.MAIN, confirmed = sent == i) { go(i, a) }
                 }
             }
+            // Il silenzio assenso accanto ai tasti; a 360 dp va sotto, intero. La riga con la data prende la fila intera.
+            if (onSilence != null) SilenceBlock(item, ops, now, sent == null, onSilence)
         }
         writing?.let { i ->
             val a = actions.getOrNull(i) ?: return@let
@@ -299,10 +309,75 @@ fun WaitCardBody(item: it.pixelbox.cmwatch.contract.WaitItem, onSend: (it.pixelb
                 it.pixelbox.cmwatch.rules.Scelta.State.APPROVED -> stringResource(R.string.scelta_approved)
                 it.pixelbox.cmwatch.rules.Scelta.State.REDO -> stringResource(R.string.scelta_redo)
                 it.pixelbox.cmwatch.rules.Scelta.State.CLOSED -> stringResource(R.string.scelta_closed)
+                it.pixelbox.cmwatch.rules.Scelta.State.SILENCE -> stringResource(R.string.scelta_done_silence)
             }
             Text(listOfNotNull(said, o.reason).joinToString(": "), style = V3.Small)
         }
     }
+}
+
+/**
+ * app-silenzio-assenso-23-11 (variante A, Franz 23/11 18:52; contratto 1.159): sulle carte di ok e di prova, mai su una scelta né sulla
+ * produzione, il tasto tonale «Dai per risolto se tace» mette la scadenza di 3 giorni. Messa, resta la riga blu con la data e
+ * «Annulla»; i tasti della risposta restano. Il blu dell'attesa, mai l'ambra né il verde: chiuso così non è un ok di Franz. La scadenza
+ * mostrata è quella che il PC ha confermato, finché la voce riletta non la porta da sé; un rifiuto del PC si legge sotto.
+ */
+@Composable
+internal fun SilenceBlock(
+    item: it.pixelbox.cmwatch.contract.WaitItem, ops: List<String>?, now: Long, live: Boolean,
+    onSilence: suspend (String) -> it.pixelbox.cmwatch.contract.CmdResult?,
+) {
+    val S = it.pixelbox.cmwatch.rules.Silence
+    var set by androidx.compose.runtime.saveable.rememberSaveable(item.id) { mutableStateOf<Long?>(null) }
+    var touched by androidx.compose.runtime.saveable.rememberSaveable(item.id) { mutableStateOf(false) }
+    var busy by remember(item.id) { mutableStateOf(false) }
+    var refused by remember(item.id) { mutableStateOf<String?>(null) }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val until = if (touched) set else item.silenceUntil
+    val pending = S.pending(until, now)
+    fun go(text: String) {
+        if (busy) return
+        busy = true; refused = null
+        scope.launch {
+            val r = onSilence(text)
+            busy = false
+            when {
+                r == null -> Unit
+                !r.ok -> refused = r.text
+                else -> { touched = true; set = if (text == "off") null else r.silenceUntil ?: (now + 3 * 86_400) }
+            }
+        }
+    }
+    val clock = Icons.Rounded.Schedule
+    if (live && !pending && S.offer(item, ops)) {
+        androidx.compose.material3.Surface(
+            onClick = { go(S.DEFAULT) }, enabled = !busy, shape = CircleShape, color = V3.S3, contentColor = V3.Tx,
+            modifier = Modifier.handCursor().testTag("ti-aspetta-silenzio"),
+        ) {
+            Row(Modifier.padding(start = 14.dp, end = 16.dp, top = 9.dp, bottom = 9.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(clock, null, modifier = Modifier.size(18.dp))
+                Text(stringResource(if (busy) R.string.silence_sending else R.string.silence_key), style = V3.Name.copy(fontSize = 15.sp, color = V3.Tx))
+            }
+        }
+    }
+    if (live && pending && until != null) {
+        val loc = S.localeOf(java.util.Locale.getDefault())
+        val shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
+        Row(
+            Modifier.fillMaxWidth().clip(shape).background(V3.Busy.copy(alpha = 0.08f)).border(1.dp, V3.Busy.copy(alpha = 0.35f), shape)
+                .padding(horizontal = 12.dp, vertical = 10.dp).testTag("ti-aspetta-silenzio-data"),
+            horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(clock, null, tint = V3.Busy, modifier = Modifier.size(18.dp))
+            Text(stringResource(R.string.silence_due, S.whenLong(until, java.time.ZoneId.systemDefault(), loc)), style = V3.Small.copy(fontSize = 14.5.sp, color = V3.Tx), modifier = Modifier.weight(1f))
+            if (item.task != null && ops?.contains("silence") == true) Text(
+                stringResource(R.string.silence_undo),
+                style = V3.Name.copy(fontSize = 14.sp, color = V3.Tx, textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline),
+                modifier = Modifier.heightIn(min = 32.dp).handCursor().clickable(enabled = !busy) { go("off") }.padding(vertical = 6.dp).testTag("ti-aspetta-silenzio-annulla"),
+            )
+        }
+    }
+    refused?.let { t -> Text(t, style = V3.Small, modifier = Modifier.fillMaxWidth()) }
 }
 
 /**

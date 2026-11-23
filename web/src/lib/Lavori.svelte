@@ -233,10 +233,11 @@
         {#each d.rows as x (x.task)}
           <div class="done">
             {#if x.outcome === 'failed'}<svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="var(--gone)" stroke-width="2.4" stroke-linecap="round" /></svg>
+            {:else if x.silence != null}<svg class="silico" viewBox="0 0 24 24" width="18" height="18" aria-label={t.silenceLabel}><circle cx="12" cy="12" r="8.5" fill="none" stroke="var(--busy)" stroke-width="2" /><path d="M12 7.5V12l3 2" fill="none" stroke="var(--busy)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
             {:else if x.outcome === 'cancelled' || x.outcome === 'superseded'}<svg viewBox="0 0 24 24" width="18" height="18"><path d="M5 12h14" fill="none" stroke="var(--text2)" stroke-width="2.4" stroke-linecap="round" /></svg>
             {:else}<svg viewBox="0 0 24 24" width="18" height="18"><path d="M5 12l5 5 9-10" fill="none" stroke="var(--good)" stroke-width="2.4" stroke-linecap="round" /></svg>{/if}
             <span class="tm">{hhmm(x.at)}</span>
-            <span class="t"><b>{x.title}</b><small>{#if x.session}<button class="who" onclick={() => onSession(x.session!)}>{x.session}</button> · {/if}{#if x.outcome === 'superseded'}<span class="proof plain">{proofFallback(x)}</span>{:else if x.url}<a class="proof" href={x.url} target="_blank" rel="noopener">{x.proof ?? proofFallback(x)}</a>{:else}<span class="proof" class:plain={!x.proof}>{x.proof ?? proofFallback(x)}</span>{/if}</small></span>
+            <span class="t"><b>{x.title}</b><small>{#if x.session}<button class="who" onclick={() => onSession(x.session!)}>{x.session}</button> · {/if}{#if x.silence != null}<span class="siltag" data-testid="chiuso-silenzio">{t.silenceLabel}</span> · {/if}{#if x.outcome === 'superseded'}<span class="proof plain">{proofFallback(x)}</span>{:else if x.url}<a class="proof" href={x.url} target="_blank" rel="noopener">{x.proof ?? proofFallback(x)}</a>{:else}<span class="proof" class:plain={!x.proof}>{x.proof ?? proofFallback(x)}</span>{/if}</small></span>
           </div>
         {/each}
       </div></div>{/if}
@@ -304,6 +305,8 @@
   /* Area di tocco allargata dentro il margine sopra, senza cambiare l'aspetto (app-bug-notte-03-11); 48 dp pieni chiederebbero spaziature nuove. */
   .day { position: relative; } .day::after { content: ''; position: absolute; inset: -10px 0 -2px; }
   .done { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border-radius: 18px; } .done .tm { font: 12.5px/1.5 var(--mono); color: var(--text2); } .done b { font-weight: 600; font-size: 14px; }
+  /* app-silenzio-assenso-23-11: chiuso per silenzio assenso, in blu; mai il verde dell'ok di Franz. */
+  .siltag { color: var(--busy); border: 1px solid color-mix(in srgb, var(--busy) 45%, transparent); border-radius: 6px; padding: 0 5px; white-space: nowrap; }
   .done .who { color: var(--text2); font-size: 12.5px; padding: 0; } .proof { color: var(--icon); } .proof.plain { color: var(--text2); }
   /* Franz 24/10 18:36: niente esce dalla scheda, neanche un percorso lungo senza spazi. */
   .row .t, .done .t { overflow-wrap: anywhere; }

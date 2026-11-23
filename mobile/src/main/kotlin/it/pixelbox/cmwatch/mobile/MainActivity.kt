@@ -1887,6 +1887,15 @@ class MainActivity : ComponentActivity() {
                 }
                 leave(it.pixelbox.cmwatch.rules.TiAspetta.sentWhat(a.label, if (a.textField != null) written else null), it.pixelbox.cmwatch.rules.TiAspetta.cmdSession(a))
             }
+            // Contratto 1.159 (app-silenzio-assenso-23-11): «Dai per risolto se tace» e «Annulla» mandano l'op `silence` sul compito della
+            // voce e aspettano l'esito; poi la voce si rilegge, così Per te e Dalla master hanno la data.
+            val silence: (suspend (String) -> it.pixelbox.cmwatch.contract.CmdResult?)? = item?.task?.takeIf { state?.ops?.contains("silence") == true }?.let { task -> { text: String ->
+                val id = runCatching { app.repo.command(CmdOp.SILENCE, null, task, text) }.getOrNull()
+                val r = id?.let { x -> kotlinx.coroutines.withTimeoutOrNull(30_000) { app.repo.resultsById.first { m -> m.containsKey(x) }[x] } }
+                id?.let { x -> app.repo.forget(x) }
+                if (r?.ok == true) waitRefresh { w -> w.id == item.id }
+                r
+            } }
             val choice = item != null && item.actions != null && it.pixelbox.cmwatch.rules.Scelta.isChoice(item)
             val outcome = item?.let { x -> it.pixelbox.cmwatch.rules.Scelta.outcomeOf(x) }
             val doneTitle = when (outcome?.state) {
@@ -1895,6 +1904,7 @@ class MainActivity : ComponentActivity() {
                 it.pixelbox.cmwatch.rules.Scelta.State.APPROVED -> getString(R.string.scelta_approved)
                 it.pixelbox.cmwatch.rules.Scelta.State.REDO -> getString(R.string.scelta_redo)
                 it.pixelbox.cmwatch.rules.Scelta.State.CLOSED -> getString(R.string.scelta_closed)
+                it.pixelbox.cmwatch.rules.Scelta.State.SILENCE -> getString(R.string.scelta_done_silence)
             }
             val doneSub = if (doneTitle == null) null else outcome?.at?.let { at -> listOfNotNull(getString(R.string.scelta_answered, it.pixelbox.cmwatch.mobile.ui.sceltaWhen(at)), outcome.by).joinToString(" · ") } ?: ""
             androidx.compose.runtime.CompositionLocalProvider(it.pixelbox.cmwatch.mobile.ui.LocalWaitFiles provides waitFiles()) { run {
@@ -1929,11 +1939,11 @@ class MainActivity : ComponentActivity() {
                     when {
                         // Contratto 1.137: una scelta ha la sua scheda, con le immagini delle opzioni, «Nessuna, rifare» e i giri.
                         choice -> it.pixelbox.cmwatch.mobile.ui.SceltaAperta(item, it.pixelbox.cmwatch.mobile.ui.waitRows(item)) { i, written -> item.actions?.getOrNull(i)?.let { a -> send(a, written) } }
-                        item.actions != null -> it.pixelbox.cmwatch.mobile.ui.WaitCardBody(item, send)
+                        item.actions != null -> it.pixelbox.cmwatch.mobile.ui.WaitCardBody(item, state?.ops, now, silence, send)
                         groups.isNotEmpty() -> it.pixelbox.cmwatch.mobile.ui.SessionDecisions(groups, answer.two(decApprove), answer.one(decDone), answer.one(decNotNow), answer.two(decDrop), decAsk)
                         prove != null -> it.pixelbox.cmwatch.mobile.ui.DaProvareBody(prove, { tag -> app.updater.buildOf(tag) }, answer.taken<String> { ids -> proveOkRun(ids) }, answer.taken(proveKo), goScreen)
                         // Contratto 1.131: i tasti del relay, ognuno col suo comando già pronto.
-                        else -> it.pixelbox.cmwatch.mobile.ui.WaitCardBody(item, send)
+                        else -> it.pixelbox.cmwatch.mobile.ui.WaitCardBody(item, state?.ops, now, silence, send)
                     }
                 }
             } }

@@ -26,6 +26,9 @@ export class DemoTransport implements Transport {
   private resultsPage: ResultsPage | null = null
   private decisions: DecisionsPage | null = null
   /** Contratto 1.137: le schede della demo a cui si è risposto, per compito: restano leggibili dall'archivio con com'è finita. */
+  /** Contratto 1.159: le scadenze del silenzio assenso messe col tasto, per compito; le attese le portano come farebbe il relay. */
+  private silenced = new Map<string, number>()
+  private withSilence = (w: WaitItem): WaitItem => (w.task && this.silenced.has(w.task) ? { ...w, silence_until: this.silenced.get(w.task)! } : w)
   private waitDone = new Map<string, { state: 'chosen' | 'approved' | 'redo' | 'closed'; answered: WaitAnswered }>()
   /** La risposta a una scheda della demo: resta in archivio con com'è finita, e il suo ok esce dallo stato. */
   private waitAnswer(task: string, state: 'chosen' | 'approved' | 'redo' | 'closed', answered: WaitAnswered) {
@@ -247,7 +250,12 @@ export class DemoTransport implements Transport {
           return ok(JSON.stringify({ subagents: s.subagents?.at != null ? subagentsDemo(s.subagents.at, true) : null }))
         }
         // Contratto 1.159 (app-silenzio-assenso-23-11): la demo risponde come il relay.
-        case 'silence': return ok(cmd.text === 'off' ? `${cmd.arg}: silenzio assenso tolto, si aspetta la risposta` : `${cmd.arg}: silenzio assenso fra 3 giorni: senza risposta, col controllo verde si chiude da solo`)
+        case 'silence': {
+          if (cmd.text === 'off') { if (cmd.arg) this.silenced.delete(cmd.arg); return ok(`${cmd.arg}: silenzio assenso tolto, si aspetta la risposta`, { silence_until: null }) }
+          const until = t + 3 * 86400
+          if (cmd.arg) this.silenced.set(cmd.arg, until)
+          return ok(`${cmd.arg}: silenzio assenso fra 3 giorni: senza risposta, col controllo verde si chiude da solo`, { silence_until: until })
+        }
         case 'conti_azione': return cmd.project ? ok('draft asked of the master') : ko('conti_azione: no project')
         // Contratto 1.106: Visto segna la versione e quelle prima; il lavoro esce da Da guardare; la nota si salva come fa il relay.
         case 'results': return ok(JSON.stringify(this.resultsPage ??= resultsDemo(this.now())))
@@ -313,13 +321,13 @@ ${it.caption ?? ''}`.trim() }))
         }
         case 'decisioni': return ok(JSON.stringify(this.decisions ??= decisionsDemo(this.now())))
         // Contratto 1.130: le domande che aspettano; `attesa` dà la voce col pezzo di trascrizione, una chiusa è un rifiuto come nel relay.
-        case 'attese': return ok(JSON.stringify({ at: this.now(), items: waitsDemo(this.now()).filter(w => !(w.task && this.waitDone.has(w.task))).map(({ msg: _m, rounds: _r, ...w }) => w) }))
+        case 'attese': return ok(JSON.stringify({ at: this.now(), items: waitsDemo(this.now()).filter(w => !(w.task && this.waitDone.has(w.task))).map(({ msg: _m, rounds: _r, ...w }) => this.withSilence(w)) }))
         // Contratto 1.137: con `archive` l'id di qualsiasi giro dà la scheda, anche dopo la risposta: lo stato, `answered`, nessun tasto.
         case 'attesa': {
           const w = waitsDemo(this.now()).find(x => x.id === cmd.arg || (cmd.archive && (x.card_id === cmd.arg || !!x.rounds?.some(r => r.id === cmd.arg))))
           const done = w?.task ? this.waitDone.get(w.task) : undefined
           if (!w || (done && !cmd.archive)) return ko(`${cmd.arg}: nessuna attesa aperta con questo id`)
-          return ok(JSON.stringify(done ? { ...w, state: done.state, answered: done.answered, actions: [], answer: null } : w))
+          return ok(JSON.stringify(done ? { ...w, state: done.state, answered: done.answered, actions: [], answer: null } : this.withSilence(w)))
         }
         // Contratto 1.137: «Nessuna, rifare» vuole il motivo; un compito che non aspetta più risponde ok con closed false.
         case 'approval_redo': {

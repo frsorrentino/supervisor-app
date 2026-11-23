@@ -516,7 +516,9 @@ export type ElicitField = {
 /** `superseded` (1.112): lettura rimpiazzata da una più recente della stessa sessione, si chiude senza avviso. */
 export type CmdResult = { id: string; ok: boolean; text: string; at: number; session?: string | null; job?: string | null; superseded?: boolean
   /** Contratto 1.135: l'impronta di una lettura riuscita; `unchanged` = uguale all'etag mandato, `text` vuoto (app-letture-leggere-11-11). */
-  etag?: string; unchanged?: boolean }
+  etag?: string; unchanged?: boolean
+  /** Contratto 1.159, op `silence`: la scadenza messa (null con `off`) e dove (`ok` la carta, `prova` le prove). */
+  silence_until?: number | null; on?: string | null }
 
 /** Lo stato come arriva: i campi che mancano prendono i valori di default del contratto. */
 export function decodeState(raw: string): State {

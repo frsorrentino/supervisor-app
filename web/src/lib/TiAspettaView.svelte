@@ -6,11 +6,12 @@
   import AttesaFiles from './AttesaFiles.svelte'
   import type { CmdResult, DecisionItem, State, WaitAction, WaitFile, WaitItem } from './contract'
   import { isChoice, outcomeOf } from './scelta'
-  import { locale } from './lang'
+  import { lang, locale } from './lang'
   import { decodeWait, decodeWaits, readPage } from './decideDecode'
   import { newCmd } from './transport'
   import { adviceLine, adviceOf, cmdOf, lookOf, sentWhat, waitLoad, waitShown, type Kind, type Page } from './tiAspetta'
   import { markAnswered, waits } from './attese.svelte'
+  import { SILENCE_DEFAULT, silenceOffer, silencePending, silenceWhenLong } from './silence'
   import { t } from './t'
   // La scheda «Ti aspetta» collegata al contratto 1.130-1.131 (app-scheda-ti-aspetta-07-11): legge la voce con `attesa` e le altre con
   // `attese`. La carta in alto ha i tasti del relay (`actions`, ognuno col suo comando già pronto); un relay senza `actions` mostra la
@@ -47,7 +48,7 @@
   const mark = $derived(waitLoad(full != null, failed, gone, slow))
   $effect(() => {
     const want = id, n = tries
-    full = null; failed = false; gone = false; slow = false; sent = null; writing = null; written = ''
+    full = null; failed = false; gone = false; slow = false; sent = null; writing = null; written = ''; silenceSet = null; silenceBusy = false; silenceErr = null
     const timer = setTimeout(() => { if (want === id && n === tries && full == null) slow = true }, 10_000)
     void run({ ...newCmd('attesa', null, want), archive: true }).then(r => {
       if (want !== id || n !== tries) return
@@ -93,6 +94,25 @@
     const d = new Date(out.at * 1000), hm = d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
     return [t.sceltaAnswered(d.toDateString() === new Date().toDateString() ? t.sceltaToday(hm) : t.sceltaOn(`${d.getDate()}/${d.getMonth() + 1}`, hm)), out.by].filter(Boolean).join(' · ')
   })
+  // app-silenzio-assenso-23-11 (variante A, Franz 23/11 18:52; contratto 1.159): sulle carte di ok e di prova, mai su una scelta né
+  // sulla produzione, il tasto tonale «Dai per risolto se tace» mette la scadenza di 3 giorni (op `silence`). Messa, il tasto lascia
+  // la riga blu con la data e «Annulla» (`off`); i tasti della risposta restano. La scadenza mostrata è quella che il PC ha
+  // confermato, finché la voce riletta non la porta da sé. Un rifiuto del PC si legge sotto, col suo testo.
+  let silenceSet = $state<{ id: string; until: number | null } | null>(null), silenceBusy = $state(false), silenceErr = $state<string | null>(null)
+  const silenceUntil = $derived(item ? (silenceSet?.id === item.id ? silenceSet.until : item.silence_until ?? null) : null)
+  const silenceShown = $derived(silencePending(silenceUntil, now))
+  const silenceKey = $derived(!!item && !legacy && !choice && sent == null && silenceOffer(item, st.ops) && !silenceShown)
+  function silence(on: boolean) {
+    const w = item
+    if (!w?.task || silenceBusy) return
+    silenceBusy = true; silenceErr = null
+    void run(newCmd('silence', null, w.task, on ? SILENCE_DEFAULT : 'off')).then(r => {
+      silenceBusy = false
+      if (!r) return
+      if (!r.ok) { silenceErr = r.text; return }
+      silenceSet = { id: w.id, until: on ? r.silence_until ?? now + 3 * 86400 : null }
+    })
+  }
   const rows = (w: WaitItem) => [[t.tiAspettaWhat, w.card?.what], [t.tiAspettaWhere, w.card?.where], [t.tiAspettaUntested, w.card?.untested], [t.tiAspettaUndo, w.card?.undo_how || w.card?.undo]]
     .filter(([, v]) => !!v && v !== w.text) as [string, string][]
 </script>
@@ -137,8 +157,16 @@
               {#each acts as a, i}{#if lookOf(a) !== 'option'}
                 <button class="pill" class:main={lookOf(a) === 'main'} class:done={sent === i} class:off={sent != null && sent !== i} disabled={sent != null} data-testid="ti-aspetta-tasto-{i}" onclick={() => go(i, a)}>{a.label}</button>
               {/if}{/each}
+              {#if silenceKey}<button class="pill sil" disabled={silenceBusy} data-testid="ti-aspetta-silenzio" onclick={() => silence(true)}><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2" /><path d="M12 7.5V12l3 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>{silenceBusy ? t.silenceSending : t.silenceKey}</button>{/if}
             </div>
           {/if}
+          {#if silenceShown && silenceUntil != null && sent == null}
+            <div class="due" role="status" data-testid="ti-aspetta-silenzio-data"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2" /><path d="M12 7.5V12l3 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+              <span>{t.silenceDue(silenceWhenLong(silenceUntil, lang === 'en'))}</span>
+              {#if w.task && st.ops?.includes('silence')}<button class="lk" disabled={silenceBusy} data-testid="ti-aspetta-silenzio-annulla" onclick={() => silence(false)}>{t.silenceUndo}</button>{/if}
+            </div>
+          {/if}
+          {#if silenceErr}<p class="note" role="status">{silenceErr}</p>{/if}
           {#if writing != null}{@const a = acts[writing]}
             <textarea class="field" rows="2" placeholder={a?.label} bind:value={written} data-testid="ti-aspetta-testo"></textarea>
             <div class="pills">
@@ -191,6 +219,14 @@
   .main { align-self: flex-start; font: 600 15px var(--display); padding: 9px 16px; border-radius: 999px; color: var(--wait); background: color-mix(in srgb, var(--wait) 14%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--wait) 60%, transparent); }
   .own { align-self: flex-start; font: 600 15px var(--display); padding: 9px 16px; border-radius: 999px; background: var(--s3); color: var(--tx); }
   .note { font-size: 14px; color: var(--tx2); }
+  /* Il silenzio assenso: il blu dell'attesa, mai l'ambra di «ti aspetta» né il verde dell'ok (chiuso così non è un ok di Franz). */
+  .pill.sil { display: inline-flex; align-items: center; gap: 8px; }
+  .pill.sil svg { flex: none; }
+  .due { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; font-size: 14.5px; line-height: 20px; color: var(--tx);
+    background: color-mix(in srgb, var(--busy) 8%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--busy) 35%, transparent); }
+  .due svg { flex: none; color: var(--busy); }
+  .due span { flex: 1; min-width: 0; }
+  .due .lk { flex: none; min-height: 32px; }
   .empty { display: flex; flex-direction: column; gap: 12px; padding: 10px 16px; height: 100%; background: var(--bg); }
   .empty .back { width: 44px; height: 44px; display: grid; place-items: center; }
   .empty p { color: var(--tx2); display: flex; align-items: center; gap: 8px; }

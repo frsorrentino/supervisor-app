@@ -200,7 +200,8 @@ export function inProgress(st: State, agenda: AgendaPage | null | undefined, now
 }
 
 /** Un compito chiuso; `proof` = la prova in una riga («release v2.3», «commit 9f8e7d6», il file, il comando), null dagli eventi; `url` col link; `outcome` ∈ green|cancelled|failed|superseded (1.115: chiuso perché una pre-release più nuova porta il suo lavoro, mai verificato). */
-export type Done = { task: string; title: string; session: string | null; at: number; proof: string | null; url?: string | null; outcome?: string }
+/** `silence`: chiuso per silenzio assenso entro quella scadenza (contratto 1.159); assente = chiuso in un altro modo. */
+export type Done = { task: string; title: string; session: string | null; at: number; proof: string | null; url?: string | null; outcome?: string; silence?: number }
 /** `n` = quanti chiusi quel giorno, senza i superati; `superseded` = i superati (1.115), contati a parte perché non sono verificati; `rows` vuote con `n` > 0 = un giorno prima richiuso, da caricare con `done` di quel giorno. */
 export type DoneDay = { date: string; rows: Done[]; n: number; superseded?: number }
 
@@ -224,7 +225,7 @@ export function doneFromPages(pages: Record<string, DonePage>, _zone: string): D
     const rows: Done[] = pg.rows.map(r => {
       const pr = r.proof
       const label = pr ? proofLabel(pr) : null
-      return { task: r.task, title: r.title || r.task, session: r.session ?? null, at: r.at, proof: label, url: label ? pr?.url ?? null : null, outcome: r.outcome || 'green' }
+      return { task: r.task, title: r.title || r.task, session: r.session ?? null, at: r.at, proof: label, url: label ? pr?.url ?? null : null, outcome: r.outcome || 'green', ...(r.silence ? { silence: r.silence.until } : {}) }
     })
     loaded.set(pg.date, { date: pg.date, rows, n: rows.filter(r => r.outcome !== 'superseded').length, superseded: rows.filter(r => r.outcome === 'superseded').length })
   }

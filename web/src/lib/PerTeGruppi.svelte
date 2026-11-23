@@ -2,7 +2,7 @@
   import type { CmdResult, WaitItem } from './contract'
   import type { newCmd } from './transport'
   import type { Gruppo, Voce as Item } from './perTe'
-  import { actVoce, adviceText, agoOf, mainLabelOf, subOf } from './voceRow'
+  import { actVoce, adviceText, agoOf, mainLabelOf, silenceOf, subOf } from './voceRow'
   import { age } from './tiAspetta'
   import { t } from './t'
   import Voce from './Voce.svelte'
@@ -59,7 +59,7 @@
           <div class="gh loose" data-testid="gruppo-senza-sessione"><span class="dot"></span><b>{t.perTeNoSession}</b></div>
         {/if}
         {#each g.voci as v (v.key)}
-          <Voce group={v.group} title={v.title} sub={subOf(v)} ago={agoOf(v, now)} advice={adviceText(v.advice)} main={mainLabelOf(v)} rec={!!v.main?.recommended}
+          <Voce group={v.group} title={v.title} sub={subOf(v)} ago={agoOf(v, now)} silence={silenceOf(v, now)} advice={adviceText(v.advice)} main={mainLabelOf(v)} rec={!!v.main?.recommended}
             testid="voce-{v.key}" onOpen={() => open(v, g.session)} onMain={() => void actVoce(run, v, { open: (x) => open(x, g.session), reread, onAnswered })} />
         {/each}
       </div>

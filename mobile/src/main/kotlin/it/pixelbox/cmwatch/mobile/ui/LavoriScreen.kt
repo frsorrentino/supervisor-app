@@ -23,6 +23,9 @@ import androidx.compose.material.icons.outlined.PanTool
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.foundation.border
+import androidx.compose.ui.platform.testTag
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.HourglassEmpty
@@ -440,7 +443,9 @@ private fun DoneRow(d: Lavori.Done, zone: ZoneId, onSession: (String) -> Unit) {
         Modifier.fillMaxWidth().padding(bottom = 6.dp).clip(RoundedCornerShape(14.dp)).background(Cm.surfaceLow).padding(start = 14.dp, end = 14.dp, top = 10.dp, bottom = 10.dp),
         verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        when (d.outcome) {
+        // app-silenzio-assenso-23-11: chiuso per silenzio assenso, l'orologio blu e la sua etichetta; mai il verde dell'ok di Franz.
+        if (d.silence != null) Icon(Icons.Rounded.Schedule, stringResource(R.string.silence_label), tint = Cm.busy, modifier = Modifier.size(18.dp).padding(top = 1.dp))
+        else when (d.outcome) {
             "failed" -> Icon(Icons.Rounded.Close, null, tint = Cm.gone, modifier = Modifier.size(18.dp).padding(top = 1.dp))
             "cancelled", Lavori.SUPERSEDED -> Icon(Icons.Rounded.Remove, null, tint = Cm.text2, modifier = Modifier.size(18.dp).padding(top = 1.dp))
             else -> Icon(Icons.Rounded.Check, null, tint = Cm.briefGoodInk, modifier = Modifier.size(18.dp).padding(top = 1.dp))
@@ -450,6 +455,10 @@ private fun DoneRow(d: Lavori.Done, zone: ZoneId, onSession: (String) -> Unit) {
             Text(d.title, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold), color = Cm.text)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 d.session?.let { s -> Text(s, style = MaterialTheme.typography.bodySmall, color = Cm.text2, modifier = Modifier.clip(RoundedCornerShape(6.dp)).handCursor().clickable { onSession(s) }) }
+                if (d.silence != null) Text(
+                    stringResource(R.string.silence_label), style = MaterialTheme.typography.bodySmall, color = Cm.busy, maxLines = 1, softWrap = false,
+                    modifier = Modifier.border(1.dp, Cm.busy.copy(alpha = 0.45f), RoundedCornerShape(6.dp)).padding(horizontal = 5.dp).testTag("chiuso-silenzio"),
+                )
                 val uri = LocalUriHandler.current
                 val url = d.url
                 Text(

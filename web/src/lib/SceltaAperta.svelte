@@ -61,7 +61,7 @@
     const d = new Date(at * 1000), hm = d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
     return d.toDateString() === new Date().toDateString() ? t.sceltaToday(hm) : t.sceltaOn(`${d.getDate()}/${d.getMonth() + 1}`, hm)
   }
-  const roundWhy = (r: Round) => (r.state === 'redo' ? t.sceltaRoundRedo : r.state === 'replaced' ? t.sceltaRoundReplaced : t.sceltaRoundClosed)
+  const roundWhy = (r: Round) => (r.state === 'redo' ? t.sceltaRoundRedo : r.state === 'replaced' ? t.sceltaRoundReplaced : r.state === 'silence' ? t.silenceLabel : t.sceltaRoundClosed)
   const docIcon = (f: WaitFile) => (f.mime === 'application/pdf' ? 'pdf' : 'file')
 </script>
 
@@ -71,7 +71,7 @@
     {#if out.state !== 'open'}
       <p class="st {out.state}" data-testid="scelta-esito">
         {#if out.state === 'chosen' || out.state === 'approved'}<svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M4.5 10.5 8.5 14.5 15.5 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" /></svg>{/if}
-        <span>{out.state === 'chosen' ? t.sceltaChosen(out.letter, out.name) : out.state === 'approved' ? t.sceltaApproved : out.state === 'redo' ? t.sceltaRedo : t.sceltaClosed}</span>
+        <span>{out.state === 'chosen' ? t.sceltaChosen(out.letter, out.name) : out.state === 'approved' ? t.sceltaApproved : out.state === 'redo' ? t.sceltaRedo : out.state === 'silence' ? t.sceltaDone.silence : t.sceltaClosed}</span>
       </p>
       {#if out.reason}<p class="why">{out.reason}</p>{/if}
     {:else if rounds.length || item.card?.deploy}

@@ -98,7 +98,8 @@ object Scelta {
         return Choice(options, extra, redo, acts.indices.filter { it !in taken && it != redo })
     }
 
-    enum class State(val wire: String) { OPEN("open"), CHOSEN("chosen"), APPROVED("approved"), REDO("redo"), CLOSED("closed") }
+    /** `SILENCE` (contratto 1.159): chiusa per silenzio assenso, nessuna risposta entro la scadenza col controllo verde; mai un ok di Franz. */
+    enum class State(val wire: String) { OPEN("open"), CHOSEN("chosen"), APPROVED("approved"), REDO("redo"), CLOSED("closed"), SILENCE("silence") }
 
     /** Com'è finita una scheda: lo stato, l'opzione scelta con la sua lettera (o le parole, se non è un'opzione), il motivo, chi e quando. */
     data class Outcome(val state: State, val letter: String?, val name: String?, val reason: String?, val by: String?, val at: Long?)
@@ -117,7 +118,7 @@ object Scelta {
 
     fun outcomeOf(w: WaitItem): Outcome = outcomeOf(w.state, w.answered, w.options)
 
-    /** Un giro precedente, col suo numero dal primo; `state` redo, closed o replaced. */
+    /** Un giro precedente, col suo numero dal primo; `state` redo, closed, replaced o silence (contratto 1.159). */
     data class Round(
         val id: String, val n: Int, val at: Long, val text: String, val description: String?, val options: List<Opt>, val extra: List<WaitFile>,
         val state: String, val reason: String?, val by: String?, val answeredAt: Long?,
@@ -130,7 +131,7 @@ object Scelta {
         Round(
             r.id, i + 1, r.at, r.text, r.description?.trim()?.takeIf { it.isNotEmpty() }, options,
             r.files.orEmpty().filter { f -> mine.none { it.path == f.path && it.session == f.session } },
-            if (r.state == "redo" || r.state == "replaced") r.state else "closed", r.reason?.trim()?.takeIf { it.isNotEmpty() }, r.by, r.answeredAt,
+            if (r.state == "redo" || r.state == "replaced" || r.state == "silence") r.state else "closed", r.reason?.trim()?.takeIf { it.isNotEmpty() }, r.by, r.answeredAt,
         )
     }.reversed()
 

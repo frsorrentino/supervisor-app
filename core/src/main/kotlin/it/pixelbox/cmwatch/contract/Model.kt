@@ -1018,6 +1018,8 @@ val State.publishedTs: Long get() = publishedAt?.toLong() ?: ts
     /** Contratto 1.135: l'impronta di una lettura riuscita; `unchanged` = uguale all'etag mandato, `text` vuoto (app-letture-leggere-11-11). */
     val etag: String? = null,
     val unchanged: Boolean = false,
+    /** Contratto 1.159, op `silence`: la scadenza messa (null con `off`). */
+    @SerialName("silence_until") val silenceUntil: Long? = null,
 )
 
 /**

@@ -6,12 +6,19 @@ import { newCmd } from './transport'
 import { markAnswered } from './attese.svelte'
 import { age, cmdOf } from './tiAspetta'
 import { t } from './t'
+import { lang } from './lang'
+import { silencePending, silenceWhenShort } from './silence'
 import type { Advice, Voce } from './perTe'
 
 type Run = (c: ReturnType<typeof newCmd>) => Promise<CmdResult | null>
 
 export const subOf = (v: Voce): string => [t.perTeGroup[v.group], v.result ? [t.watchKind[v.result.kind], v.result.version != null ? t.perTeVersion(v.result.version) : null].filter(Boolean).join(', ') : v.context].filter(Boolean).join(' · ')
 export const agoOf = (v: Voce, now: number): string => (v.group === 'aspetta' ? t.tiAspettaSince(age(now - v.since)) : age(now - v.since))
+/** app-silenzio-assenso-23-11: «si chiude da sola gio 26/11» se la voce ha una scadenza non ancora passata; altrimenti niente. */
+export const silenceOf = (v: Voce, now: number): string | null => {
+  const u = v.wait?.silence_until ?? null
+  return u != null && silencePending(u, now) ? t.silenceRow(silenceWhenShort(u, lang === 'en')) : null
+}
 export const mainLabelOf = (v: Voce): string | null => (v.result ? t.watchSeen : v.main?.label ?? null)
 /** «consigliata: approvare», «consigliata: 2 · sì»; senza consiglio, niente. */
 export const adviceText = (a: Advice | null): string | null =>

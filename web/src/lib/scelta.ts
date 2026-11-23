@@ -73,8 +73,9 @@ export function choiceOf(w: WaitItem): Choice {
   }
 }
 
-export type OutcomeState = 'open' | 'chosen' | 'approved' | 'redo' | 'closed'
-const STATES: readonly string[] = ['open', 'chosen', 'approved', 'redo', 'closed']
+// Contratto 1.159: `silence` = chiusa per silenzio assenso (nessuna risposta entro la scadenza, controllo verde); mai un ok di Franz.
+export type OutcomeState = 'open' | 'chosen' | 'approved' | 'redo' | 'closed' | 'silence'
+const STATES: readonly string[] = ['open', 'chosen', 'approved', 'redo', 'closed', 'silence']
 /** Com'è finita una scheda: lo stato, l'opzione scelta con la sua lettera (o le parole, se non è un'opzione), il motivo, chi e quando. */
 export type Outcome = { state: OutcomeState; letter: string | null; name: string | null; reason: string | null; by: string | null; at: number | null }
 export function outcomeOf(w: Pick<WaitItem, 'state' | 'answered' | 'options'>): Outcome {
@@ -88,7 +89,7 @@ export function outcomeOf(w: Pick<WaitItem, 'state' | 'answered' | 'options'>): 
   return { ...none, ...lettersOf(list.map(o => o.label))[i] }
 }
 
-export type RoundState = 'redo' | 'closed' | 'replaced'
+export type RoundState = 'redo' | 'closed' | 'replaced' | 'silence'
 /** Un giro precedente: `n` il suo numero dal primo; `chosen` non c'è mai per un giro scartato, resta per un relay che lo dica. */
 export type Round = { id: string; n: number; at: number; text: string; description: string | null; options: Opt[]; extra: WaitFile[]; state: RoundState; reason: string | null; by: string | null; answeredAt: number | null }
 /** I giri precedenti della scheda, dal più recente. */
@@ -98,7 +99,7 @@ export function roundsOf(w: Pick<WaitItem, 'rounds'>): Round[] {
     return {
       id: r.id, n: i + 1, at: r.at, text: r.text, description: r.description?.trim() || null, options,
       extra: (r.files ?? []).filter(f => !mine.some(x => x.path === f.path && (x.session ?? null) === (f.session ?? null))),
-      state: (r.state === 'redo' || r.state === 'replaced' ? r.state : 'closed') as RoundState,
+      state: (r.state === 'redo' || r.state === 'replaced' || r.state === 'silence' ? r.state : 'closed') as RoundState,
       reason: r.reason?.trim() || null, by: r.by ?? null, answeredAt: r.answered_at ?? null,
     }
   }).reverse()

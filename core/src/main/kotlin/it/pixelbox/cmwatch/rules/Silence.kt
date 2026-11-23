@@ -35,6 +35,9 @@ object Silence {
         return "$day ${t.dayOfMonth}/${t.monthValue} $at ${"%02d:%02d".format(t.hour, t.minute)}"
     }
 
+    /** La lingua delle date: l'italiano, o l'inglese per ogni altra lingua del telefono (come le stringhe dell'app). */
+    fun localeOf(l: Locale): Locale = if (l.language == "it") Locale.ITALIAN else Locale.ENGLISH
+
     /** «gio 26/11»: la data corta della riga di Per te. */
     fun whenShort(until: Long, zone: ZoneId, locale: Locale): String {
         val t = Instant.ofEpochSecond(until).atZone(zone)

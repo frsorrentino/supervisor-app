@@ -1,7 +1,12 @@
 package it.pixelbox.cmwatch.rules
 
 import it.pixelbox.cmwatch.contract.ContractJson
+import it.pixelbox.cmwatch.contract.DonePage
+import it.pixelbox.cmwatch.contract.DoneRow
+import it.pixelbox.cmwatch.contract.DoneSilence
+import it.pixelbox.cmwatch.contract.WaitAnswered
 import it.pixelbox.cmwatch.contract.WaitCard
+import it.pixelbox.cmwatch.contract.WaitRound
 import it.pixelbox.cmwatch.contract.WaitOption
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -42,5 +47,19 @@ class SilenceTest {
         assertTrue(Silence.pending(until, until - 1))
         assertFalse(Silence.pending(until, until))
         assertFalse(Silence.pending(null, 0))
+    }
+
+    // Come la cronologia e le schede riconoscono un compito chiuso per silenzio assenso. Come silence.test.ts.
+    @Test fun closedBySilence() {
+        val rows = Lavori.doneFromPages(mapOf("2026-11-26" to DonePage("2026-11-26", listOf(
+            DoneRow("atlas-chi-siamo", "Bozza della pagina Chi siamo", at = 1795700400, outcome = "green", silence = DoneSilence("ok", 1795699800)),
+            DoneRow("app-trova", "Trova messaggi", at = 1795690000, outcome = "green"),
+        ))), ZoneId.of("Europe/Rome")).first().rows
+        assertEquals(1795699800L, rows[0].silence)
+        assertEquals("green", rows[0].outcome)
+        assertEquals(null, rows[1].silence)
+        val a = WaitAnswered(by = "silenzio assenso", at = 1795700400, reason = "silenzio assenso: nessuna risposta entro le 26/11 13:30")
+        assertEquals(Scelta.State.SILENCE, Scelta.outcomeOf("silence", a, null).state)
+        assertEquals("silence", Scelta.roundsOf(item("ok").copy(rounds = listOf(WaitRound("r1", 1795400000, "Bozza", state = "silence", by = "silenzio assenso", answeredAt = 1795700400)))).first().state)
     }
 }

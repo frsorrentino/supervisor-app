@@ -190,6 +190,8 @@ fun VoceRow(
     modifier: Modifier = Modifier, tone: Color? = null, card: Boolean = false, tag: String? = null,
     /** app-riall-2-viste-16-11: il consiglio di chi chiede, in ambra in testa alla riga di contesto; [rec]: il tasto è la scelta consigliata. */
     advice: String? = null, rec: Boolean = false,
+    /** app-silenzio-assenso-23-11: «si chiude da sola gio 26/11», in blu in testa alla riga e al posto di da quanto aspetta. */
+    silence: String? = null,
 ) {
     val hot = group == PerTe.Group.ASPETTA
     val shape = RoundedCornerShape(14.dp)
@@ -212,9 +214,11 @@ fun VoceRow(
             Text(title, style = V3.Name, maxLines = 1, softWrap = false, overflow = TextOverflow.Clip)
             Text(
                 buildAnnotatedString {
+                    // La data del silenzio assenso in testa, così la riga tagliata a 360 dp la tiene.
+                    if (silence != null) { withStyle(SpanStyle(color = V3.Busy)) { append(silence) }; if (advice != null || sub.isNotEmpty()) append(" · ") }
                     if (advice != null) { withStyle(SpanStyle(color = V3.Wait)) { append(advice) }; if (sub.isNotEmpty()) append(" · ") }
                     append(sub)
-                    if (ago != null) { if (sub.isNotEmpty()) append(" · "); if (hot) withStyle(SpanStyle(color = V3.Wait)) { append(ago) } else append(ago) }
+                    if (silence == null && ago != null) { if (sub.isNotEmpty()) append(" · "); if (hot) withStyle(SpanStyle(color = V3.Wait)) { append(ago) } else append(ago) }
                 },
                 style = V3.Small.copy(fontSize = 13.sp, lineHeight = 18.sp, color = tone ?: V3.Tx2), maxLines = 1, softWrap = false, overflow = TextOverflow.Clip,
             )
@@ -337,6 +341,9 @@ fun VoceItem(v: PerTe.Voce, now: Long, onOpen: (PerTe.Voce) -> Unit, onMain: (Pe
         v.group, v.title, sub, if (v.group == PerTe.Group.ASPETTA) stringResource(R.string.ti_aspetta_since, age) else age,
         if (v.result != null) stringResource(R.string.watch_seen) else v.main?.label, { onOpen(v) }, { onMain(v) }, tag = "voce-${v.key}",
         advice = adviceText(v.advice), rec = v.main?.recommended == true,
+        silence = v.wait?.silenceUntil?.takeIf { u -> it.pixelbox.cmwatch.rules.Silence.pending(u, now) }?.let { u ->
+            stringResource(R.string.silence_row, it.pixelbox.cmwatch.rules.Silence.whenShort(u, java.time.ZoneId.systemDefault(), it.pixelbox.cmwatch.rules.Silence.localeOf(java.util.Locale.getDefault())))
+        },
     )
 }
 

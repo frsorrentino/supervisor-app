@@ -244,7 +244,8 @@ object Lavori {
      * controllo), null dagli eventi (la UI scrive «controllo verde»); `url` quando la prova ha un link; `outcome` ∈
      * green|cancelled|failed|superseded (1.115: chiuso perché una pre-release più nuova porta il suo lavoro, mai verificato).
      */
-    data class Done(val task: String, val title: String, val session: String?, val at: Long, val proof: String?, val url: String? = null, val outcome: String = "green")
+    /** `silence`: chiuso per silenzio assenso entro quella scadenza (contratto 1.159); null = chiuso in un altro modo. */
+    data class Done(val task: String, val title: String, val session: String?, val at: Long, val proof: String?, val url: String? = null, val outcome: String = "green", val silence: Long? = null)
 
     /**
      * `n` = quanti chiusi quel giorno, senza i superati; `superseded` = i superati (1.115), contati a parte perché non sono
@@ -276,7 +277,7 @@ object Lavori {
             d to DoneDay(d, pg.rows.map { r ->
                 val pr = r.proof
                 val label = pr?.let { proofLabel(it.kind, it.value) }
-                Done(r.task, r.title.ifBlank { r.task }, r.session, r.at, label, pr?.url?.takeIf { label != null }, r.outcome.ifBlank { "green" })
+                Done(r.task, r.title.ifBlank { r.task }, r.session, r.at, label, pr?.url?.takeIf { label != null }, r.outcome.ifBlank { "green" }, r.silence?.until)
             })
         }.toMap()
         val refs = pages.values.flatMap { it.days }.mapNotNull { ref -> runCatching { LocalDate.parse(ref.date) }.getOrNull()?.let { it to ref.n } }

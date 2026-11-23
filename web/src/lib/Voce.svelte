@@ -6,8 +6,9 @@
   // ognuno su una riga, tagliati senza «…»: il testo intero è nella scheda. `hot`: la voce che aspetta una risposta, in ambra.
   // `tone`: l'esito di una prova già chiusa, al posto del tasto. `advice` (app-riall-2-viste-16-11): il consiglio di chi chiede, in
   // ambra in testa alla riga di contesto; `rec`: il tasto è la scelta consigliata, in ambra.
-  let { group, title, sub, ago = null, advice = null, main = null, rec = false, tone = null, card = false, testid = undefined, onOpen, onMain = () => {} }: {
-    group: Group; title: string; sub: string; ago?: string | null; advice?: string | null; main?: string | null; rec?: boolean; tone?: 'good' | 'red' | null
+  // `silence` (app-silenzio-assenso-23-11): «si chiude da sola gio 26/11», in blu in testa alla riga (quella tagliata la tiene) e al posto di da quanto aspetta.
+  let { group, title, sub, ago = null, silence = null, advice = null, main = null, rec = false, tone = null, card = false, testid = undefined, onOpen, onMain = () => {} }: {
+    group: Group; title: string; sub: string; ago?: string | null; silence?: string | null; advice?: string | null; main?: string | null; rec?: boolean; tone?: 'good' | 'red' | null
     /** Da sola in una chat, fuori da un blocco: col suo bordo. */
     card?: boolean; testid?: string; onOpen: () => void; onMain?: () => void
   } = $props()
@@ -24,7 +25,7 @@
       {:else}<path d="m3 6.5 1.8 1.8L8 5M3 16.5l1.8 1.8L8 15M12 7h9M12 17h9" />{/if}
     </svg>
   </span>
-  <span class="tx"><span class="ti">{title}</span><span class="cx" class:good={tone === 'good'} class:red={tone === 'red'}>{#if advice}<span class="adv">{advice}</span>{sub ? ' · ' : ''}{/if}{sub}{#if ago}{sub ? ' · ' : ''}<span class="ago">{ago}</span>{/if}</span></span>
+  <span class="tx"><span class="ti">{title}</span><span class="cx" class:good={tone === 'good'} class:red={tone === 'red'}>{#if silence}<span class="sil">{silence}</span>{advice || sub ? ' · ' : ''}{/if}{#if advice}<span class="adv">{advice}</span>{sub ? ' · ' : ''}{/if}{sub}{#if ago && !silence}{sub ? ' · ' : ''}<span class="ago">{ago}</span>{/if}</span></span>
   {#if main}
     <button class="mini" class:rec onclick={(e) => { e.stopPropagation(); onMain() }}>{main}</button>
   {:else}
@@ -43,6 +44,7 @@
   .cx { font-size: 13px; line-height: 18px; color: var(--tx2); white-space: nowrap; overflow: hidden; text-overflow: clip; }
   .cx.good { color: var(--good); } .cx.red { color: var(--red); }
   .hot .ago { color: var(--wait); }
+  .sil { color: var(--busy); }
   .mini { font: 600 14.5px var(--display); min-height: 36px; padding: 6px 14px; border-radius: 999px; background: var(--s3); color: var(--tx); white-space: nowrap; }
   .hot .mini { background: color-mix(in srgb, var(--wait) 12%, var(--s1)); color: var(--wait); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--wait) 45%, transparent); }
   .mini:hover { filter: brightness(1.12); }

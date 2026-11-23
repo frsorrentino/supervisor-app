@@ -66,10 +66,13 @@ class FakeTransport(
     private fun waitsShift(): Long = now() - ContractJson.decodeWaits(sampleText("attese")).at
     private fun waitsNow(): String = ContractJson.decodeWaits(sampleText("attese")).let { p ->
         val d = now() - p.at
-        ContractJson.json.encodeToString(WaitsPage.serializer(), p.copy(at = p.at + d, items = p.items.map { w -> w.copy(at = w.at + d) }))
+        ContractJson.json.encodeToString(WaitsPage.serializer(), p.copy(at = p.at + d, items = p.items.map { w -> silenced(w.copy(at = w.at + d)) }))
     }
     private fun waitNow(raw: String): String = runCatching { ContractJson.decodeWait(raw) }.getOrNull()
-        ?.let { w -> ContractJson.json.encodeToString(WaitItem.serializer(), w.copy(at = w.at + waitsShift())) } ?: raw
+        ?.let { w -> ContractJson.json.encodeToString(WaitItem.serializer(), silenced(w.copy(at = w.at + waitsShift()))) } ?: raw
+    /** Contratto 1.159: le scadenze del silenzio assenso messe col tasto, per compito; le attese le portano come farebbe il relay. */
+    private val silence = java.util.concurrent.ConcurrentHashMap<String, Long>()
+    private fun silenced(w: WaitItem): WaitItem = w.task?.let { t -> silence[t] }?.let { u -> w.copy(silenceUntil = u) } ?: w
 
     fun sampleText(op: String): String {
         val root = kotlinx.serialization.json.Json.parseToJsonElement(load("cmd-result-sample")).let { it as kotlinx.serialization.json.JsonObject }
@@ -525,8 +528,12 @@ class FakeTransport(
                 ok(ContractJson.json.encodeToString(SubagentsAnswer.serializer(), SubagentsAnswer(ses.subagents?.at?.let { demoSubagents(ses.name, it) })))
             // Contratto 1.159 (app-silenzio-assenso-23-11): la demo risponde come il relay, senza registro dietro.
             CmdOp.SILENCE -> when {
-                cmd.text == "off" -> ok("${cmd.arg}: silenzio assenso tolto, si aspetta la risposta")
-                else -> ok("${cmd.arg}: silenzio assenso alle ${java.time.format.DateTimeFormatter.ofPattern("dd/MM HH:mm").format(java.time.Instant.ofEpochSecond(now() + 3 * 86400).atZone(java.time.ZoneId.systemDefault()))}: senza risposta, col controllo verde si chiude da solo")
+                cmd.text == "off" -> { cmd.arg?.let { silence.remove(it) }; ok("${cmd.arg}: silenzio assenso tolto, si aspetta la risposta") }
+                else -> {
+                    val until = now() + 3 * 86400
+                    cmd.arg?.let { silence[it] = until }
+                    ok("${cmd.arg}: silenzio assenso alle ${java.time.format.DateTimeFormatter.ofPattern("dd/MM HH:mm").format(java.time.Instant.ofEpochSecond(until).atZone(java.time.ZoneId.systemDefault()))}: senza risposta, col controllo verde si chiude da solo").copy(silenceUntil = until)
+                }
             }
             CmdOp.RESULT_SEEN -> {
                 current.value = current.value.let { st -> st.copy(results = st.results?.items?.filterNot { it.id == cmd.arg }?.takeIf { it.isNotEmpty() }?.let { ResultsSummary(it.size, it) }) }
