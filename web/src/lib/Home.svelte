@@ -1235,7 +1235,7 @@
          col nome, il contesto, la prossima azione su una riga e il tasto della scelta; il tasto e la freccia la aprono ad accordion con
          tutto il testo per capire, leggere e fare la scelta. Il tocco sulla scheda apre la sessione. -->
     {@const verb = !open ? verbOf(r, group, c) : null}
-    <div class="card r" data-sess={s.name} data-vt={vt(`s-${s.name}`)} style:--vt={vt(`s-${s.name}`)} class:shut={!open && closing !== s.name && confirming !== s.name && !s.closing} class:lit={group === 'waiting'} class:waiting={group === 'waiting'} class:on={selected.includes(s.name)}
+    <div class="card r" data-sess={s.name} data-vt={vt(`s-${s.name}`)} style:--vt={vt(`s-${s.name}`)} class:shut={!open && closing !== s.name && confirming !== s.name} class:armed={!!s.closing && closing !== s.name} class:lit={group === 'waiting'} class:waiting={group === 'waiting'} class:on={selected.includes(s.name)}
       role="button" tabindex="0" onclick={() => { if (longFired) { longFired = false; return } onPick(s.name) }} onkeydown={(e) => e.key === 'Enter' && onPick(s.name)}
       oncontextmenu={(e) => { e.preventDefault(); holdEnd(); openCtx(s.name, e.clientX, e.clientY) }} onpointerdown={(e) => holdStart(s.name, e)} onpointerup={holdEnd} onpointerleave={holdEnd} onpointercancel={holdEnd}>
       {#if ctx === s.name}
@@ -2006,6 +2006,10 @@
   /* Chiuse, tutte della stessa misura anche con tasti o testi diversi (app-sessioni-compatte-06-11, Franz 06/11 20:25); aperte
      secondo il contenuto. */
   .card.r.shut { height: 86px; overflow: hidden; }
+  /* La chiusura armata nella scheda chiusa (app-pillola-chiusura-24-11): la scheda resta compatta e cresce solo della pillola, che
+     sta in fondo sotto la riga (chiusa la scheda ha solo la testata e la riga, i blocchi sono dell'aperta); prima il fondo la tagliava. */
+  .card.r.shut.armed { height: auto; min-height: 86px; }
+  .card.r.shut.armed .clean { justify-content: flex-start; }
   /* I chip delle richieste in testa alla riga della prossima azione: la scheda chiusa resta della sua misura. */
   .tdchips { display: inline-flex; gap: 6px; margin-right: 8px; vertical-align: 1px; }
   .tdc { flex: none; height: 22px; display: inline-flex; align-items: center; padding: 0 10px; border-radius: 13px; font: 600 13px var(--display); color: var(--tx2); background: var(--s1); border: 1px solid var(--line); white-space: nowrap; }

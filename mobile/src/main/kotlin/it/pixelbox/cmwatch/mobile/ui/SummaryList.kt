@@ -1351,9 +1351,7 @@ private fun SummaryCard(
     // altre anche con tasti o testi diversi — il nome, il contesto, la prossima azione su una riga che sfuma e il tasto della
     // scelta, che la apre come la freccia; aperta, tutto il resto e la misura del contenuto. Gli stati di passaggio (chiusura,
     // conferma, rifiuto) si vedono sempre.
-    // La chiusura armata (contratto 1.120, 1.155) è una riga in più: con la misura fissa il fondo della carta tagliava la pillola
-    // a metà (app-pillola-chiusura-24-11), quindi anche lei toglie la misura fissa, come gli altri stati di passaggio.
-    val compact = !open && !closing && !closeAsk && !menuClose && refused == null && s.closing == null
+    val compact = !open && !closing && !closeAsk && !menuClose && refused == null
     val okStep0 = if (waiting && s.question == null && perTe < 0) AttentionQueue.okOf(s) else null
     val verb = if (!compact) null else if (perTe >= 0) {
         // Resta «Chiudi», che non è una voce di «Per te», e solo quando la sessione non aspetta niente.
@@ -1379,6 +1377,10 @@ private fun SummaryCard(
     var rowW by remember { mutableStateOf(Int.MAX_VALUE) }
     val nameGlyph = it.pixelbox.cmwatch.rules.PermissionModes.homeGlyph(s)
     val nameExtra = remember { intArrayOf(0) }
+    // La chiusura armata (contratto 1.120, 1.155) nella scheda chiusa (app-pillola-chiusura-24-11): la pillola sta subito sotto la
+    // riga e la scheda cresce solo di lei, misurata nello stesso passaggio come `nameExtra`; prima il fondo la tagliava a metà.
+    val armExtra = remember { intArrayOf(0) }
+    val armed = compact && s.closing != null
     val compactH = with(density) { maxOf(32.dp, V3.Name.lineHeight.toDp()) + 4.dp + V3.Body.lineHeight.toDp() + 18.dp }
     val cardTap = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     // Il collo (app-effetti-movimenti-04-11, punto 1): sul tablet la scheda si stacca dalla lista prima di diventare la colonna.
@@ -1397,7 +1399,7 @@ private fun SummaryCard(
             .padding(end = 10.dp, top = 8.dp, bottom = 10.dp)
             .then(if (compact) Modifier.layout { m, c ->
                 val p = m.measure(c.copy(minHeight = 0, maxHeight = (compactH + 400.dp).roundToPx()))
-                val h = (compactH.roundToPx() + nameExtra[0]).coerceIn(c.minHeight, c.maxHeight)
+                val h = (compactH.roundToPx() + nameExtra[0] + (if (armed) armExtra[0] else 0)).coerceIn(c.minHeight, c.maxHeight)
                 layout(p.width, h) { p.place(0, 0) }
             }.clipToBounds() else Modifier),
     ) {
@@ -1502,6 +1504,9 @@ private fun SummaryCard(
         }
         else if (toolLine != null) Text(toolLine, style = V3.Meter, maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.fadeEnd())
         else if (body.isNotBlank() && !open) bodyText(false)
+        if (armed) s.closing?.let { c ->
+            Box(Modifier.layout { m, k -> val p = m.measure(k); val top = 8.dp.roundToPx(); armExtra[0] = p.height + top; layout(p.width, p.height + top) { p.place(0, top) } }) { ArmedChip(c.mode) }
+        }
         // Aperta: modello, effort e account sotto il nome, come nella testata della K.
         if (open) details(s).forEach { Text(it, style = V3.Small, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip) }
 
@@ -1598,7 +1603,7 @@ private fun SummaryCard(
             // Il Chiudi dà sempre un esito (Franz, 04/11): rifiutata, la card dice perché finché non tocchi «Va bene».
             refused?.let { why -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) { CloseRefusedBody(s.name, why, onArm, onRefusedSeen, inCard = true) } }
             // Contratto 1.120: armata dal relay, la card lo dice finché non si chiude.
-            if (!closing) s.closing?.let { c -> ArmedChip(c.mode) }
+            if (!closing && !armed) s.closing?.let { c -> ArmedChip(c.mode) }
             if (menuClose) Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 CloseAskBody(s, closeSave, onKeep = { menuClose = false }, onClose = { save -> menuClose = false; onClose(save) }, inCard = true)
             }
