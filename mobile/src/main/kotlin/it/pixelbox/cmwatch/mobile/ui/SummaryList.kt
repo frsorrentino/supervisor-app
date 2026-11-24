@@ -1351,7 +1351,9 @@ private fun SummaryCard(
     // altre anche con tasti o testi diversi — il nome, il contesto, la prossima azione su una riga che sfuma e il tasto della
     // scelta, che la apre come la freccia; aperta, tutto il resto e la misura del contenuto. Gli stati di passaggio (chiusura,
     // conferma, rifiuto) si vedono sempre.
-    val compact = !open && !closing && !closeAsk && !menuClose && refused == null
+    // La chiusura armata (contratto 1.120, 1.155) è una riga in più: con la misura fissa il fondo della carta tagliava la pillola
+    // a metà (app-pillola-chiusura-24-11), quindi anche lei toglie la misura fissa, come gli altri stati di passaggio.
+    val compact = !open && !closing && !closeAsk && !menuClose && refused == null && s.closing == null
     val okStep0 = if (waiting && s.question == null && perTe < 0) AttentionQueue.okOf(s) else null
     val verb = if (!compact) null else if (perTe >= 0) {
         // Resta «Chiudi», che non è una voce di «Per te», e solo quando la sessione non aspetta niente.
@@ -1683,7 +1685,7 @@ private fun SummaryCard(
                     if (open && perTe < 0 && sessionTodo != null && todo != null && (todo.first > 0 || todo.second > 0)) Box(Modifier.padding(top = 4.dp)) {
                         androidx.compose.runtime.CompositionLocalProvider(LocalSubCard provides true) { sessionTodo(s.name) }
                     }
-                    if (waitsHere) KRow(stringResource(R.string.k_waits)) {
+                    if (waitsHere) KRow(stringResource(R.string.k_waits), stack = true) {
                         if (waiting && body.isNotBlank()) bodyText(true)
                         askedBlock()
                         approvalsBlock()

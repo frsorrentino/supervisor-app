@@ -1235,7 +1235,7 @@
          col nome, il contesto, la prossima azione su una riga e il tasto della scelta; il tasto e la freccia la aprono ad accordion con
          tutto il testo per capire, leggere e fare la scelta. Il tocco sulla scheda apre la sessione. -->
     {@const verb = !open ? verbOf(r, group, c) : null}
-    <div class="card r" data-sess={s.name} data-vt={vt(`s-${s.name}`)} style:--vt={vt(`s-${s.name}`)} class:shut={!open && closing !== s.name && confirming !== s.name} class:lit={group === 'waiting'} class:waiting={group === 'waiting'} class:on={selected.includes(s.name)}
+    <div class="card r" data-sess={s.name} data-vt={vt(`s-${s.name}`)} style:--vt={vt(`s-${s.name}`)} class:shut={!open && closing !== s.name && confirming !== s.name && !s.closing} class:lit={group === 'waiting'} class:waiting={group === 'waiting'} class:on={selected.includes(s.name)}
       role="button" tabindex="0" onclick={() => { if (longFired) { longFired = false; return } onPick(s.name) }} onkeydown={(e) => e.key === 'Enter' && onPick(s.name)}
       oncontextmenu={(e) => { e.preventDefault(); holdEnd(); openCtx(s.name, e.clientX, e.clientY) }} onpointerdown={(e) => holdStart(s.name, e)} onpointerup={holdEnd} onpointerleave={holdEnd} onpointercancel={holdEnd}>
       {#if ctx === s.name}
@@ -1483,7 +1483,7 @@
               {#if kRest.length}{@render chipRow(s, kRest, x.blocking)}{/if}
         {#if open && !unified && sessionTodo && (todo[s.name]?.d || todo[s.name]?.v)}<div class="tdbody" role="presentation" onclick={(e) => e.stopPropagation()}>{@render sessionTodo(s.name)}</div>{/if}
               {#if waitsHere}
-                <div class="kr"><span class="kl">{t.kWaits}</span><div class="kx">
+                <div class="kr kw"><span class="kl">{t.kWaits}</span><div class="kx">
                   {#if group === 'waiting' && x.body}<p class="body full strong">{x.body}</p>{/if}
                 {#if open && group === 'waiting' && askedFor(s)}{@const a = askedFor(s)!}<p class="asked mono2">{a.task ? t.askedForTask(a.from, a.task) : t.askedFor(a.from)}</p>{/if}
                   {@render okDoneB()}{@render approvalsB()}{@render mineB()}{@render optionsB()}
@@ -1618,6 +1618,10 @@
   .kr { display: grid; grid-template-columns: 64px 1fr auto; column-gap: 12px; align-items: start; min-height: 44px; padding: 10px 0; text-align: left; font: inherit; color: inherit; background: none; border: 0; width: 100%; box-sizing: border-box; }
   .kr.tap { cursor: pointer; border-radius: 12px; margin: 0 -8px; padding: 10px 8px; width: calc(100% + 16px); touch-action: manipulation; transition: background-color 160ms cubic-bezier(.23, 1, .32, 1); }
   .kr.tap:active { background: var(--s2, var(--surface)); }
+  /* «Ti aspetta» (app-colonna-ti-aspetta-24-11): se accanto all'etichetta restano meno di 10 em, il contenuto va sotto, largo tutta la riga. */
+  .kr.kw { display: flex; flex-wrap: wrap; gap: 6px 12px; }
+  .kr.kw .kl { flex: 0 0 64px; }
+  .kr.kw .kx { flex: 1 1 10em; }
   .kl { font-size: 13px; line-height: 21px; color: var(--text2); }
   .kl.mono2 { font-variant-numeric: tabular-nums; }
   .kx { min-width: 0; font-size: 15.5px; line-height: 21px; margin: 0; display: flex; flex-direction: column; gap: 2px; }

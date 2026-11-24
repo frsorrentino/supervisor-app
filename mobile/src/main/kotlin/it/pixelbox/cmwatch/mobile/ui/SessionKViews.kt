@@ -94,7 +94,25 @@ internal fun KGroup(title: String, tone: KTone, note: String? = null, tag: Strin
 
 /** Una riga: l'etichetta piccola, il testo e al massimo un tasto. [onTap] la rende toccabile per intero. */
 @Composable
-internal fun KRow(label: String, mono: Boolean = false, onTap: (() -> Unit)? = null, action: (@Composable RowScope.() -> Unit)? = null, content: @Composable ColumnScope.() -> Unit) {
+internal fun KRow(label: String, mono: Boolean = false, onTap: (() -> Unit)? = null, action: (@Composable RowScope.() -> Unit)? = null, stack: Boolean = false, content: @Composable ColumnScope.() -> Unit) {
+    // «Ti aspetta» porta la domanda e le scelte (app-colonna-ti-aspetta-24-11): accanto all'etichetta, a 320 dp col testo grande,
+    // restavano 120 dp e si spezzavano le parole («consigli» / «ata»). Con `stack`, se accanto restano meno di 10 em del testo,
+    // l'etichetta sta sopra e il contenuto prende tutta la riga.
+    if (stack) {
+        androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val minText = with(androidx.compose.ui.platform.LocalDensity.current) { (V3.Body.fontSize * 10).toDp() }
+            if (maxWidth - KLabel - 12.dp >= minText) KRow(label, mono, onTap, action, stack = false, content)
+            else Column(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).then(if (onTap != null) Modifier.handCursor().clickable(onClick = onTap) else Modifier).padding(vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(label, style = if (mono) V3.Meter.copy(color = V3.Tx2) else V3.Small.copy(color = V3.Tx2))
+                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) { content() }
+                if (action != null) Row(verticalAlignment = Alignment.CenterVertically) { action() }
+            }
+        }
+        return
+    }
     Row(
         Modifier.fillMaxWidth().heightIn(min = 44.dp).clip(RoundedCornerShape(12.dp))
             .then(if (onTap != null) Modifier.handCursor().clickable(onClick = onTap) else Modifier)
