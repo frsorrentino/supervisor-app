@@ -210,7 +210,7 @@ describe('app-sezioni-accorpate-03-11: Tocca a te riprende una volta il suo ordi
     expect(top(old)).toEqual(['esiti'])
     const saved = JSON.parse(encode(moveSection(d, 'you', 3, 0), null, top(old))!) as string[]
     expect(saved).toContain(REV)
-    expect(REV).toBe('rev:7')
+    expect(REV).toBe('rev:8')
     expect(decode(saved).find(c => c.id === 'you')!.sections).toEqual(['suggestions', 'decisioni', 'prove', 'seguiti', 'monitors'])
   })
   // app-tocca-sezioni-06-11: Da guardare non è più una voce (sta in Verifica) e Tocca a te riparte una volta da Decidi.
@@ -267,10 +267,17 @@ describe('app-home-voci-chiuse-10-11: la home parte chiusa', () => {
     expect(DEFAULT_CATS.every(c => !c.open)).toBe(true)
     expect(decode(['decisioni', 'shut:work,tools', 'rev:6']).map(c => c.open)).toEqual([false, false, false])
   })
-  it('da rev:7 quello che Franz apre resta aperto', () => {
+  // app-titolo-sessioni-24-11 (Franz 24/11 09:41): un ordine rev:7 si chiude una volta, così all'aggiornamento è aperta solo Sessioni.
+  it('un ordine rev:7 si chiude una volta e tiene ordine e tabellone', () => {
+    const old = ['top:esiti', 'lavori', 'notte', 'decisioni', 'shut:tools', 'rev:7']
+    expect(decode(old).map(c => c.open)).toEqual([false, false, false])
+    expect(decode(old).find(c => c.id === 'work')!.sections.slice(0, 2)).toEqual(['lavori', 'notte'])
+    expect(top(old)).toEqual(['esiti'])
+  })
+  it('da rev:8 quello che Franz apre resta aperto', () => {
     const opened = toggle(DEFAULT_CATS, 'you')
     const saved = JSON.parse(encode(opened, null)!) as string[]
-    expect(saved).toContain('rev:7')
+    expect(saved).toContain('rev:8')
     expect(decode(saved).map(c => [c.id, c.open])).toEqual([['you', true], ['work', false], ['tools', false]])
   })
 })

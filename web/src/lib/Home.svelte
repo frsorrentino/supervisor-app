@@ -484,6 +484,9 @@
   // «Compiti in corso» (web-tocca-apribile-06-11, Franz 06/11 01:24: «non sono più chiudibili e apribili», il titolo si
   // selezionava come testo). L'elenco sta in homeCats (FOLDING), coi Monitoraggi (app-monitoraggi-testata-10-11).
   const GROUPS = FOLDING
+  // app-titolo-sessioni-24-11 (Franz 24/11 09:41: «di base solo la sezione sessioni deve essere aperta»): all'aggiornamento Sessioni
+  // si apre una volta, anche se era stata chiusa sul tabellone; le categorie si chiudono una volta da homeCats (rev:8). Dopo si ricorda.
+  try { if (!localStorage.getItem('home-sessioni-titolo')) { open = { ...open, sessions: true }; localStorage.setItem(SEC, JSON.stringify(open)); localStorage.setItem('home-sessioni-titolo', '1') } } catch { /* senza memoria vale SEC_START */ }
   function toggleSec(k: string) { open = { ...open, [k]: !open[k] }; try { localStorage.setItem(SEC, JSON.stringify(open)) } catch { /* senza memoria resta per questa visita */ } }
   // La sezione «Lavori» (mockup approvato il 22/10): al posto di Da approvare, Impegni e Recap, solo le righe con un tasto
   // (gli ok, le prime due cose da fare fuori dalla chat, la prima che può fare Claude) e la riga «Tutti i lavori».
@@ -924,7 +927,7 @@
       <div class="jrow"><Badge s={justClosed.s} size={24} /><span class="jcol"><b>{justClosed.s.name}</b><small>{justClosed.line}</small></span></div>
     </div>
   {/if}
-  {#if part || open.sessions || !up.includes('sessions')}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="foldin">
+  {#if part || open.sessions}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="foldin">
     <!-- La pillola del filtro acceso dal tabellone, con la × che lo toglie (app-tabellone-filtri-14-11). -->
     {#if bf}<div class="fpill" data-testid="home-filtro"><span>{bf === 'aspetta' ? t.boardFilterWaiting : t.boardFilterBusy}</span><button aria-label={t.boardFilterOff} data-testid="home-filtro-togli" onclick={() => (boardFilter.on = null)}><span class="ms" aria-hidden="true">close</span></button></div>{/if}
     {@render waitingBlock()}
@@ -935,6 +938,19 @@
     </div>
     {#if finished.length && !bf}<div class="after"><button class="tonal mini" onclick={askCloseFinished}>{t.closeFinished(finished.length)}</button></div>{/if}
   </div></div>{/if}
+{/if}
+{/snippet}
+{#snippet sessHead()}
+{#if showsSessions && (restGroups.length || justClosed || waitRows.length)}
+  {@const waitN = waitRows.filter(r => r.session.name !== 'master').length}
+  {#if open.sessions}<button class="catlabel cathead sess" aria-expanded="true" data-testid="home-sessioni-testata" onclick={() => toggleSec('sessions')}><span>{t.homeSessions}</span><span class="ms arr up" aria-hidden="true">expand_more</span></button>
+  {:else}
+    <button class="catlabel cathead shut sess" class:amber={waitN > 0} aria-expanded="false" data-testid="home-sessioni-testata" onclick={() => toggleSec('sessions')}>
+      <span>{t.homeSessions}</span>
+      <span class="catsig"><OneLine parts={[waitN ? t.homeSessionsWaiting(waitN) : '', ...sessionsLine.split(' · ')].filter(Boolean).slice(0, 2).map(text => ({ text }))} /></span>
+      <span class="ms arr" aria-hidden="true">expand_more</span>
+    </button>
+  {/if}
 {/if}
 {/snippet}
 {#snippet secNotte()}
@@ -1144,7 +1160,10 @@
   {#if topDrag}<div class="offdrop" class:hot={offHot} style:top="{Math.max(0, edgeY)}px" data-testid={offHot ? 'cima-togli-acceso' : 'cima-togli'}>{t.homeOffTop}</div>{/if}
   <!-- Le sessioni a sé (app-home-sessioni-a-se-08-11, scelta A di Franz 08/11 18:35): sempre aperte, senza testata di categoria,
        sotto il tabellone e sopra le categorie, con Chiuse; non si spostano. -->
-  <div class="hsec" data-testid="home-sessioni" data-vt={vt('sessions')} style:--vt={vt('sessions')}>{@render secSessions()}{@render secClosed()}</div>
+  <!-- Il titolo «Sessioni» (app-titolo-sessioni-24-11, Franz 24/11 09:41): la stessa testata di «Dalla master», che apre e chiude la
+       lista; chiusa, il riassunto accanto, in ambra se qualcuna ti aspetta. Sul tabellone la testata è la sua riga. Non si sposta. -->
+  {#if !up.includes('sessions')}{@render sessHead()}{/if}
+  <div class="hsec" data-testid="home-sessioni" data-vt={vt('sessions')} style:--vt={vt('sessions')}>{@render secSessions()}{#if open.sessions || up.includes('sessions')}{@render secClosed()}{/if}</div>
   {#each shownCats as c (c.id)}
     <div class="hcat" class:held={catHeld === c.id} data-testid="cat-{c.id}">
       {#if c.open}<button class="catlabel cathead" class:amber={c.id === 'you' && catSignal(c.id).amber} aria-expanded="true" data-counter={c.id} onpointerdown={(e) => catDown(c.id, e)} onclick={() => setCats(toggleCat(cats, c.id))}><span>{#if c.id === 'you' && catSignal(c.id).amber}<span class="catic">{#if CATS_ICON[c.id].startsWith('svg:')}<CatIcon name={CATS_ICON[c.id].slice(4)} />{:else}<span class="ms" aria-hidden="true">{CATS_ICON[c.id]}</span>{/if}</span>{/if}{t.catName[c.id]}</span><span class="ms arr up" aria-hidden="true">expand_more</span></button>
@@ -1827,13 +1846,14 @@
   /* Una sezione: stessi margini di quando i suoi pezzi stavano nella home. Quella presa resta dov'è, attenuata. */
   .hsec { display: flex; flex-direction: column; gap: 8px; }
   .hsec > :global(*) { flex-shrink: 0; }
-  .hsec:empty { display: none; }
+  .hsec:empty, .hsec:not(:has(*)) { display: none; }
   /* La home per categorie (app-home-categorie-02-11, mockup home-categorie-telefono.png). */
   .hcat { display: flex; flex-direction: column; gap: 8px; }
   .catlabel { display: none; width: 100%; align-items: center; justify-content: space-between; margin: 10px 0 0; padding: 8px 12px 2px 4px; border-top: 1px solid var(--line); font: 500 12.5px/1.2 var(--sans, inherit); letter-spacing: .1em; text-transform: uppercase; color: var(--tx3); text-align: left; cursor: pointer; }
   .catlabel .arr { font-size: 20px; letter-spacing: 0; rotate: 180deg; }
   .hcat:has(.hsec > *) .catlabel, .catlabel.shut { display: flex; }
   .catlabel.shut { gap: 12px; padding-bottom: 6px; }
+  .catlabel.sess { display: flex; }
   .catlabel.shut .arr { rotate: 0deg; color: var(--tx3); }
   .catlabel .catsig { letter-spacing: 0; text-transform: none; font-size: 13.5px; color: var(--tx3); }
   .catlabel.shut.amber .catsig { color: var(--wait); }

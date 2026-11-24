@@ -33,7 +33,12 @@ export const DEFAULT_CATS: Cat[] = [
  */
 export const FOLDING = new Set<string>(['decisioni', 'prove', 'seguiti', 'suggestions', 'monitors', 'da_guardare', 'prima_raccolta'])
 
-export const REV = 'rev:7'
+export const REV = 'rev:8'
+/**
+ * Un ordine `rev:7` (prima del titolo Sessioni): le categorie tornano chiuse una volta, così all'aggiornamento è aperta solo Sessioni
+ * (app-titolo-sessioni-24-11, Franz 24/11 09:41: «di base solo la sezione sessioni deve essere aperta»). Dopo si ricordano.
+ */
+const REV7 = 'rev:7'
 /**
  * Un ordine fino a `rev:6` (Dalla master aperta di partenza): le categorie tornano chiuse una volta (app-home-voci-chiuse-10-11), perché
  * quella aperta non l'aveva scelta Franz; ordine, sezioni e tabellone restano. Dopo, aperte e chiuse si ricordano.
@@ -63,8 +68,8 @@ export const catOf = (key: string): CatId | null => DEFAULT_CATS.find(c => (c.se
 export function decode(saved: string[] | null | undefined): Cat[] {
   const list = saved ?? []
   const up = top(saved) as string[]
-  // Le riprese dell'ordine guardano i marcatori fino a `rev:6`; quella delle chiuse, `rev:7`.
-  const cur = list.includes(REV) || list.includes(REV6)
+  // Le riprese dell'ordine guardano i marcatori fino a `rev:6`; quella delle chiuse, `rev:8`.
+  const cur = list.includes(REV) || list.includes(REV7) || list.includes(REV6)
   const fresh = list.length > 0 && !cur && !list.includes(REV2) && !list.includes(REV3) && !list.includes(REV4) && !list.includes(REV5)
   const youOld = !cur && !list.includes(REV5) && (list.includes(REV2) || list.includes(REV3))
   const workOld = list.length > 0 && !cur && !list.includes(REV5)

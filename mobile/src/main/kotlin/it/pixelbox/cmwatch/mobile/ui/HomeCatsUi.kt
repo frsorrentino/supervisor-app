@@ -88,7 +88,7 @@ internal fun OneLineText(text: String, style: androidx.compose.ui.text.TextStyle
 internal fun catIcon(id: String): ImageVector = when (id) {
     // Tocca a te (app-home-nomi-02-11): la cartellina con l'orologio, non più la mano.
     "you" -> Icons.Outlined.PendingActions
-    "work" -> Icons.Outlined.PlayCircle
+    "work", "sessions" -> Icons.Outlined.PlayCircle
     "out" -> Icons.Outlined.Inbox
     else -> Icons.Outlined.Speed
 }
@@ -98,6 +98,7 @@ internal fun catName(id: String): String = stringResource(when (id) {
     "you" -> R.string.cat_you
     "work" -> R.string.cat_work
     "out" -> R.string.cat_out
+    "sessions" -> R.string.home_sec_sessions
     else -> R.string.cat_tools
 })
 

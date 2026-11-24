@@ -222,7 +222,7 @@ class HomeCatsTest {
         assertEquals(listOf(false, false, false), d.map { it.open })
         assertEquals(listOf("esiti"), HomeCats.top(old))
         val saved = HomeCats.encode(HomeCats.moveSection(d, "you", 3, 0), null, HomeCats.top(old))!!
-        assertEquals("rev:7", HomeCats.REV); assertTrue(HomeCats.REV in saved)
+        assertEquals("rev:8", HomeCats.REV); assertTrue(HomeCats.REV in saved)
         assertEquals(listOf("suggestions", "decisioni", "prove", "seguiti", "monitors"), HomeCats.decode(saved).single { it.id == "you" }.sections)
     }
 
@@ -297,9 +297,16 @@ class HomeCatsTest {
         assertTrue(HomeCats.DEFAULT.none { it.open })
         assertEquals(listOf(false, false, false), HomeCats.decode(listOf("decisioni", "shut:work,tools", "rev:6")).map { it.open })
     }
-    @Test fun fromRev7WhatFranzOpensStaysOpen() {
+    // app-titolo-sessioni-24-11 (Franz 24/11 09:41): un ordine rev:7 si chiude una volta, così all'aggiornamento è aperta solo Sessioni.
+    @Test fun aRev7OrderClosesOnceAndKeepsOrderAndBoard() {
+        val old = listOf("top:esiti", "lavori", "notte", "decisioni", "shut:tools", "rev:7")
+        assertEquals(listOf(false, false, false), HomeCats.decode(old).map { it.open })
+        assertEquals(listOf("lavori", "notte"), HomeCats.decode(old).single { it.id == "work" }.sections.take(2))
+        assertEquals(listOf("esiti"), HomeCats.top(old))
+    }
+    @Test fun fromRev8WhatFranzOpensStaysOpen() {
         val saved = HomeCats.encode(HomeCats.toggle(HomeCats.DEFAULT, "you"), null)!!
-        assertTrue("rev:7" in saved)
+        assertTrue("rev:8" in saved)
         assertEquals(listOf("you" to true, "work" to false, "tools" to false), HomeCats.decode(saved).map { it.id to it.open })
     }
 }

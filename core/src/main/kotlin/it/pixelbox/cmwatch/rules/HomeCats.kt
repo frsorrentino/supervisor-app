@@ -28,7 +28,12 @@ object HomeCats {
      * Il marcatore dell'ordine nuovo (Franz 02/11 21:28, app-home-nomi-02-11): un ordine salvato senza marcatore riprende una volta
      * l'ordine delle categorie dei riquadri e quello di partenza dentro Tocca a te e Risorse; aperte, chiuse e tabellone restano.
      */
-    const val REV = "rev:7"
+    const val REV = "rev:8"
+    /**
+     * Un ordine `rev:7` (prima del titolo Sessioni): le categorie tornano chiuse una volta, così all'aggiornamento è aperta solo
+     * Sessioni (app-titolo-sessioni-24-11, Franz 24/11 09:41: «di base solo la sezione sessioni deve essere aperta»). Dopo si ricordano.
+     */
+    private const val REV7 = "rev:7"
     /**
      * Un ordine fino a `rev:6` (Dalla master aperta di partenza): le categorie tornano chiuse una volta (app-home-voci-chiuse-10-11),
      * perché quella aperta non l'aveva scelta Franz; ordine, sezioni e tabellone restano. Dopo, aperte e chiuse si ricordano.
@@ -58,8 +63,8 @@ object HomeCats {
     fun decode(saved: List<String>?): List<Cat> {
         val list = saved.orEmpty()
         val up = top(saved)
-        // Le riprese dell'ordine guardano i marcatori fino a `rev:6`; quella delle chiuse, `rev:7`.
-        val cur = REV in list || REV6 in list
+        // Le riprese dell'ordine guardano i marcatori fino a `rev:6`; quella delle chiuse, `rev:8`.
+        val cur = REV in list || REV7 in list || REV6 in list
         val fresh = list.isNotEmpty() && !cur && REV2 !in list && REV3 !in list && REV4 !in list && REV5 !in list
         val youOld = !cur && REV5 !in list && (REV2 in list || REV3 in list)
         val workOld = list.isNotEmpty() && !cur && REV5 !in list

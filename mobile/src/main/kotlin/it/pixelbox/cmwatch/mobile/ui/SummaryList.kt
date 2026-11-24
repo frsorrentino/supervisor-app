@@ -331,7 +331,16 @@ fun SummaryList(
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val prefs = remember { runCatching { ctx.getSharedPreferences("home_sections_2", android.content.Context.MODE_PRIVATE) }.getOrNull() }
     fun section(key: String): androidx.compose.runtime.MutableState<Boolean> = if (parts != null) f.state("plancia.$key", key in startOpen) else mutableStateOf(runCatching { prefs?.getBoolean(key, key in startOpen) }.getOrNull() ?: (key in startOpen))
-    var sessionsOpen by remember { section("sessions") }
+    // app-titolo-sessioni-24-11 (Franz 24/11 09:41: «di base solo la sezione sessioni deve essere aperta»): all'aggiornamento Sessioni si
+    // apre una volta, anche se era stata chiusa sul tabellone; le categorie si chiudono una volta da HomeCats (rev:8). Dopo si ricorda.
+    var sessionsOpen by remember {
+        section("sessions").also { s ->
+            if (parts == null && "sessions" in startOpen && prefs != null && runCatching { !prefs.getBoolean("sessioni_titolo", false) }.getOrDefault(false)) {
+                s.value = true
+                runCatching { prefs.edit().putBoolean("sessions", true).putBoolean("sessioni_titolo", true).apply() }
+            }
+        }
+    }
     var usageOpen by remember { section("usage") }
     var esitiOpen by remember { section("esiti") }
     var suggestionsOpen by remember { section("suggestions") }
@@ -884,10 +893,15 @@ fun SummaryList(
                 val boardNames = (waitRows + restRows).map { r -> r.session.name }.filter { x -> x != it.pixelbox.cmwatch.rules.ContextActions.MASTER }.distinct()
                 // In cima ha la scheda delle altre voci del tabellone (Franz 03/11 08:25, app-in-cima-uguali-03-11).
                 if ("sessions" in liveTop) BoardCard(moving(), boardAbove("sessions"), boardBelow("sessions")) { SlotRow(sectionDrag("sessions"), stringResource(R.string.home_sec_sessions), androidx.compose.material.icons.Icons.Outlined.PlayCircle, model.open.toString(), line.ifEmpty { null }, "home-sez-sessioni", sessionsOpen, dot = if (waitRows.isNotEmpty()) V3.Wait else null, names = boardNames, onToggle = toggle) }
+                // Il titolo «Sessioni» (app-titolo-sessioni-24-11, Franz 24/11 09:41): la stessa testata di «Dalla master», che apre e chiude
+                // la lista; chiusa, il riassunto accanto, in ambra se qualcuna ti aspetta. Non si sposta.
+                else if (parts == null) Box(moving()) {
+                    CatLabel("sessions", amber = !sessionsOpen && waitN > 0, divider = true, bits = if (sessionsOpen) null else it.pixelbox.cmwatch.rules.OneLine.parts(line).map { p -> CatBit(p) }) { if (!it.pixelbox.cmwatch.rules.Leave.settling(System.currentTimeMillis())) toggle() }
+                }
                 // Un livello solo (app-sessioni-compatte-06-11, bozze 6 e 19): la lista sta sotto il tabellone o sotto la testata della
                 // colonna, senza la riga «Sessioni N».
             }
-            val listOpen = parts != null || sessionsOpen || "sessions" !in liveTop
+            val listOpen = parts != null || sessionsOpen
             // La pillola del filtro acceso dal tabellone, con la × che lo toglie.
             if (listOpen && bf != null) item(key = "board-filter") { Box(moving()) { BoardFilterPill(stringResource(if (bf == it.pixelbox.cmwatch.rules.Kpi.BoardFilter.WAITING) R.string.board_filter_waiting else R.string.board_filter_busy)) { f.boardFilter = null } } }
             if (listOpen) renderWaiting()
@@ -1132,7 +1146,7 @@ fun SummaryList(
             when (k) {
                 "prima_raccolta", "seguiti", "prove", "decisioni", "da_guardare", "monitors", "rendiconti", "pagella" -> renderNew(k)
                 // Chiuse sta sotto le sessioni, in fondo (scelta 2, Franz 02/11 17:43); Plugin e skill dentro Sistema.
-                "sessions" -> { renderSessions(); if (listSkip != "closed") renderClosed() }
+                "sessions" -> { renderSessions(); if (listSkip != "closed" && (parts != null || sessionsOpen || "sessions" in up)) renderClosed() }
                 "suggestions" -> renderSuggestions()
                 "notte" -> renderNotte()
                 "lavori" -> renderLavori()
