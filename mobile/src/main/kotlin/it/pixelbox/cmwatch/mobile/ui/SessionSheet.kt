@@ -150,6 +150,8 @@ data class FileOpener(
     val unmetered: () -> Boolean = { false },
     /** «Salva tutti» (DOWNLOAD) e «Condividi tutti» (SHARE) sui file di un gruppo, chiave e file (Franz, 16/10 16:01). */
     val actAll: (List<Pair<String, TranscriptFile>>, FileAct) -> Unit = { _, _ -> },
+    /** Le chiavi dei file che il PC dice spariti (app-file-mancante-24-11): il chip lo dice e non li richiede da solo. */
+    val gone: Set<String> = emptySet(),
 )
 val LocalFileOpener = compositionLocalOf { FileOpener() }
 
@@ -1676,7 +1678,8 @@ private fun FileChip(f: TranscriptFile, entry: String, v3: Boolean = false) {
     // Dal 15/10 22:20 anche i PDF (prima pagina) e i testi (prime righe); gli altri hanno la scheda larga (MediaPreview).
     val kind = it.pixelbox.cmwatch.rules.MediaPreview.kind(f.mime, f.path)
     val autoPreview = it.pixelbox.cmwatch.rules.MediaPreview.auto(f.mime, f.size, opener.unmetered(), f.path)
-    LaunchedEffect(key, autoPreview) { if (autoPreview && opener.local[key] == null && key !in opener.loading) opener.preview(key, f) }
+    val gone = key in opener.gone
+    LaunchedEffect(key, autoPreview) { if (autoPreview && opener.local[key] == null && key !in opener.loading && key !in opener.gone) opener.preview(key, f) }
     // Ogni allegato a tutta larghezza della chat (Franz, 12/10 12:27 per immagini e video, 15/10 22:20 per tutti).
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Surface(color = if (v3) V3.S2 else Cm.surface, shape = MaterialTheme.shapes.medium, onClick = { opener.open(key, f) }, modifier = Modifier.fillMaxWidth()) {
@@ -1689,6 +1692,8 @@ private fun FileChip(f: TranscriptFile, entry: String, v3: Boolean = false) {
                 f.size?.let { Text(sizeLabel(it), style = MaterialTheme.typography.labelMedium, color = Cm.text2, softWrap = false) }
             }
         }
+        // Spostato o cancellato sul PC dopo il messaggio: il chip lo dice, l'anteprima non si chiede più (app-file-mancante-24-11).
+        if (gone) Text(stringResource(R.string.file_gone_pc_short), style = V3.Small.copy(color = V3.Tx2), modifier = Modifier.testTag("file-non-disponibile"))
         // L'anteprima tra il nome e i tasti (Franz, 13/10 07:16: «l'anteprima del file dovrebbe stare tra nome file e tasti,
         // con i tasti sotto e nome sopra»).
         val seenPath = LocalSeenPath.current
@@ -1709,7 +1714,7 @@ private fun FileChip(f: TranscriptFile, entry: String, v3: Boolean = false) {
             if (full) PageFullDialog(local, f.mime, f.path.substringAfterLast('/')) { full = false }
         }
         // Oltre i limiti, o su una rete a contatore, l'anteprima aspetta il tocco.
-        if (local == null && key !in opener.loading && !autoPreview && it.pixelbox.cmwatch.rules.MediaPreview.canPreview(f.mime, f.path)) {
+        if (local == null && key !in opener.loading && !gone && !autoPreview && it.pixelbox.cmwatch.rules.MediaPreview.canPreview(f.mime, f.path)) {
             androidx.compose.material3.FilledTonalButton(onClick = { opener.preview(key, f) }) { Text(stringResource(R.string.show_preview)) }
         }
         // In fondo i quattro tasti, come Copia e ▶ sotto le risposte (Franz, 07/10 16:07).

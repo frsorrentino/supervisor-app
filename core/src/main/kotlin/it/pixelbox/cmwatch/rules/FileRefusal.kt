@@ -11,4 +11,16 @@ object FileRefusal {
 
     fun tooLarge(reason: String): TooLarge? =
         TOO_LARGE.find(reason)?.let { m -> TooLarge(m.groupValues[1].toLong(), m.groupValues[2].toLongOrNull()) }
+
+    /**
+     * Il file non c'è più sul PC (app-file-mancante-24-11, Franz 24/11 21:08: «cos'è questo missing or unreadable che mi appare
+     * spesso?»): citato nella conversazione e poi spostato o cancellato. Il relay lo dice con «missing or unreadable» (un OSError in
+     * `file_open`). Non torna da solo: l'app lo segna non disponibile, non lo richiede e lo dice in italiano col nome, solo al tocco.
+     */
+    fun gone(reason: String): Boolean = GONE.containsMatchIn(reason)
+
+    private val GONE = Regex("""missing or unreadable|no such file""", RegexOption.IGNORE_CASE)
+
+    /** Il nome che si legge nell'avviso: l'ultima parte del percorso. */
+    fun name(path: String): String = path.trimEnd('/').substringAfterLast('/').ifEmpty { path }
 }

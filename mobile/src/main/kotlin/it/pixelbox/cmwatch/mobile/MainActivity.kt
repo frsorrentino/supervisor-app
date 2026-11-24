@@ -1611,12 +1611,15 @@ class MainActivity : ComponentActivity() {
         // Chiavi di `FileCache`: lo stesso percorso riscritto sul PC è un altro file.
         val fileLocal = remember { mutableStateMapOf<String, String>() }
         val fileLoading = remember { androidx.compose.runtime.mutableStateListOf<String>() }
+        // I file che il PC dice spariti (app-file-mancante-24-11): segnati non disponibili, non si richiedono; al tocco l'avviso col nome.
+        val fileGone = remember { androidx.compose.runtime.mutableStateListOf<String>() }
         // Il file in memoria o sul disco se c'è, se no chiesto al PC; poi `ready` con il file locale e il suo tipo. Il disco
         // conta dal 12/10: chiusa e riaperta la conversazione, un video di 12 MB si riscaricava ogni volta.
         // `quiet`: l'anteprima che nasce da sola (10/10 09:54) non avvisa se il file non arriva.
         val withFile: (String?, String, it.pixelbox.cmwatch.contract.TranscriptFile, Boolean, (java.io.File, String?) -> Unit) -> Unit = { name, key, f, quiet, ready ->
             val known = fileLocal[key]
             if (known != null) ready(java.io.File(known), f.mime)
+            else if (key in fileGone) { if (!quiet) android.widget.Toast.makeText(this@MainActivity, getString(R.string.file_gone_pc, it.pixelbox.cmwatch.rules.FileRefusal.name(f.path)), android.widget.Toast.LENGTH_LONG).show() }
             else if (key !in fileLoading) {
                 fileLoading.add(key)
                 scope.launch {
@@ -1648,7 +1651,10 @@ class MainActivity : ComponentActivity() {
                             fileLocal[key] = kept.path
                             ready(kept, r.file.mime)
                         }
-                        is it.pixelbox.cmwatch.data.Repo.Opened.Refused -> if (!quiet) {
+                        is it.pixelbox.cmwatch.data.Repo.Opened.Refused -> if (it.pixelbox.cmwatch.rules.FileRefusal.gone(r.reason)) {
+                            if (key !in fileGone) fileGone.add(key)
+                            if (!quiet) android.widget.Toast.makeText(this@MainActivity, getString(R.string.file_gone_pc, it.pixelbox.cmwatch.rules.FileRefusal.name(f.path)), android.widget.Toast.LENGTH_LONG).show()
+                        } else if (!quiet) {
                             // «too large: <byte>» in chiaro (Franz, 04/10 21:55): la misura del file e, se il PC lo dice, il limite.
                             val size = { b: Long -> android.text.format.Formatter.formatShortFileSize(this@MainActivity, b) }
                             val big = it.pixelbox.cmwatch.rules.FileRefusal.tooLarge(r.reason)
@@ -2218,7 +2224,7 @@ class MainActivity : ComponentActivity() {
                         }
                         // Un file aperto in chat è visto anche in Risultati (app-risultati-visti-03-11, Franz: «rimangono presenti anche se li vedo altrove»).
                         val seenPath: (String) -> Unit = { p -> it.pixelbox.cmwatch.rules.Guardare.seenByPath(state?.results?.items.orEmpty(), p).forEach { id -> guardare.seen(it.pixelbox.cmwatch.contract.ResultItem(id)) } }
-                        CompositionLocalProvider(it.pixelbox.cmwatch.mobile.ui.LocalSeenPath provides seenPath, it.pixelbox.cmwatch.mobile.ui.LocalWaitFiles provides waitFiles(), LocalFileOpener provides FileOpener({ k, f -> seenPath(f.path); openFile(session.name, k, f) }, fileLoading.toSet(), fileLocal.toMap(), { k, f, a -> fileAct(session.name, k, f, a) }, { k, f -> withFile(session.name, k, f, true) { _, _ -> } }, unmetered, actAll = { all, a -> fileActAll(session.name, all, a) }), LocalDiffOpener provides readDiff(session.name).copy(got = remember(session.name) { mutableMapOf() })) {
+                        CompositionLocalProvider(it.pixelbox.cmwatch.mobile.ui.LocalSeenPath provides seenPath, it.pixelbox.cmwatch.mobile.ui.LocalWaitFiles provides waitFiles(), LocalFileOpener provides FileOpener({ k, f -> seenPath(f.path); openFile(session.name, k, f) }, fileLoading.toSet(), fileLocal.toMap(), { k, f, a -> fileAct(session.name, k, f, a) }, { k, f -> withFile(session.name, k, f, true) { _, _ -> } }, unmetered, actAll = { all, a -> fileActAll(session.name, all, a) }, gone = fileGone.toSet()), LocalDiffOpener provides readDiff(session.name).copy(got = remember(session.name) { mutableMapOf() })) {
                         SessionSheet(session, now, snap.pending, ttsMinChars, SheetActions(
                             answer = { n -> tapResult(scope, getString(R.string.tap_answered, session.name)) { app.repo.answer(session.name, n) } },
                             allowAll = { tapResult(scope, getString(R.string.tap_done)) { app.repo.command(CmdOp.ALLOW_ALL, session.name, null) } },

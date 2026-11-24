@@ -22,6 +22,7 @@
   import { groups, together } from './lib/shareMulti'
   import type { FileAct, Fetched } from './lib/fileActions'
   import { FileStore } from './lib/fileStore'
+  import { GoneFiles, fileGone, fileName } from './lib/fileGone'
   import { zipName } from './lib/zip'
   import { DemoTransport } from './lib/demoTransport'
   import Features from './lib/Features.svelte'
@@ -458,13 +459,13 @@
     })
   }
   // `quietClose` (app-chiudi-scheda-20-11): il no di una chiusura lo dice una volta sola la carta della chiusura, non anche l'avviso.
-  async function run(c: Cmd, quietClose = false): Promise<CmdResult | null> {
+  async function run(c: Cmd, quietClose = false, hush?: (text: string) => boolean): Promise<CmdResult | null> {
     if (!tr) { console.info('[cm] comando', c.session, c.op, c.arg, c.text); return null }
     try {
       const r = await tr.send(c)
       // Contratto 1.55: una risposta a una domanda già risolta al PC lo dice in chiaro.
       // Contratto 1.112: una lettura rimpiazzata da una più recente si chiude in silenzio.
-      if (!r.ok && !superseded(r)) {
+      if (!r.ok && !superseded(r) && !hush?.(r.text)) {
         const why = refusalText(r, c.question ?? null, st.sessions, t.answerAlreadyResolved)
         const rf = refusals(why)
         // app-carte-stato-vivo-20-11: «prova N: già confermata» vuol dire fatta altrove, non è un errore.
@@ -2018,16 +2019,20 @@
   // l'esecuzione a 16 s: un limite più corto toglierebbe anteprime che stanno per arrivare.
   const fileQueue = new FileQueue()
   const PREVIEW_LIMIT_MS = 150_000
+  // Un file che il PC dice sparito (app-file-mancante-24-11) resta segnato: non si richiede, e solo il tocco lo dice col nome.
+  const goneFiles = new GoneFiles()
   const loadFile = (name: string | null, path: string, quiet: boolean) => (): Promise<Fetched | null> => fileQueue.run(name ?? WAIT_LANE, async () => {
     if (!tr) return null
+    if (goneFiles.has(name, path)) { if (!quiet) say(`✗ ${t.fileGonePc(fileName(path))}`); return null }
     let c = newCmd('file', name, path), r: CmdResult | null = null
     // L'anteprima che nasce da sola non avvisa se il file non arriva. Una lettura rimpiazzata da quella di un altro
     // dispositivo si richiede, al massimo due volte.
     for (let i = 0; ; i++) {
-      r = quiet ? await tr.send(c).catch(() => null) : await run(c)
+      r = quiet ? await tr.send(c).catch(() => null) : await run(c, false, fileGone)
       if (!superseded(r) || i >= 2) break
       c = newCmd('file', name, path)
     }
+    if (r && !r.ok && fileGone(r.text)) { goneFiles.add(name, path); if (!quiet) say(`✗ ${t.fileGonePc(fileName(path))}`); return null }
     if (!r?.ok) return null
     const f = await tr.fetchFile(c.id).catch(() => null)
     if (!f) { if (!quiet) say(`✗ ${t.noAnswer}`); return null }

@@ -304,7 +304,8 @@ fun ResultViewer(i: ResultItem, a: GuardareActions, onBack: () -> Unit) {
     var attempt by remember(i.id) { mutableStateOf(0) }
     val kind = Guardare.kind(i.kind)
     val show = Guardare.thumb(i) ?: Guardare.main(i).takeIf { kind == Guardare.Kind.VIDEO }
-    LaunchedEffect(i.id, attempt) { failed = false; show?.let { f -> a.file(i, f, false) { p -> if (p == null) failed = true else path = p } } }
+    // Parte da sola all'apertura e a ogni Riprova: niente avvisi, il riquadro dice già che il file non è arrivato (app-file-mancante-24-11).
+    LaunchedEffect(i.id, attempt) { failed = false; show?.let { f -> a.file(i, f, true) { p -> if (p == null) failed = true else path = p } } }
     var pos by remember(i.id) { mutableStateOf<Double?>(null) }
     var text by rememberSaveable(i.id) { mutableStateOf("") }
     var sent by remember(i.id) { mutableStateOf(false) }

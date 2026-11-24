@@ -86,6 +86,8 @@
     <string name="night_started">started</string>
     <string name="night_update_pc">Update supervisor on the computer to manage the queue from here</string>
     <string name="file_refused">The PC did not send the file: %1$s</string>
+    <string name="file_gone_pc">«%1$s» is no longer on the PC: moved or deleted after the message</string>
+    <string name="file_gone_pc_short">No longer on the PC: moved or deleted after the message</string>
     <string name="file_refused_large">The file is %1$s: too big to transfer from the PC</string>
     <string name="file_refused_large_max">The file is %1$s: the transfer from the PC goes up to %2$s</string>
     <string name="file_failed">File did not arrive: try again</string>

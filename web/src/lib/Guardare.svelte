@@ -122,7 +122,7 @@
   {@const r = current}
   {@const l = line(r)}
   {@const show = thumb(r) ?? (l.kind === 'video' ? { path: r.path, mime: r.mime, size: r.size } : null)}
-  {@const u = show ? urlOf(r, show, false) : null}
+  {@const u = show ? urlOf(r, show, true) : null}
   <div class="viewer" data-testid="risultato-aperto">
     <div class="vh">{#if fromList}<button class="back" aria-label={t.back} onclick={() => { opened = null; fromList = false }}><CatIcon name="back" size={24} /></button>{/if}<h2>{l.title}</h2></div>
     {#if u && l.kind === 'video'}<!-- svelte-ignore a11y_media_has_caption --><video src={u} controls playsinline ontimeupdate={(e) => (at = (e.currentTarget as HTMLVideoElement).currentTime)}></video>
