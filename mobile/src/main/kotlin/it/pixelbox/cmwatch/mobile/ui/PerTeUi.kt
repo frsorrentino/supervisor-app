@@ -345,7 +345,7 @@ fun VoceItem(v: PerTe.Voce, now: Long, onOpen: (PerTe.Voce) -> Unit, onMain: (Pe
         if (v.result != null) stringResource(R.string.watch_seen) else v.main?.label, { onOpen(v) }, { onMain(v) }, tag = "voce-${v.key}",
         advice = adviceText(v.advice), rec = v.main?.recommended == true,
         silence = v.wait?.silenceUntil?.takeIf { u -> it.pixelbox.cmwatch.rules.Silence.pending(u, now) }?.let { u ->
-            stringResource(R.string.silence_row, it.pixelbox.cmwatch.rules.Silence.whenShort(u, java.time.ZoneId.systemDefault(), it.pixelbox.cmwatch.rules.Silence.localeOf(java.util.Locale.getDefault())))
+            stringResource(R.string.silence_row, it.pixelbox.cmwatch.rules.Silence.whenShort(u, java.time.ZoneId.systemDefault(), it.pixelbox.cmwatch.rules.Silence.localeOf(androidx.compose.ui.platform.LocalConfiguration.current.locales[0])))
         },
     )
 }

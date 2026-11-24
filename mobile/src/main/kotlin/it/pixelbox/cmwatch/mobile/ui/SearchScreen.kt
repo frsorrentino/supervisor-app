@@ -205,7 +205,7 @@ private fun Pill(text: String, on: Boolean, dot: Color? = null, icon: Boolean = 
 private fun whenText(w: SearchView.When): String = when (w) {
     is SearchView.When.Time -> w.hhmm
     SearchView.When.Yesterday -> stringResource(R.string.search_yesterday)
-    is SearchView.When.Weekday -> DayOfWeek.of(w.day).getDisplayName(TextStyle.SHORT, Locale.getDefault()).removeSuffix(".")
+    is SearchView.When.Weekday -> DayOfWeek.of(w.day).getDisplayName(TextStyle.SHORT, androidx.compose.ui.platform.LocalConfiguration.current.locales[0]).removeSuffix(".")
     is SearchView.When.Date -> w.ddmm
 }
 

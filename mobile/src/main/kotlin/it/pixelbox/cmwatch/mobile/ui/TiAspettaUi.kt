@@ -388,7 +388,7 @@ internal fun SilenceBlock(
         }
     }
     if (live && pending && until != null) {
-        val loc = S.localeOf(java.util.Locale.getDefault())
+        val loc = S.localeOf(androidx.compose.ui.platform.LocalConfiguration.current.locales[0])
         val shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
         Row(
             Modifier.fillMaxWidth().clip(shape).background(V3.Busy.copy(alpha = 0.08f)).border(1.dp, V3.Busy.copy(alpha = 0.35f), shape)
