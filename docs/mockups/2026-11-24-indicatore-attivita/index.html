@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Indicatore di attività</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<!--
+  app-indicatore-attivita-24-11 (Franz 24/11 09:38: «mandami proposte per inserire uno spinner migliore»).
+  Oggi (6185c51c) l'anello blu di chi lavora è un bordo arrotondato che ruota tutto intero: gli angoli girano col riquadro.
+  Quattro strade, A-D, con la riga della Home vera: la favicon sul riquadro chiaro, sotto i minuti, a destra nome e testo.
+  ?p=oggi|A|B|C|D mostra una proposta sola (per le PNG); ?rm forza «riduci movimento».
+  I colori sono quelli di web/src/v3.css (notte e giorno); 40 = telefono, 28 = web.
+-->
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #050505; color: #EEEEEE; font: 400 15px/1.35 Barlow, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  .night { --bg: #0B0B0B; --s1: #111111; --s2: #181818; --s3: #222222; --line: #2A2A2A; --tx: #EEEEEE; --tx2: #9B9B9B; --tx3: #8A8A8A;
+    --wait: #FFB23F; --busy: #8FA8D2; --good: #71D083; --tile: #F5F5F2; --tile-edge: transparent; }
+  .day { --bg: #F4F4F4; --s1: #FFFFFF; --s2: #FFFFFF; --s3: #EDEDED; --line: #E4E4E4; --tx: #141414; --tx2: #5B5B5B; --tx3: #656565;
+    --wait: #9A5700; --busy: #4A6A9C; --good: #2A7E3B; --tile: #FFFFFF; --tile-edge: rgba(0, 0, 0, .12); }
+  main { max-width: 1160px; margin: 0 auto; padding: 24px 16px 48px; }
+  header.top h1 { font: 700 26px/1.1 'Barlow Semi Condensed', Barlow, sans-serif; margin: 0 0 6px; }
+  header.top p { margin: 0 0 22px; color: #9B9B9B; max-width: 70ch; }
+  section.p { margin: 0 0 36px; }
+  section.p > h2 { font: 700 20px/1.15 'Barlow Semi Condensed', Barlow, sans-serif; margin: 0 0 4px; }
+  section.p > p { margin: 0 0 12px; color: #9B9B9B; max-width: 72ch; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; }
+  .panel { background: var(--bg); color: var(--tx); border-radius: 18px; padding: 14px 12px 8px; }
+  .panel h3 { font: 600 13px/1 Barlow, sans-serif; color: var(--tx2); margin: 0 0 10px 4px; }
+  .card { background: var(--s2); border: 1px solid var(--line); border-radius: 16px; padding: 4px 0; margin-bottom: 8px; }
+  .row { display: flex; gap: 6px; padding: 10px 12px 10px 4px; }
+  .row + .row { border-top: 1px solid var(--line); }
+  .rail { width: 52px; flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 3px; }
+  .rt { font: 700 15px/1 'Barlow Semi Condensed', Barlow, sans-serif; letter-spacing: .01em; color: var(--tx2); white-space: nowrap; }
+  .rt.busy { color: var(--busy); } .rt.waiting { color: var(--wait); }
+  .txt { min-width: 0; }
+  .nm { font: 600 16px/1.25 Barlow, sans-serif; }
+  .ln { color: var(--tx2); font-size: 14px; margin-top: 2px; }
+  .web .rail { width: 44px; } .web .rt { font-size: 13px; } .web .nm { font-size: 14px; } .web .ln { font-size: 13px; }
+
+  /* L'avatar di oggi (SiteAvatar.svelte): riquadro con l'anello inset, la favicon su una piastrella chiara. */
+  .av { --ring: var(--busy); position: relative; flex: none; display: inline-grid; place-items: center; width: var(--s); height: var(--s);
+    border-radius: calc(var(--s) * .3); box-shadow: inset 0 0 0 calc(var(--s) * .075) var(--ring); }
+  .av.waiting { --ring: var(--wait); }
+  .tile { width: calc(var(--s) * .72); height: calc(var(--s) * .72); border-radius: calc(var(--s) * .2); background: var(--tile);
+    box-shadow: 0 0 0 1px var(--tile-edge); display: grid; place-items: center; }
+  .tile svg { width: 80%; height: 80%; display: block; }
+  .s40 { --s: 40px; } .s28 { --s: 28px; }
+
+  /* OGGI: l'arco è il bordo di uno pseudo-elemento che ruota col riquadro intero. */
+  .oggi .av.busy { box-shadow: inset 0 0 0 calc(var(--s) * .075) color-mix(in srgb, var(--ring) 28%, transparent); }
+  .oggi .av.busy::after { content: ''; position: absolute; inset: 0; border-radius: inherit; border: calc(var(--s) * .075) solid transparent;
+    border-top-color: var(--ring); border-right-color: var(--ring); animation: giro 1.4s linear infinite; }
+  @keyframes giro { to { transform: rotate(360deg); } }
+
+  /* A. Una traccia corre lungo il bordo: il riquadro sta fermo, un tratto blu ne percorre il contorno sopra l'anello tenue. */
+  .A .av.busy { box-shadow: none; }
+  .A .trk { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .A .trk rect { fill: none; stroke: var(--busy); }
+  .A .trk .base { stroke-opacity: .28; }
+  .A .trk .run { stroke-linecap: round; stroke-dasharray: 24 76; animation: corre 1.6s linear infinite; }
+  @keyframes corre { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
+
+  /* B. L'anello pieno e fermo; all'angolo un pallino blu che respira. */
+  .B .dot { position: absolute; right: calc(var(--s) * -.1); bottom: calc(var(--s) * -.1); width: calc(var(--s) * .34); height: calc(var(--s) * .34);
+    border-radius: 50%; background: var(--busy); box-shadow: 0 0 0 calc(var(--s) * .06) var(--s2); }
+  .B .dot::before { content: ''; position: absolute; inset: 0; border-radius: 50%; background: var(--busy); animation: respira 1.8s cubic-bezier(.23, 1, .32, 1) infinite; }
+  @keyframes respira { 0% { transform: scale(1); opacity: .55; } 70%, 100% { transform: scale(2.1); opacity: 0; } }
+
+  /* C. L'anello pieno e fermo; sotto la favicon, accanto ai minuti, tre punti che salgono uno dopo l'altro. */
+  .C .rt.busy { display: inline-flex; align-items: center; gap: 3px; }
+  .C .dots { display: inline-flex; gap: 2px; }
+  .C .dots i { width: 3px; height: 3px; border-radius: 50%; background: var(--busy); animation: punto 1.2s ease-in-out infinite; }
+  .C .dots i:nth-child(2) { animation-delay: .15s; } .C .dots i:nth-child(3) { animation-delay: .3s; }
+  @keyframes punto { 0%, 60%, 100% { opacity: .3; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-2px); } }
+
+  /* D. L'anello pieno e fermo; sotto la favicon una barra sottile in cui scorre un segmento, come la barra indeterminata di Android. */
+  .D .bar { width: var(--s); height: 2px; border-radius: 1px; background: color-mix(in srgb, var(--busy) 25%, transparent); overflow: hidden; position: relative; }
+  .D .bar i { position: absolute; top: 0; bottom: 0; width: 45%; border-radius: 1px; background: var(--busy); animation: scorre 1.5s cubic-bezier(.77, 0, .175, 1) infinite; }
+  @keyframes scorre { from { transform: translateX(-100%); } to { transform: translateX(calc(var(--s) * 1 / .45)); } }
+
+  /* Riduci movimento: niente moto; resta un segno fermo che dice «al lavoro». */
+  .rm .av.busy::after, .rm .trk .run, .rm .dot::before, .rm .dots i, .rm .bar i { animation: none !important; }
+  .rm .trk .run { stroke-dasharray: none; }
+  .rm .dot::before { opacity: 0; }
+  .rm .dots i { opacity: .9; }
+  .rm .bar i { left: 0; width: 100%; transform: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .oggi .av.busy::after, .A .trk .run, .B .dot::before, .C .dots i, .D .bar i { animation: none; }
+    .A .trk .run { stroke-dasharray: none; } .B .dot::before { opacity: 0; } .C .dots i { opacity: .9; } .D .bar i { left: 0; width: 100%; }
+  }
+  .solo header.top, .solo section.p > p { display: none; }
+  .solo main { padding: 12px; }
+</style>
+</head>
+<body>
+<main>
+  <header class="top">
+    <h1>Indicatore di attività di una sessione al lavoro</h1>
+    <p>Quattro strade al posto dell'arco che ruota insieme al riquadro della favicon. In ogni proposta: la Home di notte e di giorno, una sessione al lavoro e una che ti aspetta, a 40 (telefono) e a 28 (web), e come resta con «riduci movimento». Le favicon sono inventate.</p>
+  </header>
+  <div id="out"></div>
+</main>
+<template id="fav-bag"><svg viewBox="0 0 24 24"><path d="M5 8h14l-1.2 11.2a2 2 0 0 1-2 1.8H8.2a2 2 0 0 1-2-1.8z" fill="#2F6BFF"/><path d="M9 9V7a3 3 0 0 1 6 0v2" fill="none" stroke="#2F6BFF" stroke-width="2" stroke-linecap="round"/></svg></template>
+<template id="fav-leaf"><svg viewBox="0 0 24 24"><path d="M5 19c0-8 5-13 14-14-1 9-6 14-14 14z" fill="#1F9D55"/><path d="M5 19 13 11" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg></template>
+<script>
+  const P = [
+    { k: 'oggi', h: 'Oggi', d: "L'arco è il bordo del riquadro che ruota tutto intero: gli angoli girano e l'anello non è mai pulito." },
+    { k: 'A', h: 'A · Traccia lungo il bordo', d: "Il riquadro sta fermo. Un tratto blu corre lungo il suo contorno, sopra l'anello tenue di oggi: è lo spinner di oggi senza la rotazione. Con «riduci movimento» l'anello è pieno e fermo." },
+    { k: 'B', h: "B · Pallino che respira all'angolo", d: "L'anello blu è pieno e fermo come per gli altri stati. All'angolo in basso a destra un pallino blu manda un'onda leggera ogni 1,8 s. Con «riduci movimento» resta il pallino fermo." },
+    { k: 'C', h: 'C · Tre punti accanto ai minuti', d: "L'anello blu è pieno e fermo. Accanto ai minuti tre punti si accendono uno dopo l'altro, come chi sta scrivendo in chat. Con «riduci movimento» i tre punti restano accesi." },
+    { k: 'D', h: 'D · Barra sottile che scorre', d: "L'anello blu è pieno e fermo. Fra la favicon e i minuti una barra di 2 px larga quanto il riquadro, con un segmento che scorre, come la barra indeterminata di Android. Con «riduci movimento» la barra è piena." },
+  ]
+  const fav = id => document.getElementById(id).innerHTML
+  function avatar(k, kind, s, favId) {
+    let extra = ''
+    if (k === 'A' && kind === 'busy') {
+      const w = s * .075, r = s * .3 - w / 2
+      extra = `<svg class="trk" viewBox="0 0 ${s} ${s}"><rect class="base" x="${w / 2}" y="${w / 2}" width="${s - w}" height="${s - w}" rx="${r}" stroke-width="${w}"/><rect class="run" pathLength="100" x="${w / 2}" y="${w / 2}" width="${s - w}" height="${s - w}" rx="${r}" stroke-width="${w}"/></svg>`
+    }
+    if (k === 'B' && kind === 'busy') extra = '<i class="dot"></i>'
+    return `<span class="av ${kind} s${s}"><span class="tile">${fav(favId)}</span>${extra}</span>`
+  }
+  function rail(k, kind, s, min) {
+    const t = k === 'C' && kind === 'busy' ? `<b class="rt busy">${min}<span class="dots"><i></i><i></i><i></i></span></b>` : `<b class="rt ${kind}">${min}</b>`
+    const bar = k === 'D' && kind === 'busy' ? `<span class="bar s${s}"><i></i></span>` : ''
+    return `<span class="rail">${avatar(k, kind, s, kind === 'busy' ? 'fav-bag' : 'fav-leaf')}${bar}${t}</span>`
+  }
+  const row = (k, kind, s, min, nm, ln) => `<div class="row">${rail(k, kind, s, min)}<div class="txt"><div class="nm">${nm}</div><div class="ln">${ln}</div></div></div>`
+  function panel(k, theme, label, rm) {
+    return `<div class="panel ${theme}${rm ? ' rm' : ''}"><h3>${label}</h3>
+      <div class="card">${row(k, 'busy', 40, "3'", 'storefront', 'Sta scrivendo i test del carrello')}${row(k, 'waiting', 40, "12'", 'blog', 'Ti chiede quale titolo tenere')}</div>
+      <div class="card web">${row(k, 'busy', 28, "3'", 'storefront', 'Sta scrivendo i test del carrello')}</div></div>`
+  }
+  const q = new URLSearchParams(location.search)
+  const only = q.get('p'), forceRm = q.has('rm')
+  if (only) document.body.classList.add('solo')
+  document.getElementById('out').innerHTML = P.filter(p => !only || p.k === only).map(p => `<section class="p ${p.k}"><h2>${p.h}</h2><p>${p.d}</p><div class="grid">
+    ${panel(p.k, 'night', 'Notte · telefono 40 e web 28', forceRm)}${panel(p.k, 'day', 'Giorno · telefono 40 e web 28', forceRm)}${p.k === 'oggi' ? '' : panel(p.k, 'night', 'Notte · riduci movimento', true)}</div></section>`).join('')
+</script>
+</body>
+</html>
