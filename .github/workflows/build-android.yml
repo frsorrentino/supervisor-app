@@ -126,6 +126,41 @@ jobs:
           # 47 MB a build: con 30 giorni la quota Actions (0,5 GB-mese) finiva in pochi giorni di push. L'APK si scarica subito.
           retention-days: 1
 
+  # I golden controllati a ogni push (app-golden-verdi-23-11, Franz 24/11 08:09): un job a sé, rosso a ogni differenza, così i golden
+  # rossi per motivi estranei ai compiti non si accumulano più. Non ferma la pre-release (app-pipeline-veloce-06-11 resta: il job
+  # build registra le immagini nuove e le mette su goldens/<sha>). Lo stesso comando di verify che si usa su win, in UTC come lì.
+  verify-golden:
+    if: github.event.inputs.record != 'true'
+    runs-on: ubuntu-latest
+    env:
+      JAVA_TOOL_OPTIONS: -Duser.timezone=UTC
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17 }
+      - uses: android-actions/setup-android@v4
+        with: { packages: 'platform-tools' }
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties', 'gradle/libs.versions.toml', 'core/build.gradle.kts', 'wear/build.gradle.kts', 'mobile/build.gradle.kts', 'ui-tokens/build.gradle.kts') }}
+          restore-keys: gradle-
+      - name: Gradle memory for CI
+        run: printf 'org.gradle.jvmargs=-Xmx4096m -Dfile.encoding=UTF-8\nkotlin.daemon.jvmargs=-Xmx4096m\n' >> ~/.gradle/gradle.properties
+      - name: Golden (Paparazzi, verify)
+        run: ./gradlew --max-workers=2 --continue :wear:verifyPaparazziDebug :mobile:verifyPaparazziGithubDebug --console=plain
+      - name: Differenze
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-differenze
+          path: |
+            wear/build/paparazzi/failures
+            mobile/build/paparazzi/failures
+          retention-days: 7
+
   # La pre-release da sola (app-ci-prerelease-auto-06-11): a ogni push sul ramo dell'app, se la build è passata con l'APK firmato,
   # una pre-release sullo sha del push con mobile-release.apk, l'asset che l'app cerca (AppUpdate.ASSET) e che la Home propone come
   # la più recente (published_at). Tag univoco; nelle note i messaggi dei commit dall'ultima release. Una build fallita non
