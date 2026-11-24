@@ -178,7 +178,10 @@ class FlySwipeTest {
         assertTrue("apertura: la pagina compare piena d'un colpo (salto massimo ${d.max()}, quote $s)", d.max() < 0.25f)
         assertTrue("apertura: la scheda sparisce per un fotogramma (calo massimo ${d.min()}, quote $s)", d.min() > -0.05f)
         assertTrue("apertura: la pagina non arriva intera (${s.last()})", s.last() > 0.6f)
-        assertTrue("apertura: la home sparisce d'un colpo dietro la scheda (card ${cards})", steps(cards).min() > -cards.first() / 2)
+        // Le card della home possono sparire d'un colpo solo sotto la pagina che cresce, non sotto un fondo nero: con la testata
+        // «Sessioni» (app-titolo-sessioni-24-11) le card stanno più in basso e la pagina le copre tutte in un passo.
+        val drops = steps(cards).zip(d).filter { (c, p) -> c <= -cards.first() / 2 && p < -c * 0.8f }
+        assertTrue("apertura: la home sparisce d'un colpo dietro la scheda (card ${cards}, pagina $s)", drops.isEmpty())
     }
 
     // Il ritorno col dito verso destra, a specchio dell'apertura (Franz, 09/11 21:37): la pagina si richiude nel riquadro che torna
