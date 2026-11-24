@@ -1146,7 +1146,7 @@ fun SummaryList(
             when (k) {
                 "prima_raccolta", "seguiti", "prove", "decisioni", "da_guardare", "monitors", "rendiconti", "pagella" -> renderNew(k)
                 // Chiuse sta sotto le sessioni, in fondo (scelta 2, Franz 02/11 17:43); Plugin e skill dentro Sistema.
-                "sessions" -> { renderSessions(); if (listSkip != "closed" && (parts != null || sessionsOpen || "sessions" in up)) renderClosed() }
+                "sessions" -> { renderSessions(); if (listSkip != "closed" && (parts != null || sessionsOpen || "sessions" in up || (restRows.isEmpty() && justClosed == null && waitRows.isEmpty()))) renderClosed() }
                 "suggestions" -> renderSuggestions()
                 "notte" -> renderNotte()
                 "lavori" -> renderLavori()

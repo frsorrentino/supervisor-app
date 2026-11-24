@@ -35,7 +35,7 @@ class HomeCategoriesTest {
         CmPhoneTheme(still = true) {
             SummaryList(
                 Summary.build(st, emptyList(), emptyList(), st.ts, ZoneId.of("Europe/Rome"), emptySet()), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = st.ts,
-                usage = { Text("") }, system = system, kpiState = st, kpiPage = page(failed), startOpen = open,
+                usage = { Text("") }, system = system, kpiState = st, kpiPage = page(failed), startOpen = open + "sessions",
                 plugins = st.plugins, onPluginsLoad = { null }, onPluginCmd = { _, _ -> null },
             )
         }

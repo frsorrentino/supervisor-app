@@ -38,7 +38,7 @@ class MonitorsScreenTest {
         CmPhoneTheme(still = true, day = day) {
             SummaryList(
                 Summary.build(s, emptyList(), emptyList(), s.ts, ZoneId.of("Europe/Rome"), emptySet()), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = s.ts,
-                usage = { Text("") }, kpiState = s, startOpen = open, monitors = list,
+                usage = { Text("") }, kpiState = s, startOpen = open + "sessions", monitors = list,
             )
         }
     }

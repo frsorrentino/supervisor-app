@@ -61,7 +61,7 @@ class HomeAltroTest {
             CmPhoneTheme(still = true) {
                 SummaryList(
                     Summary.build(full, emptyList(), emptyList(), full.ts, ZoneId.of("Europe/Rome"), emptySet()), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = full.ts, usage = { Text("") }, system = system, kpiState = full, kpiPage = page,
-                    startOpen = emptySet(), plugins = full.plugins, onPluginsLoad = { null }, onPluginCmd = { _, _ -> null },
+                    startOpen = setOf("sessions"), plugins = full.plugins, onPluginsLoad = { null }, onPluginCmd = { _, _ -> null },
                 )
             }
         }

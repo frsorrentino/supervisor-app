@@ -1163,7 +1163,7 @@
   <!-- Il titolo «Sessioni» (app-titolo-sessioni-24-11, Franz 24/11 09:41): la stessa testata di «Dalla master», che apre e chiude la
        lista; chiusa, il riassunto accanto, in ambra se qualcuna ti aspetta. Sul tabellone la testata è la sua riga. Non si sposta. -->
   {#if !up.includes('sessions')}{@render sessHead()}{/if}
-  <div class="hsec" data-testid="home-sessioni" data-vt={vt('sessions')} style:--vt={vt('sessions')}>{@render secSessions()}{#if open.sessions || up.includes('sessions')}{@render secClosed()}{/if}</div>
+  <div class="hsec" data-testid="home-sessioni" data-vt={vt('sessions')} style:--vt={vt('sessions')}>{@render secSessions()}{#if open.sessions || up.includes('sessions') || !(showsSessions && (restGroups.length || justClosed || waitRows.length))}{@render secClosed()}{/if}</div>
   {#each shownCats as c (c.id)}
     <div class="hcat" class:held={catHeld === c.id} data-testid="cat-{c.id}">
       {#if c.open}<button class="catlabel cathead" class:amber={c.id === 'you' && catSignal(c.id).amber} aria-expanded="true" data-counter={c.id} onpointerdown={(e) => catDown(c.id, e)} onclick={() => setCats(toggleCat(cats, c.id))}><span>{#if c.id === 'you' && catSignal(c.id).amber}<span class="catic">{#if CATS_ICON[c.id].startsWith('svg:')}<CatIcon name={CATS_ICON[c.id].slice(4)} />{:else}<span class="ms" aria-hidden="true">{CATS_ICON[c.id]}</span>{/if}</span>{/if}{t.catName[c.id]}</span><span class="ms arr up" aria-hidden="true">expand_more</span></button>

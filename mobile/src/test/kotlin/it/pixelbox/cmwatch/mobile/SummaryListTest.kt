@@ -114,7 +114,7 @@ class SummaryListTest {
         )
         CmPhoneTheme(still = true) {
             Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) {
-                SummaryList(model(idle), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = idle.ts, kpiState = idle, onHomeOrder = {}, startOpen = setOf("seguiti"),
+                SummaryList(model(idle), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = idle.ts, kpiState = idle, onHomeOrder = {}, startOpen = setOf("seguiti", "sessions"),
                     sectionBodies = mapOf("prima_raccolta" to { }, "prove" to { }, "decisioni" to { }, "seguiti" to { androidx.compose.material3.Text("Corpo di Da seguire, aperto sul posto") }))
             }
         }
@@ -162,7 +162,7 @@ class SummaryListTest {
     private val red = ContractJson.decodeState(File("../contract/state-3-stale.json").readText())
     @Composable private fun systemPage(sys: SystemStatus) = CmPhoneTheme(still = true) {
         Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) {
-            SummaryList(model(red), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = red.ts, startOpen = emptySet(), usage = { Text("quota") }, system = sys, ops = red.ops, onSystem = { _, _ -> })
+            SummaryList(model(red), {}, { _, _ -> }, { _, _ -> }, {}, {}, now = red.ts, startOpen = setOf("sessions"), usage = { Text("quota") }, system = sys, ops = red.ops, onSystem = { _, _ -> })
         }
     }
     // Rosso: aperta da sola, carico e memoria, chi consuma, quattro consigli; «Chiudi» solo dove c'è l'azione.
@@ -228,7 +228,7 @@ class SummaryListTest {
         val m = model(one).copy(service = listOf(MasterHome.Row(MasterHome.Kind.NIGHT, "", null, number = 1, at = st.ts)))
         CmPhoneTheme(still = true) {
             Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) {
-                SummaryList(m, {}, { _, _ -> }, { _, _ -> }, {}, {}, now = st.ts, startOpen = setOf("other"), nightPage = night,
+                SummaryList(m, {}, { _, _ -> }, { _, _ -> }, {}, {}, now = st.ts, startOpen = setOf("other", "sessions"), nightPage = night,
                     tonight = it.pixelbox.cmwatch.rules.TonightCard.of(st.night.copy(items = items), st.ts))
             }
         }
