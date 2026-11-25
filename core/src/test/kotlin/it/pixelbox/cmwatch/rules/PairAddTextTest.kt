@@ -11,6 +11,10 @@ class PairAddTextTest {
         assertEquals(Refusal.NO_KEY, PairAddText.refusal("pair --add: no saved key, nothing to add to — use `relay pair`"))
         assertEquals(Refusal.NO_KEY, PairAddText.refusal("pair --add: nessuna chiave salvata, niente a cui aggiungersi — usa `relay pair`"))
         assertEquals(Refusal.FULL, PairAddText.refusal("already 4 devices: no room for another"))
+        // Il numero viene dal relay; senza, il massimo del contratto 1.39 (otto), mai «quattro» fisso.
+        assertEquals(8, PairAddText.devices("already 8 devices: no room for another"))
+        assertEquals(8, PairAddText.devices("full"))
+        assertEquals(8, PairAddText.devices(null))
         assertEquals(Refusal.FAILED, PairAddText.refusal("pairing not started: firebase unreachable"))
     }
 

@@ -787,7 +787,7 @@
     </plurals>
     <string name="week_today">oggi</string>
     <string name="week_samples_from">Giorni dai campioni di %1$s: prima non ci sono.</string>
-    <string name="pair_err_full">Il PC ha già quattro dispositivi accoppiati: non ne accetta un altro.</string>
+    <string name="pair_err_full">Il PC ha già %1$d dispositivi accoppiati, il massimo: togline uno per fare posto.</string>
     <string name="step_tablet">Tablet</string>
     <string name="dev_tablet">Tablet</string>
     <string name="pair_node_working">in corso</string>
@@ -808,7 +808,7 @@
     <string name="add_device_close">Chiudi</string>
     <string name="add_device_busy">Sul PC c\'è già un accoppiamento aperto: aspetta che finisca, al massimo 5 minuti, e riprova.</string>
     <string name="add_device_no_key">Il PC non ha ancora una chiave: accoppia prima questo telefono con relay pair.</string>
-    <string name="add_device_full">Il PC ha già quattro dispositivi accoppiati: non c\'è posto per un altro.</string>
+    <string name="add_device_full">Il PC ha già %1$d dispositivi accoppiati, il massimo: togline uno per fare posto.</string>
     <string name="add_device_failed">Il PC non ha aperto l\'invito: %1$s</string>
     <string name="add_device_other">Il PC ha risposto: %1$s</string>
     <string name="add_device_lost">Il PC non risponde: riprova fra poco.</string>

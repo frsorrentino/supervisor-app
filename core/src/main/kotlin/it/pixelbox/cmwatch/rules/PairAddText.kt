@@ -7,7 +7,16 @@ package it.pixelbox.cmwatch.rules
 object PairAddText {
     enum class Refusal { BUSY, NO_KEY, FULL, FAILED, OTHER }
 
-    private val FULL = Regex("""already \d+ devices""")
+    private val FULL = Regex("""already (\d+) devices""")
+
+    /** I dispositivi che il PC accetta (contratto 1.39, `PAIR_MAX_DEVICES`): otto, non più quattro. */
+    const val MAX_DEVICES = 8
+
+    /**
+     * Quanti dispositivi ha già il PC, dal testo del rifiuto («already 8 devices»); senza numero, il massimo del contratto.
+     * Il telefono diceva «quattro» anche col limite a otto (Franz 25/11 13:06, app-orologio-dati-demo-25-11).
+     */
+    fun devices(text: String?): Int = text?.let { FULL.find(it)?.groupValues?.get(1)?.toIntOrNull() } ?: MAX_DEVICES
 
     fun refusal(text: String): Refusal = when {
         "a pairing is already open" in text -> Refusal.BUSY

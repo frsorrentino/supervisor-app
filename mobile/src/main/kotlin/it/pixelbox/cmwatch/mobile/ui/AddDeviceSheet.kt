@@ -97,7 +97,7 @@ fun AddDeviceSheet(ui: AddDeviceUi, onRetry: () -> Unit, onDone: () -> Unit, now
 private fun refusalText(r: AddDeviceUi.Refused): String = when (r.refusal) {
     PairAddText.Refusal.BUSY -> stringResource(R.string.add_device_busy)
     PairAddText.Refusal.NO_KEY -> stringResource(R.string.add_device_no_key)
-    PairAddText.Refusal.FULL -> stringResource(R.string.add_device_full)
+    PairAddText.Refusal.FULL -> stringResource(R.string.add_device_full, PairAddText.devices(r.reason))
     PairAddText.Refusal.FAILED -> stringResource(R.string.add_device_failed, r.reason)
     PairAddText.Refusal.OTHER -> stringResource(R.string.add_device_other, r.reason)
 }

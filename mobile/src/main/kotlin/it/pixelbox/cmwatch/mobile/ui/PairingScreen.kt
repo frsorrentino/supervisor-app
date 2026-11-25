@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import it.pixelbox.cmwatch.rules.PairAddText
 import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.mobile.pair.PairFail
 import it.pixelbox.cmwatch.mobile.pair.PairUi
@@ -52,7 +53,7 @@ fun PairingScreen(ui: PairUi, onRetry: () -> Unit, onRescan: () -> Unit, onWitho
         // Un'aggiunta (contratto 1.30) non passa dall'orologio: il suo passo non si mostra.
         if (!ui.add) StepRow(stringResource(R.string.step_watch), watchNote(ui), ui.steps.getValue(Step.WATCH))
         StepRow(stringResource(R.string.step_pc), ui.host, ui.steps.getValue(Step.PC))
-        ui.fail?.let { Text(stringResource(failText(it, ui.add)), style = MaterialTheme.typography.bodyLarge, color = Cm.gone) }
+        ui.fail?.let { Text(if (it == PairFail.FULL) stringResource(R.string.pair_err_full, PairAddText.MAX_DEVICES) else stringResource(failText(it, ui.add)), style = MaterialTheme.typography.bodyLarge, color = Cm.gone) }
         Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) { PairScheme(ui, tablet) }
         val big = Modifier.fillMaxWidth().height(56.dp)
         when {

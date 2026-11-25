@@ -729,7 +729,7 @@
     <string name="tablet_priority_active">low</string>
     <string name="tablet_priority_offered">low, offered</string>
     <string name="tablet_forecast_stale">Old reading: the forecast comes back with the next update; resets at\u00A0%1$s</string>
-    <string name="pair_err_full">The PC already has four paired devices: it does not accept another one.</string>
+    <string name="pair_err_full">The PC already has %1$d paired devices, the most it accepts: remove one to make room.</string>
     <string name="step_tablet">Tablet</string>
     <string name="dev_tablet">Tablet</string>
     <string name="pair_node_working">in progress</string>
@@ -750,7 +750,7 @@
     <string name="add_device_close">Close</string>
     <string name="add_device_busy">A pairing is already open on the PC: wait for it to end, 5 minutes at most, and try again.</string>
     <string name="add_device_no_key">The PC has no key yet: pair this phone first with relay pair.</string>
-    <string name="add_device_full">The PC already has four paired devices: there is no room for another.</string>
+    <string name="add_device_full">The PC already has %1$d paired devices, the most it accepts: remove one to make room.</string>
     <string name="add_device_failed">The PC did not open the invitation: %1$s</string>
     <string name="add_device_other">The PC answered: %1$s</string>
     <string name="add_device_lost">The PC does not answer: try again shortly.</string>

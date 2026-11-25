@@ -28,7 +28,7 @@ sealed class PairError(msg: String) : Exception(msg) {
     class NoConfirm : PairError("the PC did not confirm")
     class BadConfirm : PairError("PC check failed")
     /** Contratto 1.30: il PC ha già quattro dispositivi, l'aggiunta è rifiutata. */
-    class Full : PairError("the PC already has four devices")
+    class Full : PairError("the PC already has the most devices it accepts")
     class Network(msg: String) : PairError(msg)
 }
 
@@ -55,7 +55,7 @@ class PhonePairer(
                         // Un `/ok` che non è un oggetto è una conferma sbagliata, non un'eccezione (revisione finale, 2).
                         return@withTimeoutOrNull runCatching { Json.parseToJsonElement(doc).jsonObject }.getOrElse { throw PairError.BadConfirm() }
                     }
-                    // Contratto 1.30: con quattro dispositivi il PC risponde {"error": "full"} al posto della conferma.
+                    // Contratto 1.30 (1.39: otto): pieno, il PC risponde {"error": "full"} al posto della conferma.
                     if (qr.add) rtdb.get("pair/${qr.i}/error")?.let { e ->
                         if (runCatching { Json.parseToJsonElement(e).jsonPrimitive.content }.getOrNull() == "full") throw PairError.Full()
                     }
