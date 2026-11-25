@@ -42,6 +42,7 @@
   import CinqueMinuti from './lib/CinqueMinuti.svelte'
   import { suggestionNames as suggestionNamesOf } from './lib/slotInfo'
   import { nightTitleParts, okAlso, proveDone } from './lib/decide'
+  import { waitGone } from './lib/waitGone'
   import InAppBar from './lib/InAppBar.svelte'
   import { setContext, untrack, tick } from 'svelte'
   import type { Attachment } from 'svelte/attachments'
@@ -465,7 +466,7 @@
       const r = await tr.send(c)
       // Contratto 1.55: una risposta a una domanda già risolta al PC lo dice in chiaro.
       // Contratto 1.112: una lettura rimpiazzata da una più recente si chiude in silenzio.
-      if (!r.ok && !superseded(r) && !hush?.(r.text)) {
+      if (!r.ok && !superseded(r) && !waitGone(r.text) && !hush?.(r.text)) {
         const why = refusalText(r, c.question ?? null, st.sessions, t.answerAlreadyResolved)
         const rf = refusals(why)
         // app-carte-stato-vivo-20-11: «prova N: già confermata» vuol dire fatta altrove, non è un errore.

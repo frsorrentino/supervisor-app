@@ -2023,7 +2023,7 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="ti_aspetta_done">Fatto</string>
     <string name="ti_aspetta_by_master">La fa la master</string>
     <string name="ti_aspetta_own_words">Rispondi con parole tue</string>
-    <string name="ti_aspetta_gone">Non aspetta più: è già stata chiusa.</string>
+    <string name="ti_aspetta_gone">Già risolta: non serve più una tua risposta.</string>
     <!-- app-attesa-dopo-scelta-17-11: dopo una risposta dalla scheda di una voce, cosa è partito e a chi; la via per la home. -->
     <string name="wait_sent_to">Mandato «%1$s» a %2$s</string>
     <string name="wait_sent_generic">Risposta mandata a %1$s</string>

@@ -1,5 +1,6 @@
 <script lang="ts">
   import TiAspetta from './TiAspetta.svelte'
+  import { waitGone } from './waitGone'
   import CinqueMinuti from './CinqueMinuti.svelte'
   import DaProvare from './DaProvare.svelte'
   import SceltaAperta from './SceltaAperta.svelte'
@@ -53,7 +54,8 @@
     void run({ ...newCmd('attesa', null, want), archive: true }).then(r => {
       if (want !== id || n !== tries) return
       clearTimeout(timer); slow = false
-      if (r && !r.ok) { gone = true; return }
+      // app-domanda-chiusa-25-11: «non aspetta più» è «Già risolta»; un errore vero resta un errore.
+      if (r && !r.ok) { if (waitGone(r.text)) gone = true; else failed = true; return }
       const { page, failed: f } = readPage(r, decodeWait, null); full = page; failed = f
     })
     void run(newCmd('attese', null)).then(r => { const { page } = readPage(r, decodeWaits, null); if (page) fetched = page.items })
@@ -83,7 +85,7 @@
     const c = cmdOf(a, a.text_field ? text : null)
     // La voce esce subito da ogni vista (app-riall-1-dati-16-11); se il PC rifiuta, torna.
     markAnswered(w.id)
-    void run({ ...newCmd(c.op as Parameters<typeof newCmd>[0], c.session ?? null, c.arg ?? null), ...c } as ReturnType<typeof newCmd>).then(r => { if (!r?.ok) markAnswered(w.id, false); onAnswered(w) })
+    void run({ ...newCmd(c.op as Parameters<typeof newCmd>[0], c.session ?? null, c.arg ?? null), ...c } as ReturnType<typeof newCmd>).then(r => { if (!r?.ok && !waitGone(r?.text)) markAnswered(w.id, false); onAnswered(w) })
     onSent(w, sentWhat(a.label, a.text_field ? text : null), typeof c.session === 'string' ? c.session : null)
   }
   // Una scheda che non aspetta più (dall'archivio): la testata dice com'è finita e quando, non da quanto aspetta.

@@ -307,7 +307,7 @@ class MainActivity : ComponentActivity() {
                             val refusals = remember(resolvedWord) {
                                 // app-chiudi-scheda-20-11: il no di una chiusura lo dice una volta sola la carta della chiusura, in
                                 // italiano; qui sotto ripeteva il testo del relay («not closed: it is attached to the PC»).
-                                app.repo.userResults.filter { r -> it.pixelbox.cmwatch.rules.CloseSplash.refusals(r.text).isEmpty() && !it.pixelbox.cmwatch.rules.ProveOk.alreadyDone(r.text) }.map { r ->
+                                app.repo.userResults.filter { r -> it.pixelbox.cmwatch.rules.CloseSplash.refusals(r.text).isEmpty() && !it.pixelbox.cmwatch.rules.ProveOk.alreadyDone(r.text) && !it.pixelbox.cmwatch.rules.WaitGone.gone(r.text) }.map { r ->
                                     r.copy(text = it.pixelbox.cmwatch.rules.QuestionRules.refusalText(
                                         r, app.repo.answeredQuestion(r.id), app.repo.snapshot.value.state?.sessions.orEmpty(), resolvedWord,
                                     ))
@@ -472,7 +472,8 @@ class MainActivity : ComponentActivity() {
             slowJob.cancel(); waitSlow = false
             when {
                 one == null -> waitFailed = true
-                !one.ok -> waitGone = true
+                // app-domanda-chiusa-25-11: «non aspetta più» è «Già risolta»; un errore vero resta «Non riesco a leggerla».
+                !one.ok -> if (it.pixelbox.cmwatch.rules.WaitGone.gone(one.text)) waitGone = true else waitFailed = true
                 else -> runCatching { ContractJson.decodeWait(one.text) }.onSuccess { x -> waitItem = x }.onFailure { waitFailed = true }
             }
             ask(CmdOp.ATTESE, null)?.takeIf { r -> r.ok }?.let { r -> runCatching { ContractJson.decodeWaits(r.text) }.onSuccess { p -> waitOthers = p.items } }
@@ -513,7 +514,8 @@ class MainActivity : ComponentActivity() {
                 scope.launch {
                     val sentId = runCatching { app.repo.commandOf(a, null) }.getOrNull()
                     val x = sentId?.let { id -> kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(id) }[id] } }
-                    if (x?.ok == true) readWaits() else perTeSent.remove(w.id)
+                    // Chiusa intanto (risposta altrove, sostituita): resta fuori, non torna.
+                    if (x?.ok == true || it.pixelbox.cmwatch.rules.WaitGone.gone(x?.text)) readWaits() else perTeSent.remove(w.id)
                 }
             }
         }
