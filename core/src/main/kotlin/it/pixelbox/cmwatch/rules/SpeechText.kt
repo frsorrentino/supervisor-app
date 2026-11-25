@@ -17,14 +17,19 @@ object SpeechText {
 
     private const val FINE = ".!?:;,…"
 
+    /** Un blocco ```: la riga d'apertura con la sua lingua, il corpo, la chiusura (o la fine del testo). */
+    private val FENCE = Regex("```([^\\n`]*)\\n?([\\s\\S]*?)(?:```|$)")
+
     fun clean(text: String, codeLabel: String): String {
-        var t = text.replace(Regex("```[\\s\\S]*?(```|$)"), "\n${Regex.escapeReplacement(codeLabel)}.\n")
+        // Un blocco ```text è testo da copiare e si legge per intero; gli altri blocchi ``` si annunciano (Franz, 25/11 22:53).
+        var t = FENCE.replace(text) { m -> if (AnswerText.isCopyText(m.groupValues[1])) "\n${m.groupValues[2]}\n" else "\n$codeLabel.\n" }
         t = t.replace(Regex("`([^`]*)`"), "$1")
         t = t.replace(Regex("!?\\[([^\\]]*)]\\([^)]*\\)"), "$1")
         t = t.replace(Regex("https?://\\S+"), "")
         t = t.lines().joinToString("\n") { raw ->
             val line = raw.trim()
                 .replace(Regex("^#{1,6}\\s*"), "")                  // titoli
+                .replace(Regex("^>\\s?"), "")                       // citazioni
                 .replace(Regex("^[-*+]\\s+"), "")                   // elenchi puntati
                 .replace(Regex("^\\|?\\s*:?-{3,}.*$"), "")          // separatori di tabella e righe orizzontali
                 .replace(Regex("\\s*\\|\\s*"), ", ")                // celle di tabella
@@ -45,7 +50,8 @@ object SpeechText {
 
     /**
      * Un paragrafo da leggere (`AnswerText.blocks`): il codice si annuncia soltanto, il resto si pulisce come sopra
-     * (revisione finale 02/10: i blocchi di codice, già senza ```, si leggevano parola per parola).
+     * (revisione finale 02/10: i blocchi di codice, già senza ```, si leggevano parola per parola). Un blocco ```text
+     * (`TEXT`, testo da copiare) si legge per intero, righe ed elenchi come frasi (Franz, 25/11 22:53).
      */
     fun forBlock(kind: AnswerText.Kind, text: String, codeLabel: String): String =
         if (kind == AnswerText.Kind.CODE) "$codeLabel." else clean(text, codeLabel)

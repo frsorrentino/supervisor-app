@@ -272,7 +272,7 @@ private fun AnswerBlockBody(b: AnswerText.Block, style: androidx.compose.ui.text
                 b.text, color = CmColors.actionIcon,
                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
             )
-            AnswerText.Kind.CODE -> Text(
+            AnswerText.Kind.CODE, AnswerText.Kind.TEXT -> Text(
                 b.text, style = TerminalStyle, color = CmColors.text,
                 modifier = Modifier.fillMaxWidth().background(CmColors.surface, RoundedCornerShape(8.dp)).padding(8.dp),
             )

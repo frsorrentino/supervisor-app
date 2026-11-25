@@ -8,13 +8,16 @@ import { approves, optionText } from './questionRules'
 // i pezzi tagliati a fine frase, la velocità della pillola, la voce dopo, la prima riga del mini-controller.
 
 const FINE = '.!?:;,…'
-/** Il markdown letto a voce diventa rumore e si toglie; il codice si annuncia soltanto. */
+/** La lingua di un blocco ``` che dice «testo da copiare», non codice (come AnswerText.isCopyText). */
+export const isCopyText = (lang: string) => ['text', 'txt', 'plain', 'plaintext'].includes(lang.trim().toLowerCase())
+/** Il markdown letto a voce diventa rumore e si toglie; il codice si annuncia soltanto, il testo da copiare (```text) si legge. */
 export function clean(text: string, codeLabel: string): string {
-  let t = text.replace(/```[\s\S]*?(```|$)/g, `\n${codeLabel}.\n`)
+  // Un blocco ```text è testo da copiare e si legge per intero; gli altri blocchi ``` si annunciano (Franz, 25/11 22:53).
+  let t = text.replace(/```([^\n`]*)\n?([\s\S]*?)(?:```|$)/g, (_m, lang: string, body: string) => isCopyText(lang) ? `\n${body}\n` : `\n${codeLabel}.\n`)
   t = t.replace(/`([^`]*)`/g, '$1').replace(/!?\[([^\]]*)]\([^)]*\)/g, '$1').replace(/https?:\/\/\S+/g, '')
   t = t.split('\n').map(raw => {
     const line = raw.trim()
-      .replace(/^#{1,6}\s*/, '').replace(/^[-*+]\s+/, '').replace(/^\|?\s*:?-{3,}.*$/, '').replace(/\s*\|\s*/g, ', ')
+      .replace(/^#{1,6}\s*/, '').replace(/^>\s?/, '').replace(/^[-*+]\s+/, '').replace(/^\|?\s*:?-{3,}.*$/, '').replace(/\s*\|\s*/g, ', ')
       .replace(/^[ ,]+|[ ,]+$/g, '')
       .replace(/(\*\*|\*)(?=\S)(.+?)(?<=\S)\1/g, '$2')
     // Una riga senza punteggiatura finale chiude con un punto: la voce fa la pausa.
