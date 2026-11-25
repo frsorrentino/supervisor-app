@@ -146,7 +146,7 @@ class CmApp : Application() {
         val kind = TransportChoice.pick(settings.paired, key != null, fb != null, demo = settings.demoMode)
         linked.value = !settings.paired || TransportChoice.linked(settings.paired, key != null, fb != null)
         showsData.value = TransportChoice.showsData(settings.paired, key != null, fb != null, settings.demoMode)
-        if (!linked.value) android.util.Log.w("cmwatch", "paired but not linked: key=${key != null} firebase=${fb != null}")
+        android.util.Log.i("cmwatch", "transport: $kind paired=${settings.paired} key=${key != null} firebase=${fb != null} demo=${settings.demoMode}")
         return when (kind) {
             TransportChoice.Kind.FAKE -> fake
             // Contratto 1.135 (app-letture-leggere-11-11): ogni lettura con l'etag dell'ultima risposta.
