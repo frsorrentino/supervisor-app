@@ -95,9 +95,9 @@ open class CmTileService : TileService() {
                     if (app.repo.snapshot.value.state == null) kotlinx.coroutines.withTimeoutOrNull(800) { app.repo.snapshot.first { it.state != null } }
                     val t2 = android.os.SystemClock.elapsedRealtime()
                     val snap = app.repo.snapshot.value
-                    val state = snap.state
+                    val state = app.shown(snap.state)
                     val nowS = System.currentTimeMillis() / 1000
-                    val root = root(requestParams.deviceConfiguration, state, snap.freshness, prefs.seenQuestions, prefs.complicationAccount, nowS)
+                    val root = root(requestParams.deviceConfiguration, state, snap.freshness, prefs.seenQuestions, prefs.complicationAccount, nowS, unpaired = !app.showsData.value)
                     val t3 = android.os.SystemClock.elapsedRealtime()
                     completer.set(
                         TileBuilders.Tile.Builder()
@@ -131,7 +131,7 @@ open class CmTileService : TileService() {
      * Il layout della tile a partire dai dati, senza il repository: lo usa `onTileRequest` e lo usa il test Paparazzi,
      * che la disegna in inglese sui dati di prova per il README (Franz, 15/09 14:35).
      */
-    internal fun root(device: DeviceParametersBuilders.DeviceParameters, state: State?, freshness: Freshness, seen: Set<String>, account: String, now: Long): LayoutElement {
+    internal fun root(device: DeviceParametersBuilders.DeviceParameters, state: State?, freshness: Freshness, seen: Set<String>, account: String, now: Long, unpaired: Boolean = false): LayoutElement {
             val stale = freshness as? Freshness.Stale
             val question = if (stale == null) state?.sessions?.firstOrNull { s -> s.question?.let { it.id !in seen } == true } else null
             val edge = TileTexts.edge(state, freshness, seen)
@@ -144,6 +144,7 @@ open class CmTileService : TileService() {
                         titleSlot = { text(getString(R.string.tile_title).layoutString, typography = Typography.LABEL_MEDIUM, color = colorScheme.onBackground, maxLines = 1) },
                         mainSlot = {
                             when {
+                                unpaired -> unpairedCard()
                                 question != null -> questionCard(question, now)
                                 state == null || state.sessions.isEmpty() -> emptyCard()
                                 else -> restCards(state, now, account, stale)
@@ -368,6 +369,15 @@ open class CmTileService : TileService() {
         )
         return LayoutElementBuilders.Box.Builder().setWidth(width).setHeight(dp(BAR_H)).setModifiers(mods.build()).build()
     }
+
+    /** Senza accoppiamento valido né demo (app-orologio-dati-demo-25-11): «Accoppia il PC»; il tocco apre l'app sull'accoppiamento. */
+    private fun MaterialScope.unpairedCard(): LayoutElement = appCard(
+        onClick = clickable(launch("cmwatch://sessions"), id = "unpaired"),
+        label = { small(getString(R.string.pairing_title), LABEL.argb) },
+        title = { text(getString(R.string.pairing_hint_phone).layoutString, typography = Typography.TITLE_MEDIUM, color = colorScheme.onSurface, maxLines = 3) },
+        shape = cardShape(),
+        colors = cardColors(),
+    )
 
     private fun MaterialScope.emptyCard(): LayoutElement = appCard(
         onClick = clickable(launch("cmwatch://sessions"), id = "empty"),

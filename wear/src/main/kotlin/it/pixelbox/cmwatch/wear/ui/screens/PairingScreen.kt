@@ -36,7 +36,7 @@ fun PairingScreen(status: PairingStatus, withCode: Boolean, onOpenPhone: () -> U
                     PairingStatus.Idle -> stringResource(if (withCode) R.string.pairing_hint_both else R.string.pairing_hint_phone)
                     PairingStatus.Working -> stringResource(R.string.pairing_working)
                     is PairingStatus.Done -> stringResource(R.string.pairing_done, status.host)
-                    is PairingStatus.Failed -> stringResource(R.string.pairing_failed)
+                    is PairingStatus.Failed -> if (status.shown) status.reason else stringResource(R.string.pairing_failed)
                 }
                 val color = if (status is PairingStatus.Failed) CmColors.gone else CmColors.text2
                 Text(text, style = MaterialTheme.typography.bodyMedium, color = color, modifier = Modifier.fillMaxWidth().morph(this, spec))
@@ -64,5 +64,6 @@ sealed class PairingStatus {
     data object Idle : PairingStatus()
     data object Working : PairingStatus()
     data class Done(val host: String) : PairingStatus()
-    data class Failed(val reason: String) : PairingStatus()
+    /** `shown`: il motivo è già una frase per Franz (accoppia prima dal telefono); altrimenti «Codice non accettato». */
+    data class Failed(val reason: String, val shown: Boolean = false) : PairingStatus()
 }

@@ -218,6 +218,10 @@ class MainActivity : ComponentActivity() {
         // Codice di pairing: dalla tastiera di sistema o dall'extra d'intent `pair_code` (adb / automazioni).
         fun startPairing(code: String) {
             android.util.Log.i("cmwatch", "pairing with code of ${code.length} digits")
+            // Senza Firebase il codice andava al finto, che accetta tutto: l'orologio si diceva accoppiato senza esserlo.
+            if (!it.pixelbox.cmwatch.rules.TransportChoice.canPairWithCode(it.pixelbox.cmwatch.pairing.FirebaseBoot.active != null, BuildConfig.DEBUG)) {
+                Haptics.play(this@MainActivity, Haptics.Kind.ERROR); pairing = PairingStatus.Failed(getString(R.string.pairing_needs_phone), shown = true); return
+            }
             pairing = PairingStatus.Working
             scope.launch {
                 pairing = try {

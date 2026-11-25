@@ -39,6 +39,7 @@
     <string name="pairing_code_label">Codice a 6 cifre</string>
     <string name="pairing_working">Accoppiamento in corso</string>
     <string name="pairing_done">Accoppiato con %1$s</string>
+    <string name="pairing_needs_phone">Accoppia prima dal telefono: l\'orologio non ha ancora i dati del PC.</string>
     <string name="pairing_failed">Codice non accettato</string>
     <string name="settings_tts_threshold">Soglia lettura vocale: %1$d caratteri</string>
     <string name="settings_haptic_question">Vibra per le domande</string>

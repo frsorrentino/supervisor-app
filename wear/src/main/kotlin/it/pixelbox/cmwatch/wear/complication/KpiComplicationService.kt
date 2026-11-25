@@ -31,7 +31,7 @@ class KpiComplicationService : SuspendingComplicationDataSourceService() {
 
     override suspend fun onComplicationRequest(request: ComplicationRequest): ComplicationData? {
         val app = application as CmApp
-        return build(request.complicationType, app.repo.snapshot.value.state, app.prefs.current().complicationAccount)
+        return build(request.complicationType, app.shown(app.repo.snapshot.value.state), app.prefs.current().complicationAccount)
     }
 
     private fun build(type: ComplicationType, state: State?, chosen: String): ComplicationData? {

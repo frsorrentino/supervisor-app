@@ -133,12 +133,19 @@ class CmApp : Application() {
      */
     val linked = kotlinx.coroutines.flow.MutableStateFlow(true)
 
+    /** Falso senza accoppiamento valido e senza demo: tile e complicazioni dicono «Accoppia il PC» invece delle fixture. */
+    val showsData = kotlinx.coroutines.flow.MutableStateFlow(true)
+
+    /** Lo stato da mostrare fuori dall'app: null quando verrebbe dal finto senza che la demo sia stata scelta. */
+    fun shown(state: it.pixelbox.cmwatch.contract.State?): it.pixelbox.cmwatch.contract.State? = state?.takeIf { showsData.value }
+
     /** Firebase solo se accoppiato, con la chiave nel vault e Firebase avviato; altrimenti il finto sulle fixture. */
     fun choose(settings: Settings): Transport {
         val key = settings.wrappedKey?.let { runCatching { KeyVault.unwrap(it, KeyVault.keystoreKek()) }.getOrNull() }
         val fb = FirebaseBoot.active
         val kind = TransportChoice.pick(settings.paired, key != null, fb != null, demo = settings.demoMode)
         linked.value = !settings.paired || TransportChoice.linked(settings.paired, key != null, fb != null)
+        showsData.value = TransportChoice.showsData(settings.paired, key != null, fb != null, settings.demoMode)
         if (!linked.value) android.util.Log.w("cmwatch", "paired but not linked: key=${key != null} firebase=${fb != null}")
         return when (kind) {
             TransportChoice.Kind.FAKE -> fake

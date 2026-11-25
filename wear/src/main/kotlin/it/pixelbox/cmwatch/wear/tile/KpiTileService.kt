@@ -56,7 +56,7 @@ open class KpiTileService : TileService() {
             scope.launch {
                 try {
                     if (app.repo.snapshot.value.state == null) kotlinx.coroutines.withTimeoutOrNull(800) { app.repo.snapshot.first { it.state != null } }
-                    val state = app.repo.snapshot.value.state
+                    val state = app.shown(app.repo.snapshot.value.state)
                     val now = System.currentTimeMillis() / 1000
                     completer.set(
                         TileBuilders.Tile.Builder().setResourcesVersion(RESOURCES)

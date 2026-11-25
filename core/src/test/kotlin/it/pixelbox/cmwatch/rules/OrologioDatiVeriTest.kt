@@ -31,6 +31,21 @@ class OrologioDatiVeriTest {
         assertFalse(TransportChoice.linked(paired = false, hasKey = true, firebase = true))
     }
 
+    /** Non accoppiato e senza demo: tile e complicazione non mostrano le sessioni del finto; con la demo scelta sì. */
+    @Test fun senzaAccoppiamentoNienteSessioniFinte() {
+        assertFalse(TransportChoice.showsData(paired = false, hasKey = false, firebase = false, demo = false))
+        assertFalse(TransportChoice.showsData(paired = true, hasKey = false, firebase = true, demo = false))
+        assertTrue(TransportChoice.showsData(paired = false, hasKey = false, firebase = false, demo = true))
+        assertTrue(TransportChoice.showsData(paired = true, hasKey = true, firebase = true, demo = false))
+    }
+
+    /** Il codice a 6 cifre senza Firebase sull'orologio: non si finge l'accoppiamento (in debug il finto resta, per ARC). */
+    @Test fun codiceSenzaFirebaseNonAccoppia() {
+        assertFalse(TransportChoice.canPairWithCode(firebase = false, debug = false))
+        assertTrue(TransportChoice.canPairWithCode(firebase = true, debug = false))
+        assertTrue(TransportChoice.canPairWithCode(firebase = false, debug = true))
+    }
+
     /** Accoppiato a metà e senza demo: la schermata è l'accoppiamento, non le sessioni del finto. */
     @Test fun accoppiamentoRottoChiedeDiAccoppiarsi() {
         val linked = TransportChoice.linked(paired = true, hasKey = false, firebase = true)

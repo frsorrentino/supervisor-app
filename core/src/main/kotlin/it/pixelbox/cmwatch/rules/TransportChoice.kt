@@ -12,4 +12,13 @@ object TransportChoice {
      * `paired` delle preferenze: accoppiato a metà, l'orologio mostrava in silenzio i dati della demo (app-orologio-dati-demo-25-11).
      */
     fun linked(paired: Boolean, hasKey: Boolean, firebase: Boolean): Boolean = paired && hasKey && firebase
+
+    /**
+     * Le sessioni si mostrano solo se vengono dal PC o dalla demo scelta. Senza accoppiamento il Transport è comunque il finto:
+     * tile e complicazione mostravano le sue fixture come vere anche con la demo spenta (app-orologio-dati-demo-25-11, 25/11 13:02).
+     */
+    fun showsData(paired: Boolean, hasKey: Boolean, firebase: Boolean, demo: Boolean): Boolean = demo || linked(paired, hasKey, firebase)
+
+    /** Il codice a 6 cifre va al bus vero: senza Firebase il finto accettava qualunque codice e l'orologio si diceva accoppiato. */
+    fun canPairWithCode(firebase: Boolean, debug: Boolean): Boolean = firebase || debug
 }
