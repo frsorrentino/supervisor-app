@@ -16,10 +16,12 @@
 
   // La barra di scrittura (Composer dell'app): + per allegati (e le azioni ricorrenti nella master), il suggerimento
   // attenuato nel campo vuoto con «Usa», i comandi slash scrivendo «/», a destra Invia, Invia tonale o Stop.
-  let { st, s, draft = $bindable(), field, toMaster, onSend, onAnswerText, onSlash, onStop, onReopen, onAttach, onRecurring, onSendAt = null, onSendTo = null, onCloseSave = null, quotes = $bindable([]) }: {
+  let { st, s, draft = $bindable(), field, toMaster, onSend, onAnswerText, onSlash, onStop, onReopen, onAttach, onRecurring, onMineJump = null, onSendAt = null, onSendTo = null, onCloseSave = null, quotes = $bindable([]) }: {
     st: State; s: Session; draft: string; field: string | null; toMaster: boolean
     onSend: (text: string) => void; onAnswerText: (arg: string) => void; onSlash: (cmd: string, args: string | null) => void
     onStop: () => void; onReopen: () => void; onAttach: (files: File[], text: string) => void; onRecurring: (() => void) | null
+    /** «Vai ai tuoi messaggi», l'ultima voce del + (app-fumetto-menu-file-25-11); null senza messaggi miei nella chat. */
+    onMineJump?: (() => void) | null
     /** Contratto 1.37: «Salva una decisione» nel + della master. */
     /** Contratto 1.63, «Manda alle…»: il testo e l'ora (epoch s); null = il relay non lo sa fare. */
     onSendAt?: ((text: string, at: number) => void) | null
@@ -171,6 +173,10 @@
             {#if onRecurring}
               <hr />
               <button type="button" role="menuitem" onclick={() => { menu = false; onRecurring?.() }}><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8M3 3v5h5M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16M16 16h5v5" /></svg>{t.recurringOpen}</button>
+            {/if}
+            {#if onMineJump}
+              {#if !onRecurring}<hr />{/if}
+              <button type="button" role="menuitem" data-testid="chat-miei" onclick={() => { menu = false; onMineJump?.() }}><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v10H9l-5 4z" /></svg>{t.mineJumpOpen}</button>
             {/if}
           </div>
         {/if}

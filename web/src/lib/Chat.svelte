@@ -344,12 +344,7 @@
     {/if}
     <!-- Aperta sul punto di un risultato con voci più nuove dopo (contratto 1.127): il tasto c'è anche in fondo alla pagina e
          porta all'ultima voce vera, non al fondo di quello che è caricato. -->
-    <!-- app-trova-messaggi-20-11: il tasto dei miei messaggi sopra «Torna all'ultimo», sotto il pollice. -->
-    {#if !jumping && stops.length && !home}
-      <div class="toend mj"><button aria-label={t.mineJumpOpen} title={t.mineJumpOpen} data-testid="chat-miei" onclick={() => { jumping = true; jumpAt = null; jump(-1) }}>
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v10H9l-5 4z" /></svg>
-      </button></div>
-    {/if}
+    <!-- app-fumetto-menu-file-25-11 (Franz 25/11 12:30): il tasto dei miei messaggi non galleggia più qui, è l'ultima voce del +. -->
     {#if (!atEnd || onLatest) && !home}
       <div class="toend"><button aria-label={t.toLatest} title={t.toLatest} data-testid="chat-in-fondo" onclick={() => { if (!list) return; onLatest?.(); atEnd = true; auto = true; list.scrollTo({ top: endOf(list), behavior: 'smooth' }) }}>
         <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 5v14M6 13l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
@@ -390,6 +385,7 @@
     onAnswerText={(arg) => onCmd('answer', arg)} onSlash={(c, a) => onCmd('slash', c, a ?? undefined)} onStop={() => onCmd('interrupt')}
     onReopen={() => onCmd('reopen')} {onAttach} onCloseSave={s.name !== MASTER && st.ops?.includes('close') ? () => onCmd('close', 'save') : null}
     onRecurring={recurringRows.length ? () => { recurringOpen = !recurringOpen; save('cm.recurring_open', recurringOpen) } : null}
+    onMineJump={stops.length && !home ? () => { jumping = true; jumpAt = null; jump(-1) } : null}
     {onSendAt} {onSendTo} bind:quotes />
   {/if}
   {#if qsel}{@const p = qsel}
@@ -436,7 +432,6 @@
   .toend button { position: absolute; right: 0; bottom: 8px; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--high); color: var(--icon); box-shadow: 0 4px 16px rgb(0 0 0 / .4); }
   .toend button:hover { filter: brightness(1.15); }
   /* app-trova-messaggi-20-11: il tasto dei miei messaggi sopra «Torna all'ultimo»; la barra del salto al posto del campo. */
-  .toend.mj button { bottom: 62px; background: var(--high); color: var(--text); }
   .mjbar { display: flex; align-items: center; gap: 6px; margin: 8px 12px max(8px, env(safe-area-inset-bottom)); padding: 6px 6px 6px 18px; border-radius: 28px; background: var(--s2); border: 1px solid var(--line); box-shadow: 0 -8px 24px rgb(0 0 0 / .35); }
   .mjl { flex: 1; min-width: 0; display: flex; flex-direction: column; }
   .mjl b { font: 600 15px/1.2 var(--display); color: var(--text); }

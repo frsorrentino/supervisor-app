@@ -672,12 +672,11 @@ fun SessionSheet(
             // «Torna all'ultimo messaggio» (Franz, 10/10 08:18: «avevamo deliberato un tasto per tornare in diretta, ma non l'ho
             // mai visto»): c'è mentre rileggi più su; il tocco scende in fondo e la chat torna a seguire.
             val behind by remember(list) { derivedStateOf { list.canScrollForward } }
-            // app-trova-messaggi-20-11: il tasto dei miei messaggi sta sopra «Torna all'ultimo», sotto il pollice; piccolo, tonale.
+            // app-fumetto-menu-file-25-11 (Franz 25/11 12:30): il tasto dei miei messaggi non galleggia più qui, è l'ultima voce del +.
             Column(
                 Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 12.dp + if (niche) 0.dp else readingRoom()),
                 horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-            if (!jumping && stops.isNotEmpty() && feed != null) MineJumpKey { jumping = true; jumpAt = null; jump(-1) }
             androidx.compose.animation.AnimatedVisibility(
                 // Sul punto di un risultato con voci più nuove il tasto c'è anche in fondo alla pagina e porta all'ultima vera.
                 visible = ((!follow && behind) || newer) && feed != null,
@@ -879,6 +878,7 @@ fun SessionSheet(
             s, draftHolder, onDraft = { draft = it }, ops, canAttach, actions, onSent = { draft = ""; follow = true }, quota, phrases, canTonight, slash,
             toMaster = home != null, canAttachFiles = canAttachFiles, fieldSuggestion = stepsBox.field,
             onRecurring = if (recurringRows.isEmpty()) null else ({ boxes.recurring(!boxes.recurringOpen) }), recurringOpen = boxes.recurringOpen,
+            onMine = if (stops.isNotEmpty() && feed != null) ({ jumping = true; jumpAt = null; jump(-1) }) else null,
         )
     }
     // Contratto 1.72: la vista «Modifiche» sopra la sessione: sul telefono ne prende la pagina, sul tablet la colonna.
@@ -927,6 +927,8 @@ private fun Composer(
     fieldSuggestion: String? = null,
     /** Il tasto ⟳ delle azioni ricorrenti della master nel campo; null senza azioni. */
     onRecurring: (() -> Unit)? = null, recurringOpen: Boolean = false,
+    /** «Vai ai tuoi messaggi», l'ultima voce del + (app-fumetto-menu-file-25-11); null senza messaggi miei nella chat. */
+    onMine: (() -> Unit)? = null,
     /** Contratto 1.37: «Salva una decisione» nel + della master. */
 ) {
     val draft = draftState.value
@@ -1105,8 +1107,8 @@ private fun Composer(
                 )
             else androidx.compose.material3.OutlinedTextFieldDefaults.colors(),
             // Le azioni ricorrenti della master stanno nel menu del + (Franz, 05/10 07:27: il ⟳ nel campo stringeva troppo).
-            leadingIcon = if (canAttach || onRecurring != null) ({
-                AttachButton(files = canAttachFiles, attach = canAttach, onRecurring = onRecurring) { picked -> images = (images + picked).distinct().take(MAX_IMAGES) }
+            leadingIcon = if (canAttach || onRecurring != null || onMine != null) ({
+                AttachButton(files = canAttachFiles, attach = canAttach, onRecurring = onRecurring, onMine = onMine) { picked -> images = (images + picked).distinct().take(MAX_IMAGES) }
             }) else null,
             trailingIcon = { Row(verticalAlignment = Alignment.CenterVertically) {
                 if (inField != null && draft.isBlank()) TextButton(onClick = { onDraft(inField) }) { Text(stringResource(R.string.suggestion_use), color = Cm.actionIcon) }
@@ -1388,7 +1390,7 @@ private fun UriThumb(uri: Uri, modifier: Modifier) {
  * (Paparazzi) non c'è, e il tasto resta disegnato senza selettore.
  */
 @Composable
-private fun AttachButton(files: Boolean = false, attach: Boolean = true, onRecurring: (() -> Unit)? = null, onPicked: (List<Uri>) -> Unit) {
+private fun AttachButton(files: Boolean = false, attach: Boolean = true, onRecurring: (() -> Unit)? = null, onMine: (() -> Unit)? = null, onPicked: (List<Uri>) -> Unit) {
     val icon: @Composable () -> Unit = { Icon(Icons.Rounded.Add, stringResource(R.string.attach_image), tint = Cm.actionIcon) }
     if (androidx.activity.compose.LocalActivityResultRegistryOwner.current == null) { IconButton(onClick = {}, content = icon); return }
     val ctx = androidx.compose.ui.platform.LocalContext.current
@@ -1406,6 +1408,7 @@ private fun AttachButton(files: Boolean = false, attach: Boolean = true, onRecur
         PressMenu(expanded = menu, onDismiss = { menu = false }) {
             AttachMenuItems(
                 attach = attach, files = files, onRecurring = onRecurring?.let { r -> { menu = false; r() } },
+                onMine = onMine?.let { m -> { menu = false; m() } },
                 onGallery = { menu = false; pick.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
                 onCamera = {
                     menu = false
@@ -1422,11 +1425,14 @@ private fun AttachButton(files: Boolean = false, attach: Boolean = true, onRecur
 
 /**
  * Le voci del menu del +: galleria, fotocamera, file e, nella master, le azioni ricorrenti in fondo (Franz, 05/10 07:27:
- * nel campo il ⟳ stringeva troppo insieme al + e a «Usa»). Fuori dal menu solo per il provino, che i popup non li disegna.
+ * nel campo il ⟳ stringeva troppo insieme al + e a «Usa»). In coda «Vai ai tuoi messaggi», col fumetto: prima era un tasto
+ * tondo che galleggiava sopra la chat (Franz 25/11 12:30: «spostiamo questa opzione nel menu di aggiungi un file, in coda?»).
+ * Fuori dal menu solo per il provino, che i popup non li disegna.
  */
 @Composable
 internal fun AttachMenuItems(
     attach: Boolean, files: Boolean, onRecurring: (() -> Unit)?, onGallery: () -> Unit, onCamera: () -> Unit, onFile: () -> Unit,
+    onMine: (() -> Unit)? = null,
 ) {
     if (attach) {
         DropdownMenuItem(text = { Text(stringResource(R.string.attach_gallery)) }, leadingIcon = { Icon(Icons.Rounded.Image, null, tint = Cm.actionIcon) }, onClick = onGallery)
@@ -1436,6 +1442,13 @@ internal fun AttachMenuItems(
     if (onRecurring != null) {
         if (attach) androidx.compose.material3.HorizontalDivider(color = Cm.line)
         DropdownMenuItem(text = { Text(stringResource(R.string.recurring_open)) }, leadingIcon = { Icon(Icons.Rounded.Autorenew, null, tint = Cm.actionIcon) }, onClick = onRecurring)
+    }
+    if (onMine != null) {
+        if (attach && onRecurring == null) androidx.compose.material3.HorizontalDivider(color = Cm.line)
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.mine_jump_open)) }, leadingIcon = { Icon(Icons.Rounded.ChatBubbleOutline, null, tint = Cm.actionIcon) },
+            onClick = onMine, modifier = Modifier.testTag("mine-jump-open"),
+        )
     }
 }
 
@@ -3552,15 +3565,6 @@ private fun elapsed(s: Long): String = when {
     else -> stringResource(R.string.live_hm, s / 3600, (s % 3600) / 60)
 }
 
-
-/** app-trova-messaggi-20-11: il tasto che apre il salto fra i miei messaggi, piccolo e tonale, sopra «Torna all'ultimo». */
-@Composable
-internal fun MineJumpKey(onClick: () -> Unit) {
-    val press = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-    Surface(onClick = onClick, interactionSource = press, modifier = Modifier.size(44.dp).pressScale(press).testTag("mine-jump-open"), shape = CircleShape, color = Cm.surfaceHigh, contentColor = Cm.text, shadowElevation = 3.dp) {
-        Box(contentAlignment = Alignment.Center) { Icon(Icons.Rounded.ChatBubbleOutline, stringResource(R.string.mine_jump_open), modifier = Modifier.size(20.dp)) }
-    }
-}
 
 /**
  * app-trova-messaggi-20-11: la barra del salto al posto del campo, sotto il pollice: «I tuoi messaggi», «11 di 12», le due frecce piccole
