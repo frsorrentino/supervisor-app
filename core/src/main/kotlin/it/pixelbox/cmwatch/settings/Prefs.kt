@@ -40,6 +40,13 @@ data class Settings(
     val resumeQr: String? = null,
 )
 
+/**
+ * Un accoppiamento riuscito, dal telefono o col codice: si esce anche dalla demo. Accesa una volta dal tasto «Prova la demo»,
+ * la demo vinceva anche da accoppiati e l'orologio mostrava le fixture (Franz 25/11 12:29, app-orologio-dati-demo-25-11).
+ */
+fun Settings.pairedWith(uid: String?, host: String?, wrappedKey: String?): Settings =
+    copy(paired = true, uid = uid, host = host, wrappedKey = wrappedKey, demoMode = false)
+
 /** Le preferenze viste dal codice che si prova sulla JVM (il controller del telefono). */
 interface SettingsStore {
     suspend fun current(): Settings

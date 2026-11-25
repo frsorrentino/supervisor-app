@@ -3,6 +3,7 @@ package it.pixelbox.cmwatch.mobile.pair
 import it.pixelbox.cmwatch.crypto.Pairing
 import it.pixelbox.cmwatch.pairing.*
 import it.pixelbox.cmwatch.settings.SettingsStore
+import it.pixelbox.cmwatch.settings.pairedWith
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -123,7 +124,7 @@ class PairingController(
             names = buildMap { put(phoneUid, phoneName); peer?.let { put(it.uid, it.name) } },
             watchUid = peer?.uid, watchName = peer?.name, watchPending = peer != null,
         )
-        store.update { it.copy(paired = true, uid = phoneUid, host = result.host, wrappedKey = keys.wrap(result.key), pairingJson = record.toJson()) }
+        store.update { it.pairedWith(phoneUid, result.host, keys.wrap(result.key)).copy(pairingJson = record.toJson()) }
         step(Step.PC, StepState.DONE)
         _ui.value = _ui.value.copy(host = result.host)
 

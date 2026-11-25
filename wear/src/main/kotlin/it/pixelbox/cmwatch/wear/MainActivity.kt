@@ -34,6 +34,7 @@ import it.pixelbox.cmwatch.rules.LaunchRules
 import it.pixelbox.cmwatch.rules.Screen
 import it.pixelbox.cmwatch.rules.ViewState
 import it.pixelbox.cmwatch.settings.Settings
+import it.pixelbox.cmwatch.settings.pairedWith
 import it.pixelbox.cmwatch.wear.haptics.Haptics
 import it.pixelbox.cmwatch.pairing.FirebaseBoot
 import it.pixelbox.cmwatch.wear.pair.PhoneLauncher
@@ -142,7 +143,9 @@ class MainActivity : ComponentActivity() {
         val scope = rememberCoroutineScope()
         val snapshot by app.repo.snapshot.collectAsStateWithLifecycle()
         val settings by app.prefs.flow.collectAsStateWithLifecycle(null)
-        val paired = settings?.paired ?: true   // finché le preferenze non sono lette, nessun salto al pairing
+        val linked by app.linked.collectAsStateWithLifecycle()
+        // Finché le preferenze non sono lette, nessun salto al pairing; accoppiato a metà (chiave o Firebase mancanti) vale non accoppiato.
+        val paired = (settings?.paired ?: true) && linked
         var pairing by remember { mutableStateOf<PairingStatus>(PairingStatus.Idle) }
         val now by produceState(System.currentTimeMillis() / 1000) {
             while (true) { delay(30_000); value = System.currentTimeMillis() / 1000 }
@@ -220,7 +223,7 @@ class MainActivity : ComponentActivity() {
                 pairing = try {
                     val info = app.pairingTransport().pair(code, settings?.deviceName ?: "watch-pixel5")
                     val wrapped = KeyVault.wrap(info.key ?: KeyVault.newSessionKey(), KeyVault.keystoreKek())
-                    app.prefs.update { it.copy(paired = true, uid = info.uid, host = info.host, wrappedKey = wrapped) }
+                    app.prefs.update { it.pairedWith(info.uid, info.host, wrapped) }
                     app.reconfigure()
                     Haptics.play(this@MainActivity, Haptics.Kind.CONFIRMED)
                     PairingStatus.Done(info.host)

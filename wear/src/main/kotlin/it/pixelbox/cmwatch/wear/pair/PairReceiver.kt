@@ -10,6 +10,7 @@ import it.pixelbox.cmwatch.pairing.KeyRequest
 import it.pixelbox.cmwatch.pairing.KeyResponse
 import it.pixelbox.cmwatch.pairing.WatchHandoff
 import it.pixelbox.cmwatch.transport.FirebaseAuthToken
+import it.pixelbox.cmwatch.settings.pairedWith
 import it.pixelbox.cmwatch.wear.CmApp
 import it.pixelbox.cmwatch.wear.haptics.Haptics
 
@@ -47,7 +48,7 @@ class PairReceiver(private val app: CmApp, private val handoff: WatchHandoff = W
         val req = HandoffMessages.decode(KeyRequest.serializer(), body) ?: return KeyResponse(error = HandoffMessages.ERR_BAD_REQUEST)
         val k = try { handoff.take(req) } catch (e: HandoffException) { return KeyResponse(error = e.code) }
         val wrapped = runCatching { KeyVault.wrap(k, KeyVault.keystoreKek()) }.getOrNull() ?: return KeyResponse(error = HandoffMessages.ERR_STORE)
-        app.prefs.update { it.copy(paired = true, uid = FirebaseAuthToken.uid(), host = req.host, wrappedKey = wrapped) }
+        app.prefs.update { it.pairedWith(FirebaseAuthToken.uid(), req.host, wrapped) }
         app.subscribeTopic()
         app.reconfigure()
         Haptics.play(app, Haptics.Kind.CONFIRMED)

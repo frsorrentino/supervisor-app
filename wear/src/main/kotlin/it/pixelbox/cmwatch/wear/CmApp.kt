@@ -127,11 +127,19 @@ class CmApp : Application() {
         subscribeTopic()
     }
 
+    /**
+     * Falso quando le preferenze dicono accoppiato ma la chiave non si apre o Firebase non parte: le schermate chiedono di
+     * accoppiarsi di nuovo invece di mostrare in silenzio la demo (app-orologio-dati-demo-25-11).
+     */
+    val linked = kotlinx.coroutines.flow.MutableStateFlow(true)
+
     /** Firebase solo se accoppiato, con la chiave nel vault e Firebase avviato; altrimenti il finto sulle fixture. */
     fun choose(settings: Settings): Transport {
         val key = settings.wrappedKey?.let { runCatching { KeyVault.unwrap(it, KeyVault.keystoreKek()) }.getOrNull() }
         val fb = FirebaseBoot.active
         val kind = TransportChoice.pick(settings.paired, key != null, fb != null, demo = settings.demoMode)
+        linked.value = !settings.paired || TransportChoice.linked(settings.paired, key != null, fb != null)
+        if (!linked.value) android.util.Log.w("cmwatch", "paired but not linked: key=${key != null} firebase=${fb != null}")
         return when (kind) {
             TransportChoice.Kind.FAKE -> fake
             // Contratto 1.135 (app-letture-leggere-11-11): ogni lettura con l'etag dell'ultima risposta.
