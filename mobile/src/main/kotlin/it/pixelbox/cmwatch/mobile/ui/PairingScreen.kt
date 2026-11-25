@@ -51,7 +51,8 @@ fun PairingScreen(ui: PairUi, onRetry: () -> Unit, onRescan: () -> Unit, onWitho
         Text(stringResource(if (ui.phase == Phase.DONE) R.string.pair_done_title else R.string.pair_title), style = MaterialTheme.typography.headlineMedium, color = Cm.text)
         StepRow(stringResource(if (tablet) R.string.step_tablet else R.string.step_phone), null, ui.steps.getValue(Step.PHONE))
         // Un'aggiunta (contratto 1.30) non passa dall'orologio: il suo passo non si mostra.
-        if (!ui.add) StepRow(stringResource(R.string.step_watch), watchNote(ui), ui.steps.getValue(Step.WATCH))
+        // In un'aggiunta l'orologio c'è solo se viene portato (app-orologio-dati-demo-25-11); in attesa o saltato, non si mostra.
+        if (!ui.add || ui.steps.getValue(Step.WATCH) !in setOf(StepState.WAIT, StepState.SKIPPED)) StepRow(stringResource(R.string.step_watch), watchNote(ui), ui.steps.getValue(Step.WATCH))
         StepRow(stringResource(R.string.step_pc), ui.host, ui.steps.getValue(Step.PC))
         ui.fail?.let { Text(if (it == PairFail.FULL) stringResource(R.string.pair_err_full, PairAddText.MAX_DEVICES) else stringResource(failText(it, ui.add)), style = MaterialTheme.typography.bodyLarge, color = Cm.gone) }
         Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) { PairScheme(ui, tablet) }
@@ -97,7 +98,7 @@ private fun PairScheme(ui: PairUi, tablet: Boolean) {
             Icons.Rounded.Computer, 84.dp, stepColor(pc), if (pc == StepState.WORKING) Cm.actionIcon else Cm.line, dashed = pc == StepState.WAIT,
             ui.host ?: stringResource(R.string.dev_pc), stepStatus(pc), null, null,
         )
-        if (!ui.add) {
+        if (!ui.add || watch !in setOf(StepState.WAIT, StepState.SKIPPED)) {
             val off = watch == StepState.WAIT || watch == StepState.SKIPPED
             SchemeWire(stepColor(watch), dashed = off, moving = watch == StepState.WORKING, reverse = true, modifier = Modifier.weight(1f).padding(top = 32.dp))
             SchemeNode(

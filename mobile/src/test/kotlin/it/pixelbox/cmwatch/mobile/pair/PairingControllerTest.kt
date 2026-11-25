@@ -132,8 +132,9 @@ class PairingControllerTest {
         assertEquals(listOf("phoneUid"), PairingRecord.fromJson(store.s.pairingJson)!!.uids)
     }
 
-    // Contratto 1.30 (Franz, 04/10 13:43, dal tablet): un'aggiunta non cerca l'orologio, che ha già la chiave, e va dritta al PC.
-    @Test fun anAdditionSkipsTheWatch() = runTest {
+    // Un'aggiunta senza orologio raggiungibile (il tablet, 04/10 13:43) va dritta al PC e non fallisce.
+    @Test fun anAdditionWithoutAWatchSkipsIt() = runTest {
+        watch.reachable = false
         val add = qrText.trimEnd().removeSuffix("}") + ",\"m\":\"add\"}"
         val c = controller()
         c.run(add)
@@ -145,6 +146,35 @@ class PairingControllerTest {
         assertEquals(0, watch.requests)
         assertNull(pcWatch)
         assertEquals(listOf("phoneUid"), PairingRecord.fromJson(store.s.pairingJson)!!.uids)
+    }
+
+    /**
+     * app-orologio-dati-demo-25-11 (25/11 14:15): `pair --add` dal telefono riaccoppiava il solo telefono e l'orologio non accoppiato
+     * restava fuori; un `relay pair` normale avrebbe scollegato web e tablet. Ora l'aggiunta porta l'orologio raggiungibile: lo
+     * presenta al PC e gli consegna la chiave del relay.
+     */
+    @Test fun anAdditionBringsTheReachableWatch() = runTest {
+        val add = qrText.trimEnd().removeSuffix("}") + ",\"m\":\"add\"}"
+        val c = controller()
+        c.run(add)
+        val ui = c.ui.value
+        assertEquals(Phase.DONE, ui.phase)
+        assertEquals(StepState.DONE, ui.steps[Step.WATCH])
+        assertEquals(WatchPeer("watchUid", "Pixel Watch 5"), pcWatch)
+        assertArrayEquals(key, watch.received)
+        assertEquals(listOf("phoneUid", "watchUid"), PairingRecord.fromJson(store.s.pairingJson)!!.uids)
+    }
+
+    /** Un orologio che non risponde non ferma un'aggiunta: si accoppia il telefono e il passo Orologio è saltato. */
+    @Test fun anAdditionWithAWatchThatDoesNotAnswerStillPairsThePhone() = runTest {
+        watch.badEph = true
+        val add = qrText.trimEnd().removeSuffix("}") + ",\"m\":\"add\"}"
+        val c = controller()
+        c.run(add)
+        assertEquals(Phase.DONE, c.ui.value.phase)
+        assertEquals(StepState.SKIPPED, c.ui.value.steps[Step.WATCH])
+        assertNull(pcWatch)
+        assertTrue(store.s.paired)
     }
 
     @Test fun watchWithoutTheApp() = runTest {

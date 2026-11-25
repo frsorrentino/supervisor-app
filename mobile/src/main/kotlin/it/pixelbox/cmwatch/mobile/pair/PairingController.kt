@@ -92,18 +92,25 @@ class PairingController(
         step(Step.PHONE, StepState.DONE)
 
         step(Step.WATCH, StepState.WORKING)
-        // Contratto 1.30 (Franz, 04/10 13:43): un'aggiunta, come il tablet accanto a telefono e orologio, non passa
-        // dall'orologio: ha già la chiave del relay, che arriva al dispositivo nuovo con la conferma del PC.
-        val node = if (qr.add) null else link.find()
+        // Contratto 1.30: anche un'aggiunta porta con sé l'orologio raggiungibile. Prima lo saltava («ha già la chiave»), ma un
+        // orologio non accoppiato restava fuori per sempre: `pair --add` riaccoppiava il solo telefono e un `relay pair` normale
+        // scollega web e tablet (app-orologio-dati-demo-25-11, 25/11 14:15). Il relay mette in /allowed anche gli uid portati
+        // (pair_accept è la stessa per il pair normale e per l'add). In un'aggiunta un orologio che non risponde non la ferma.
+        val node = link.find()
         var hello: HelloResponse? = null
         if (node == null) {
             // Senza orologio, o con un orologio senza la nostra app, si può accoppiare il solo telefono (Franz, 25/09 06:58).
             if (withoutWatch || qr.add) step(Step.WATCH, StepState.SKIPPED)
             else return fail(if (link.anyConnected() != null) PairFail.WATCH_APP_MISSING else PairFail.NO_WATCH, Step.WATCH)
         } else {
-            hello = hello(node, cfg) ?: return fail(PairFail.WATCH_FAILED, Step.WATCH)
-            _ui.value = _ui.value.copy(watchName = hello.name ?: node.name)
-            step(Step.WATCH, StepState.DONE)
+            val got = hello(node, cfg)
+            if (got == null && qr.add) step(Step.WATCH, StepState.SKIPPED)
+            else {
+                val h = got ?: return fail(PairFail.WATCH_FAILED, Step.WATCH)
+                hello = h
+                _ui.value = _ui.value.copy(watchName = h.name ?: node.name)
+                step(Step.WATCH, StepState.DONE)
+            }
         }
         val peer = hello?.let { WatchPeer(it.uid!!, it.name ?: node!!.name) }
 
