@@ -174,7 +174,9 @@ class CmApp : Application() {
     /**
      * Demo per i video promozionali (Franz, 16/09 16:05): `adb shell am start -n it.pixelbox.cmwatch/.wear.MainActivity
      * --ez demo true|false`. Accesa, l'app mostra le fixture inglesi con le date di adesso e i campioni del ritmo;
-     * spenta, torna al PC vero. L'accoppiamento non si tocca.
+     * spenta, torna al PC vero. L'accoppiamento non si tocca. Sempre con `am start -S` (ferma e riavvia): con l'app già aperta
+     * un intent uguale alla radice del task, che gli extra non distinguono, porta solo il task davanti e l'extra non arriva (25/11 12:39:
+     * il `--ez demo false` non spense la demo; a processo nuovo sì).
      */
     fun setDemo(on: Boolean) {
         scope.launch {
