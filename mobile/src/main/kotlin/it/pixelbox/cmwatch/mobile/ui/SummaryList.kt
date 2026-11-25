@@ -341,6 +341,12 @@ fun SummaryList(
             }
         }
     }
+    // app-tabellone-filtro-25-11: il filtro del tabellone apre Sessioni senza ricordarlo, e togliendolo si torna come prima.
+    androidx.compose.runtime.LaunchedEffect(f.boardFilter) {
+        val n = it.pixelbox.cmwatch.rules.Kpi.boardFold(f.boardFilter, it.pixelbox.cmwatch.rules.Kpi.SessionsFold(sessionsOpen, f.sessionsByFilter))
+        if (n.open != sessionsOpen) sessionsOpen = n.open
+        f.sessionsByFilter = n.byFilter
+    }
     var usageOpen by remember { section("usage") }
     var esitiOpen by remember { section("esiti") }
     var suggestionsOpen by remember { section("suggestions") }
@@ -775,10 +781,8 @@ fun SummaryList(
                             // Le due caselle filtrano la lista sul posto (app-tabellone-filtri-14-11); il secondo tocco toglie il filtro e non scorre.
                             val next = it.pixelbox.cmwatch.rules.Kpi.boardTap(bf, if (b == HomeBox.WAITING) it.pixelbox.cmwatch.rules.Kpi.BoardFilter.WAITING else it.pixelbox.cmwatch.rules.Kpi.BoardFilter.BUSY, h)
                             f.boardFilter = next
-                            if (next != null) {
-                                if (!sessionsOpen && "sessions" in up) { sessionsOpen = true; save("sessions", true) }
-                                catFocus = "sec-sessions"
-                            }
+                            // Sessioni si apre da sola col filtro (app-tabellone-filtro-25-11): lo fa l'effetto su `f.boardFilter`.
+                            if (next != null) catFocus = "sec-sessions"
                         }
                     }
                     val kh = it.pixelbox.cmwatch.rules.Kpi.head(st, kpiPage, now, java.time.ZoneId.systemDefault())
@@ -888,7 +892,7 @@ fun SummaryList(
                 val waitN = waitRows.count { r -> r.session.name != it.pixelbox.cmwatch.rules.ContextActions.MASTER }
                 // Al massimo due parti, su una riga: prima chi aspetta Franz (con tre andava a capo).
                 val line = (listOfNotNull(waitN.takeIf { w -> w > 0 }?.let { w -> pluralStringResource(R.plurals.home_sessions_waiting, w, w) }) + sessionsLine(n(Summary.Group.WORKING), n(Summary.Group.FINISHED), n(Summary.Group.STILL)).split(" · ").filter { x -> x.isNotEmpty() }).take(2).joinToString(" · ")
-                val toggle = { sessionsOpen = !sessionsOpen; save("sessions", sessionsOpen) }
+                val toggle = { sessionsOpen = !sessionsOpen; save("sessions", sessionsOpen); f.sessionsByFilter = false }
                 // Il sottotitolo In cima: i nomi, prima chi aspetta Franz, poi «+N» come Suggerimenti (master 03/11 10:20, app-in-cima-uguali-03-11).
                 val boardNames = (waitRows + restRows).map { r -> r.session.name }.filter { x -> x != it.pixelbox.cmwatch.rules.ContextActions.MASTER }.distinct()
                 // In cima ha la scheda delle altre voci del tabellone (Franz 03/11 08:25, app-in-cima-uguali-03-11).

@@ -46,6 +46,9 @@
   .cell:disabled { cursor: default; }
   .cell:disabled:hover { background: none; }
   .cell.on { background: var(--s2); box-shadow: inset 0 0 0 2px var(--tx2); }
+  /* app-tabellone-filtro-25-11: il filo segue gli angoli smussati del tabellone, che prima ne tagliava gli spigoli. */
+  .cell.on:first-child { border-top-left-radius: 13px; }
+  .board:has(.slot:empty) .cell.on:first-child, .board:not(:has(.slot)) .cell.on:first-child { border-bottom-left-radius: 13px; }
   .cell.on .chev { color: var(--tx); transform: rotate(90deg); }
   .cell:focus-visible { outline: 2px solid var(--tx); outline-offset: -2px; }
   .n { display: block; font: 700 42px/1 var(--display); letter-spacing: -0.01em; }

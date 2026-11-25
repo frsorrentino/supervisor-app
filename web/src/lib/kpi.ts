@@ -170,6 +170,11 @@ export const boardCount = (h: Head, f: BoardFilter): number => (f === 'aspetta' 
 export const boardMatch = (s: Session, f: BoardFilter): boolean => s.state !== 'gone' && s.name !== 'master' && (f === 'aspetta' ? waitingSince(s) != null : atWork(s) && waitingSince(s) == null)
 export const boardTap = (cur: BoardFilter | null, f: BoardFilter, h: Head): BoardFilter | null => (boardCount(h, f) === 0 ? cur : cur === f ? null : f)
 export const boardShown = (cur: BoardFilter | null, h: Head): BoardFilter | null => (cur && boardCount(h, cur) > 0 ? cur : null)
+// app-tabellone-filtro-25-11 (Franz 25/11 17:04): scegliere una casella apre Sessioni, dove si vede il filtro; togliendolo, se l'aveva
+// aperta lui, si richiude. Aperta a mano resta aperta. Le stesse regole di Kpi.boardFold.
+export type SessionsFold = { open: boolean; byFilter: boolean }
+export const boardFold = (filter: BoardFilter | null, cur: SessionsFold): SessionsFold =>
+  filter && !cur.open ? { open: true, byFilter: true } : !filter && cur.byFilter ? { open: false, byFilter: false } : cur
 
 // ---- I box della home aperti (compito app-box-cliccabili-29-10, mockup approvato da Franz il 29/10 alle 18:57), porta di Kpi.kt ----
 

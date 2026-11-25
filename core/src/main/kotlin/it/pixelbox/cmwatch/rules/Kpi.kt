@@ -180,6 +180,20 @@ object Kpi {
     fun boardTap(cur: BoardFilter?, f: BoardFilter, h: Head): BoardFilter? = if (boardCount(h, f) == 0) cur else if (cur == f) null else f
     fun boardShown(cur: BoardFilter?, h: Head): BoardFilter? = cur?.takeIf { boardCount(h, it) > 0 }
 
+    /** Sessioni aperta, e se l'ha aperta il filtro del tabellone. */
+    data class SessionsFold(val open: Boolean, val byFilter: Boolean)
+
+    /**
+     * app-tabellone-filtro-25-11 (Franz 25/11 17:04): scegliere una casella apre Sessioni, dove si vede il filtro (prima restava chiusa:
+     * si apriva solo con Sessioni in cima, e dal 24/11 Sessioni ha il suo titolo); togliendo il filtro, se l'aveva aperta lui, si richiude
+     * e si torna come prima. Aperta a mano resta aperta. Le stesse regole di `boardFold` in web/src/lib/kpi.ts.
+     */
+    fun boardFold(filter: BoardFilter?, cur: SessionsFold): SessionsFold = when {
+        filter != null && !cur.open -> SessionsFold(open = true, byFilter = true)
+        filter == null && cur.byFilter -> SessionsFold(open = false, byFilter = false)
+        else -> cur
+    }
+
     fun head(state: State, page: TimelinePage?, now: Long, zone: ZoneId): Head {
         val live = state.sessions.filter { it.state != SessionState.GONE && it.name != ContextActions.MASTER }
         val waits = live.mapNotNull { waitingSince(it) }

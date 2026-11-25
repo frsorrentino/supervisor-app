@@ -176,8 +176,11 @@ internal fun Kpi7(h: Kpi.Head, st: it.pixelbox.cmwatch.contract.State, now: Long
             val m = (((h.oldestWaitS ?: 0L) + 30) / 60)
             // app-tabellone-filtri-14-11 (Franz 14/11 14:22): «ferme» e «al lavoro» filtrano la lista delle sessioni sotto; la casella del
             // filtro acceso resta accesa (fondo e filo sul bordo), e a 0 non si tocca e non ha la freccia.
-            val lit = { on: Boolean -> if (on) Modifier.background(V3.S2).border(2.dp, V3.Tx2) else Modifier }
-            val box = { b: HomeBox, tag: String, w: Float, can: Boolean, on: Boolean -> Modifier.weight(w).fillMaxHeight().then(if (V3.day && b == HomeBox.WAITING) Modifier.background(V3.WaitFill) else Modifier).then(lit(on)).testTag(tag).then(if (can) Modifier.handCursor().clickable { onBox(b) } else Modifier) }
+            // app-tabellone-filtro-25-11 (Franz 25/11 17:04): il filo ha la forma della casella, smussato dove lo è il tabellone; prima era
+            // un rettangolo e il riquadro ne tagliava gli angoli.
+            val firstShape = RoundedCornerShape(topStart = 14.dp, bottomStart = if (joined) 0.dp else 14.dp)
+            val lit = { on: Boolean, s: androidx.compose.ui.graphics.Shape -> if (on) Modifier.background(V3.S2, s).border(2.dp, V3.Tx2, s) else Modifier }
+            val box = { b: HomeBox, tag: String, w: Float, can: Boolean, on: Boolean -> Modifier.weight(w).fillMaxHeight().then(if (V3.day && b == HomeBox.WAITING) Modifier.background(V3.WaitFill) else Modifier).then(lit(on, if (b == HomeBox.WAITING) firstShape else androidx.compose.ui.graphics.RectangleShape)).testTag(tag).then(if (can) Modifier.handCursor().clickable { onBox(b) } else Modifier) }
             Board(h.waiting.toString(), if (h.waiting > 0) pluralStringResource(R.plurals.kpi7_waiting, h.waiting, h.waiting, m) else stringResource(R.string.kpi7_none_waiting), if (h.waiting > 0) V3.Wait else V3.Tx, null, box(HomeBox.WAITING, "home-box-aspetta", 1.15f, h.waiting > 0, filter == Kpi.BoardFilter.WAITING), of = h.open.takeIf { it > 0 }, chevron = h.waiting > 0, on = filter == Kpi.BoardFilter.WAITING)
             Box(Modifier.width(1.dp).fillMaxHeight().background(V3.Line))
             Board(h.busy.toString(), stringResource(R.string.kpi7_busy), V3.Tx, null, box(HomeBox.BUSY, "home-box-lavoro", 1f, h.busy > 0, filter == Kpi.BoardFilter.BUSY), of = h.open.takeIf { it > 0 }, chevron = h.busy > 0, on = filter == Kpi.BoardFilter.BUSY)

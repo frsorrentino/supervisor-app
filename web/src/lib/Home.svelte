@@ -17,7 +17,7 @@
   import Kpi4 from './Kpi4.svelte'
   import PluginsSection from './PluginsSection.svelte'
   import type { KpiData, PluginsPage } from './contract'
-  import { day as kpiDay, dayFigures, HANDOFF, boardMatch, boardShown, boardTap, head as kpiHead, resultsOf, hourly, midnight, outcomes as kpiOutcomes, split as kpiSplit, todayShare, turnsOf, waitingSince } from './kpi'
+  import { day as kpiDay, dayFigures, HANDOFF, boardFold, boardMatch, boardShown, boardTap, head as kpiHead, resultsOf, hourly, midnight, outcomes as kpiOutcomes, split as kpiSplit, todayShare, turnsOf, waitingSince } from './kpi'
   import { before as kBefore, nextStep as kNext, results as kResultsOf, task as kTask } from './sessionK'
   import type { TimelinePage } from './contract'
   import { actionOf, consumersLine, isOpen as sysIsOpen, num as sysNum, summaryLine, type Manual } from './system'
@@ -441,7 +441,6 @@
     if (b === 'aspetta' || b === 'lavoro') {
       boardFilter.on = boardTap(bf, b, kh)
       if (!boardFilter.on) return
-      if (up.includes('sessions') && !open.sessions) toggleSec('sessions')
     }
     const id: CatId = cats.some(c => c.id === 'out') ? 'out' : 'work'
     if (!sessions && !open.esiti) toggleSec('esiti')
@@ -487,7 +486,17 @@
   // app-titolo-sessioni-24-11 (Franz 24/11 09:41: «di base solo la sezione sessioni deve essere aperta»): all'aggiornamento Sessioni
   // si apre una volta, anche se era stata chiusa sul tabellone; le categorie si chiudono una volta da homeCats (rev:8). Dopo si ricorda.
   try { if (!localStorage.getItem('home-sessioni-titolo')) { open = { ...open, sessions: true }; localStorage.setItem(SEC, JSON.stringify(open)); localStorage.setItem('home-sessioni-titolo', '1') } } catch { /* senza memoria vale SEC_START */ }
-  function toggleSec(k: string) { open = { ...open, [k]: !open[k] }; try { localStorage.setItem(SEC, JSON.stringify(open)) } catch { /* senza memoria resta per questa visita */ } }
+  // app-tabellone-filtro-25-11: il filtro apre Sessioni senza ricordarlo; togliendolo si torna come prima.
+  let sessionsByFilter = false
+  $effect(() => {
+    const on = boardFilter.on
+    untrack(() => {
+      const n = boardFold(on, { open: !!open.sessions, byFilter: sessionsByFilter })
+      if (n.open !== !!open.sessions) open = { ...open, sessions: n.open }
+      sessionsByFilter = n.byFilter
+    })
+  })
+  function toggleSec(k: string) { if (k === 'sessions') sessionsByFilter = false; open = { ...open, [k]: !open[k] }; try { localStorage.setItem(SEC, JSON.stringify(open)) } catch { /* senza memoria resta per questa visita */ } }
   // La sezione «Lavori» (mockup approvato il 22/10): al posto di Da approvare, Impegni e Recap, solo le righe con un tasto
   // (gli ok, le prime due cose da fare fuori dalla chat, la prima che può fare Claude) e la riga «Tutti i lavori».
   const zone = Intl.DateTimeFormat().resolvedOptions().timeZone

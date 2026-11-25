@@ -17,6 +17,8 @@ class HomeFolds(card: String? = null) {
     var card by mutableStateOf(card)
     /** Il filtro acceso dal tabellone (app-tabellone-filtri-14-11): resta finché l'app è aperta, non si ricorda fra un avvio e l'altro. */
     var boardFilter by mutableStateOf<it.pixelbox.cmwatch.rules.Kpi.BoardFilter?>(null)
+    /** Sessioni l'ha aperta il filtro (app-tabellone-filtro-25-11): togliendolo si richiude. */
+    var sessionsByFilter = false
     private val states = HashMap<String, MutableState<Boolean>>()
 
     fun isOpen(session: String): Boolean = card == session
