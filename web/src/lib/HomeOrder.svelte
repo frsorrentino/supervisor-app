@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { perTeSec } from './homeSec'
   import { BOARD_MAX, DEFAULT_CATS, decode, encode, fromTop, moveCat, moveSection, toTop, toggle, top as topOf, type Cat, type CatId, type HomeKey } from './homeCats'
   import { move, pinned, type HomeSection } from './homeOrder'
   import { t } from './t'
@@ -14,7 +15,7 @@
   const putTop = (k: HomeKey) => { const r = toTop(cats, top, k); top = r.top; cats = r.cats }
   const dropTop = (k: HomeKey) => { const r = fromTop(cats, top, k); top = r.top; cats = r.cats }
   const SEC: Record<string, { icon: string; name: string }> = {
-    seguiti: { icon: 'event_list', name: t.homeSecFollow }, prove: { icon: 'checklist', name: t.homeSecVerify }, decisioni: { icon: 'timer', name: t.homeSecDecide },
+    seguiti: { icon: 'event_list', name: t.homeSecFollow }, prove: { icon: 'checklist', name: t.homeSecVerify }, decisioni: perTeSec(),
     sessions: { icon: 'play_circle', name: t.homeSessions }, suggestions: { icon: 'auto_awesome', name: t.sugTitle },
     notte: { icon: 'bedtime', name: t.homeNight }, lavori: { icon: 'checklist', name: t.lavoriProgress }, esiti: { icon: 'sports_score', name: t.homeOutcomes }, usage: { icon: 'data_usage', name: t.homeUsage }, system: { icon: 'memory', name: t.homeSystem },
     // Le tre sezioni nuove (app-da-guardare-02-11, app-rendiconti-2-02-11): hanno già il loro posto; icone disegnate, non sono nel font.

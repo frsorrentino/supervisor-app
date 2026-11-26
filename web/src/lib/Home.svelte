@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { perTeSec } from './homeSec'
   import StepBar from './StepBar.svelte'
   import { dtf } from './dtf'
   import { asking as primaAsking, homeStatus as primaHome } from './primaRaccolta'
@@ -244,7 +245,7 @@
   // Una voce riordinabile si trascina sul posto (Franz 31/10 14:27, supera la regola delle 01:01): col mouse subito, al tocco dopo
   // la pressione lunga, senza menu né selezione. Niente si chiude: la sezione resta dov'è, attenuata, e una copia del titolo segue
   // il dito. I movimenti si ascoltano sulla finestra, perché spostare una voce nel DOM le toglie il puntatore.
-  const DRAG_SEC = $derived<Record<string, { icon: string; name: string }>>({ seguiti: { icon: 'event_list', name: t.homeSecFollow }, prove: { icon: 'checklist', name: t.homeSecVerify }, decisioni: { icon: 'timer', name: t.homeSecDecide }, sessions: { icon: 'play_circle', name: t.homeSessions }, suggestions: { icon: 'auto_awesome', name: t.sugTitle }, lavori: { icon: 'checklist', name: t.lavoriTitle }, esiti: { icon: 'sports_score', name: t.homeOutcomes }, usage: { icon: 'data_usage', name: t.homeUsage }, system: { icon: 'memory', name: t.homeSystem }, plugins: { icon: 'extension', name: t.homePlugins }, closed: { icon: 'inventory_2', name: t.catClosed }, da_guardare: { icon: 'svg:eye', name: t.homeSecWatch }, monitors: { icon: 'svg:chart', name: t.monitorsTitle } })
+  const DRAG_SEC = $derived<Record<string, { icon: string; name: string }>>({ seguiti: { icon: 'event_list', name: t.homeSecFollow }, prove: { icon: 'checklist', name: t.homeSecVerify }, decisioni: perTeSec(), sessions: { icon: 'play_circle', name: t.homeSessions }, suggestions: { icon: 'auto_awesome', name: t.sugTitle }, lavori: { icon: 'checklist', name: t.lavoriTitle }, esiti: { icon: 'sports_score', name: t.homeOutcomes }, usage: { icon: 'data_usage', name: t.homeUsage }, system: { icon: 'memory', name: t.homeSystem }, plugins: { icon: 'extension', name: t.homePlugins }, closed: { icon: 'inventory_2', name: t.catClosed }, da_guardare: { icon: 'svg:eye', name: t.homeSecWatch }, monitors: { icon: 'svg:chart', name: t.monitorsTitle } })
   let dragOrder = $state<HomeSection[] | null>(null)
   let dragKey = $state<HomeSection | null>(null)
   let dragY = $state(0)
@@ -1130,8 +1131,8 @@
     <!-- Verifica: le prove e i lavori da guardare in una voce sola (app-tocca-sezioni-06-11). -->
     {:else if k === 'prove' && !unified && (hasProve || st.results?.n_unseen)}{@render sec('prove', t.homeSecVerify, 'checklist', String(tcu.prove + (st.results?.n_unseen ?? 0)), 'home-da-provare', !open['prove'] ? rightOf('prove') : null, { hot: tcu.prove > 0 })}{@render nuovaBody(k)}
     <!-- Con la lista unica (app-riall-2-viste-16-11) Decidi è «Per te», Dalla master per sessione: tutte le voci, il numero sono le righe. -->
-    {:else if k === 'decisioni' && unified && perTeRows > 0}{@render sec('decisioni', t.forYou, 'svg:hand', String(perTeRows), 'home-per-te', perTeOpen ? null : perTeFirst, { hot: true, isOpen: perTeOpen, onclick: onPerTeToggle })}{@render nuovaBody(k)}
-    {:else if k === 'decisioni' && !unified && (st.decisions?.n || st.prima_raccolta)}{@render sec('decisioni', t.homeSecDecide, 'timer', tcu.decidi ? String(tcu.decidi) : null, 'home-da-decidere', !open['decisioni'] ? rightOf('decisioni') : null, { hot: true })}{@render nuovaBody(k)}
+    {:else if k === 'decisioni' && unified && perTeRows > 0}{@render sec('decisioni', perTeSec().name, perTeSec().icon, String(perTeRows), 'home-per-te', perTeOpen ? null : perTeFirst, { hot: true, isOpen: perTeOpen, onclick: onPerTeToggle })}{@render nuovaBody(k)}
+    {:else if k === 'decisioni' && !unified && (st.decisions?.n || st.prima_raccolta)}{@render sec('decisioni', perTeSec().name, perTeSec().icon, tcu.decidi ? String(tcu.decidi) : null, 'home-da-decidere', !open['decisioni'] ? rightOf('decisioni') : null, { hot: true })}{@render nuovaBody(k)}
     {/if}
   {/if}
 {/snippet}

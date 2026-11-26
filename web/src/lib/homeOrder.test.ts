@@ -119,8 +119,10 @@ describe('slot_rilascio', () => {
     // Prima raccolta non è più una voce: sta dentro Decidi (app-sezioni-accorpate-03-11).
     for (const k of NUOVE.filter(x => x !== 'prima_raccolta')) {
       expect(home, k).toContain(`sec('${k}'`)
-      expect(home, k).toContain(`${k}: { icon:`)
-      expect(order, k).toContain(`${k}: { icon:`)
+      // app-per-te-trascina-nome-26-11: `decisioni` prende nome e icona da perTeSec, la stessa fonte della sua testata.
+      const look = k === 'decisioni' ? `${k}: perTeSec()` : `${k}: { icon:`
+      expect(home, k).toContain(look)
+      expect(order, k).toContain(look)
     }
   })
 })

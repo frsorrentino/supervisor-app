@@ -402,7 +402,7 @@ fun SummaryList(
             // Prima raccolta sta dentro Decidi finché c'è (app-sezioni-accorpate-03-11, scelta A).
             // Con la lista unica Decidi è «Per te», Dalla master per sessione: tutte le voci, il numero sono le righe (app-riall-2-viste-16-11).
             "decisioni" -> if (st.attese != null) perTeRows.takeIf { n -> n > 0 }?.let { n -> NewRow(R.string.fy_title, icons.PanTool, n.toString(), "home-per-te", perTeOpen ?: open, true) }
-                else it.pixelbox.cmwatch.rules.ToccaRules.counts(st).decidi.takeIf { n -> n > 0 || st.primaRaccolta != null }?.let { n -> NewRow(R.string.home_sec_decide, icons.Timer, if (n > 0) n.toString() else "", "home-da-decidere", open, true) }
+                else it.pixelbox.cmwatch.rules.ToccaRules.counts(st).decidi.takeIf { n -> n > 0 || st.primaRaccolta != null }?.let { n -> NewRow(R.string.fy_title, icons.PanTool, if (n > 0) n.toString() else "", "home-da-decidere", open, true) }
             // Contratto 1.106 (app-da-guardare-02-11): c'è finché qualcosa di consegnato non è ancora visto.
             "da_guardare" -> st.results?.takeIf { x -> x.nUnseen > 0 }?.let { x -> NewRow(R.string.home_sec_look, icons.Visibility, x.nUnseen.toString(), "home-da-guardare", open) }
             else -> null

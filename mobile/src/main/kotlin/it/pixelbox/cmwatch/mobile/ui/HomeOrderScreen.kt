@@ -71,6 +71,9 @@ import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.zIndex
 
+/** La mano di «Per te», la stessa della sua testata nella Home. */
+internal val perTeSecIcon: ImageVector get() = Icons.Outlined.PanTool
+
 /** Le voci della home sulla schermata: icona e nome, come le testate delle sezioni. */
 @Composable
 private fun sectionOf(key: String): Pair<ImageVector, String> = when (key) {
@@ -78,7 +81,9 @@ private fun sectionOf(key: String): Pair<ImageVector, String> = when (key) {
     "cat:you", "cat:work", "cat:out", "cat:tools" -> catIcon(key.removePrefix("cat:")) to catName(key.removePrefix("cat:"))
     "seguiti" -> Icons.Outlined.Update to stringResource(R.string.home_sec_follow)
     "prove" -> Icons.Outlined.Science to stringResource(R.string.home_sec_verify)
-    "decisioni" -> Icons.Outlined.Timer to stringResource(R.string.home_sec_decide)
+    // app-per-te-trascina-nome-26-11 (Franz 26/11 22:12): la sezione è «Per te», con la mano, anche nell'anteprima che segue il dito e
+    // in Riordina; prima qui restava il nome vecchio «Decidi».
+    "decisioni" -> perTeSecIcon to stringResource(R.string.fy_title)
     "sessions" -> Icons.Outlined.PlayCircle to stringResource(R.string.home_sec_sessions)
     "suggestions" -> Icons.Outlined.AutoAwesome to stringResource(R.string.sug_title)
     "monitors" -> Icons.AutoMirrored.Outlined.ShowChart to stringResource(R.string.monitors_title)

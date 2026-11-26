@@ -75,7 +75,7 @@ describe("le due viste: «Per te» nella sessione e Dalla master per sessione", 
   it("con la lista unica Decidi è «Per te» per sessione e Verifica non c'è più", () => {
     const home = read('./Home.svelte'), app = read('../App.svelte')
     expect(home).toMatch(/k === 'prove' && !unified/)
-    expect(home).toMatch(/k === 'decisioni' && unified && perTeRows > 0\}\{@render sec\('decisioni', t\.forYou/)
+    expect(home).toMatch(/k === 'decisioni' && unified && perTeRows > 0\}\{@render sec\('decisioni', perTeSec\(\)\.name/)
     expect(app).toMatch(/<PerTeGruppi \{run\} groups=\{perTeG\}/)
   })
   it('nella sessione il rimando a Dalla master, e sullo schermo largo solo il numero', () => {

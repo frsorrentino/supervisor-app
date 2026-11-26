@@ -1855,7 +1855,6 @@ It starts at your last message to the master.</string>
     <string name="home_sec_verify">Verify</string>
     <string name="home_verify_look">%1$d to look at</string>
     <string name="home_sec_test">Test</string>
-    <string name="home_sec_decide">Decide</string>
     <string name="home_sec_look">Look</string>
     <string name="home_sec_follow">Resume</string>
     <string name="prove_card_title">Test %1$s</string>

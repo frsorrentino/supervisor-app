@@ -1897,7 +1897,6 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="home_sec_verify">Verifica</string>
     <string name="home_verify_look">%1$d da guardare</string>
     <string name="home_sec_test">Prova</string>
-    <string name="home_sec_decide">Decidi</string>
     <string name="home_sec_look">Guarda</string>
     <string name="home_sec_follow">Riprendi</string>
     <!-- Contratto 1.107: le prove fuse nella pre-release più nuova (app-sezioni-accorpate-03-11). -->
