@@ -62,6 +62,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.Animazioni
+import it.pixelbox.cmwatch.rules.PassiProva
 import kotlinx.coroutines.launch
 
 /**
@@ -169,26 +170,29 @@ internal fun CopyPill(copy: () -> String) {
 }
 
 /**
- * Voce 3 (Al lavoro, vivo): un riflesso attraversa il testo di chi lavora con lo stesso ciclo della linea del lavoro in corso,
- * [Animazioni.CYCLE_MS] lineare. Con le animazioni spente (e nelle immagini di prova) il colore pieno, fermo.
+ * Voce 3, fedele all'originale (Kokonut Thinking text; app-animazioni-fedeli-26-11): un'onda passa sul tempo di chi lavora, lettera per
+ * lettera: opacità fino a 0,3 a metà di 1,6 s, ease-in-out sulle due metà, 70 ms di scarto per lettera. Con le animazioni spente, fermo.
  */
 @Composable
-internal fun shineStyle(base: TextStyle, color: androidx.compose.ui.graphics.Color): TextStyle {
-    if (animationsOff()) return base.copy(color = color)
+internal fun WaveText(text: String, style: TextStyle, color: androidx.compose.ui.graphics.Color, step: Int = 70) {
+    if (animationsOff()) { Text(text, style = style, color = color, maxLines = 1); return }
     val t = androidx.compose.animation.core.rememberInfiniteTransition(label = "al-lavoro")
-    val x by t.animateFloat(
-        0f, 1f,
-        androidx.compose.animation.core.infiniteRepeatable(tween(Animazioni.CYCLE_MS, easing = androidx.compose.animation.core.LinearEasing)),
-        label = "riflesso",
+    val clock by t.animateFloat(
+        0f, 1600f,
+        androidx.compose.animation.core.infiniteRepeatable(tween(1600, easing = androidx.compose.animation.core.LinearEasing)),
+        label = "onda",
     )
-    val light = androidx.compose.ui.graphics.lerp(color, androidx.compose.ui.graphics.Color.White, 0.6f)
-    val w = 48f
-    val from = -2 * w + x * 6 * w
-    return base.copy(
-        brush = androidx.compose.ui.graphics.Brush.linearGradient(
-            listOf(color, light, color), start = androidx.compose.ui.geometry.Offset(from, 0f), end = androidx.compose.ui.geometry.Offset(from + w, 0f),
-        ),
-    )
+    val ease = androidx.compose.animation.core.CubicBezierEasing(0.42f, 0f, 0.58f, 1f)
+    val shown = androidx.compose.ui.text.buildAnnotatedString {
+        text.forEachIndexed { k, ch ->
+            val ph = (((clock - k * step) % 1600f) + 1600f) % 1600f / 1600f
+            val half = if (ph < 0.5f) ph * 2f else (1f - ph) * 2f
+            pushStyle(androidx.compose.ui.text.SpanStyle(color = color.copy(alpha = 1f - 0.7f * ease.transform(half))))
+            append(ch)
+            pop()
+        }
+    }
+    Text(shown, style = style, color = color, maxLines = 1)
 }
 
 /**
@@ -202,21 +206,63 @@ object Gesture {
     fun recent(): Boolean = at > 0 && android.os.SystemClock.uptimeMillis() - at < WINDOW_MS
 }
 
-/** La cifra grande del tabellone: con [roll] la nuova arriva da sotto in 220 ms con la molla veloce, solo dopo un gesto. */
+/**
+ * Voce 4, fedele all'originale (Word roll; app-animazioni-fedeli-26-11): la cifra grande del tabellone, con [roll], cambia lettera per
+ * lettera dopo un gesto. Le cifre vecchie salgono via a scalare di 22 ms, le nuove entrano da sotto dopo 60 ms a scalare di 28 ms, tutte
+ * con la molla 420 26 (spostamento del 105 % dell'altezza, opacità 1 - 0,9·|y|); la larghezza va alla cifra nuova con la 320 30. Il
+ * taglio è solo sopra e sotto. Senza gesto o con le animazioni spente, al posto.
+ */
 @Composable
 internal fun RollNumber(value: String, roll: Boolean, content: @Composable (String) -> Unit) {
     if (!roll) { content(value); return }
     val off = animationsOff()
-    AnimatedContent(
-        value,
-        transitionSpec = {
-            if (!off && Animazioni.rolls(initialState.toIntOrNull(), targetState.toIntOrNull() ?: 0, Gesture.recent()))
-                (androidx.compose.animation.slideInVertically(tween(220, easing = CmMotion.easing)) { it } + fadeIn(tween(160))) togetherWith
-                    (androidx.compose.animation.slideOutVertically(tween(220, easing = CmMotion.easing)) { -it } + fadeOut(tween(160)))
-            else androidx.compose.animation.EnterTransition.None togetherWith androidx.compose.animation.ExitTransition.None
+    class Word(val text: String, val id: Int) { val ys = text.map { androidx.compose.animation.core.Animatable(0f) } }
+    var words by remember { androidx.compose.runtime.mutableStateOf(listOf(Word(value, 0))) }
+    val wp = remember { androidx.compose.animation.core.Animatable(1f) }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    LaunchedEffect(value) {
+        val cur = words.last()
+        if (value == cur.text) return@LaunchedEffect
+        val go = !off && Animazioni.rolls(cur.text.toIntOrNull(), value.toIntOrNull() ?: 0, Gesture.recent())
+        val new = Word(value, cur.id + 1)
+        if (!go) { words = listOf(new); wp.snapTo(1f); return@LaunchedEffect }
+        new.ys.forEach { it.snapTo(1f) }
+        words = listOf(cur, new)
+        wp.snapTo(0f)
+        scope.launch { wp.animateTo(1f, Molla.of(320f, 30f)) }
+        cur.ys.forEachIndexed { k, a -> scope.launch { kotlinx.coroutines.delay(k * 22L); a.animateTo(-1f, Molla.of(420f, 26f)) } }
+        new.ys.forEachIndexed { k, a -> scope.launch { kotlinx.coroutines.delay(60L + k * 28L); a.animateTo(0f, Molla.of(420f, 26f)) } }
+        kotlinx.coroutines.delay(1000)
+        if (words.lastOrNull() === new) words = listOf(new)
+    }
+    Layout(
+        content = {
+            words.forEach { w ->
+                androidx.compose.runtime.key(w.id) {
+                    Row {
+                        w.text.forEachIndexed { k, ch ->
+                            Box(Modifier.graphicsLayer {
+                                val y = w.ys[k].value
+                                translationY = y * 1.05f * size.height
+                                alpha = (1f - kotlin.math.abs(y) * 0.9f).coerceIn(0f, 1f)
+                            }) { content(ch.toString()) }
+                        }
+                    }
+                }
+            }
         },
-        label = "cifra",
-    ) { content(it) }
+        modifier = Modifier.drawWithContent { clipRect(left = -size.width, right = size.width * 2f) { this@drawWithContent.drawContent() } },
+    ) { ms, cs ->
+        val ps = ms.map { it.measure(cs.copy(minWidth = 0)) }
+        val to = ps.last()
+        val from = ps.first()
+        val w = (from.width + (to.width - from.width) * wp.value).roundToInt().coerceAtLeast(0)
+        val h = ps.maxOf { it.height }
+        val base = to[androidx.compose.ui.layout.FirstBaseline]
+        layout(w, h, if (base != androidx.compose.ui.layout.AlignmentLine.Unspecified) mapOf(androidx.compose.ui.layout.FirstBaseline to base) else emptyMap()) {
+            ps.forEach { it.placeRelative(0, 0) }
+        }
+    }
 }
 
 /**
@@ -421,22 +467,48 @@ internal fun UndoSnack() {
 }
 
 /**
- * Voce 5 della prima proposta (Passi della prova, app-animazioni-passi-26-11, contratto 1.162): le tappe del compito in verifica su
- * un filo. Il filo si riempie fino alla tappa a cui si è arrivati (400 ms), le passate sono spunte verdi, quella in corso ha un arco
- * che gira in 1,2 s, una fallita è rossa; sotto, a parole, dove si è. Con le animazioni spente niente movimento, arco fermo.
+ * Voce 5, fedele agli originali (Step progress e Agent steps; app-animazioni-fedeli-26-11): le tappe del compito in verifica su un filo.
+ * Il filo va alla tappa raggiunta con la molla 160 22; una tappa passata si riempie di verde (260 24) e la spunta si disegna 120 ms dopo
+ * (140 20); la tappa che diventa quella in corso fa un pop da 0,7 (molla 500 14, spinta 6). La tappa in corso ha la rotella dell'Agent
+ * steps (un giro in 0,8 s) e il nome con l'onda (opacità fino a 0,3 in 1,6 s, 50 ms di scarto per lettera); una fallita è rossa. Sotto,
+ * a parole, dove si è. Con le animazioni spente niente movimento.
  */
 @Composable
 internal fun ProofRail(steps: it.pixelbox.cmwatch.contract.ProofSteps, bleed: androidx.compose.ui.unit.Dp = 0.dp, inset: androidx.compose.ui.unit.Dp = 0.dp) {
     val items = steps.items
     if (items.isEmpty()) return
     val off = animationsOff()
-    val fill by androidx.compose.animation.core.animateFloatAsState(
-        it.pixelbox.cmwatch.rules.PassiProva.fill(items), if (off) androidx.compose.animation.core.snap() else tween(400, easing = CmMotion.easing), label = "filo",
-    )
-    val turn = if (off || items.none { it.state == "run" }) 0f else {
-        val t = androidx.compose.animation.core.rememberInfiniteTransition(label = "tappa")
-        t.animateFloat(0f, 360f, androidx.compose.animation.core.infiniteRepeatable(tween(1200, easing = androidx.compose.animation.core.LinearEasing)), label = "arco").value
+    val looks = items.map { PassiProva.look(it) }
+    val n = items.size
+    val bar = remember { androidx.compose.animation.core.Animatable(PassiProva.fill(items)) }
+    val fs = remember(n) { List(n) { k -> androidx.compose.animation.core.Animatable(if (looks[k] == PassiProva.Look.DONE) 1f else 0f) } }
+    val cs = remember(n) { List(n) { k -> androidx.compose.animation.core.Animatable(if (looks[k] == PassiProva.Look.DONE) 1f else 0f) } }
+    val ps = remember(n) { List(n) { androidx.compose.animation.core.Animatable(1f) } }
+    var prev by remember(n) { androidx.compose.runtime.mutableStateOf(looks) }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    LaunchedEffect(looks, off) {
+        val before = prev
+        prev = looks
+        if (off) {
+            bar.snapTo(PassiProva.fill(items))
+            looks.forEachIndexed { k, l -> val d = if (l == PassiProva.Look.DONE) 1f else 0f; fs[k].snapTo(d); cs[k].snapTo(d); ps[k].snapTo(1f) }
+            return@LaunchedEffect
+        }
+        scope.launch { bar.animateTo(PassiProva.fill(items), Molla.of(160f, 22f)) }
+        looks.forEachIndexed { k, l ->
+            val done = l == PassiProva.Look.DONE
+            scope.launch { fs[k].animateTo(if (done) 1f else 0f, Molla.of(260f, 24f)) }
+            if (done && cs[k].targetValue < 1f) scope.launch { kotlinx.coroutines.delay(120); cs[k].animateTo(1f, Molla.of(140f, 20f)) }
+            if (!done) scope.launch { cs[k].snapTo(0f) }
+            if (l == PassiProva.Look.NOW && before.getOrNull(k) != PassiProva.Look.NOW) scope.launch { ps[k].snapTo(0.7f); ps[k].animateTo(1f, Molla.of(500f, 14f), initialVelocity = 6f) }
+        }
     }
+    val running = !off && looks.any { it == PassiProva.Look.NOW }
+    val clock = if (!running) 0f else {
+        val t = androidx.compose.animation.core.rememberInfiniteTransition(label = "tappa")
+        t.animateFloat(0f, 4000f, androidx.compose.animation.core.infiniteRepeatable(tween(4000, easing = androidx.compose.animation.core.LinearEasing)), label = "tempo").value
+    }
+    val turn = (clock % 800f) / 800f * 360f
     val good = V3.Good; val red = V3.Red; val busy = V3.Busy; val line = V3.S3; val ink = V3.Tx3; val bg = V3.S1
     // app-passi-centrati-26-11 (Franz 26/11 15:02: «troppo a destra, serve ben centrato»): nella riga della sessione il filo esce a
     // sinistra della colonna del testo di [bleed] (la colonna del glifo) e rientra di [inset], lo stesso margine del lato destro: così
@@ -449,45 +521,61 @@ internal fun ProofRail(steps: it.pixelbox.cmwatch.contract.ProofSteps, bleed: an
     }
     androidx.compose.foundation.layout.Column(Modifier.fillMaxWidth().then(if (bleed > 0.dp) wide else Modifier).padding(top = 6.dp).testTag("passi-prova")) {
         androidx.compose.foundation.Canvas(Modifier.fillMaxWidth().height(24.dp)) {
-            val n = items.size
             val cw = size.width / n
             val cy = size.height / 2
             val x0 = cw / 2; val x1 = size.width - cw / 2
             drawLine(line, androidx.compose.ui.geometry.Offset(x0, cy), androidx.compose.ui.geometry.Offset(x1, cy), 2.dp.toPx())
-            if (n > 1) drawLine(good, androidx.compose.ui.geometry.Offset(x0, cy), androidx.compose.ui.geometry.Offset(x0 + (x1 - x0) * fill, cy), 2.dp.toPx())
+            if (n > 1) drawLine(good, androidx.compose.ui.geometry.Offset(x0, cy), androidx.compose.ui.geometry.Offset(x0 + (x1 - x0) * bar.value.coerceIn(0f, 1f), cy), 2.dp.toPx())
             val r = 10.dp.toPx()
-            items.forEachIndexed { i, s ->
+            val round = { w: Float -> androidx.compose.ui.graphics.drawscope.Stroke(w, cap = androidx.compose.ui.graphics.StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round) }
+            looks.forEachIndexed { i, look ->
                 val c = androidx.compose.ui.geometry.Offset(x0 + i * cw, cy)
-                when (it.pixelbox.cmwatch.rules.PassiProva.look(s)) {
-                    it.pixelbox.cmwatch.rules.PassiProva.Look.DONE -> {
-                        drawCircle(good, r, c)
-                        val a = c + androidx.compose.ui.geometry.Offset(-r * .45f, 0f); val b = c + androidx.compose.ui.geometry.Offset(-r * .1f, r * .35f); val e = c + androidx.compose.ui.geometry.Offset(r * .5f, -r * .35f)
-                        drawLine(androidx.compose.ui.graphics.Color.Black, a, b, 2.5.dp.toPx(), androidx.compose.ui.graphics.StrokeCap.Round)
-                        drawLine(androidx.compose.ui.graphics.Color.Black, b, e, 2.5.dp.toPx(), androidx.compose.ui.graphics.StrokeCap.Round)
-                    }
-                    it.pixelbox.cmwatch.rules.PassiProva.Look.FAILED -> {
+                val f = fs[i].value.coerceIn(0f, 1f)
+                androidx.compose.ui.graphics.drawscope.scale(ps[i].value, c) {
+                    if (look == PassiProva.Look.FAILED) {
                         drawCircle(red, r, c)
                         val d = r * .35f
                         drawLine(androidx.compose.ui.graphics.Color.Black, c + androidx.compose.ui.geometry.Offset(-d, -d), c + androidx.compose.ui.geometry.Offset(d, d), 2.5.dp.toPx(), androidx.compose.ui.graphics.StrokeCap.Round)
                         drawLine(androidx.compose.ui.graphics.Color.Black, c + androidx.compose.ui.geometry.Offset(d, -d), c + androidx.compose.ui.geometry.Offset(-d, d), 2.5.dp.toPx(), androidx.compose.ui.graphics.StrokeCap.Round)
-                    }
-                    it.pixelbox.cmwatch.rules.PassiProva.Look.NOW -> {
-                        drawCircle(bg, r, c)
-                        drawCircle(busy.copy(alpha = 0.35f), r - 1.dp.toPx(), c, style = androidx.compose.ui.graphics.drawscope.Stroke(2.dp.toPx()))
-                        drawArc(busy, turn - 90f, 90f, false, topLeft = c - androidx.compose.ui.geometry.Offset(r - 1.dp.toPx(), r - 1.dp.toPx()), size = androidx.compose.ui.geometry.Size(2 * (r - 1.dp.toPx()), 2 * (r - 1.dp.toPx())), style = androidx.compose.ui.graphics.drawscope.Stroke(2.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round))
-                    }
-                    it.pixelbox.cmwatch.rules.PassiProva.Look.TODO -> {
-                        drawCircle(bg, r, c)
-                        drawCircle(ink, r - 1.dp.toPx(), c, style = androidx.compose.ui.graphics.drawscope.Stroke(2.dp.toPx()))
+                    } else {
+                        drawCircle(androidx.compose.ui.graphics.lerp(bg, good, f), r, c)
+                        if (f < 1f) {
+                            val rr = r - 1.dp.toPx()
+                            if (look == PassiProva.Look.NOW) {
+                                drawCircle(busy.copy(alpha = 0.35f * (1f - f)), rr, c, style = androidx.compose.ui.graphics.drawscope.Stroke(2.dp.toPx()))
+                                drawArc(busy.copy(alpha = 1f - f), turn - 90f, 90f, false, topLeft = c - androidx.compose.ui.geometry.Offset(rr, rr), size = androidx.compose.ui.geometry.Size(2 * rr, 2 * rr), style = round(2.dp.toPx()))
+                            } else drawCircle(ink.copy(alpha = 1f - f), rr, c, style = androidx.compose.ui.graphics.drawscope.Stroke(2.dp.toPx()))
+                        }
+                        val k = cs[i].value.coerceIn(0f, 1f)
+                        if (k > 0f) {
+                            val u = 16.dp.toPx() / 24f
+                            val o = c - androidx.compose.ui.geometry.Offset(8.dp.toPx(), 8.dp.toPx())
+                            val path = androidx.compose.ui.graphics.Path().apply { moveTo(o.x + 5f * u, o.y + 12.5f * u); lineTo(o.x + 9.5f * u, o.y + 17f * u); lineTo(o.x + 19f * u, o.y + 7.5f * u) }
+                            val pm = androidx.compose.ui.graphics.PathMeasure().apply { setPath(path, false) }
+                            val part = androidx.compose.ui.graphics.Path()
+                            pm.getSegment(0f, pm.length * k, part, true)
+                            drawPath(part, androidx.compose.ui.graphics.Color.Black, style = round(2.8f * u))
+                        }
                     }
                 }
             }
         }
         Row(Modifier.fillMaxWidth()) {
-            items.forEach { s ->
-                val look = it.pixelbox.cmwatch.rules.PassiProva.look(s)
+            items.forEachIndexed { i, s ->
+                val look = looks[i]
+                val color = when (look) { PassiProva.Look.DONE -> V3.Tx; PassiProva.Look.NOW -> V3.Busy; PassiProva.Look.FAILED -> V3.Red; else -> V3.Tx2 }
+                val wave = androidx.compose.animation.core.CubicBezierEasing(0.42f, 0f, 0.58f, 1f)
+                val label = if (look == PassiProva.Look.NOW && running) androidx.compose.ui.text.buildAnnotatedString {
+                    s.label.forEachIndexed { k, ch ->
+                        val ph = (((clock - k * 50f) % 1600f) + 1600f) % 1600f / 1600f
+                        val half = if (ph < 0.5f) ph * 2f else (1f - ph) * 2f
+                        pushStyle(androidx.compose.ui.text.SpanStyle(color = color.copy(alpha = 1f - 0.7f * wave.transform(half))))
+                        append(ch)
+                        pop()
+                    }
+                } else AnnotatedString(s.label)
                 Text(
-                    s.label, style = V3.Small.copy(fontSize = 13.sp, color = when (look) { it.pixelbox.cmwatch.rules.PassiProva.Look.DONE -> V3.Tx; it.pixelbox.cmwatch.rules.PassiProva.Look.NOW -> V3.Busy; it.pixelbox.cmwatch.rules.PassiProva.Look.FAILED -> V3.Red; else -> V3.Tx2 }),
+                    label, style = V3.Small.copy(fontSize = 13.sp, color = color),
                     maxLines = 1, softWrap = false, textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.weight(1f),
                 )
             }

@@ -1290,7 +1290,7 @@
         </div>
       {/if}
       <!-- Il binario (stile «Studio e Diretta», 30/10): il glifo dello stato e, sotto, da quanto aspetta o lavora, o l'ora. -->
-      <span class="rail">{#if s.favicon && favicons.get(s.favicon)}<SiteAvatar url={favicons.get(s.favicon)!} ring={ringOf(rl.kind)} busy={rl.kind === 'busy'} label={`${s.name}, ${t.states[s.state]}`} />{:else}<StateGlyph kind={rl.kind} ctx={s.context} square={square(s)} label={t.states[s.state]} />{/if}{#if rl.text}<b class="rt {rl.kind}">{rl.text}</b>{/if}</span>
+      <span class="rail">{#if s.favicon && favicons.get(s.favicon)}<SiteAvatar url={favicons.get(s.favicon)!} ring={ringOf(rl.kind)} busy={rl.kind === 'busy'} label={`${s.name}, ${t.states[s.state]}`} />{:else}<StateGlyph kind={rl.kind} ctx={s.context} square={square(s)} label={t.states[s.state]} />{/if}{#if rl.text}<b class="rt {rl.kind}">{#if rl.kind === 'busy'}{#each [...rl.text] as ch, i (i)}<span class="wv" style:animation-delay="{i * 70}ms">{ch}</span>{/each}{:else}{rl.text}{/if}</b>{/if}</span>
       <div class="cnt">
       <div class="top">
         <!-- Il colore che dai alla sessione, piccolo accanto al nome; il segno della modalità dei permessi dopo il nome, solo
@@ -2084,11 +2084,11 @@
   .rail { width: 52px; flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 3.4px; }
   .rt { font: 700 15px/1 var(--display); letter-spacing: .01em; color: var(--tx2); white-space: nowrap; }
   .rt.waiting { color: var(--wait); } .rt.busy { color: var(--busy); } .rt.red { color: var(--red); }
-  /* Voce 3 di app-animazioni-otto-26-11 (Al lavoro, vivo): un riflesso attraversa il tempo di chi lavora con lo stesso ciclo della linea
-     del lavoro in corso (1,6 s); fermo con le animazioni ridotte. Solo le righe al lavoro. */
-  .rt.busy { background: linear-gradient(100deg, var(--busy) 0 40%, color-mix(in srgb, var(--busy) 40%, #fff) 50%, var(--busy) 60% 100%) 0 0 / 250% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: rt-shine 1.6s linear infinite; }
-  @keyframes rt-shine { from { background-position: 100% 0; } to { background-position: -150% 0; } }
-  @media (prefers-reduced-motion: reduce) { .rt.busy { animation: none; background: none; color: var(--busy); } }
+  /* Voce 3, fedele all'originale (Kokonut Thinking text; app-animazioni-fedeli-26-11): un'onda passa sul tempo di chi lavora, lettera per
+     lettera: opacità fino a 0,3 a metà di 1,6 s, ease-in-out, 70 ms di scarto per lettera. Ferma con le animazioni ridotte. */
+  .rt .wv { animation: rt-wave 1.6s ease-in-out infinite both; white-space: pre; }
+  @keyframes rt-wave { 50% { opacity: 0.3; } }
+  @media (prefers-reduced-motion: reduce) { .rt .wv { animation: none; } }
   .card.on { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tx) 45%, transparent); }
   .list { background: var(--s1); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; }
   .list .card { background: none; border-radius: 0; }

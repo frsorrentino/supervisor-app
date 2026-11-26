@@ -1998,15 +1998,14 @@ private fun ClaudeBubble(
                     val cur = LocalSpeakingBlock.current
                     val word = LocalSpeakingWord.current
                     blocks.forEachIndexed { i, b ->
-                        // Voce 2 di app-animazioni-otto-26-11: nel paragrafo letto le parole già dette in chiaro e quella di adesso col
-                        // fondo; il tocco sul paragrafo fa ripartire la lettura da lì, come prima.
+                        // Voce 2, fedele all'originale (Read along): nel paragrafo letto le parole già dette in chiaro e la pillola dietro
+                        // quella di adesso; il tocco sul paragrafo fa ripartire la lettura da lì, come prima.
                         val shownText = linked(b.text)
-                        Text(
-                            if (i == cur && word != null) readAlong(shownText, word) else shownText, style = MaterialTheme.typography.bodyLarge, color = if (i == cur) Cm.text else Cm.text2,
-                            modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.small)
-                                .background(if (i == cur) Cm.surfaceHigh else androidx.compose.ui.graphics.Color.Transparent)
-                                .handCursor().clickable { onSpeakFrom(text, i) }.padding(horizontal = 6.dp, vertical = 4.dp),
-                        )
+                        val paraMod = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.small)
+                            .background(if (i == cur) Cm.surfaceHigh else androidx.compose.ui.graphics.Color.Transparent)
+                            .handCursor().clickable { onSpeakFrom(text, i) }.padding(horizontal = 6.dp, vertical = 4.dp)
+                        if (i == cur && word != null) ReadAlongText(shownText, word, MaterialTheme.typography.bodyLarge, Cm.text2, paraMod)
+                        else Text(shownText, style = MaterialTheme.typography.bodyLarge, color = if (i == cur) Cm.text else Cm.text2, modifier = paraMod)
                     }
                 // Fuori dalla lettura il testo si seleziona a pezzi con la pressione lunga (Franz, 02/10 20:31); durante la lettura
                 // il tocco sui paragrafi resta per ripartire da lì.
@@ -3666,14 +3665,62 @@ private fun MineJumpArrow(icon: androidx.compose.ui.graphics.vector.ImageVector,
     }
 }
 
-/** Voce 2: le parole fino a `word` in chiaro, quella di adesso su un fondo blu leggero; il resto com'è. */
-private fun readAlong(t: AnnotatedString, word: Int): AnnotatedString {
+/**
+ * Voce 2, fedele all'originale (Read along; app-animazioni-fedeli-26-11): nel paragrafo letto una pillola sta dietro la parola che la
+ * voce sta dicendo, le parole già dette sono in chiaro. La pillola ha due bordi con due molle, quello davanti 520 40 e quello dietro
+ * 210 26, così si allunga mentre va; l'altezza segue con la 600 48 e la comparsa con la 300 30. A capo non scivola: si riapre dalla
+ * parola nuova. Margine di 0,16 em ai lati, alta 1,3 em, angoli di 0,34 em. Con le animazioni spente, al posto.
+ */
+@Composable
+private fun ReadAlongText(t: AnnotatedString, word: Int, style: androidx.compose.ui.text.TextStyle, color: androidx.compose.ui.graphics.Color, modifier: Modifier = Modifier) {
     val ws = it.pixelbox.cmwatch.rules.Animazioni.words(t.text)
-    if (ws.isEmpty()) return t
-    val k = word.coerceIn(0, ws.lastIndex)
-    return androidx.compose.ui.text.buildAnnotatedString {
+    val k = if (ws.isEmpty()) -1 else word.coerceIn(0, ws.lastIndex)
+    val off = animationsOff()
+    var layout by remember { androidx.compose.runtime.mutableStateOf<androidx.compose.ui.text.TextLayoutResult?>(null) }
+    val L = remember { androidx.compose.animation.core.Animatable(0f) }
+    val R = remember { androidx.compose.animation.core.Animatable(0f) }
+    val Y = remember { androidx.compose.animation.core.Animatable(0f) }
+    val O = remember { androidx.compose.animation.core.Animatable(0f) }
+    var lineTop by remember { androidx.compose.runtime.mutableFloatStateOf(Float.NaN) }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val em = with(density) { style.fontSize.toPx() }
+    LaunchedEffect(k, layout) {
+        val lay = layout ?: return@LaunchedEffect
+        if (k < 0 || ws[k].last >= lay.layoutInput.text.length) { scope.launch { O.animateTo(0f, Molla.of(300f, 30f)) }; return@LaunchedEffect }
+        val a = lay.getBoundingBox(ws[k].first)
+        val b = lay.getBoundingBox(ws[k].last)
+        val line = lay.getLineForOffset(ws[k].first)
+        val l = a.left - 0.16f * em
+        val r = b.right + 0.16f * em
+        val top = lay.getLineTop(line) + (lay.getLineBottom(line) - lay.getLineTop(line) - 1.3f * em) / 2f
+        val forward = l >= L.targetValue
+        if (off || lineTop.isNaN() || kotlin.math.abs(top - lineTop) > 2f || O.value < 0.05f) {
+            L.snapTo(l); R.snapTo(l); Y.snapTo(top)
+        }
+        lineTop = top
+        if (off) { L.snapTo(l); R.snapTo(r); Y.snapTo(top); O.snapTo(1f); return@LaunchedEffect }
+        scope.launch { O.animateTo(1f, Molla.of(300f, 30f)) }
+        scope.launch { L.animateTo(l, if (forward) Molla.of(210f, 26f) else Molla.of(520f, 40f)) }
+        scope.launch { R.animateTo(r, if (forward) Molla.of(520f, 40f) else Molla.of(210f, 26f)) }
+        scope.launch { Y.animateTo(top, Molla.of(600f, 48f)) }
+    }
+    val pill = V3.Busy.copy(alpha = 0.3f)
+    val shown = if (k < 0) t else androidx.compose.ui.text.buildAnnotatedString {
         append(t)
         addStyle(androidx.compose.ui.text.SpanStyle(color = Cm.text), 0, ws[k].last + 1)
-        addStyle(androidx.compose.ui.text.SpanStyle(background = V3.Busy.copy(alpha = 0.3f)), ws[k].first, ws[k].last + 1)
     }
+    Text(
+        shown, style = style, color = color, onTextLayout = { layout = it },
+        modifier = modifier.drawBehind {
+            val o = O.value.coerceIn(0f, 1f)
+            if (o <= 0f) return@drawBehind
+            val w = (R.value - L.value).coerceAtLeast(0f)
+            drawRoundRect(
+                pill.copy(alpha = pill.alpha * o), topLeft = androidx.compose.ui.geometry.Offset(L.value, Y.value),
+                size = androidx.compose.ui.geometry.Size(w, 1.3f * em), cornerRadius = androidx.compose.ui.geometry.CornerRadius(0.34f * em),
+            )
+        },
+    )
 }
+
