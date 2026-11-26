@@ -32,5 +32,12 @@ class WordStreamTest {
         assertFalse("once only", g.claim("c"))
     }
 
+    @Test fun aReplyBornBeforeTheOpeningDoesNotStream() {
+        val g = StreamGate(openedAt = 1_000)
+        g.prime(emptyList())
+        assertFalse("arrivata prima dell'apertura, in una lista che si carica dopo", g.claim("old", 990))
+        assertTrue(g.claim("new", 1_005))
+    }
+
     @Test fun countsWords() = assertEquals(3, WordStream.count(" Sì: run  verde\n"))
 }

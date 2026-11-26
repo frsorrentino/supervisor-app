@@ -97,9 +97,12 @@
   let born: Set<string> | null = null
   // Voce 1 (app-animazioni-fedeli-26-11): scorre parola per parola solo la risposta arrivata dopo l'apertura, una volta sola.
   let bornAns: Set<string> | null = null
-  function liveAnswer(id: string): boolean {
+  // app-apertura-master-scatti-26-11 (Franz 26/11 23:27): deve anche essere nata dopo l'apertura, perché all'apertura la lista può
+  // arrivare a pezzi e una risposta già scritta sembrerebbe nuova.
+  const openedAt = Date.now() / 1000
+  function liveAnswer(id: string, at?: number | null): boolean {
     if (!bornAns) bornAns = new Set(rows.flatMap((x) => (x.type === 'turn' && x.answer ? [x.answer.id] : [])))
-    if (bornAns.has(id)) return false
+    if (bornAns.has(id) || (at != null && at < openedAt)) { bornAns.add(id); return false }
     bornAns.add(id)
     return true
   }
@@ -268,7 +271,7 @@
   {@const r = read(e)}
   <div class="ans" class:found={flash === e.id} data-entry={e.id} data-quote={r.text} data-quote-at={e.at ?? ''}>
     {#if r.es.body.trim() || r.buttons.length || r.wl.ids.length || e.cut}
-      <section class="z za" use:parole={{ on: liveAnswer(e.id) }}>
+      <section class="z za" use:parole={{ on: liveAnswer(e.id, e.at) }}>
         {@render doc(r.es.body, true, bozzeOf(e))}
         {@render extras(e, r)}
       </section>

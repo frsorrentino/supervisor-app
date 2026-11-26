@@ -72,13 +72,17 @@ internal class WordStream(val words: Int) {
     }
 }
 
-/** Chi decide quali risposte scorrono: solo quelle arrivate dopo l'apertura della chat, una volta sola. */
-internal class StreamGate {
+/**
+ * Chi decide quali risposte scorrono: solo quelle arrivate dopo l'apertura della chat, una volta sola. app-apertura-master-scatti-26-11
+ * (Franz 26/11 23:27): non basta che la risposta manchi dalla prima lista, che all'apertura può arrivare a pezzi; deve anche essere
+ * nata dopo l'apertura ([openedAt], secondi).
+ */
+internal class StreamGate(private val openedAt: Long = System.currentTimeMillis() / 1000) {
     private val known = mutableSetOf<String>()
     var primed = false
         private set
     fun prime(ids: Collection<String>) { if (!primed) { known.addAll(ids); primed = true } }
-    fun claim(id: String): Boolean = primed && known.add(id)
+    fun claim(id: String, at: Long? = null): Boolean = primed && (at == null || at >= openedAt) && known.add(id)
 }
 
 internal val LocalStreamGate = compositionLocalOf<StreamGate?> { null }

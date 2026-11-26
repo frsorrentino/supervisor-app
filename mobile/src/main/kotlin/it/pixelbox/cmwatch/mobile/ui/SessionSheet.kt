@@ -3170,7 +3170,7 @@ private fun AnswerZones(e: TranscriptEntry, flashed: Boolean, actions: SheetActi
     // Voce 1 (app-animazioni-fedeli-26-11): una risposta arrivata a chat aperta scorre parola per parola (WordStream.kt).
     val gate = LocalStreamGate.current
     val off = animationsOff()
-    val ws = remember(e.id) { if (!off && gate?.claim(e.id) == true) WordStream(WordStream.count(r.body)) else null }
+    val ws = remember(e.id) { if (!off && gate?.claim(e.id, e.at) == true) WordStream(WordStream.count(r.body)) else null }
     if (r.body.isNotBlank() || r.buttons.isNotEmpty() || r.waits.ids.isNotEmpty() || e.cut) Column(
         Modifier.fillMaxWidth().streamBox(ws).background(F3.paper).flashed(flashed).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp),
     ) { androidx.compose.runtime.CompositionLocalProvider(LocalWordStream provides ws) {
@@ -3634,7 +3634,10 @@ private fun ActivityLine(s: Session, now: Long) {
 internal suspend fun androidx.compose.foundation.lazy.LazyListState.scrollToEnd(animate: Boolean = false) {
     val last = layoutInfo.totalItemsCount - 1
     if (last < 0) return
-    if (animate) animateScrollToItem(last) else scrollToItem(last)
+    // app-apertura-master-scatti-26-11 (Franz 26/11 23:27, «scorre a scatti»): se l'ultima voce è già in vista e sta solo crescendo,
+    // basta scorrere di quanto è cresciuta, un movimento solo. Prima ogni riga nuova rifaceva scrollToItem, che riporta la voce in
+    // cima, e poi scrollBy con una misura vecchia: uno strappo per riga.
+    if (layoutInfo.visibleItemsInfo.none { it.index == last }) { if (animate) animateScrollToItem(last) else scrollToItem(last) }
     val info = layoutInfo
     val item = info.visibleItemsInfo.lastOrNull()?.takeIf { it.index == last } ?: return
     val over = (item.offset + item.size - (info.viewportEndOffset - info.afterContentPadding)).toFloat()
