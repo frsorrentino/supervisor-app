@@ -159,7 +159,7 @@ private fun Modifier.streamWords(ws: WordStream, text: String, layout: () -> Tex
                 clipRect(left - 1f, wTop - lift, right + 1f, wBot + lift) {
                     paint.alpha = a
                     drawContext.canvas.saveLayer(androidx.compose.ui.geometry.Rect(left - 1f, wTop - lift, right + 1f, wBot + lift), paint)
-                    if (level == 0) drawContent()
+                    if (level == 0) this@drawWithContent.drawContent()
                     else {
                         val g = layers[level - 1]
                         if (!recorded[level - 1]) { g.record { this@drawWithContent.drawContent() }; recorded[level - 1] = true }
