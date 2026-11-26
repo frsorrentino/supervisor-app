@@ -2,6 +2,7 @@
   import type { WaitAction, WaitFile, WaitItem } from './contract'
   import AttesaImmagine from './AttesaImmagine.svelte'
   import AttesaFiles from './AttesaFiles.svelte'
+  import LimitRing from './LimitRing.svelte'
   import Icon from './Icon.svelte'
   import ImageViewer from './ImageViewer.svelte'
   import { imageRatios, media } from './mediaCache.svelte'
@@ -123,7 +124,7 @@
       {#if isRedo}<p class="hint">{t.sceltaReasonHint}</p>{/if}
       <textarea id="scelta-motivo" rows="3" maxlength={isRedo ? REDO_MAX : undefined} bind:value={written} use:focus enterkeyhint="send" data-testid="scelta-motivo"></textarea>
       <div class="ac">
-        {#if isRedo && left <= 60}<span class="left" aria-live="polite">{t.sceltaLeft(Math.max(0, left))}</span>{/if}
+        {#if isRedo}<LimitRing length={written.trim().length} max={REDO_MAX} />{/if}
         <span class="sp"></span>
         <button type="button" class="txt" onclick={() => (writing = null)}>{t.cancel}</button>
         <button type="submit" class="go filled" disabled={!ready || sent != null} data-testid="scelta-manda">{t.tiAspettaSend}</button>

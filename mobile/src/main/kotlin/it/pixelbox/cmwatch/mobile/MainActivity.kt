@@ -2019,12 +2019,17 @@ class MainActivity : ComponentActivity() {
                 val r = id?.let { kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(it) }[it] } }
                 if (r?.ok != true) sendPrompt(it.pixelbox.cmwatch.rules.ContextActions.MASTER, getString(R.string.sug_discuss_prompt, sg.text.trim().let { x -> if (x.endsWith('.') || x.endsWith('?') || x.endsWith('!')) x else "$x." }))
             }
-        } else { sugDone.add(sg.id); scope.launch {
+        } else { sugDone.add(sg.id)
+            // Voce 4 di app-animazioni-seconde-26-11: Non ora e Mai partono dopo 5 s, con «Annulla» che rimette la voce.
+            val go: () -> Unit = { scope.launch {
             val id = runCatching { app.repo.suggestion(sg.id, action, choice) }.getOrNull()
             val r = id?.let { kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(it) }[it] } }
             if (r?.ok == true) android.widget.Toast.makeText(this@MainActivity, getString(when (action) { "accept", "choose" -> R.string.sug_sent; "later" -> R.string.sug_hidden; else -> R.string.sug_never_done }), android.widget.Toast.LENGTH_SHORT).show()
             else { sugDone.remove(sg.id); android.widget.Toast.makeText(this@MainActivity, r?.text ?: getString(R.string.sug_refused), android.widget.Toast.LENGTH_LONG).show() }
-        } } }
+        } }
+            if (action == "later" || action == "never") it.pixelbox.cmwatch.mobile.ui.Undo.later(scope, getString(if (action == "later") R.string.undo_later else R.string.undo_never, sg.text.trim().lineSequence().first()), go) { sugDone.remove(sg.id) }
+            else go()
+        } }
         val doneForPerson: (it.pixelbox.cmwatch.contract.Commitment) -> Unit = { c ->
             it.pixelbox.cmwatch.rules.ContextActions.master(state)?.name?.let { m -> sendPrompt(m, getString(R.string.lavori_done_prompt, c.paused?.reason.orEmpty(), c.task)) }
         }
@@ -2639,7 +2644,9 @@ class MainActivity : ComponentActivity() {
                     onApprove = approveTask,
                     canExit = state?.ops?.contains("slash") == true && state.slash?.contains("exit") == true,
                     onClose = { n, save -> val l = CloseSplash.Leaving(n, System.currentTimeMillis() / 1000, null, save = save); leaving = l
-                        scope.launch { runCatching { if (save) app.repo.closeSave(n) else app.repo.command(CmdOp.SLASH, n, "exit", null) }.getOrNull()?.let { id -> if (leaving == l) leaving = l.copy(cmd = id) } } },
+                        val go: () -> Unit = { scope.launch { runCatching { if (save) app.repo.closeSave(n) else app.repo.command(CmdOp.SLASH, n, "exit", null) }.getOrNull()?.let { id -> if (leaving == l) leaving = l.copy(cmd = id) } } }
+                        // Voce 4 di app-animazioni-seconde-26-11: «Chiudi senza salvare» parte dopo 5 s, con «Annulla» che la ferma.
+                        if (save) go() else it.pixelbox.cmwatch.mobile.ui.Undo.later(scope, getString(R.string.undo_close, n), go) { if (leaving == l) leaving = null } },
                     closeSave = state?.ops?.contains("close") == true,
                     closing = leaving?.takeIf { l -> l.refused == null }?.name,
                     closeRefused = leaving?.let { l -> l.refused?.let { why -> l.name to why } }, closeArmable = leaving?.armable == true, onCloseSeen = { leaving = null }, onCloseArm = armClose,
@@ -3299,6 +3306,8 @@ class MainActivity : ComponentActivity() {
         }
         }
         }
+        // Voce 4 di app-animazioni-seconde-26-11: l'avviso con «Annulla», sopra tutto.
+        it.pixelbox.cmwatch.mobile.ui.UndoSnack()
         // Contratto 1.26 (dal vivo 02/10 17:10: /state porta 5 progetti su 98): all'apertura di Lancia o della notte si chiede
         // al PC l'elenco completo; finché non arriva, o con un relay senza l'op, restano quelli di /state.
         var projectsId by remember { mutableStateOf<String?>(null) }

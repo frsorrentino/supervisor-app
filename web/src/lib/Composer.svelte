@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { reducedMotion } from './motion'
+  import { later } from './undo.svelte'
   import { growFromPress } from './motion'
   import CloseDialog from './CloseDialog.svelte'
   import type { Session, State } from './contract'
@@ -115,11 +117,14 @@
   function key(e: KeyboardEvent) {
     if (e.isComposing) return
     const text = suggestionKey(e, draft, field)
-    if (text !== null) { e.preventDefault(); draft = text; return }
+    if (text !== null) { e.preventDefault(); draft = text; took(); return }
     if (e.key !== 'Enter' || e.shiftKey) return
     e.preventDefault()
     if (md === 'send' || md === 'send_tonal') send()
   }
+  // Voce 6 di app-animazioni-seconde-26-11 (Suggerimento nel campo): preso, il testo passa dal grigio del suggerimento al colore pieno
+  // in 180 ms; con le animazioni ridotte è subito pieno.
+  function took() { if (!area || reducedMotion() || !area.animate) return; area.animate([{ color: 'var(--stale)' }, { color: 'var(--text)' }], { duration: 180, easing: 'cubic-bezier(0.3, 0, 0.2, 1)' }) }
   export function focus() { area?.focus(); area?.setSelectionRange(draft.length, draft.length) }
   // In un campo stretto (le colonne della plancia) il suggerimento accanto a «Usa» e all'invio andava a frammenti: lì sta
   // su una riga sua sopra il campo, intero, e il clic lo mette nel campo (come l'app sotto i 320 dp).
@@ -157,7 +162,7 @@
       </div>
     {/if}
     {#if narrow && field && !draft.trim()}
-      <button type="button" class="sugrow" onclick={() => { draft = field ?? ''; area?.focus() }}><i>{field}</i><span>{t.use}</span></button>
+      <button type="button" class="sugrow" onclick={() => { draft = field ?? ''; area?.focus(); took() }}><i>{field}</i><span>{t.use}</span></button>
     {/if}
     <form class="field" class:master={toMaster} onsubmit={(e) => { e.preventDefault(); send() }}>
       <span class="anchor">
@@ -190,7 +195,7 @@
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></svg>
         </button>
       {/if}
-      {#if inField && !draft.trim()}<button type="button" class="use" onclick={() => { draft = field ?? ''; area?.focus() }}>{t.use}</button>{/if}
+      {#if inField && !draft.trim()}<button type="button" class="use" onclick={() => { draft = field ?? ''; area?.focus(); took() }}>{t.use}</button>{/if}
       {#if onSendAt && draft.trim() && !files.length && (md === 'send' || md === 'send_tonal')}
         <!-- Contratto 1.63: «Manda alle…» accanto a Invia. -->
         <span class="atwrap">
@@ -221,7 +226,7 @@
     {#if !narrow}<div class="keys mono">{t.enterSends}</div>{/if}
   </div>
 
-<CloseDialog bind:this={closer} canSave={!!onCloseSave} onConfirm={(_, save) => { if (save) onCloseSave?.(); else onSlash('exit', exitArgs); draft = '' }} />
+<CloseDialog bind:this={closer} canSave={!!onCloseSave} onConfirm={(_, save) => { if (save) onCloseSave?.(); else { const a = exitArgs; later(t.undoClose(s.name), () => onSlash('exit', a)) } draft = '' }} />
 <dialog bind:this={confirmDlg} onclose={() => (confirm = null)}>
   {#if confirm}
     <h3>{t.slashConfirmTitle(confirm.cmd, s.name)}</h3>

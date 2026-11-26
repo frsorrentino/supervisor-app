@@ -20,6 +20,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.sp
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumn
@@ -87,6 +88,20 @@ fun QuestionScreen(
         }
     }
 
+    // Voce 8 di app-animazioni-seconde-26-11 (Domanda che arriva al polso): all'arrivo chi chiede, la domanda e i tasti salgono di 14 dp
+    // e si posano con un piccolo sforamento, a 40 ms l'uno dall'altro; una volta sola per domanda. Con «riduci animazioni» niente.
+    // Nelle immagini di prova (Paparazzi) la domanda è già al suo posto.
+    val ferma = fermeAnimazioni || androidx.compose.ui.platform.LocalInspectionMode.current
+    val arrivo = androidx.compose.runtime.remember(q?.text) { androidx.compose.animation.core.Animatable(if (ferma) 1f else 0f) }
+    LaunchedEffect(q?.text, ferma) { if (!ferma && q != null) arrivo.animateTo(1f, androidx.compose.animation.core.tween(620 + 6 * it.pixelbox.cmwatch.rules.Animazioni.STAGGER_MS, easing = androidx.compose.animation.core.LinearEasing)) }
+    val sale = androidx.compose.animation.core.CubicBezierEasing(0.34f, 1.3f, 0.64f, 1f)
+    fun Modifier.arriva(i: Int): Modifier = graphicsLayer {
+        val total = 620f + 6 * it.pixelbox.cmwatch.rules.Animazioni.STAGGER_MS
+        val local = ((arrivo.value * total - i * it.pixelbox.cmwatch.rules.Animazioni.STAGGER_MS) / 620f).coerceIn(0f, 1f)
+        translationY = (1f - sale.transform(local)) * 14.dp.toPx()
+        alpha = (local / 0.3f).coerceAtMost(1f)
+    }
+
     // Domanda sparita: se l'abbiamo mandata noi si chiude al risultato; altrimenti «già risposta» e si chiude.
     if (q == null) {
         LaunchedEffect(sentId, pending?.status) {
@@ -123,9 +138,9 @@ fun QuestionScreen(
                 return@TransformingLazyColumn
             }
             (snapshot.freshness as? Freshness.Stale)?.let { st -> item { StaleChip(st.minutes, Modifier.morph(this, spec)) } }
-            item { SessionHeader(s, now, enabled, modifier = Modifier.morph(this, spec), trailing = { SpeakButton(speaking, onToggle = onSpeak) }) }
+            item { SessionHeader(s, now, enabled, modifier = Modifier.morph(this, spec).arriva(0), trailing = { SpeakButton(speaking, onToggle = onSpeak) }) }
             // La domanda a tutta larghezza; il ▶ che la legge con le opzioni numerate sta in testata (Franz, 15/09 16:13).
-            item { QuestionText(QuestionRules.shownText(q.text, stringResource(R.string.question_no_text)), modifier = Modifier.fillMaxWidth().morph(this, spec)) }
+            item { QuestionText(QuestionRules.shownText(q.text, stringResource(R.string.question_no_text)), modifier = Modifier.fillMaxWidth().morph(this, spec).arriva(1)) }
             // Voce 8: mandata la risposta, mentre la domanda è ancora qui, l'arco dice che sta viaggiando.
             if (pending != null && pending.status != PendingStatus.FAILED) item { Box(Modifier.fillMaxWidth().morph(this, spec), contentAlignment = androidx.compose.ui.Alignment.Center) { AnswerMark(done = false) } }
             if (holdHint) {
@@ -142,7 +157,7 @@ fun QuestionScreen(
                         onClick = { if (long) holdHint = true else onAnswer(opt.n) },
                         onLongClick = if (long) ({ onAnswer(opt.n) }) else null,
                         primary = primary, enabled = enabled && pending == null,
-                        transformation = SurfaceTransformation(spec), modifier = Modifier.transformedHeight(this, spec),
+                        transformation = SurfaceTransformation(spec), modifier = Modifier.transformedHeight(this, spec).arriva(2 + i),
                         // Il rischio alto si vede anche col colore, non solo con la pressione lunga (Franz, 15/09 18:14).
                         // A riposo resta il bordo di prima (2 dp pieno); il respiro lo ingrossa una volta sola all'arrivo.
                         border = if (q.tier == Tier.HIGH) androidx.compose.foundation.BorderStroke((2 + 2 * respiro.value).dp, CmColors.gone) else null,

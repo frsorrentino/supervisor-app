@@ -151,7 +151,10 @@ private fun SeenNote(i: ResultItem, a: GuardareActions, seenFilled: Boolean = fa
     var done by remember(i.id) { mutableStateOf(false) }
     // A capo interi quando non ci stanno (a 320 dp col testo grande «Nota» diventava «✎ I», app-bug-notte-03-11).
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (i.seenAt == null) V3Pill("✓ " + stringResource(R.string.watch_seen), filled = seenFilled, confirmed = done) { if (!done) { done = true; a.seen(i) } }
+        // Voce 4 di app-animazioni-seconde-26-11: Visto parte dopo 5 s, con «Annulla» che lo rimette.
+        val undoScope = androidx.compose.runtime.rememberCoroutineScope()
+        val undoText = stringResource(R.string.undo_seen, Guardare.line(i).title)
+        if (i.seenAt == null) V3Pill("✓ " + stringResource(R.string.watch_seen), filled = seenFilled, confirmed = done) { if (!done) { done = true; Undo.later(undoScope, undoText, { a.seen(i) }) { done = false } } }
         V3Pill("✎ " + stringResource(R.string.watch_note)) { a.open(i) }
     }
 }
@@ -389,7 +392,9 @@ fun ResultViewer(i: ResultItem, a: GuardareActions, onBack: () -> Unit) {
         i.caption?.trim()?.takeIf { it.isNotEmpty() && it != i.title }?.let { LongText(it, style = V3.Small) }
         if (i.replaced == true) Text(stringResource(R.string.watch_replaced), style = V3.Small.copy(color = V3.Wait))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            if (i.seenAt == null) V3Pill("✓ " + stringResource(R.string.watch_seen), filled = true, confirmed = seen) { if (!seen) { seen = true; a.seen(i) } }
+            val undoScope = androidx.compose.runtime.rememberCoroutineScope()
+            val undoText = stringResource(R.string.undo_seen, l.title)
+            if (i.seenAt == null) V3Pill("✓ " + stringResource(R.string.watch_seen), filled = true, confirmed = seen) { if (!seen) { seen = true; Undo.later(undoScope, undoText, { a.seen(i) }) { seen = false } } }
             i.session?.let { s -> V3Pill("› " + stringResource(R.string.watch_open_session)) { a.session(s) } }
         }
         i.notes.forEach { n -> NoteLine(n.text, n.posS) }
@@ -397,6 +402,8 @@ fun ResultViewer(i: ResultItem, a: GuardareActions, onBack: () -> Unit) {
             OutlinedTextField(
                 value = text, onValueChange = { v: String -> text = v.take(Guardare.NOTE_MAX) }, modifier = Modifier.fillMaxWidth().testTag("nota-risultato"),
                 placeholder = { Text(stringResource(R.string.watch_note_hint, s)) }, shape = RoundedCornerShape(24.dp),
+                // Voce 7 di app-animazioni-seconde-26-11: il limite della nota come anello, appena si scrive.
+                supportingText = if (text.isNotEmpty()) ({ Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { LimitRing(text.length, Guardare.NOTE_MAX) } }) else null,
                 trailingIcon = {
                     TextButton(onClick = { Guardare.note(text)?.let { t -> a.note(i, t, pos); text = ""; sent = true } }, enabled = text.isNotBlank()) {
                         Text(stringResource(R.string.watch_send) + (pos?.takeIf { kind == Guardare.Kind.VIDEO }?.let { " " + stringResource(R.string.watch_at_pos, Guardare.pos(it)) } ?: ""))

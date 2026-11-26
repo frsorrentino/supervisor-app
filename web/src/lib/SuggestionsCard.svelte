@@ -5,6 +5,7 @@
   import { options } from './suggestions'
   import ItemList from './ItemList.svelte'
   import { split, suggestion } from './itemRows'
+  import { later } from './undo.svelte'
 
   // «Suggerimenti della master» (Franz 24/10 19:46, scheda A del mockup docs/mockup/2026-10-24-suggerimenti-home; contratto
   // 1.84): la stessa struttura delle altre schede, al massimo tre voci, ognuna col suo simbolo, «Accetta» tonale, «Parliamone»,
@@ -16,10 +17,13 @@
   // Voce 12: la voce esce nel verso della scelta, la successiva sale con la molla. Se la voce resta, torna.
   let leaving = $state<Record<string, string>>({})
   // Una voce risposta esce subito dalle righe; se il relay la tiene, dopo 3 secondi torna.
+  // Voce 4 di app-animazioni-seconde-26-11: Non ora e Mai partono dopo 5 s, con «Annulla» che rimette la voce.
   function answer(s: Suggestion, action: 'accept' | 'later' | 'never' | 'discuss' | 'choose', option?: string) {
     leaving = { ...leaving, [s.id]: action }
-    ;(onAnswer as (a: Suggestion, b: string, c?: string) => void)(s, action, option)
-    setTimeout(() => { const { [s.id]: _, ...rest } = leaving; leaving = rest }, 3000)
+    const back = () => { const { [s.id]: _, ...rest } = leaving; leaving = rest }
+    const go = () => { ;(onAnswer as (a: Suggestion, b: string, c?: string) => void)(s, action, option); setTimeout(back, 3000) }
+    if (action === 'later' || action === 'never') later((action === 'later' ? t.undoLater : t.undoNever)(split(s.text)[0]), go, back)
+    else go()
   }
   const rows = $derived(shown.filter(s => !leaving[s.id]))
 </script>

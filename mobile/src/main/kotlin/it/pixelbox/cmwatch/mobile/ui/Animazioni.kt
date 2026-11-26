@@ -35,6 +35,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -190,4 +192,104 @@ internal fun HoldButton(label: String, onDone: () -> Unit, modifier: Modifier = 
             .testTag("tieni-premuto"),
         contentAlignment = Alignment.Center,
     ) { Text(label, style = TextStyle(fontFamily = V3.Display, fontWeight = FontWeight.SemiBold, fontSize = 15.sp), color = V3.Tx) }
+}
+
+/**
+ * Voce 7 di app-animazioni-seconde-26-11 (Limite ad anello): un anello piccolo si riempie mentre scrivi; negli ultimi 20 caratteri
+ * diventa ambra e mostra quanti ne restano, oltre il limite rosso. Non blocca la scrittura.
+ */
+@Composable
+internal fun LimitRing(length: Int, max: Int) {
+    val state = Animazioni.limit(length, max)
+    val off = animationsOff()
+    val p by androidx.compose.animation.core.animateFloatAsState(Animazioni.fill(length, max), if (off) androidx.compose.animation.core.snap() else tween(120), label = "limite")
+    val tone = when (state) { Animazioni.Limit.OK -> V3.Tx2; Animazioni.Limit.NEAR -> V3.Wait; Animazioni.Limit.OVER -> V3.Red }
+    val track = V3.Tx.copy(alpha = 0.14f)
+    val left = max - length
+    val label = androidx.compose.ui.res.pluralStringResource(R.plurals.scelta_left, maxOf(0, left), maxOf(0, left))
+    Row(Modifier.testTag("limite").semantics { contentDescription = label }, verticalAlignment = Alignment.CenterVertically) {
+        if (state != Animazioni.Limit.OK) Text("$left", style = V3.Meter.copy(color = tone), modifier = Modifier.padding(end = 6.dp))
+        androidx.compose.foundation.Canvas(Modifier.size(22.dp)) {
+            val w = 3.dp.toPx()
+            val st = androidx.compose.ui.graphics.drawscope.Stroke(w, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+            drawArc(track, 0f, 360f, false, topLeft = androidx.compose.ui.geometry.Offset(w / 2, w / 2), size = androidx.compose.ui.geometry.Size(size.width - w, size.height - w), style = st)
+            drawArc(tone, -90f, 360f * p, false, topLeft = androidx.compose.ui.geometry.Offset(w / 2, w / 2), size = androidx.compose.ui.geometry.Size(size.width - w, size.height - w), style = st)
+        }
+    }
+}
+
+
+/**
+ * Voce 4 di app-animazioni-seconde-26-11 (Annulla col tempo, scelta di Franz del 26/11 alle 12:49): un gesto che toglie qualcosa (Non
+ * ora, Mai, Visto, Chiudi senza salvare) cambia subito quello che si vede, ma il comando parte dopo [Animazioni.UNDO_MS]; fino ad
+ * allora «Annulla» lo ferma e rimette com'era. Un avviso per volta: un gesto nuovo fa partire subito quello di prima.
+ */
+object Undo {
+    data class Shown(val id: Int, val text: String)
+
+    var shown by androidx.compose.runtime.mutableStateOf<Shown?>(null)
+        private set
+    private var seq = 0
+    private val own = kotlinx.coroutines.MainScope()
+    private var job: kotlinx.coroutines.Job? = null
+    private var go: (() -> Unit)? = null
+    private var back: (() -> Unit)? = null
+
+    @Suppress("UNUSED_PARAMETER")
+    fun later(scope: kotlinx.coroutines.CoroutineScope, text: String, go: () -> Unit, back: () -> Unit = {}) {
+        flush()
+        val id = ++seq
+        this.go = go; this.back = back
+        shown = Shown(id, text)
+        // L'attesa non dipende da chi l'ha chiesta: se la sua schermata se ne va, il comando parte lo stesso.
+        job = own.launch {
+            kotlinx.coroutines.delay(Animazioni.UNDO_MS)
+            if (shown?.id == id) flush()
+        }
+    }
+
+    fun cancel() {
+        val b = back
+        job?.cancel(); job = null; go = null; back = null; shown = null
+        b?.invoke()
+    }
+
+    fun flush() {
+        val g = go
+        job?.cancel(); job = null; go = null; back = null; shown = null
+        g?.invoke()
+    }
+}
+
+/** L'avviso in basso con «Annulla» e l'anello che si svuota in 5 s; sopra tutto, in un popup che non prende i tocchi fuori da sé. */
+@Composable
+internal fun UndoSnack() {
+    val s = Undo.shown ?: return
+    val off = animationsOff()
+    val ring = remember(s.id) { androidx.compose.animation.core.Animatable(1f) }
+    LaunchedEffect(s.id) { if (!off) ring.animateTo(0f, tween(Animazioni.UNDO_MS.toInt(), easing = androidx.compose.animation.core.LinearEasing)) }
+    androidx.compose.ui.window.Popup(alignment = Alignment.BottomCenter, offset = androidx.compose.ui.unit.IntOffset(0, -48)) {
+        Row(
+            Modifier.padding(horizontal = 16.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(14.dp)).background(V3.S3)
+                .padding(start = 16.dp, end = 6.dp, top = 6.dp, bottom = 6.dp).testTag("annulla"),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(s.text, style = V3.Body.copy(fontSize = 14.5.sp), maxLines = 2, modifier = Modifier.weight(1f, fill = false).padding(end = 8.dp))
+            Row(
+                Modifier.clip(CircleShape).handCursor().clickable { Undo.cancel() }.padding(horizontal = 10.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                val tone = V3.Tx
+                androidx.compose.foundation.Canvas(Modifier.size(22.dp).padding(end = 0.dp)) {
+                    val w = 3.dp.toPx()
+                    val st = androidx.compose.ui.graphics.drawscope.Stroke(w, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                    val tl = androidx.compose.ui.geometry.Offset(w / 2, w / 2)
+                    val sz = androidx.compose.ui.geometry.Size(size.width - w, size.height - w)
+                    drawArc(tone.copy(alpha = 0.18f), 0f, 360f, false, topLeft = tl, size = sz, style = st)
+                    drawArc(tone, -90f, 360f * ring.value, false, topLeft = tl, size = sz, style = st)
+                }
+                Text(stringResource(R.string.undo), style = TextStyle(fontFamily = V3.Display, fontWeight = FontWeight.SemiBold, fontSize = 15.sp), color = V3.Tx, modifier = Modifier.padding(start = 8.dp))
+            }
+        }
+    }
 }

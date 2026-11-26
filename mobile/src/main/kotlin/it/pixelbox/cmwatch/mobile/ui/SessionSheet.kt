@@ -18,6 +18,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -672,6 +673,19 @@ fun SessionSheet(
             // «Torna all'ultimo messaggio» (Franz, 10/10 08:18: «avevamo deliberato un tasto per tornare in diretta, ma non l'ho
             // mai visto»): c'è mentre rileggi più su; il tocco scende in fondo e la chat torna a seguire.
             val behind by remember(list) { derivedStateOf { list.canScrollForward } }
+            // Voce 1 di app-animazioni-seconde-26-11 (Messaggio che entra): mentre leggi più in alto i turni arrivati dopo l'ultimo che si
+            // conosceva si contano, e il tasto per tornare in fondo diventa «N nuovi ↓»; in fondo il conto riparte. I turni più vecchi
+            // caricati in cima non contano.
+            var unseen by remember(s.id) { androidx.compose.runtime.mutableIntStateOf(0) }
+            var lastTurn by remember(s.id) { mutableStateOf<String?>(null) }
+            val turnKeys = turnRows.orEmpty().map { r -> it.pixelbox.cmwatch.rules.ChatTurns.key(r) }
+            LaunchedEffect(turnKeys.lastOrNull(), follow, behind) {
+                val end = turnKeys.lastOrNull()
+                val prev = lastTurn
+                if (follow && !behind) unseen = 0
+                else if (prev != null && end != prev) { val k = turnKeys.indexOf(prev); if (k >= 0) unseen += turnKeys.size - 1 - k }
+                lastTurn = end
+            }
             // app-fumetto-menu-file-25-11 (Franz 25/11 12:30): il tasto dei miei messaggi non galleggia più qui, è l'ultima voce del +.
             Column(
                 Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 12.dp + if (niche) 0.dp else readingRoom()),
@@ -690,7 +704,13 @@ fun SessionSheet(
                         listScope.launch { list.scrollToEnd(animate = true) }
                     },
                     containerColor = Cm.surfaceHigh, contentColor = Cm.actionIcon,
-                ) { Icon(Icons.Rounded.ArrowDownward, stringResource(R.string.to_latest)) }
+                ) {
+                    val pill = it.pixelbox.cmwatch.rules.Animazioni.newPill(follow && !behind, unseen)
+                    Row(Modifier.animateContentSize(CmMotion.spec(animationsOff())).padding(horizontal = if (pill) 12.dp else 0.dp), verticalAlignment = Alignment.CenterVertically) {
+                        if (pill) Text(pluralStringResource(R.plurals.chat_new_count, unseen, unseen), style = V3.Name.copy(fontSize = 14.sp), modifier = Modifier.padding(end = 6.dp))
+                        Icon(Icons.Rounded.ArrowDownward, stringResource(R.string.to_latest))
+                    }
+                }
             }
             }
             }
@@ -1068,10 +1088,18 @@ private fun Composer(
         // app (Franz, 05/10 22:29), che vanno fra gli allegati come dal +. La bozza resta sincronizzata nei due versi.
         val ctx = androidx.compose.ui.platform.LocalContext.current
         val fieldState = rememberDraftField(draftState, onDraft)
+        // Voce 6 di app-animazioni-seconde-26-11 (Suggerimento nel campo): preso con «Usa», il testo passa dal grigio del suggerimento al
+        // colore pieno in 180 ms, così si vede che ora è testo tuo da correggere; con le animazioni spente è subito pieno.
+        val took = remember { androidx.compose.animation.core.Animatable(1f) }
+        val tookScope = rememberCoroutineScope()
+        val tookOff = animationsOff()
+        val take = { x: String -> onDraft(x); if (!tookOff) tookScope.launch { took.snapTo(0f); took.animateTo(1f, androidx.compose.animation.core.tween(180, easing = CmMotion.easing)) } }
+        val baseStyle = androidx.compose.material3.LocalTextStyle.current
         // Il suggerimento attenuato resta un'indicazione: un tocco nel campo vuoto ci entra e basta, lo mette nel campo solo
         // «Usa» (sugg-focus, Franz 26/10 19:56: la superficie che lo accettava al tocco copriva tutto il campo vuoto).
         OutlinedTextField(
             state = fieldState, lineLimits = androidx.compose.foundation.text.input.TextFieldLineLimits.MultiLine(maxHeightInLines = 5),
+            textStyle = if (took.value < 1f) baseStyle.copy(color = androidx.compose.ui.graphics.lerp(Cm.stale, Cm.text, took.value)) else baseStyle,
             modifier = Modifier.fillMaxWidth().onSizeChanged { if (lineH == 0 || it.height < lineH) lineH = it.height; fieldW = it.width }
                 .contentReceiver { content ->
                     if (!canAttach) return@contentReceiver content
@@ -1111,7 +1139,7 @@ private fun Composer(
                 AttachButton(files = canAttachFiles, attach = canAttach, onRecurring = onRecurring, onMine = onMine) { picked -> images = (images + picked).distinct().take(MAX_IMAGES) }
             }) else null,
             trailingIcon = { Row(verticalAlignment = Alignment.CenterVertically) {
-                if (inField != null && draft.isBlank()) TextButton(onClick = { onDraft(inField) }) { Text(stringResource(R.string.suggestion_use), color = Cm.actionIcon) }
+                if (inField != null && draft.isBlank()) TextButton(onClick = { take(inField) }) { Text(stringResource(R.string.suggestion_use), color = Cm.actionIcon) }
                 // Con una tastiera fisica collegata il campo lo dice, come nel mockup del tablet.
                 else if (hardKeyboard() && mode != PhonePrimary.Composer.STOP && with(density) { fieldW.toDp() } >= 420.dp) Text(stringResource(R.string.enter_sends), style = MonoSmall, modifier = Modifier.padding(end = 10.dp))
                 val filled = IconButtonDefaults.filledIconButtonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary)
@@ -1770,9 +1798,10 @@ private fun Modifier.cascadeIn(rank: Int?, opening: Boolean, done: MutableSet<St
     val wait = if (opening) (rank ?: 0) * ChatNews.STAGGER_MS else 0L
     LaunchedEffect(key) {
         kotlinx.coroutines.delay(wait)
-        p.animateTo(1f, androidx.compose.animation.core.tween(200, easing = CmMotion.easing))
+        // Voce 1 di app-animazioni-seconde-26-11: il messaggio nuovo sale di 8 dp in 220 ms.
+        p.animateTo(1f, androidx.compose.animation.core.tween(220, easing = CmMotion.easing))
     }
-    return graphicsLayer { alpha = p.value; translationY = (1f - p.value) * 12.dp.toPx() }
+    return graphicsLayer { alpha = p.value; translationY = (1f - p.value) * 8.dp.toPx() }
 }
 
 /** B: il fondo appena tinto delle voci arrivate dall'ultima visita, che sfuma in 2 s dopo la cascata; una volta sola per voce. */

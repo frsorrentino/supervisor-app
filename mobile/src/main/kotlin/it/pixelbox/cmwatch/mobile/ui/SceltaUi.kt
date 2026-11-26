@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
@@ -409,7 +410,8 @@ fun SceltaAperta(item: WaitItem, rows: List<Pair<Int, String>>, onSend: (Int, St
                 )
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     val left = Scelta.REDO_MAX - written.trim().length
-                    if (isRedo && left <= 60) Text(pluralStringResource(R.plurals.scelta_left, maxOf(0, left), maxOf(0, left)), style = V3.Meter.copy(color = if (left < 0) V3.Red else V3.Tx2))
+                    // Voce 7 di app-animazioni-seconde-26-11: il limite del motivo come anello.
+                    if (isRedo) LimitRing(written.trim().length, Scelta.REDO_MAX)
                     Spacer(Modifier.weight(1f))
                     Box(Modifier.handCursor().clip(CircleShape).clickable { writing = null }.padding(horizontal = 12.dp, vertical = 11.dp)) {
                         Text(stringResource(R.string.cancel), style = V3.Name.copy(fontSize = 15.sp, color = V3.Tx2))
@@ -543,6 +545,16 @@ fun WaitImagesViewer(items: List<Pair<String, String>>, start: Int, onClose: () 
                 }
                 step(pager.currentPage - 1, true)
                 step(pager.currentPage + 1, false)
+                // Voce 5 di app-animazioni-seconde-26-11 (Puntini del visore): uno per immagine, quello di adesso allungato a pillola con la
+                // molla veloce; oltre 7 i 7 attorno a quello di adesso.
+                val off = animationsOff()
+                Row(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 16.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    for (k in it.pixelbox.cmwatch.rules.Animazioni.dots(items.size, pager.currentPage)) {
+                        val on = k == pager.currentPage
+                        val w by androidx.compose.animation.core.animateDpAsState(if (on) 18.dp else 6.dp, if (off) androidx.compose.animation.core.snap() else androidx.compose.animation.core.spring(stiffness = androidx.compose.animation.core.Spring.StiffnessMedium), label = "puntino")
+                        Box(Modifier.size(w, 6.dp).clip(CircleShape).background(if (on) Color.White else Color.White.copy(alpha = 0.3f)))
+                    }
+                }
             }
         }
     }

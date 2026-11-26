@@ -1,5 +1,6 @@
 <script lang="ts">
   import { untrack } from 'svelte'
+  import { newPill } from './animazioni'
   import type { Session, State } from './contract'
   import { MASTER } from './summary'
   import MasterHome from './MasterHome.svelte'
@@ -262,6 +263,21 @@
     setTimeout(() => { auto = false }, 1000)
     el.scrollTo({ top: endOf(el), behavior: 'smooth' })
   })
+  // Voce 1 di app-animazioni-seconde-26-11 (Messaggio che entra): mentre leggi più in alto, i messaggi arrivati si contano e il tasto
+  // per tornare in fondo diventa la pillola «N nuovi ↓»; in fondo il conto riparte da zero.
+  // Si contano solo le voci arrivate dopo l'ultima che si conosceva: quelle più vecchie caricate in cima non sono nuove.
+  let unseen = $state(0)
+  let lastId: string | null = null
+  $effect(() => {
+    const list = entries
+    untrack(() => {
+      const end = list.at(-1)?.id ?? null
+      if (atEnd || home) unseen = 0
+      else if (lastId != null && end !== lastId) { const k = list.findIndex(e => e.id === lastId); if (k >= 0) unseen += list.length - 1 - k }
+      lastId = end
+    })
+  })
+  $effect(() => { if (atEnd) unseen = 0 })
   // Una colonna che cambia larghezza fa andare a capo i testi: resta in fondo se lo era. Lo scorrimento animato nostro non
   // conta come «ha lasciato il fondo» finché non finisce.
   $effect(() => {
@@ -346,7 +362,8 @@
          porta all'ultima voce vera, non al fondo di quello che è caricato. -->
     <!-- app-fumetto-menu-file-25-11 (Franz 25/11 12:30): il tasto dei miei messaggi non galleggia più qui, è l'ultima voce del +. -->
     {#if (!atEnd || onLatest) && !home}
-      <div class="toend"><button aria-label={t.toLatest} title={t.toLatest} data-testid="chat-in-fondo" onclick={() => { if (!list) return; onLatest?.(); atEnd = true; auto = true; list.scrollTo({ top: endOf(list), behavior: 'smooth' }) }}>
+      <div class="toend"><button class:news={newPill(atEnd, unseen)} aria-label={newPill(atEnd, unseen) ? t.chatNewCount(unseen) : t.toLatest} title={t.toLatest} data-testid="chat-in-fondo" onclick={() => { if (!list) return; onLatest?.(); atEnd = true; auto = true; list.scrollTo({ top: endOf(list), behavior: 'smooth' }) }}>
+        {#if newPill(atEnd, unseen)}<span class="nn">{t.chatNewCount(unseen)}</span>{/if}
         <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 5v14M6 13l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
       </button></div>
     {/if}
@@ -431,6 +448,9 @@
   .toend { position: sticky; bottom: 0; height: 0; margin-top: -16px; align-self: flex-end; }
   .toend button { position: absolute; right: 0; bottom: 8px; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--high); color: var(--icon); box-shadow: 0 4px 16px rgb(0 0 0 / .4); }
   .toend button:hover { filter: brightness(1.15); }
+  /* Voce 1: con messaggi nuovi il tasto si allarga in pillola e la scritta entra con la molla di casa. */
+  .toend button.news { width: auto; padding: 0 12px 0 16px; border-radius: 22px; display: flex; gap: 6px; align-items: center; font: 600 14px var(--display); color: var(--tx); animation: nn-in var(--spring-bounce-t) var(--spring-bounce) both; }
+  @keyframes nn-in { from { transform: scale(.9); opacity: 0; } }
   /* app-trova-messaggi-20-11: il tasto dei miei messaggi sopra «Torna all'ultimo»; la barra del salto al posto del campo. */
   .mjbar { display: flex; align-items: center; gap: 6px; margin: 8px 12px max(8px, env(safe-area-inset-bottom)); padding: 6px 6px 6px 18px; border-radius: 28px; background: var(--s2); border: 1px solid var(--line); box-shadow: 0 -8px 24px rgb(0 0 0 / .35); }
   .mjl { flex: 1; min-width: 0; display: flex; flex-direction: column; }

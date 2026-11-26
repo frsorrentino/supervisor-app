@@ -40,6 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -106,9 +107,11 @@ fun ChatBlock(
     extra: (@Composable RowScope.() -> Unit)? = null,
     /** app-riquadri-chiusi-16-11: chiuso è una pillola con icona, nome e numero; [count] al posto del numero («65%»). */
     pill: Boolean = false, count: String? = null,
+    /** Voce 3 di app-animazioni-seconde-26-11 (Per te a pila): chiuso, quanti bordi di voci si vedono sotto, 0-2. */
+    stack: Int = 0,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    if (pill && !open) return BlockPill(icon, title, count ?: n.toString(), amber, onToggle, modifier, tag)
+    if (pill && !open) return BlockPill(icon, title, count ?: n.toString(), amber, onToggle, modifier, tag, stack)
     val lit = amber && !open
     val shape = RoundedCornerShape(14.dp)
     val label = stringResource(if (open) R.string.box_close else R.string.box_open, title)
@@ -147,10 +150,22 @@ private fun BlockGlyph(icon: BlockIcon, tint: Color, size: Int) {
 
 /** Un riquadro chiuso (app-riquadri-chiusi-16-11): una pillola con icona, nome e numero; il tocco lo apre. 40 dp per il dito. */
 @Composable
-private fun BlockPill(icon: BlockIcon, title: String, count: String, amber: Boolean, onToggle: () -> Unit, modifier: Modifier, tag: String?) {
+private fun BlockPill(icon: BlockIcon, title: String, count: String, amber: Boolean, onToggle: () -> Unit, modifier: Modifier, tag: String?, stack: Int = 0) {
     val tint = if (amber) V3.Wait else V3.Tx2
+    // Voce 3: sotto la pillola i bordi delle altre voci, come carte impilate (al massimo due), ognuno 4 dp più in basso e più stretto.
+    val edgeFill = if (amber) veil(0.06f, V3.S1) else V3.S1
+    val edgeLine = if (amber) veil(0.25f, V3.Line) else V3.Line
+    val edges = if (stack <= 0) Modifier else Modifier.padding(bottom = (4 * stack).dp).drawBehind {
+        for (k in stack downTo 1) {
+            val dx = 6.dp.toPx() * k
+            val dy = 4.dp.toPx() * k
+            val r = androidx.compose.ui.geometry.CornerRadius(size.height / 2)
+            drawRoundRect(edgeFill, androidx.compose.ui.geometry.Offset(dx, dy), androidx.compose.ui.geometry.Size(size.width - 2 * dx, size.height), r)
+            drawRoundRect(edgeLine, androidx.compose.ui.geometry.Offset(dx, dy), androidx.compose.ui.geometry.Size(size.width - 2 * dx, size.height), r, style = androidx.compose.ui.graphics.drawscope.Stroke(1.dp.toPx()))
+        }
+    }
     Row(
-        modifier.clip(CircleShape).background(if (amber) veil(0.09f, V3.S1) else V3.S1).border(1.dp, if (amber) veil(0.38f, V3.Line) else V3.Line, CircleShape)
+        modifier.then(edges).clip(CircleShape).background(if (amber) veil(0.09f, V3.S1) else V3.S1).border(1.dp, if (amber) veil(0.38f, V3.Line) else V3.Line, CircleShape)
             .handCursor().clickable(onClickLabel = stringResource(R.string.box_open, title), role = Role.Button, onClick = onToggle)
             .then(if (tag != null) Modifier.testTag(tag) else Modifier)
             .heightIn(min = 40.dp).padding(start = 10.dp, end = 13.dp, top = 4.dp, bottom = 4.dp),
@@ -281,7 +296,7 @@ fun PerTeBlock(
     val top = items.firstOrNull() ?: return
     ChatBlock(
         BlockIcon.HAND, stringResource(R.string.fy_title), items.size, top.title, open && !(numberOnly && onMaster != null), if (numberOnly && onMaster != null) onMaster else onToggle, modifier, amber = true,
-        hint = stringResource(R.string.per_te_hint), tag = "chat-per-te", pill = true,
+        hint = stringResource(R.string.per_te_hint), tag = "chat-per-te", pill = true, stack = it.pixelbox.cmwatch.rules.Animazioni.stackEdges(items.size),
     ) {
         if (onMaster != null && !numberOnly) {
             HorizontalDivider(color = V3.Line)

@@ -8,6 +8,7 @@
   import { onMount, untrack } from 'svelte'
   import { t } from './t'
   import { swipeTo } from './scelta'
+  import { dots } from './animazioni'
   import { clamp, doubleTap, fit, IDENTITY, maxScale, step, type View } from './zoomPan'
 
   let { src = '', name = '', items = null, start = 0, onClose }: { src?: string; name?: string; items?: { src: string; name: string }[] | null; start?: number; onClose: () => void } = $props()
@@ -103,6 +104,9 @@
     {#key cur.src}<img src={cur.src} alt={cur.name} draggable="false" class:settle onload={(e) => { const im = e.currentTarget as HTMLImageElement; iw = im.naturalWidth; ih = im.naturalHeight }} style:transform="translate({view.x + drag}px, {view.y}px) scale({view.scale})" />{/key}
   </div>
   {#if many}
+    <!-- Voce 5 di app-animazioni-seconde-26-11 (Puntini del visore): uno per immagine, quello di adesso allungato a pillola; oltre 7 i 7 attorno. -->
+    {@const [d0, d1] = dots(items!.length, at)}
+    <div class="ivdots" aria-hidden="true">{#each Array.from({ length: d1 - d0 }, (_, k) => d0 + k) as k (k)}<i class:on={k === at}></i>{/each}</div>
     <button class="ivstep prev" aria-label={t.viewerPrev} disabled={at === 0} onclick={() => show(at - 1)}><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></button>
     <button class="ivstep next" aria-label={t.viewerNext} disabled={at === items!.length - 1} onclick={() => show(at + 1)}><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></button>
   {/if}
@@ -120,6 +124,9 @@
   .ivbox img { display: block; width: 100%; height: 100%; object-fit: contain; transform-origin: center; will-change: transform; -webkit-touch-callout: none; }
   /* Rilasciata senza cambiare immagine torna al centro; mentre il dito la tiene segue il dito, senza transizione. */
   .ivbox img.settle { transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1); }
+  .ivdots { position: absolute; left: 0; right: 0; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); display: flex; justify-content: center; gap: 6px; pointer-events: none; }
+  .ivdots i { width: 6px; height: 6px; border-radius: 3px; background: color-mix(in srgb, #fff 30%, transparent); transition: width var(--spring-fast-t, 200ms) var(--spring-fast, ease-out), background 200ms; }
+  .ivdots i.on { width: 18px; background: #fff; }
   .ivstep { position: absolute; top: 50%; width: 48px; height: 48px; margin-top: -24px; border-radius: 50%; background: color-mix(in srgb, #000 55%, transparent); color: #fff; display: grid; place-items: center; touch-action: manipulation; transition: opacity 160ms ease-out, transform 120ms ease-out; }
   .ivstep.prev { left: calc(10px + env(safe-area-inset-left, 0px)); }
   .ivstep.next { right: calc(10px + env(safe-area-inset-right, 0px)); }
@@ -127,5 +134,5 @@
   .ivstep:active { transform: scale(.94); }
   .ivclose:focus-visible, .ivstep:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
   @media (hover: hover) and (pointer: fine) { .ivstep:hover { background: color-mix(in srgb, #fff 18%, #000); } }
-  @media (prefers-reduced-motion: reduce) { .ivbox img.settle, .ivstep { transition: none; } }
+  @media (prefers-reduced-motion: reduce) { .ivbox img.settle, .ivstep, .ivdots i { transition: none; } }
 </style>

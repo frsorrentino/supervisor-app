@@ -1,5 +1,6 @@
 package it.pixelbox.cmwatch.mobile.ui
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -144,7 +145,20 @@ fun MasterDock(
     val label = (if (expanded) listOfNotNull(stringResource(R.string.dock_master), time) else listOfNotNull(stringResource(R.string.dock_master), time, ctx)).joinToString(" · ")
     // Aperta resta una linguetta col verso di quando è chiusa, angoli tondi in alto (Franz, 06/10 08:48).
     val shape = if (screen) androidx.compose.ui.graphics.RectangleShape else RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
-    Column(Modifier.fillMaxWidth()) {
+    // Voce 2 di app-animazioni-seconde-26-11 (Barra della master che si allunga): a barra chiusa, quando arriva una risposta nuova la
+    // barra si allunga per DOCK_PEEK_MS e mostra due righe della risposta col punto ambra, poi torna com'era. Con le animazioni
+    // spente cambia senza movimento; alla prima apertura no.
+    val dockOff = animationsOff()
+    var peek by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    var seenAt by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(hero?.at) }
+    androidx.compose.runtime.LaunchedEffect(hero?.at, expanded) {
+        val at = hero?.at
+        val fresh = at != null && seenAt != null && at != seenAt
+        seenAt = at
+        if (fresh && !expanded) { peek = true; kotlinx.coroutines.delay(it.pixelbox.cmwatch.rules.Animazioni.DOCK_PEEK_MS); peek = false } else if (expanded) peek = false
+    }
+    val lines = if (peek) maxOf(2, headlineLines) else headlineLines
+    Column(Modifier.fillMaxWidth().animateContentSize(if (dockOff) androidx.compose.animation.core.snap() else androidx.compose.animation.core.spring(dampingRatio = 0.7f, stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow))) {
         val look = LocalMasterLook.current
         if (!expanded && look.thread) MasterThread()
         // Franz, 03/10 17:05: anche col gesto. Trascinare in su la barra ridotta la espande, trascinarla in giù da espansa la
@@ -213,6 +227,7 @@ fun MasterDock(
                     Text(stringResource(R.string.dock_master).lowercase().replaceFirstChar { c -> c.titlecase() }, style = V3.Name.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold), maxLines = 1)
                     time?.let { Text(it, style = V3.Meter, maxLines = 1) }
                     if (!expanded) ctx?.let { Text(it, style = V3.Meter, maxLines = 1) }
+                    if (peek) Box(Modifier.size(8.dp).clip(androidx.compose.foundation.shape.CircleShape).background(V3.Wait).testTag("master-nuova"))
                 }
                 // Nella riga in basso del tablet la risposta vera dall'inizio: due righe intere e poi i puntini, niente sfumatura
                 // (app-master-riga-testo-05-11, Franz 05/11 11:16, scelta A, come la web); un tocco apre la conversazione.
@@ -220,8 +235,8 @@ fun MasterDock(
                     Text(
                         t.replace(Regex("""\*\*|__|`"""), ""), style = V3.Small.copy(fontSize = 13.sp, lineHeight = 16.sp), maxLines = 2, overflow = TextOverflow.Ellipsis,
                     )
-                } ?: hero?.let { Text(linked(it.headline), style = V3.Small, maxLines = headlineLines, overflow = TextOverflow.Clip) }
-                else hero?.let { Text(linked(it.headline), style = V3.Small, maxLines = headlineLines, overflow = TextOverflow.Clip) }
+                } ?: hero?.let { Text(linked(it.headline), style = V3.Small, maxLines = lines, overflow = TextOverflow.Clip) }
+                else hero?.let { Text(linked(it.headline), style = V3.Small, maxLines = lines, overflow = TextOverflow.Clip) }
             }
             // Durante la lettura il ▶ diventa ■ e la ferma (Franz, 03/10 17:25), come sotto le risposte della chat.
             val spoken = hero?.let { h -> listOf(h.headline, h.body).filter { it.isNotBlank() }.joinToString("\n") }

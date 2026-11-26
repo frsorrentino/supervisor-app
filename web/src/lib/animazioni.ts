@@ -30,3 +30,30 @@ export function wordIndex(spokenChunk: string, offset: number, before: number, s
   return Math.min(shownWords - 1, Math.max(0, before + at))
 }
 export const wordCount = (text: string): number => words(text).length
+
+// ---- Secondo giro (app-animazioni-seconde-26-11, scelta D di Franz il 26/11 alle 12:49), come Animazioni.kt ----
+
+/** 4, Annulla: quanto aspetta un'azione che toglie qualcosa prima di partire. */
+export const UNDO_MS = 5000
+/** 2, Barra della master: quanto resta allungata all'arrivo di una risposta. */
+export const DOCK_PEEK_MS = 3000
+/** 8, Domanda al polso: lo scarto fra le parti. */
+export const STAGGER_MS = 40
+/** 7, Limite ad anello: gli ultimi caratteri in ambra. */
+export const NEAR = 20
+export type Limit = 'ok' | 'near' | 'over'
+export const limit = (length: number, max: number): Limit => (length > max ? 'over' : max - length <= NEAR ? 'near' : 'ok')
+export const fill = (length: number, max: number): number => (max <= 0 ? 1 : Math.min(1, Math.max(0, length / max)))
+/** 5, Puntini: con più di `max` immagini i `max` attorno a quella di adesso, come [inizio, fine). */
+export function dots(count: number, current: number, max = 7): [number, number] {
+  if (count <= 0) return [0, 0]
+  if (count <= max) return [0, count]
+  const start = Math.min(count - max, Math.max(0, current - Math.floor(max / 2)))
+  return [start, start + max]
+}
+/** 3, Per te a pila: i bordi sotto la prima voce, al massimo due. */
+export const stackEdges = (items: number): number => Math.min(2, Math.max(0, items - 1))
+/** 6, Suggerimento nel campo: il primo passo, solo a campo vuoto. */
+export const ghost = (steps: string[], typed: string): string | null => (typed.length ? null : steps.find(x => x.trim())?.trim() ?? null)
+/** 1, Messaggio che entra: la pillola dei nuovi solo se chi legge non è in fondo e c'è qualcosa di nuovo. */
+export const newPill = (atBottom: boolean, unseen: number): boolean => !atBottom && unseen > 0

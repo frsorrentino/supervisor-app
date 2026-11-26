@@ -423,6 +423,15 @@
     <string name="stop">Ferma</string>
     <string name="copied_word">Copiato</string>
     <string name="hold_to_approve">Tieni premuto: %1$s</string>
+    <plurals name="chat_new_count">
+        <item quantity="one">1 nuovo</item>
+        <item quantity="other">%d nuovi</item>
+    </plurals>
+    <string name="undo">Annulla</string>
+    <string name="undo_later">Messo da parte: %1$s</string>
+    <string name="undo_never">Mai più: %1$s</string>
+    <string name="undo_seen">Visto: %1$s</string>
+    <string name="undo_close">Chiudo %1$s senza salvare</string>
     <string name="copy">Copia</string>
     <string name="edit">Modifica</string>
     <string name="resend">Reinvia</string>

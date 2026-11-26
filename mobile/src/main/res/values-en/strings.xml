@@ -412,6 +412,15 @@
     <string name="stop">Stop</string>
     <string name="copied_word">Copied</string>
     <string name="hold_to_approve">Hold: %1$s</string>
+    <plurals name="chat_new_count">
+        <item quantity="one">1 new</item>
+        <item quantity="other">%d new</item>
+    </plurals>
+    <string name="undo">Undo</string>
+    <string name="undo_later">Set aside: %1$s</string>
+    <string name="undo_never">Never again: %1$s</string>
+    <string name="undo_seen">Seen: %1$s</string>
+    <string name="undo_close">Closing %1$s without saving</string>
     <string name="copy">Copy</string>
     <string name="edit">Edit</string>
     <string name="resend">Send again</string>

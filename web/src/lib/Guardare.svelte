@@ -6,6 +6,8 @@
   import LongText from './LongText.svelte'
   import CatIcon from './CatIcon.svelte'
   import ImageViewer from './ImageViewer.svelte'
+  import LimitRing from './LimitRing.svelte'
+  import { later } from './undo.svelte'
   import { loadPreview, previewKey, shownOf, wantsPreview, type Shown } from './thumbs'
   // «Da guardare» (app-da-guardare-02-11, mockup della master delle 08:16; contratto 1.106), porta di GuardareUi.kt: in home le
   // ultime versioni non viste con Visto e Nota; la pagina coi lavori e le versioni precedenti (anche di una sessione sola); il
@@ -36,12 +38,19 @@
   const groups = $derived((page?.groups ?? []).filter(g => !session || g.session === session))
   const current = $derived(opened ? page?.groups.flatMap(g => g.items).find(x => x.id === opened) ?? summary?.items.find(x => x.id === opened) ?? null : null)
   let seenIds = $state(new Set<string>())
-  async function seen(r: ResultItem) {
+  // Voce 4 di app-animazioni-seconde-26-11: Visto parte dopo 5 s, con «Annulla» che lo rimette tra i non visti.
+  // Aprire un risultato lo segna visto subito: l'Annulla è solo del tasto Visto.
+  function seen(r: ResultItem, undoable = true) {
     if (seenIds.has(r.id)) return
     seenIds = new Set([...seenIds, r.id])
-    const x = await run(newCmd('result_seen', null, r.id))
-    if (!x?.ok) seenIds = new Set([...seenIds].filter(i => i !== r.id))
-    void load()
+    const back = () => { seenIds = new Set([...seenIds].filter(i => i !== r.id)) }
+    const go = async () => {
+      const x = await run(newCmd('result_seen', null, r.id))
+      if (!x?.ok) back()
+      void load()
+    }
+    if (undoable) later(t.undoSeen(line(r).title), go, back)
+    else void go()
   }
   // Le miniature e il file aperto: URL locali dal blob, rilasciati quando il componente se ne va.
   // Chiesti si segna fuori dallo stato: il render non scrive stato (state_unsafe_mutation), lo fa solo l'arrivo del file.
@@ -74,7 +83,7 @@
   const hm = (s: number) => new Date(s * 1000).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
   const titleOf = (l: Line) => (l.version != null ? t.watchTitleVersion(l.title, l.version) : l.title)
   // Aprire un risultato è vederlo (app-risultati-visti-03-11): esce dall'elenco dei non visti anche senza il tocco su Visto.
-  function open(r: ResultItem) { if (r.seen_at == null) void seen(r); if (mode === 'body') onOpen(full(r)); else { opened = r.id; fromList = true } }
+  function open(r: ResultItem) { if (r.seen_at == null) seen(r, false); if (mode === 'body') onOpen(full(r)); else { opened = r.id; fromList = true } }
   const split = $derived(splitSeen(groups, seenIds))
   let seenOpen = $state(false)
   let olderOpen = $state<Record<string, boolean>>({})
@@ -160,6 +169,7 @@
     {#if r.session}
       <form class="nform" onsubmit={(e) => { e.preventDefault(); void sendNote(r) }}>
         <input data-testid="nota-risultato" bind:value={text} maxlength={NOTE_MAX} placeholder={t.watchNoteHint(r.session)} />
+        {#if text.length}<LimitRing length={text.length} max={NOTE_MAX} />{/if}
         <button class="pill" disabled={!text.trim()}>{t.watchSend}{at != null && l.kind === 'video' ? ` ${t.watchAtPos(pos(at))}` : ''}</button>
       </form>
       <p class="sub">{sent ? t.watchNoteSent(sent) : t.watchNoteExplain}</p>

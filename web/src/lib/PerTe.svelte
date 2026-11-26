@@ -7,6 +7,7 @@
   import { boxOpen, boxToggle } from './riquadri.svelte'
   import { actVoce, adviceText, agoOf, mainLabelOf, silenceOf, subOf } from './voceRow'
   import { t } from './t'
+  import { stackEdges } from './animazioni'
   import Blocco from './Blocco.svelte'
   import Voce from './Voce.svelte'
   // «Per te» in cima alla chat di una sessione (app-formato-unico-12-11, Franz 12/11 07:29: formato A e blocchi B): una voce per
@@ -53,7 +54,7 @@
 </script>
 
 {#if items.length}{@const top = items[0]}
-  <Blocco pill icon="hand" title={t.forYou} n={items.length} first={top.title} hint={t.perTeHint} open={wide ? here : open} amber testid="chat-per-te" onToggle={tap}>
+  <Blocco pill stack={stackEdges(items.length)} icon="hand" title={t.forYou} n={items.length} first={top.title} hint={t.perTeHint} open={wide ? here : open} amber testid="chat-per-te" onToggle={tap}>
     {#if onMaster && !wide}<button class="also" data-testid="per-te-in-master" onclick={() => onMaster(session)}>{t.perTeAlsoMaster}<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></button>{/if}
     {#each items as v (v.key)}
       <Voce group={v.group} title={v.title} sub={subOf(v)} ago={agoOf(v, now)} silence={silenceOf(v, now)} advice={adviceText(v.advice)} main={mainLabelOf(v)} rec={!!v.main?.recommended} testid="voce-{v.key}" onOpen={() => openOf(v)} onMain={() => void act(v)} />

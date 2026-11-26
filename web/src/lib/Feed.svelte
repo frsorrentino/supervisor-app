@@ -449,10 +449,11 @@
   .found { animation: found 2.2s ease-out; border-radius: 12px; }
   @keyframes found { from { box-shadow: inset 0 0 0 100vmax rgba(255, 178, 63, .22); } to { box-shadow: inset 0 0 0 100vmax transparent; } }
   @media (prefers-reduced-motion: reduce) { .found { animation: none; box-shadow: inset 0 0 0 100vmax rgba(255, 178, 63, .14); } }
-  .rise { animation: rise 200ms cubic-bezier(0.3, 0, 0.2, 1) both; }
-  @keyframes rise { from { opacity: 0; transform: translateY(12px); } }
+  /* Voce 1 di app-animazioni-seconde-26-11: il messaggio nuovo sale di 8 px in 220 ms, una volta e solo lui. */
+  .rise { animation: rise 220ms cubic-bezier(0.3, 0, 0.2, 1) both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } }
   .fresh { animation: fresh 2s ease-out 600ms both; }
-  .rise.fresh { animation: rise 200ms cubic-bezier(0.3, 0, 0.2, 1) both, fresh 2s ease-out 600ms both; }
+  .rise.fresh { animation: rise 220ms cubic-bezier(0.3, 0, 0.2, 1) both, fresh 2s ease-out 600ms both; }
   /* Il bagliore dei messaggi nuovi in grigio, senza l'azzurro di prima (app-audit-superfici-luci-04-11). */
   @keyframes fresh { from { background: rgb(255 255 255 / .08); box-shadow: 0 0 0 6px rgb(255 255 255 / .08); } to { background: transparent; box-shadow: 0 0 0 6px transparent; } }
   /* Le voci fuori schermo non si impaginano né si disegnano (app-fluidita-06-11): il browser le salta finché non entrano in vista,

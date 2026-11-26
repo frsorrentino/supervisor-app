@@ -7,9 +7,11 @@
   // della freccia (il tasto principale della prima voce, la × dei risultati). La prima voce sta su una riga, tagliata senza «…».
   // `pill` (app-riquadri-chiusi-16-11): chiuso è una pillola con icona, nome e numero, nella riga dei riquadri della sessione;
   // aperto torna il blocco intero, a tutta larghezza.
-  let { icon, title, n, first = null, hint = null, open, amber = false, pill = false, cls = '', testid = undefined, onToggle, extra = null, children }: {
+  let { icon, title, n, first = null, hint = null, open, amber = false, pill = false, stack = 0, cls = '', testid = undefined, onToggle, extra = null, children }: {
     icon: 'hand' | 'bolt' | 'eye' | 'warn' | 'layers' | 'flag'; title: string; n: number | string; first?: string | null; hint?: string | null; open: boolean
-    amber?: boolean; pill?: boolean; cls?: string; testid?: string; onToggle: () => void; extra?: Snippet | null; children: Snippet
+    amber?: boolean; pill?: boolean
+    /** Voce 3 di app-animazioni-seconde-26-11 (Per te a pila): chiuso, quanti bordi di voci si vedono sotto, 0-2. */
+    stack?: number; cls?: string; testid?: string; onToggle: () => void; extra?: Snippet | null; children: Snippet
   } = $props()
   const key = (e: KeyboardEvent) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onToggle() } }
 </script>
@@ -26,11 +28,11 @@
 {/snippet}
 
 {#if pill && !open}
-  <button class="pill {cls}" class:amber data-testid={testid} aria-expanded="false" aria-label={t.boxOpen(title)} onclick={onToggle}>
+  <button class="pill {cls}" class:amber class:s1={stack === 1} class:s2={stack >= 2} data-testid={testid} aria-expanded="false" aria-label={t.boxOpen(title)} onclick={onToggle}>
     {@render glyph()}<b>{title}</b><span class="n">{n}</span>
   </button>
 {:else}
-<div class="blk {cls}" class:amber class:open data-testid={testid}>
+<div class="blk {cls}" class:amber class:open class:s1={!open && stack === 1} class:s2={!open && stack >= 2} data-testid={testid}>
   <div class="strip" role="button" tabindex="0" aria-expanded={open} aria-label={open ? t.boxClose(title) : t.boxOpen(title)} onclick={onToggle} onkeydown={key}>
     {@render glyph()}
     <b>{title}</b><span class="n">{n}</span>
@@ -64,6 +66,11 @@
     transition: background-color 150ms, transform var(--spring-bounce-t) var(--spring-bounce); }
   .pill.amber { background: color-mix(in srgb, var(--wait) 9%, var(--s1)); border-color: color-mix(in srgb, var(--wait) 38%, var(--line)); }
   .pill b { font: 600 14.5px var(--display); }
+  /* Voce 3: sotto il riquadro chiuso i bordi delle altre voci, come carte impilate; aperto, le voci scendono con la molla. */
+  .s1 { box-shadow: 0 4px 0 -1px color-mix(in srgb, var(--wait) 14%, var(--s1)), 0 4px 0 0 color-mix(in srgb, var(--wait) 30%, var(--line)); margin-bottom: 12px; }
+  .s2 { box-shadow: 0 4px 0 -1px color-mix(in srgb, var(--wait) 14%, var(--s1)), 0 4px 0 0 color-mix(in srgb, var(--wait) 30%, var(--line)), 0 8px 0 -2px color-mix(in srgb, var(--wait) 8%, var(--s1)), 0 8px 0 -1px color-mix(in srgb, var(--wait) 18%, var(--line)); margin-bottom: 16px; }
+  .blk.open > :global(*:not(.strip)) { animation: blk-down var(--spring-bounce-t) var(--spring-bounce) both; }
+  @keyframes blk-down { from { transform: translateY(-10px); opacity: 0; } }
   .pill:active { transform: scale(.97); }
   @media (hover: hover) and (pointer: fine) { .pill:hover { background: var(--s2); } .pill.amber:hover { background: color-mix(in srgb, var(--wait) 14%, var(--s1)); } }
   .pill:focus-visible { outline: 2px solid var(--wait); outline-offset: 2px; }

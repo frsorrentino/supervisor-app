@@ -1,6 +1,8 @@
 <script lang="ts">
   import { locale } from './lang'
   import type { Snippet } from 'svelte'
+  import { untrack } from 'svelte'
+  import { DOCK_PEEK_MS } from './animazioni'
   import type { Session } from './contract'
   import { hero as heroOf, type Entry } from './masterHome'
   import { isDrag } from './gesture'
@@ -42,6 +44,19 @@
   const up = $derived(toggleUp ?? !expanded)
   const key = $derived(onToggleKey ?? onToggle)
   const h = $derived(heroOf(entries, master))
+  // Voce 2 di app-animazioni-seconde-26-11 (Barra della master che si allunga): chiusa, all'arrivo di una risposta nuova la barra mostra
+  // per DOCK_PEEK_MS due righe col punto ambra, poi torna a una; il cambio d'altezza con la molla di casa. Alla prima apertura no.
+  let peek = $state(false)
+  let seenAt: number | null | undefined = undefined
+  let peekTimer: ReturnType<typeof setTimeout> | undefined
+  $effect(() => {
+    const at = h?.at ?? null
+    untrack(() => {
+      if (seenAt !== undefined && at != null && at !== seenAt && !expanded) { peek = true; clearTimeout(peekTimer); peekTimer = setTimeout(() => (peek = false), DOCK_PEEK_MS) }
+      seenAt = at
+    })
+  })
+  $effect(() => () => clearTimeout(peekTimer))
   const hm = (at: number) => new Date(at * 1000).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
   // Aperta, il modello e il contesto stanno già nella riga sotto la linguetta: qui resta l'ora. Chiusa, l'ora e il contesto,
   // che conta per l'handoff: il modello cambia di rado, e con lui la riga non stava nella larghezza (Franz, 06/10 22:27).
@@ -113,7 +128,7 @@
       {#if h}<span class="hl">{h.headline.replace(/\*\*|__|`/g, '')}</span>{/if}
     {:else}
       <!-- Nella riga in basso la risposta vera dall'inizio, su tre righe che sfumano (app-master-riga-maniglie-04-11). -->
-      <span class="l1"><b class="mn">{t.summaryTitle}</b>{#if h}<span class="hl" class:full={bar}>{(bar ? h.text : h.headline).replace(/\*\*|__|`/g, '')}</span>{/if}{#if when}<span class="mono">{when}</span>{/if}</span>
+      <span class="l1"><b class="mn">{t.summaryTitle}</b>{#if peek}<i class="nd" aria-hidden="true"></i>{/if}{#if h}<span class="hl" class:full={bar} class:peek>{(bar ? h.text : h.headline).replace(/\*\*|__|`/g, '')}</span>{/if}{#if when}<span class="mono">{when}</span>{/if}</span>
     {/if}
   </span>
   {#if h && !bar}
@@ -175,6 +190,10 @@
   :global(.v3) .dock { background: transparent; gap: 10px; }
   :global(.v3) .dock:hover, :global(.v3) .dock:focus-visible { filter: none; }
   .l1 { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+  .nd { flex: none; width: 8px; height: 8px; border-radius: 4px; background: var(--wait); align-self: center; animation: nd-in var(--spring-bounce-t) var(--spring-bounce) both; }
+  @keyframes nd-in { from { transform: scale(.4); opacity: 0; } }
+  .hl.peek { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; animation: hl-peek var(--spring-bounce-t) var(--spring-bounce) both; }
+  @keyframes hl-peek { from { max-height: 1.4em; } to { max-height: 2.9em; } }
   .mn { font: 700 15px var(--display, inherit); flex: none; }
   .hl { flex: 1; min-width: 0; font-size: 14px; color: var(--text2); white-space: nowrap; overflow: hidden; }
   .l1 .mono { flex: none; font: 400 12.5px var(--mono); color: var(--text2); letter-spacing: 0; }

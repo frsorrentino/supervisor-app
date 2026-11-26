@@ -1,4 +1,5 @@
 <script lang="ts">
+  import UndoSnack from './lib/UndoSnack.svelte'
   import { favicons, wanted as wantedFavicons, remembered as rememberedFavicon, keep as keepFavicon, faviconUrl } from './lib/favicons.svelte'
   import { answer as maxAnswer, canSet as canSetMax } from './lib/maxSessions'
   import MasterKey from './lib/MasterKey.svelte'
@@ -2580,6 +2581,7 @@
 {#if demo}<div class="demobar" data-testid="demo-avviso"><span>{t.demoBanner}</span>{#if demoWhy === 'offline'}<button onclick={demoRetry}>{t.demoRetry}</button>{:else if demoWhy === 'denied'}<button onclick={demoPair}>{t.demoPair}</button>{/if}</div>{/if}
 {#if !demo && (!ready || down)}<span class="demo mono">{ready ? t.relayDown : t.relayConnecting}</span>{/if}
 {#if notice}<div class="notice" role="status">{notice}</div>{/if}
+<UndoSnack />
 {/if}
 
 <!-- «Aggiungi alla notte»: lo stesso foglio di Lancia, solo progetti (LaunchSheet con night_add). -->
