@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.text.drawText
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -243,7 +244,7 @@ private fun AnswerMark(done: Boolean, label: String? = null) {
         if (pv > 0.001f) {
             val r = 12.dp.toPx() * (0.6f + 0.4f * pv)
             val sw = r * 0.28f
-            androidx.compose.ui.graphics.drawscope.rotate(turn - 90f, center) {
+            rotate(turn - 90f, center) {
                 drawCircle(
                     androidx.compose.ui.graphics.Brush.sweepGradient(
                         0f to androidx.compose.ui.graphics.Color.Transparent, 0.10f to androidx.compose.ui.graphics.Color.Transparent,

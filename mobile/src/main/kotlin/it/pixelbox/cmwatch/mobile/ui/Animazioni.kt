@@ -11,6 +11,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.Layout
@@ -531,7 +532,7 @@ internal fun ProofRail(steps: it.pixelbox.cmwatch.contract.ProofSteps, bleed: an
             looks.forEachIndexed { i, look ->
                 val c = androidx.compose.ui.geometry.Offset(x0 + i * cw, cy)
                 val f = fs[i].value.coerceIn(0f, 1f)
-                androidx.compose.ui.graphics.drawscope.scale(ps[i].value, c) {
+                scale(ps[i].value, c) {
                     if (look == PassiProva.Look.FAILED) {
                         drawCircle(red, r, c)
                         val d = r * .35f
