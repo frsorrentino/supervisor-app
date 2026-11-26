@@ -1,0 +1,13 @@
+/* Range Slider: two thumbs set a price range. A bubble rides over each
+   thumb and leans into its motion; when the thumbs come close the two
+   bubbles melt into one that shows the whole range. */
+.rng{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(320px,calc(100vw - 48px));padding:18px 20px 24px;border-radius:24px;background:var(--surface);font-family:var(--font-inter,Inter),Inter,"Helvetica Neue",Arial,sans-serif;}
+.head{display:flex;align-items:baseline;gap:8px}
+.head b{font-size:var(--fs-lg);font-weight:var(--fw-medium);color:var(--text)}
+.head span{font-size:var(--fs-xs);color:var(--muted)}
+.area{position:relative;height:28px;margin-top:52px;touch-action:none}
+.track{position:absolute;left:0;right:0;top:12px;height:4px;border-radius:2px;background:var(--fill-3)}
+.fill{position:absolute;top:0;height:4px;border-radius:2px;background:var(--inverse)}
+.th{position:absolute;top:0;left:0;width:28px;height:28px;margin-left:-14px;padding:0;border:0;border-radius:50%;background:var(--inverse);cursor:grab;touch-action:none;will-change:transform}
+.th:active{cursor:grabbing}
+.tip{position:absolute;left:0;bottom:40px;padding:5px 10px;border-radius:10px;background:var(--inverse);color:var(--on-inverse);font-size:var(--fs-sm);font-weight:var(--fw-bold);font-variant-numeric:tabular-nums;white-space:nowrap;transform-origin:50% 100%;will-change:transform,opacity}

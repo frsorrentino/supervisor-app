@@ -1,0 +1,37 @@
+/* Prompt Box: an AI input. The field grows with the text on a spring, Send
+   turns into Stop while it answers, and a status line opens above the text. */
+.pb{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:min(380px,calc(100vw - 48px));padding:10px 10px 10px 18px;
+  background:var(--surface);border-radius:24px;
+  font-family:var(--font-inter,Inter),Inter,"Helvetica Neue",Arial,sans-serif;
+}
+.status{display:flex;align-items:center;gap:8px;height:0;overflow:hidden;font-size:var(--fs-sm);font-weight:var(--fw-medium);color:var(--muted)}
+.status .mark{width:8px;height:8px;border-radius:50%;background:var(--text);flex:none;transition:background .25s ease}
+.status.think .mark{animation:pulse 1s ease-in-out infinite}
+.status.think .label{
+  background:linear-gradient(90deg,var(--muted-2) 20%,var(--text) 50%,var(--muted-2) 80%) 0 0/200% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 1.4s linear infinite;
+}
+.status.done .mark{background:var(--green)}
+.status.done .label{color:var(--text-2)}
+@keyframes pulse{50%{transform:scale(.55);opacity:.5}}
+@keyframes shine{to{background-position:-200% 0}}
+
+.row{display:flex;align-items:flex-end;gap:10px}
+#field{
+  flex:1;min-width:0;height:22px;margin:0 0 5px;padding:0;border:0;outline:none;resize:none;overflow:hidden;
+  background:none;color:var(--text);font:var(--fw-regular) 15px/22px var(--font-inter,Inter),Inter,sans-serif;
+  user-select:text;-webkit-user-select:text;caret-color:var(--text);
+}
+#field::placeholder{color:var(--muted-2)}
+.send{
+  appearance:none;border:0;padding:0;margin:0;cursor:pointer;outline:none;flex:none;position:relative;
+  width:32px;height:32px;border-radius:50%;background:var(--fill-3);color:var(--muted);
+  transition:background .2s ease,color .2s ease;
+}
+.send.ready{background:var(--inverse);color:var(--on-inverse)}
+.send:focus-visible{background:var(--text-2)}
+.send i{position:absolute;inset:0;display:grid;place-items:center;will-change:transform}
+.send .arrow svg{width:16px;height:16px}
+.send .stop::after{content:"";width:10px;height:10px;border-radius:2.5px;background:currentColor}

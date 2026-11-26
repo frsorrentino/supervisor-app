@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Streaming Reply</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/tokens.css">
+<link rel="stylesheet" href="../shared/base.css">
+<link rel="stylesheet" href="stream.css">
+</head>
+<body>
+<span class="badge">AI · Stream</span>
+
+<div class="chat" id="chat" aria-live="polite">
+  <div class="msg me" id="me">What makes a good empty state?</div>
+  <div class="msg ai" id="ai">
+    <span class="think" id="think">Thinking</span>
+    <p class="text" id="text"></p>
+  </div>
+</div>
+
+<script src="../shared/motion.js"></script>
+<script src="stream.js"></script>
+</body>
+</html>

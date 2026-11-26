@@ -1,0 +1,27 @@
+/* Mention Picker: type @ and a list of people opens under it. Each letter
+   narrows the list (the others fold away, the rest close up), a stretchy
+   highlight follows the arrows, and Enter turns "@no" into a name chip that
+   pops into the line. Backspace on a chip shrinks it away.
+   Read DESIGN.md first. Tokens only: no colours, small font sizes, strokes or shadows by hand. */
+.card{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(320px,calc(100vw - 32px));padding:16px;border-radius:var(--r-sheet);background:var(--surface)}
+.ed{min-height:64px;font-size:var(--fs-lg);line-height:32px;color:var(--text);letter-spacing:-.01em;white-space:pre-wrap;overflow-wrap:break-word;cursor:text;border-radius:var(--r-xs)}
+.ed:focus-visible{outline:2px solid var(--fill-3);outline-offset:6px}
+.ed:empty::before{content:'Write a comment';color:var(--muted-2)}
+.q{color:var(--text);background:var(--fill-2);border-radius:var(--r-xs);padding:1px 2px}
+.chip{display:inline-block;padding:0 7px;border-radius:var(--r-xs);background:var(--fill-3);color:var(--text);font-weight:var(--fw-medium);line-height:24px;vertical-align:1px;transform-origin:50% 60%;will-change:transform}
+.caret{display:inline-block;width:2px;height:20px;margin:0 0 -4px 1px;border-radius:1px;background:var(--text);animation:blink 1.1s steps(1) infinite}
+.ed.is-quiet .caret{visibility:hidden}
+@keyframes blink{50%{opacity:0}}
+.foot{display:flex;align-items:center;margin-top:12px}
+.hint{font-size:var(--fs-xs);color:var(--muted-2)}
+.send{position:relative;margin-left:auto;width:36px;height:36px;padding:0;border:0;border-radius:50%;background:var(--fill-1);color:var(--muted-2);overflow:hidden;cursor:pointer;transition:background-color .25s,color .25s;-webkit-tap-highlight-color:transparent}
+.send.ready{background:var(--fill-3);color:var(--text)}
+.send i{position:absolute;inset:0;display:grid;place-items:center;will-change:transform}
+.send svg{width:16px;height:16px}
+.send:focus-visible{outline:2px solid var(--text-2);outline-offset:2px}
+.menu{position:absolute;left:0;top:0;width:212px;height:0;padding:0;border-radius:var(--r-panel);background:linear-gradient(var(--fill-2),var(--fill-2)) var(--surface);overflow:hidden;opacity:0;pointer-events:none;will-change:transform,opacity}
+.menu.is-open{pointer-events:auto}
+.hl{position:absolute;left:4px;right:4px;top:0;height:40px;border-radius:var(--r-row);background:var(--fill-2)}
+.row{position:absolute;left:4px;right:4px;top:0;height:40px;display:flex;align-items:center;gap:10px;padding:0 10px;border:0;background:none;color:var(--text);font:var(--fw-medium) var(--fs-md) var(--font);text-align:left;cursor:pointer;will-change:transform,opacity;-webkit-tap-highlight-color:transparent}
+.row .av{width:24px;height:24px;flex:none;border-radius:50%}
+.row em{font-style:normal;font-weight:var(--fw-regular);color:var(--muted);font-size:var(--fs-sm)}

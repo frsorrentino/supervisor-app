@@ -1,0 +1,12 @@
+/* OTP Code: six boxes. Each digit lands with a small bounce, the active box
+   lights up, and a full code pulls the boxes together into one green pill. */
+.otp{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(320px,calc(100vw - 40px));text-align:center;font-family:var(--font-inter,Inter),Inter,"Helvetica Neue",Arial,sans-serif;}
+.hint{font-size:var(--fs-sm);color:var(--muted);margin-bottom:16px}
+.hint b{color:var(--text);font-weight:var(--fw-medium)}
+.boxes{position:relative;height:56px;margin:0 auto}
+.bx{position:absolute;top:0;height:56px;border-radius:14px;background:var(--surface);display:grid;place-items:center;font-size:24px;font-weight:var(--fw-bold);font-variant-numeric:tabular-nums;color:var(--text);will-change:transform,width,left}
+.bx i{font-style:normal;display:block;will-change:transform,opacity}
+.bx .car{position:absolute;width:2px;height:24px;border-radius:1px;background:var(--text);left:50%;top:16px;margin-left:-1px}
+.ok{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:8px;font-size:var(--fs-lg);font-weight:var(--fw-bold);color:var(--on-green);opacity:0;pointer-events:none}
+.ok svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+#inp{position:absolute;inset:0;width:100%;height:100%;opacity:0;border:0;font-size:var(--fs-lg);z-index:2;cursor:text;caret-color:transparent}

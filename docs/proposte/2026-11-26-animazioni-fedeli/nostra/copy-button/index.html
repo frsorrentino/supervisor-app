@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Copy Button</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/tokens.css">
+<link rel="stylesheet" href="../shared/base.css">
+<link rel="stylesheet" href="../app-tokens.css">
+<link rel="stylesheet" href="copy.css">
+</head>
+<body>
+<span class="badge">Tasti · Copia</span>
+<div class="cmd" id="cmd">
+  <code><span class="dim">$</span> git push origin tab-emoji/22-10</code>
+  <button class="cp" id="cp" aria-label="Copy command">
+    <span class="ic">
+      <svg class="i-copy" id="iCopy" viewBox="0 0 24 24" aria-hidden="true"><rect x="8.5" y="8.5" width="11" height="11" rx="3"/><path d="M15.5 8.5V7a2.5 2.5 0 0 0-2.5-2.5H7A2.5 2.5 0 0 0 4.5 7v6A2.5 2.5 0 0 0 7 15.5h1.5"/></svg>
+      <svg class="i-ok" id="iOk" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+    </span>
+    <span class="roll" id="roll"><span class="w" id="w"><b>Copia</b><b>Copiato</b></span></span>
+  </button>
+</div>
+<script src="../shared/motion.js"></script>
+<script src="copy.js"></script>
+</body>
+</html>

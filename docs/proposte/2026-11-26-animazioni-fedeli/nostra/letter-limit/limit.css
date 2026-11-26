@@ -1,0 +1,42 @@
+/* Letter Limit: a post box with a hard limit you can see. Type past it and the
+   letters that do not fit drop out of the box, fall with weight and pile up
+   under it, while the meter turns red and shakes its head. Make room and the
+   pile clears, one letter for every one you delete.
+   Read DESIGN.md first. Tokens only: no colours, small font sizes, strokes or shadows by hand. */
+.card{
+  position:absolute;left:50%;top:50%;width:min(320px,calc(100vw - 32px));padding:16px;border-radius:var(--r-sheet);background:var(--surface);
+  transform:translate(-50%,-50%) translateY(-26px);
+}
+.area{position:relative}
+textarea,.mirror{
+  display:block;width:100%;height:72px;padding:0;border:0;margin:0;background:transparent;resize:none;overflow:hidden;
+  font:var(--fw-regular) var(--fs-lg)/24px var(--font);letter-spacing:-.01em;color:var(--text);
+  white-space:pre-wrap;overflow-wrap:break-word;
+}
+textarea{caret-color:var(--text);user-select:text;-webkit-user-select:text;border-radius:var(--r-xs)}
+textarea::placeholder{color:var(--muted-2)}
+textarea:focus-visible{outline:2px solid var(--fill-3);outline-offset:6px}
+.mirror{position:absolute;left:0;top:0;visibility:hidden;pointer-events:none}
+.foot{display:flex;align-items:center;gap:8px;margin-top:14px}
+.meter{width:24px;height:24px;transform:rotate(-90deg);will-change:transform}
+.meter circle{fill:none;stroke-width:2.6}
+.track{stroke:var(--fill-3)}
+.fill{stroke:var(--text-2);stroke-linecap:round;stroke-dasharray:1 1;transition:stroke .2s}
+.count{font-size:var(--fs-sm);font-weight:var(--fw-medium);color:var(--muted);font-variant-numeric:tabular-nums;will-change:transform;transition:color .2s}
+.card.is-near .fill{stroke:var(--orange)}
+.card.is-near .count{color:var(--orange-text)}
+.card.is-full .fill{stroke:var(--red)}
+.card.is-full .count{color:var(--red)}
+.post{
+  margin-left:auto;height:36px;padding:0 18px;border:0;border-radius:var(--r-pill);cursor:pointer;will-change:transform;
+  background:var(--inverse);color:var(--on-inverse);font:var(--fw-bold) var(--fs-md) var(--font);letter-spacing:-.01em;
+  -webkit-tap-highlight-color:transparent;
+}
+.post:focus-visible{outline:2px solid var(--text-2);outline-offset:2px}
+/* the letters that did not fit */
+.pile{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.pile span{
+  position:absolute;left:0;top:0;width:20px;height:24px;margin:-12px 0 0 -10px;text-align:center;
+  font:var(--fw-medium) var(--fs-lg)/24px var(--font);color:var(--red);will-change:transform,opacity;transition:color .5s;
+}
+.pile span.is-down{color:var(--muted)}

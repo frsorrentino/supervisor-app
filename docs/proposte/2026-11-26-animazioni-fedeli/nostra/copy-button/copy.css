@@ -1,0 +1,18 @@
+/* Copy Button: a command line with a Copy button. Copy swaps its icon for a
+   check, the word rolls up to Copied and the button grows to fit. */
+.cmd{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  display:flex;align-items:center;gap:10px;padding:8px 8px 8px 16px;border-radius:18px;background:var(--surface);
+  width:min(320px,calc(100vw - 48px));
+  font-family:var(--font-inter,Inter),Inter,"Helvetica Neue",Arial,sans-serif;
+}
+code{flex:1;min-width:0;font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:var(--fs-sm);color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dim{color:var(--muted)}
+.cp{display:flex;align-items:center;gap:6px;height:36px;padding:0 12px 0 10px;border:0;border-radius:12px;background:var(--fill-2);color:var(--text);cursor:pointer;font:inherit;font-size:var(--fs-sm);font-weight:var(--fw-medium);overflow:hidden;flex:none}
+.ic{position:relative;width:18px;height:18px;flex:none}
+.ic svg{position:absolute;inset:0;width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;will-change:transform,opacity}
+.i-ok{color:var(--green-text);stroke-width:2.4}
+.roll{position:relative;height:18px;overflow:hidden;display:block}
+.w{display:flex;flex-direction:column;will-change:transform}
+.w b{display:block;height:18px;line-height:18px;font-weight:var(--fw-medium);white-space:nowrap}
+.w b+b{color:var(--green-text)}

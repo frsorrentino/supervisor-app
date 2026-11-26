@@ -1,0 +1,33 @@
+/* I colori e i caratteri dell'app (web/src/v3.css) al posto di quelli di Motion Studies (app-animazioni-fedeli-26-11). Si carica dopo
+   shared/tokens.css: le molle, i tempi, i raggi e gli strati restano quelli dell'originale; cambiano solo colori, caratteri e testi. */
+@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@600;700&family=Geist+Mono:wght@400;500&display=swap');
+:root, :root[data-theme="dark"] {
+  --stage: #0B0B0B;
+  --card: #111111;
+  --surface: #181818;
+  --fill-1: rgba(238, 238, 238, .05);
+  --fill-2: rgba(238, 238, 238, .09);
+  --fill-3: rgba(238, 238, 238, .14);
+  --line: #2A2A2A;
+  --text: #EEEEEE;
+  --text-2: rgba(238, 238, 238, .78);
+  --muted: #9B9B9B;
+  --muted-2: #8A8A8A;
+  --chip-text: #9B9B9B;
+  --white: #EEEEEE;
+  --green: #71D083;
+  --green-text: #71D083;
+  --green-soft: rgba(113, 208, 131, .14);
+  --on-green: #0B0B0B;
+  --orange: #FFB23F;
+  --orange-text: #FFB23F;
+  --red: #FF5A5F;
+  --yellow: #FFB23F;
+  --blue: #8FA8D2;
+  --object: #222222;
+  /* Il tasto principale dell'app è il velo ambra, mai il pieno bianco (Tasti B). */
+  --inverse: #4A3A1E;
+  --on-inverse: #FFB23F;
+  --font: Barlow, system-ui, sans-serif;
+}
+body { font-family: var(--font); }

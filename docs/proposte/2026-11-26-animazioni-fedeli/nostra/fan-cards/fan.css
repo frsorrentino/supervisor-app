@@ -1,0 +1,16 @@
+/* Fan Cards: three project cards in a stack. Hover the stack and they fan
+   out from the bottom like a hand of cards; the card under the pointer lifts
+   and comes to the front. */
+.fan{
+  position:absolute;left:50%;top:50%;width:150px;height:196px;margin:-92px 0 0 -75px;
+  font-family:var(--font-inter,Inter),Inter,"Helvetica Neue",Arial,sans-serif;
+}
+.c{position:absolute;inset:0;padding:10px;border-radius:18px;transform-origin:50% 100%;cursor:pointer;will-change:transform}
+.c[data-i="0"]{background:color-mix(in srgb,var(--surface),var(--text) 3%)}
+.c[data-i="1"]{background:var(--surface)}
+.c[data-i="2"]{background:color-mix(in srgb,var(--surface),var(--text) 6%)}
+.art{height:100px;border-radius:12px}
+.n{margin-top:12px;font-family:var(--font-geist-mono,"Geist Mono"),ui-monospace,monospace;font-size:var(--fs-2xs);color:var(--muted)}
+.t{margin-top:2px;font-size:var(--fs-base);font-weight:var(--fw-bold);color:var(--text)}
+.c i{display:block;width:80%;height:6px;margin-top:10px;border-radius:3px;background:var(--fill-3)}
+.c i.short{width:50%;margin-top:6px}

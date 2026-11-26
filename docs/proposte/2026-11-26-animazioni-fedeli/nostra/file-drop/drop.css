@@ -1,0 +1,37 @@
+/* File Drop: the zone wakes up when a file comes near, swallows it, shows the
+   upload on a ring around the icon and turns green when it is done. */
+.zone{
+  position:absolute;left:50%;top:50%;width:min(296px,calc(100vw - 32px));height:216px;transform:translate(-50%,-50%);
+  border-radius:var(--r-card);background:var(--surface);cursor:pointer;overflow:hidden;will-change:transform;
+  -webkit-tap-highlight-color:transparent;
+}
+/* no dashed border: a file over the zone lifts its fill instead */
+.zone::after{content:"";position:absolute;inset:0;background:var(--fill-2);opacity:var(--h,0);pointer-events:none}
+.zone:focus-visible{outline:2px solid var(--text-2);outline-offset:3px}
+
+.core{position:absolute;left:50%;top:38px;width:72px;height:72px;margin-left:-36px;border-radius:50%;background:var(--fill-2);z-index:1;will-change:transform}
+.g{position:absolute;inset:0;border-radius:50%;background:var(--green);transform:scale(0);will-change:transform}
+.ring{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);opacity:0}
+.trk{stroke:var(--fill-3)}
+.arc{stroke:var(--inverse)}
+.ic{position:absolute;inset:0;display:grid;place-items:center;color:var(--text);will-change:transform,opacity}
+.ic svg{width:26px;height:26px;display:block}
+.pct{font-size:19px;font-weight:var(--fw-bold);letter-spacing:-.02em;font-variant-numeric:tabular-nums;opacity:0}
+.ok{color:var(--black);opacity:0}
+.ok svg{width:30px;height:30px}
+.ok path{stroke-dasharray:24;stroke-dashoffset:24}
+
+.line{position:absolute;left:16px;right:16px;z-index:1;overflow:hidden;text-align:center;pointer-events:none}
+.line span{position:absolute;left:0;right:0;top:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;will-change:transform,opacity}
+.t{top:130px;height:24px}
+.t span{line-height:24px;font-size:var(--fs-lg);font-weight:var(--fw-bold);letter-spacing:-.015em}
+.s{top:157px;height:20px}
+.s span{line-height:20px;font-size:var(--fs-sm);color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* the file being carried in */
+.file{
+  position:absolute;left:0;top:0;z-index:2;display:flex;align-items:center;gap:8px;height:44px;padding:0 16px 0 12px;border-radius:14px;
+  background:var(--inverse);color:var(--on-inverse);font-size:var(--fs-sm);font-weight:var(--fw-bold);white-space:nowrap;
+  opacity:0;pointer-events:none;will-change:transform,opacity;
+}
+.file svg{width:20px;height:20px;flex:none}

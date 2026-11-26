@@ -1,0 +1,41 @@
+/* Jelly Slider: the thumb stretches with speed and a value drop rises out of it.
+   One grid: the track and the scale under it share the same left and right edge. The thumb travels inside the track (12px inset
+   each side), and every tick label is centred on the thumb centre for its value. */
+.slider-wrap{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(320px,calc(100vw - 48px))}
+
+
+.rail{position:relative;height:32px;touch-action:none;cursor:pointer}
+.track{position:absolute;left:0;right:0;top:13px;height:6px;border-radius:var(--r-pill);background:var(--fill-3);overflow:hidden}
+.track .fill{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--inverse);border-radius:var(--r-pill)}
+
+/* goo layer: thumb + drop fuse into one liquid shape */
+.goo{position:absolute;left:-40px;right:-40px;top:-80px;height:140px;filter:url(#goo);pointer-events:none}
+.blob{position:absolute;left:0;top:0;background:var(--inverse);border-radius:50%;will-change:transform}
+.drop{width:36px;height:36px}
+.thumb{width:28px;height:28px} /* reads as 24: the goo filter trims its edge */
+.drop-label{
+  position:absolute;left:0;top:0;width:36px;height:36px;display:grid;place-items:center;
+  font-size:var(--fs-xs);font-weight:var(--fw-bold);font-variant-numeric:tabular-nums;color:var(--on-inverse);
+  pointer-events:none;will-change:transform,opacity;
+}
+.hit{position:absolute;top:4px;width:24px;height:24px;border-radius:50%;outline:none}
+
+/* Scale: a mark every 5, a taller one every 25 with its number under it.
+   Marks the value has passed light up, so the scale reads like the fill. */
+.ticks{margin-top:8px}
+.marks{position:relative;height:8px}
+.marks i{
+  position:absolute;top:0;left:calc(12px + (100% - 24px) * var(--p,0));
+  width:1.5px;height:4px;margin-left:-.75px;border-radius:1px;
+  background:var(--fill-3);transition:background .2s ease,height .25s cubic-bezier(.3,1.5,.5,1);
+}
+.marks i.major{height:8px;background:var(--muted-2)}
+.marks i.on{background:var(--text-2)}
+.marks i.major.on{background:var(--text)}
+.nums{position:relative;height:14px;margin-top:6px;font-size:var(--fs-2xs);font-weight:var(--fw-medium);line-height:14px;color:var(--muted-2);font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.nums span{position:absolute;top:0;left:calc(12px + (100% - 24px) * var(--p,0));transform:translateX(-50%);transition:color .2s ease}
+.nums span.on{color:var(--text-2)}
+.nums span:nth-child(2){--p:.25}
+.nums span:nth-child(3){--p:.5}
+.nums span:nth-child(4){--p:.75}
+.nums span:nth-child(5){--p:1}

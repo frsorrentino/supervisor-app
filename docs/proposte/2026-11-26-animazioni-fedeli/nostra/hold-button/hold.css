@@ -1,0 +1,22 @@
+/* Hold Button: press and hold to confirm; the pill morphs into a check */
+.hold-wrap{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:18px}
+.hold{
+  position:relative;width:220px;height:56px;border:0;border-radius:28px;padding:0;
+  background:var(--surface);color:var(--text);cursor:pointer;overflow:hidden;
+  font:var(--fw-medium) var(--fs-md) var(--font);letter-spacing:-.01em;
+  box-shadow:0 0 0 1px var(--rim) inset,0 18px 40px -20px rgba(0,0,0,calc(.9*var(--sh)));
+  touch-action:none;-webkit-tap-highlight-color:transparent;outline:none;will-change:width,transform;
+}
+.fill{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--inverse);border-radius:inherit}
+.label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;transition:opacity .2s,filter .2s}
+.label svg{width:18px;height:18px;flex:none}
+.label.top{color:var(--on-inverse)}
+.hold.done .label{opacity:0;filter:blur(4px)}
+.hold.done{background:var(--green)}
+.hold.done .fill{opacity:0}
+.check{position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;color:var(--black);opacity:0}
+.check path{stroke-dasharray:24;stroke-dashoffset:24}
+.hold.done .check{opacity:1;transition:opacity .1s .12s}
+.hold.done .check path{stroke-dashoffset:0;transition:stroke-dashoffset .45s cubic-bezier(.65,0,.35,1) .16s}
+.sub{font-size:var(--fs-sm);color:var(--muted-2);height:18px;transition:opacity .25s,transform .4s cubic-bezier(.16,1,.3,1)}
+.sub.swap{opacity:0;transform:translateY(4px)}

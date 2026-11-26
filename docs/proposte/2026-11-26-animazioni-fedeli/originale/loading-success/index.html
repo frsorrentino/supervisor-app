@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Loading Success</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/tokens.css">
+<link rel="stylesheet" href="../shared/base.css">
+<link rel="stylesheet" href="submit.css">
+</head>
+<body>
+<span class="badge">Buttons · Submit</span>
+<button class="sub" id="sub" aria-live="polite">
+  <span class="txt" id="txt">Submit</span>
+  <span class="spin" id="spin" aria-hidden="true"></span>
+  <span class="done" id="done"><svg viewBox="0 0 24 24" aria-hidden="true"><path id="tick" d="M5 12.5l4.5 4.5L19 7.5"/></svg><b>Sent</b></span>
+</button>
+<script src="../shared/motion.js"></script>
+<script src="submit.js"></script>
+</body>
+</html>

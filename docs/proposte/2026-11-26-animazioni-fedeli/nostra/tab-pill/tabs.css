@@ -1,0 +1,10 @@
+/* Tab Pill: a white pill slides under the active tab. Its leading edge moves
+   first and the trailing edge catches up, so it stretches on the way. */
+.tabs{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  display:flex;padding:4px;border-radius:var(--r-pill);background:var(--surface);
+  font-family:var(--font-inter,Inter),Inter,"Helvetica Neue",Arial,sans-serif;
+}
+.tabs button{position:relative;z-index:1;padding:9px clamp(10px,3.2vw,16px);border:0;background:none;cursor:pointer;font:inherit;font-size:var(--fs-md);font-weight:var(--fw-medium);color:var(--muted);white-space:nowrap;transition:color .25s}
+.tabs button[aria-selected="true"]{color:var(--on-inverse)}
+.pill{position:absolute;left:0;top:4px;bottom:4px;border-radius:var(--r-pill);background:var(--inverse);will-change:transform,width}

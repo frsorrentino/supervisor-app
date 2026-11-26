@@ -1,0 +1,17 @@
+/* Step Progress: a checkout in four steps. The line fills to the current
+   step on a spring, a finished step turns into a check that draws itself and
+   the current one pops up in white. */
+.steps{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(320px,calc(100vw - 48px));font-family:var(--font-inter,Inter),Inter,"Helvetica Neue",Arial,sans-serif;}
+.track{position:relative;height:32px;margin:0 14px}
+.track::before{content:"";position:absolute;left:0;right:0;top:14px;height:4px;border-radius:2px;background:var(--fill-3)}
+.bar{position:absolute;left:0;top:14px;height:4px;border-radius:2px;background:var(--green);will-change:width}
+.dots{position:absolute;inset:0}
+.dot{position:absolute;top:0;width:32px;height:32px;margin-left:-16px;border-radius:50%;background:var(--surface);color:var(--muted);display:grid;place-items:center;font-size:var(--fs-sm);font-weight:var(--fw-bold);will-change:transform}
+.dot b{position:absolute;font-weight:inherit}
+.dot svg{position:absolute;width:16px;height:16px;fill:none;stroke:var(--on-green);stroke-width:2.8;stroke-linecap:round;stroke-linejoin:round}
+.names{position:relative;height:18px;margin:10px 14px 0}
+.names span{position:absolute;top:0;transform:translateX(-50%);font-size:var(--fs-xs);color:var(--muted);white-space:nowrap;transition:color .3s}
+.names span.on{color:var(--text)}
+.act{display:flex;gap:10px;margin-top:28px}
+.act button{flex:1;height:44px;border:0;border-radius:14px;background:var(--fill-2);color:var(--text);font:inherit;font-size:var(--fs-md);font-weight:var(--fw-medium);cursor:pointer}
+.act .next{background:var(--inverse);color:var(--on-inverse)}

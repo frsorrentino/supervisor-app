@@ -1,0 +1,14 @@
+/* Word Roll: the last word of a line rolls to the next one, letter by letter.
+   The lead and the slot share one line height, so centring them is the same as
+   sitting them on one baseline. The slot clips top and bottom only. */
+.roll{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  display:flex;align-items:center;gap:.26em;white-space:nowrap;cursor:pointer;outline:none;
+  font-family:var(--font-inter,Inter),Inter,"Helvetica Neue",Arial,sans-serif;
+  font-size:min(44px,calc(100vw * .084));font-weight:var(--fw-bold);letter-spacing:-.035em;line-height:1.25;
+}
+.lead{color:var(--muted)}
+.slot{position:relative;display:block;height:1.25em;color:var(--text);clip-path:inset(0 -.5em)}
+.word{position:absolute;left:0;top:0;display:flex}
+.ch{display:inline-block;white-space:pre;will-change:transform,opacity}
+.roll:focus-visible .slot{color:var(--text)}

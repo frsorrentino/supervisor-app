@@ -1,0 +1,11 @@
+/* Segmented Control: Day / Week / Month / Year. The highlight squashes as it
+   slides and lands with a small overshoot; the caption under it blurs out and
+   the new one rises in. */
+.wrap{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(320px,calc(100vw - 48px));font-family:var(--font-inter,Inter),Inter,"Helvetica Neue",Arial,sans-serif;}
+.seg{position:relative;display:flex;padding:4px;border-radius:16px;background:var(--surface)}
+.seg button{position:relative;z-index:1;flex:1;height:38px;border:0;background:none;cursor:pointer;font:inherit;font-size:var(--fs-md);font-weight:var(--fw-medium);color:var(--muted);transition:color .25s}
+.seg button[aria-selected="true"]{color:var(--on-inverse)}
+.hl{position:absolute;left:0;top:4px;height:38px;border-radius:12px;background:var(--inverse);will-change:transform}
+.cap{position:relative;height:22px;margin-top:16px;text-align:center}
+.cw{position:absolute;left:0;right:0;top:0;font-size:var(--fs-md);color:var(--text-2);will-change:transform,opacity,filter}
+.cw b{color:var(--text);font-weight:var(--fw-bold)}

@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mention Picker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/tokens.css">
+<link rel="stylesheet" href="../shared/base.css">
+<link rel="stylesheet" href="mention.css">
+</head>
+<body>
+<span class="badge">Inputs · Mention</span>
+<div class="card" id="card">
+  <div class="ed" id="ed" tabindex="0" role="textbox" aria-label="Comment. Type @ to mention someone" aria-multiline="true"></div>
+  <div class="foot"><span class="hint">Type @ to mention</span><button class="send" id="send" type="button" aria-label="Send"><i class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg></i></button></div>
+</div>
+<div class="menu" id="menu" role="listbox" aria-label="People"><span class="hl" id="hl" aria-hidden="true"></span></div>
+<script src="../shared/motion.js"></script>
+<script src="mention.js"></script>
+</body>
+</html>

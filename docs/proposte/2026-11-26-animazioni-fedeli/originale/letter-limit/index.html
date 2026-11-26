@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Letter Limit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/tokens.css">
+<link rel="stylesheet" href="../shared/base.css">
+<link rel="stylesheet" href="limit.css">
+</head>
+<body>
+<span class="badge">Inputs · Limit</span>
+<div class="card" id="card">
+  <div class="area">
+    <textarea id="ta" rows="3" aria-label="Write a post" aria-describedby="count" spellcheck="false" autocomplete="off" placeholder="What is happening?"></textarea>
+    <div class="mirror" id="mirror" aria-hidden="true"></div>
+  </div>
+  <div class="foot">
+    <svg class="meter" viewBox="0 0 24 24" aria-hidden="true"><circle class="track" cx="12" cy="12" r="9"/><circle class="fill" id="fill" cx="12" cy="12" r="9" pathLength="1"/></svg>
+    <span class="count" id="count" aria-live="polite">60</span>
+    <button class="post" id="post">Post</button>
+  </div>
+</div>
+<div class="pile" id="pile" aria-hidden="true"></div>
+<script src="../shared/motion.js"></script>
+<script src="limit.js"></script>
+</body>
+</html>

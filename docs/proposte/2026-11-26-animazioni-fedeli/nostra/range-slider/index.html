@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Range Slider</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/tokens.css">
+<link rel="stylesheet" href="../shared/base.css">
+<link rel="stylesheet" href="../app-tokens.css">
+<link rel="stylesheet" href="range.css">
+</head>
+<body>
+<span class="badge">Inputs · Range</span>
+<div class="rng" id="rng">
+  <div class="head"><b>Price</b><span>per night</span></div>
+  <div class="area" id="area">
+    <span class="tip" id="ta"></span><span class="tip" id="tb"></span><span class="tip both" id="tm"></span>
+    <div class="track" id="track"><span class="fill" id="fill"></span></div>
+    <button class="th" id="a" role="slider" aria-label="Minimum price" aria-valuemin="0" aria-valuemax="1000"></button>
+    <button class="th" id="b" role="slider" aria-label="Maximum price" aria-valuemin="0" aria-valuemax="1000"></button>
+  </div>
+</div>
+<script src="../shared/motion.js"></script>
+<script src="range.js"></script>
+</body>
+</html>

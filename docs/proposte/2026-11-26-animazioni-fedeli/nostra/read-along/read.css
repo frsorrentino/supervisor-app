@@ -1,0 +1,16 @@
+/* Read Along: a pill slides from word to word behind the sentence. Its two
+   edges are separate springs, the leading one fast and the trailing one slow,
+   so it stretches as it moves and settles back to the word's width. */
+.read{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:min(420px,calc(100vw - 48px));color:var(--muted-2);
+  font-family:var(--font-inter,Inter),Inter,"Helvetica Neue",Arial,sans-serif;
+  font-size:min(30px,calc(100vw * .064));font-weight:var(--fw-bold);letter-spacing:-.03em;line-height:1.45;
+}
+.read .w{position:relative;z-index:1;cursor:pointer;transition:color .18s ease}
+.read .w.past{color:var(--text)}
+.read .w.now{color:var(--on-inverse)}
+.pill{
+  position:absolute;left:0;top:0;height:1.3em;border-radius:.34em;
+  background:var(--inverse);will-change:transform,width,opacity;pointer-events:none;
+}

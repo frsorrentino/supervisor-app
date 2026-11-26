@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ghost Suggestion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/tokens.css">
+<link rel="stylesheet" href="../shared/base.css">
+<link rel="stylesheet" href="ghost.css">
+</head>
+<body>
+<span class="badge">AI · Suggest</span>
+
+<div class="ed" id="ed" tabindex="0" role="textbox" aria-label="Notes, press Tab to accept the suggestion">
+  <div class="head"><span>Notes</span><span class="hint">Suggestions on</span></div>
+  <p class="body" id="body"><span id="typed"></span><span class="caret" id="caret"></span><span id="ghost"></span><span class="tab" id="tab">Tab</span></p>
+</div>
+
+<script src="../shared/motion.js"></script>
+<script src="ghost.js"></script>
+</body>
+</html>

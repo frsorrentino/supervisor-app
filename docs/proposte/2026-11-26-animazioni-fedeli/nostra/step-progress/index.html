@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Step Progress</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/tokens.css">
+<link rel="stylesheet" href="../shared/base.css">
+<link rel="stylesheet" href="../app-tokens.css">
+<link rel="stylesheet" href="steps.css">
+</head>
+<body>
+<span class="badge">Tappe · Prova</span>
+<div class="steps" id="steps">
+  <div class="track"><span class="bar" id="bar"></span>
+    <div class="dots" id="dots"></div>
+  </div>
+  <div class="names" id="names"></div>
+  <div class="act"><button id="back">Indietro</button><button class="next" id="next">Avanti</button></div>
+</div>
+<script src="../shared/motion.js"></script>
+<script src="steps.js"></script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+/* Loading > Success: the pill shrinks into a round spinner, then grows into
+   a green pill with a check that draws itself, then settles back. */
+.sub{
+  position:absolute;left:50%;top:50%;width:168px;height:56px;transform:translate(-50%,-50%);
+  border:0;border-radius:var(--r-pill);background:var(--inverse);color:var(--on-inverse);cursor:pointer;overflow:hidden;
+  font-family:var(--font-inter,Inter),Inter,"Helvetica Neue",Arial,sans-serif;font-size:var(--fs-lg);font-weight:var(--fw-bold);
+}
+.txt,.done{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;will-change:transform,opacity}
+.done{color:var(--on-green)}
+.done svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.spin{position:absolute;left:50%;top:50%;width:24px;height:24px;margin:-12px 0 0 -12px;border-radius:50%;
+  background:conic-gradient(from 0deg,rgba(0,0,0,0) 0 10%,var(--on-inverse) 85%,rgba(0,0,0,0) 85%);
+  -webkit-mask:radial-gradient(circle closest-side,transparent 68%,#000 72%);mask:radial-gradient(circle closest-side,transparent 68%,#000 72%);
+  opacity:0;will-change:transform,opacity}

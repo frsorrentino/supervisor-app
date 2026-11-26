@@ -1,0 +1,60 @@
+/* Morph Island: one grey pill that morphs between live activities */
+.island{
+  position:absolute;left:50%;top:18%;transform:translateX(-50%);
+  width:126px;height:36px;border-radius:18px;background:var(--object);
+  overflow:hidden;cursor:pointer;will-change:width,height,transform;
+  /* a grey object, not black (Noah, 9 Nov): dark grey in dark, pale grey in light. Its content follows the theme. */
+}
+/* coloured text darkens in light so it reads on the pale grey */
+:root[data-theme="light"] .ic-upload .num{color:var(--green-text)}
+:root[data-theme="light"] .ic-timer .lead,:root[data-theme="light"] .ic-timer .num{color:var(--orange-text)}
+.ic{
+  position:absolute;left:50%;top:50%;display:flex;align-items:center;
+  opacity:0;filter:blur(6px);transform:translate(-50%,-50%) scale(.9);
+  transition:opacity .14s ease,filter .14s ease,transform .2s ease;
+  pointer-events:none;white-space:nowrap;
+}
+.ic.on{
+  opacity:1;filter:none;transform:translate(-50%,-50%) scale(1);pointer-events:auto;
+  transition:opacity .35s ease .09s,filter .35s ease .09s,transform .6s cubic-bezier(.16,1,.3,1) .09s;
+}
+.ic svg{display:block;flex:none}
+.num{font-variant-numeric:tabular-nums;font-weight:var(--fw-bold);letter-spacing:-.01em}
+
+/* timer */
+.ic-timer{width:206px;justify-content:space-between}
+.ic-timer .lead{display:flex;align-items:center;gap:7px;color:var(--orange);font-size:var(--fs-sm);font-weight:var(--fw-medium)}
+.ic-timer svg{width:16px;height:16px}
+.ic-timer .num{font-size:var(--fs-md);color:var(--orange)}
+
+/* upload */
+.ic-upload{width:262px;gap:12px}
+.ring{width:32px;height:32px;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:3.5}
+.ring .bg{stroke:var(--fill-3)}
+.ring .fg{stroke:var(--green);stroke-linecap:round;stroke-dasharray:81.7;stroke-dashoffset:81.7}
+.ic-upload .tx{flex:1;min-width:0}
+.ic-upload b{display:block;font-size:var(--fs-sm);font-weight:var(--fw-medium);color:var(--text)}
+.ic-upload span{display:block;font-size:var(--fs-xs);color:var(--muted)}
+.ic-upload .num{font-size:var(--fs-md);color:var(--green)}
+
+/* call */
+.ic-call{width:312px;gap:12px}
+.ic-call .av{width:48px;height:48px;border-radius:50%;background:var(--white);color:var(--black);display:grid;place-items:center;font-size:var(--fs-lg);font-weight:var(--fw-bold);flex:none}
+.ic-call .tx{flex:1;min-width:0}
+.ic-call b{display:block;font-size:var(--fs-lg);font-weight:var(--fw-bold);color:var(--text)}
+.ic-call span{display:block;font-size:var(--fs-xs);color:var(--muted)}
+.cbtn{width:44px;height:44px;border-radius:50%;border:0;display:grid;place-items:center;cursor:pointer;flex:none;transition:transform .2s cubic-bezier(.34,1.56,.64,1)}
+.cbtn:active{transform:scale(.88)}
+.cbtn svg{width:20px;height:20px}
+.cbtn.no{background:var(--fill-3);color:var(--text)}
+.cbtn.yes{background:var(--green);color:var(--black)}
+
+/* on call */
+
+/* controls */
+.controls{position:absolute;left:0;right:0;bottom:72px;display:flex;justify-content:center;gap:6px;flex-wrap:wrap;padding:0 16px}
+.ctl{font:var(--fw-medium) var(--fs-sm) var(--font);color:var(--chip-text);background:var(--fill-2);border:0;border-radius:var(--r-pill);padding:7px 12px;cursor:pointer;transition:background .2s,color .2s,transform .15s}
+.ctl:hover{background:var(--fill-3);color:var(--text)}
+.ctl:active{transform:scale(.95)}
+.ctl[aria-pressed="true"]{background:var(--inverse);color:var(--on-inverse)}

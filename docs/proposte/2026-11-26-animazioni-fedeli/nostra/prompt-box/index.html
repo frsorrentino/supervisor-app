@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Prompt Box</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/tokens.css">
+<link rel="stylesheet" href="../shared/base.css">
+<link rel="stylesheet" href="../app-tokens.css">
+<link rel="stylesheet" href="prompt.css">
+</head>
+<body>
+<span class="badge">AI · Prompt</span>
+
+<div class="pb" id="pb">
+  <div class="status" id="status" aria-live="polite"><span class="mark" id="mark"></span><span class="label" id="statusText">Thinking</span></div>
+  <div class="row">
+    <textarea id="field" rows="1" placeholder="Ask anything" aria-label="Prompt"></textarea>
+    <button class="send" id="send" type="button" aria-label="Send">
+      <i class="arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg></i>
+      <i class="stop"></i>
+    </button>
+  </div>
+</div>
+
+<script src="../shared/motion.js"></script>
+<script src="prompt.js"></script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Jelly Slider</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/tokens.css">
+<link rel="stylesheet" href="../shared/base.css">
+<link rel="stylesheet" href="../app-tokens.css">
+<link rel="stylesheet" href="slider.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="goo" x="-50%" y="-50%" width="200%" height="200%">
+    <feGaussianBlur id="gooBlur" in="SourceGraphic" stdDeviation="8" result="b"/>
+    <feColorMatrix in="b" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -10" result="g"/>
+    <feComposite in="SourceGraphic" in2="g" operator="atop"/>
+  </filter>
+</svg>
+<span class="badge">Drag · Elastic</span>
+
+<div class="slider-wrap">
+  <div class="rail" id="rail">
+    <div class="track"><div class="fill" id="fill"></div></div>
+    <div class="goo"><div class="blob drop" id="drop"></div><div class="blob thumb" id="thumb"></div></div>
+    <div class="drop-label" id="dropLabel">40</div>
+    <div class="hit" id="hit" role="slider" tabindex="0" aria-label="Volume" aria-valuemin="0" aria-valuemax="100" aria-valuenow="40"></div>
+  </div>
+  <div class="ticks" aria-hidden="true">
+    <div class="marks" id="marks"></div>
+    <div class="nums"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>
+  </div>
+</div>
+
+<script src="../shared/motion.js"></script>
+<script src="slider.js"></script>
+</body>
+</html>

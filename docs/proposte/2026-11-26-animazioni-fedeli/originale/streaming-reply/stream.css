@@ -1,0 +1,20 @@
+/* Streaming Reply: the answer arrives word by word. The bubble's width and
+   height are springs, so it opens from the small "Thinking" pill and grows a
+   line at a time instead of jumping. */
+.chat{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:min(360px,calc(100vw - 48px));display:flex;flex-direction:column;gap:10px;
+  font-family:var(--font-inter,Inter),Inter,"Helvetica Neue",Arial,sans-serif;
+  font-size:var(--fs-base);line-height:22px;
+}
+.msg{border-radius:20px;will-change:transform,opacity}
+.me{align-self:flex-end;max-width:85%;padding:9px 14px;background:var(--inverse);color:var(--on-inverse);font-weight:var(--fw-medium)}
+.ai{position:relative;align-self:flex-start;overflow:hidden;background:var(--fill-2);color:var(--text)}
+.think{
+  position:absolute;left:14px;top:9px;white-space:nowrap;font-weight:var(--fw-medium);
+  background:linear-gradient(90deg,var(--muted-2) 20%,var(--text) 50%,var(--muted-2) 80%) 0 0/200% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 1.4s linear infinite;
+}
+@keyframes shine{to{background-position:-200% 0}}
+.text{position:absolute;left:14px;top:9px;margin:0}
+.text .wd{display:inline-block;will-change:transform,opacity,filter}

@@ -1,0 +1,38 @@
+/* Swipe Deck: throw cards left to skip, right to save */
+.deck-wrap{position:absolute;left:50%;top:50%;transform:translate(-50%,calc(-50% - 9px))}
+.deck{position:relative;width:256px;height:296px}
+.card{
+  position:absolute;inset:0;background:var(--surface);border-radius:var(--r-card);padding:12px;
+  touch-action:none;cursor:grab;will-change:transform;user-select:none;
+}
+.card.dragging{cursor:grabbing}
+.preview{height:172px;border-radius:18px;background:var(--fill-1);padding:12px;display:grid;gap:8px;overflow:hidden;position:relative}
+.preview i{display:block;border-radius:8px;background:var(--fill-2)}
+.preview .nav{height:10px;width:60%;border-radius:5px}
+.preview .hero{border-radius:10px}
+.preview .row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.preview .row i{height:34px}
+.preview .accent{background:var(--inverse)}
+.preview .green{background:var(--green)}
+.preview .orange{background:var(--orange)}
+.c-body{padding:14px 6px 0}
+.c-title{display:flex;justify-content:space-between;align-items:baseline}
+.c-title b{font-size:var(--fs-lg);font-weight:var(--fw-bold);letter-spacing:-.01em}
+.c-title span{font-size:var(--fs-md);font-weight:var(--fw-bold);font-variant-numeric:tabular-nums}
+.c-meta{font-size:var(--fs-xs);color:var(--muted);margin-top:3px}
+.c-tags{display:flex;gap:6px;margin-top:12px}
+.c-tags span{font-size:var(--fs-xs);font-weight:var(--fw-medium);color:var(--chip-text);background:var(--fill-2);border-radius:var(--r-pill);padding:5px 9px}
+.stamp{
+  position:absolute;top:22px;font-size:var(--fs-sm);font-weight:var(--fw-bold);letter-spacing:.06em;text-transform:uppercase;
+  padding:6px 12px;border-radius:var(--r-pill);opacity:0;pointer-events:none;
+}
+.stamp.save{left:22px;background:var(--green);color:var(--black);transform:rotate(-10deg)}
+.stamp.skip{right:22px;background:var(--inverse);color:var(--on-inverse);transform:rotate(10deg)}
+
+/* Cover images (Recraft, generated for Motion Studies) */
+.preview.cover{padding:0;background:var(--black) center/cover no-repeat}
+.cover-1{background-image:url(../shared/img/hills-1.webp)!important}
+.cover-2{background-image:url(../shared/img/hills-3.webp)!important}
+.cover-3{background-image:url(../shared/img/hills-5.webp)!important}
+.cover-4{background-image:url(../shared/img/hills-6.webp)!important}
+.cover-5{background-image:url(../shared/img/hills-7.webp)!important}

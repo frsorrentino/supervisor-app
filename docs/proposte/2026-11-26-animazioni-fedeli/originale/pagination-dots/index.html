@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pagination Dots</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/tokens.css">
+<link rel="stylesheet" href="../shared/base.css">
+<link rel="stylesheet" href="dots.css">
+</head>
+<body>
+<span class="badge">Navigation · Pages</span>
+<div class="pager" id="pager">
+  <div class="view"><div class="strip" id="strip">
+    <div class="sl s1"><b>Morning</b></div>
+    <div class="sl s2"><b>Noon</b></div>
+    <div class="sl s3"><b>Evening</b></div>
+    <div class="sl s4"><b>Dusk</b></div>
+    <div class="sl s5"><b>Night</b></div>
+  </div></div>
+  <div class="dots" id="dots" role="tablist" aria-label="Slides"><span class="act" id="act"></span></div>
+</div>
+<script src="../shared/motion.js"></script>
+<script src="dots.js"></script>
+</body>
+</html>

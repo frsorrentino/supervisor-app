@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pagination Dots</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/tokens.css">
+<link rel="stylesheet" href="../shared/base.css">
+<link rel="stylesheet" href="../app-tokens.css">
+<link rel="stylesheet" href="dots.css">
+</head>
+<body>
+<span class="badge">Visore · Puntini</span>
+<div class="pager" id="pager">
+  <div class="view"><div class="strip" id="strip">
+    <div class="sl s1"><b>01-copia</b></div>
+    <div class="sl s2"><b>02-lettura</b></div>
+    <div class="sl s3"><b>03-al-lavoro</b></div>
+    <div class="sl s4"><b>04-cifra</b></div>
+    <div class="sl s5"><b>05-passi</b></div>
+  </div></div>
+  <div class="dots" id="dots" role="tablist" aria-label="Slides"><span class="act" id="act"></span></div>
+</div>
+<script src="../shared/motion.js"></script>
+<script src="dots.js"></script>
+</body>
+</html>

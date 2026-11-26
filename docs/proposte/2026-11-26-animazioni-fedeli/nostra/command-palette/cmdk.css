@@ -1,0 +1,18 @@
+/* Command Palette: a small search pill opens into a command panel. Results
+   filter as you type, rows slide to their new places and the highlight
+   glides to the current row. */
+.pal{position:absolute;left:50%;top:50%;width:170px;height:44px;transform:translate(-50%,-50%);border-radius:22px;background:var(--surface);overflow:hidden;font-family:var(--font-inter,Inter),Inter,"Helvetica Neue",Arial,sans-serif;}
+svg{fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;width:18px;height:18px;flex:none}
+.trig{position:absolute;inset:0 auto auto 0;width:170px;height:44px;display:flex;align-items:center;gap:8px;padding:0 10px 0 14px;border:0;background:none;color:var(--muted);cursor:pointer;font:inherit;font-size:var(--fs-md);will-change:opacity}
+.ph{flex:1;text-align:left}
+kbd{font:inherit;font-size:var(--fs-xs);color:var(--chip-text);background:var(--fill-2);border-radius:7px;padding:2px 6px}
+.box{position:absolute;left:0;top:0;width:min(320px,calc(100vw - 48px));opacity:0;pointer-events:none}
+.box.on{pointer-events:auto}
+.q{display:flex;align-items:center;gap:10px;height:52px;padding:0 16px;color:var(--muted)}
+.q input{flex:1;min-width:0;border:0;outline:0;background:none;color:var(--text);font:inherit;font-size:var(--fs-lg)}
+.q input::placeholder{color:var(--muted-2)}
+.res{position:relative;list-style:none;padding:0 6px 6px;height:236px}
+.res li{position:absolute;left:6px;right:6px;top:0;height:38px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-radius:12px;font-size:var(--fs-md);color:var(--text-2);will-change:transform,opacity;cursor:pointer}
+.res li.cur{color:var(--text)}
+.res li kbd{font-size:var(--fs-2xs)}
+.hl{position:absolute;left:6px;right:6px;top:0;height:38px;border-radius:12px;background:var(--fill-2);will-change:transform,opacity}

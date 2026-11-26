@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stat Card</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/tokens.css">
+<link rel="stylesheet" href="../shared/base.css">
+<link rel="stylesheet" href="../app-tokens.css">
+<link rel="stylesheet" href="stat.css">
+</head>
+<body>
+<span class="badge">Schede · Turni</span>
+<div class="stat" id="stat">
+  <div class="top">
+    <div><p class="lab">Turni conclusi</p><p class="big" id="big">48</p></div>
+    <span class="delta" id="delta">+12.4%</span>
+  </div>
+  <div class="cw"><svg class="chart" id="chart" aria-hidden="true">
+    <defs><linearGradient id="area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#34d17a" stop-opacity=".32"/><stop offset="1" stop-color="#34d17a" stop-opacity="0"/></linearGradient></defs>
+    <path id="fill" fill="url(#area)"/>
+    <path id="line" fill="none" stroke="#34d17a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg><span class="dot" id="dot"></span></div>
+  <div class="seg" id="seg"><span class="pill" id="pill"></span><button data-r="0">Settimana</button><button data-r="1">Mese</button><button data-r="2">Anno</button></div>
+</div>
+
+<script src="../shared/motion.js"></script>
+<script src="stat.js"></script>
+</body>
+</html>
