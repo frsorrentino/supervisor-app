@@ -1,7 +1,8 @@
 <script lang="ts">
   import { locale } from './lang'
   import { excerpt, nextRate } from './speechRules'
-  import { cycleVoice, pause, resume, setRate, speech, stop } from './speech.svelte'
+  import { cycleVoice, pause, resume, seek, setRate, speech, stop } from './speech.svelte'
+  import ReadingScrub from './ReadingScrub.svelte'
   import RateSlider from './RateSlider.svelte'
   import { t } from './t'
   // Il mini-controller della lettura (ReadingPill dell'app): le barrette che si muovono, da dove arriva il testo e la sua
@@ -55,12 +56,14 @@
     {:else}
       <button class="pp" aria-label={t.readingPause} title={t.readingPause} onclick={pause}><svg viewBox="0 0 24 24" width="22" height="22"><rect x="6.5" y="5" width="4" height="14" rx="1.2" fill="currentColor" /><rect x="13.5" y="5" width="4" height="14" rx="1.2" fill="currentColor" /></svg></button>
     {/if}
+    <!-- Voce 8 del terzo giro: lo scrubber dei pezzi letti, sotto (a capo nella pillola). -->
     <button class="stop" aria-label={t.stopReading} title={t.stopReading} onclick={stop}><svg viewBox="0 0 24 24" width="20" height="20"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor" /></svg></button>
+    {#if !rateOpen && speech.parts > 1}<ReadingScrub count={speech.parts} at={speech.part} onSeek={seek} />{/if}
   </div>
 {/if}
 
 <style>
-  .pill { container-type: inline-size; display: flex; align-items: center; gap: 10px; min-height: 60px; padding: 6px 8px 6px 16px; margin: 0 12px; border-radius: 28px; background: var(--high); box-shadow: 0 6px 18px rgb(0 0 0 / .45); }
+  .pill { container-type: inline-size; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; min-height: 60px; padding: 6px 8px 6px 16px; margin: 0 12px; border-radius: 28px; background: var(--high); box-shadow: 0 6px 18px rgb(0 0 0 / .45); }
   .bars { display: flex; gap: 3px; align-items: flex-end; height: 20px; flex: none; }
   .bars i { width: 4px; height: 60%; border-radius: 2px; background: var(--icon); animation: bar 520ms ease-in-out infinite alternate; }
   .bars i:nth-child(2) { animation-delay: 180ms; }

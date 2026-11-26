@@ -196,6 +196,8 @@ fun ReadingPill(
     modifier: Modifier = Modifier,
     /** In pausa: ⏸ diventa ▶ pieno, le barrette si fermano, sopra il testo «in pausa» (Franz, 07/10 22:06). */
     paused: Boolean = false, onPause: () -> Unit = {}, onResume: () -> Unit = {},
+    /** Voce 8 del terzo giro (scrubber della lettura): quanti paragrafi, quello che legge, e il salto a un altro. */
+    blocks: Int = 0, block: Int? = null, onSeek: ((Int) -> Unit)? = null,
 ) {
     val overlay = LocalReadingOverlay.current
     var localOpen by remember { mutableStateOf(false) }
@@ -271,6 +273,7 @@ fun ReadingPill(
         BoxWithConstraints {
             // In una colonna stretta del tablet restano i tasti: la riga del testo si vede già nella colonna.
             val roomy = maxWidth >= 300.dp
+            Column {
             Row(
                 Modifier.heightIn(min = 60.dp).padding(start = if (open) 8.dp else 16.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -308,6 +311,8 @@ fun ReadingPill(
                 IconButton(onClick = onStop, modifier = Modifier.size(44.dp)) {
                     Icon(Icons.Rounded.Stop, stringResource(R.string.stop_reading), tint = Cm.actionIcon)
                 }
+            }
+            if (!open && blocks > 1 && onSeek != null) ReadingScrub(blocks, block ?: 0, onSeek)
             }
         }
     }

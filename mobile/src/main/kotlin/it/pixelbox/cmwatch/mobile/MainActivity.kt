@@ -611,6 +611,10 @@ class MainActivity : ComponentActivity() {
                         if (src == it.pixelbox.cmwatch.rules.ContextActions.MASTER) { open = null; masterChat = true } else open = src
                     }),
                     onStop = { speech.stop() },
+                    // Voce 8 del terzo giro: lo scrubber dei paragrafi, gli stessi che la chat mostra durante la lettura.
+                    blocks = androidx.compose.runtime.remember(text) { speech.blocksOf(text).size },
+                    block = speech.block.collectAsStateWithLifecycle().value,
+                    onSeek = { i -> speech.speakBlocks(text, i, src) },
                 )
             }
         }

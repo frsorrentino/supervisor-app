@@ -7,8 +7,8 @@ import { lang, locale } from './lang'
 const load = (k: string) => { try { return localStorage.getItem(k) } catch { return null } }
 const store = (k: string, v: string | null) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v) } catch { /* resta per la sessione */ } }
 
-export const speech = $state<{ text: string | null; source: string | null; paused: boolean; rate: number; voice: string | null; voices: string[] }>({
-  text: null, source: null, paused: false, rate: rateOf(Number(load('cm.rate') ?? NaN)), voice: load('cm.voice') || null, voices: [],
+export const speech = $state<{ text: string | null; source: string | null; paused: boolean; rate: number; voice: string | null; voices: string[]; part: number; parts: number }>({
+  part: 0, parts: 0, text: null, source: null, paused: false, rate: rateOf(Number(load('cm.rate') ?? NaN)), voice: load('cm.voice') || null, voices: [],
 })
 let parts: string[] = []
 let at = 0
@@ -31,6 +31,7 @@ function play(from: number) {
   const next = () => {
     if (id !== run) return
     if (at >= parts.length) { speech.text = null; speech.source = null; return }
+    speech.part = at
     const u = new SpeechSynthesisUtterance(parts[at])
     u.lang = locale
     u.rate = speech.rate
@@ -50,11 +51,14 @@ export function toggle(text: string, source: string | null = null) {
   if (speech.text === text) { if (speech.paused) resume(); else stop(); return }
   parts = chunks(forPhone(text, t.codeLabel))
   if (!parts.length) return
+  speech.parts = parts.length
   speech.text = text
   speech.source = source
   speech.paused = false
   play(0)
 }
+/** Voce 8 del terzo giro (scrubber della lettura): riparte dal pezzo `i` del testo che sta leggendo. */
+export function seek(i: number) { if (!speech.text || !parts.length) return; speech.paused = false; play(Math.max(0, Math.min(parts.length - 1, i))) }
 export function stop() { run++; speechSynthesis.cancel(); speech.text = null; speech.source = null; speech.paused = false }
 /**
  * Pausa (Franz, 07/10, barra approvata alle 22:06): come sul telefono si ferma la voce e si tiene il pezzo, circa una

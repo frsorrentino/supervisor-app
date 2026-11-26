@@ -695,6 +695,7 @@
     <string name="voice_change">Change voice, now: %1$s</string>
     <string name="voice_sample">Hi Franz, this is the voice that will read the replies.</string>
     <string name="speech_rate_bubble_normal">normal %1$s</string>
+    <string name="reading_seek">Paragraph %1$d of %2$d</string>
     <string name="speech_rate">Reading speed</string>
     <string name="speech_rate_value">%1$s×</string>
     <string name="speech_rate_normal">%1$s× (normal)</string>
