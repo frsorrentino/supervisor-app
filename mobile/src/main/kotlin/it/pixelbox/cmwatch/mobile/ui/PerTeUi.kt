@@ -478,11 +478,13 @@ private const val STACK_SCALE = 0.05f
 /**
  * Voce 3, fedele all'originale (Notification stack; app-animazioni-fedeli-26-11): all'apertura ogni voce scende dalla pila al suo posto,
  * da 10 dp per livello sotto la testa e con la scala del suo livello, in 300 ms con (0.23, 1, 0.32, 1); dalla quarta in giù entrano
- * dall'invisibile, come nella pila chiusa. Moto ridotto: solo l'opacità, come l'originale.
+ * dall'invisibile, come nella pila chiusa. Animazioni spente: al loro posto e basta.
  */
 @Composable
 private fun Modifier.stackDrop(index: Int): Modifier {
-    val off = animationsOff()
+    // Con le animazioni spente (e nelle immagini di prova) le voci stanno al loro posto, piene: niente moto, come vuole la regola.
+    if (animationsOff() || androidx.compose.ui.platform.LocalInspectionMode.current) return this
+    val off = false
     val p = androidx.compose.runtime.remember { androidx.compose.animation.core.Animatable(0f) }
     var y by androidx.compose.runtime.remember { androidx.compose.runtime.mutableFloatStateOf(Float.NaN) }
     androidx.compose.runtime.LaunchedEffect(Unit) { p.animateTo(1f, androidx.compose.animation.core.tween(300, easing = androidx.compose.animation.core.CubicBezierEasing(0.23f, 1f, 0.32f, 1f))) }
