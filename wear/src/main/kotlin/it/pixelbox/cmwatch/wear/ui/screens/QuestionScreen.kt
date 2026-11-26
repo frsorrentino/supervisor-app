@@ -90,19 +90,23 @@ fun QuestionScreen(
         }
     }
 
-    // Voce 8 di app-animazioni-seconde-26-11 (Domanda che arriva al polso): all'arrivo chi chiede, la domanda e i tasti salgono di 14 dp
-    // e si posano con un piccolo sforamento, a 40 ms l'uno dall'altro; una volta sola per domanda. Con «riduci animazioni» niente.
+    // Voce 8, fedele all'originale (Notification stack; app-animazioni-fedeli-26-11), la domanda che arriva al polso: chi chiede, la
+    // domanda e i tasti arrivano come la carta nuova in cima alla pila, dal livello sotto (10 dp più giù, scala 0,95, opacità da 0) al
+    // loro posto, in 300 ms con (0.23, 1, 0.32, 1), a 40 ms l'uno dall'altro; una volta sola per domanda. Con «riduci animazioni» niente.
     // Solo all'arrivo: una domanda di più di 20 s fa (aperta più tardi, o nelle immagini di prova) è già al suo posto.
     val appena = q != null && System.currentTimeMillis() / 1000 - q.askedAt <= 20
     val ferma = fermeAnimazioni || !appena || androidx.compose.ui.platform.LocalInspectionMode.current
     val arrivo = androidx.compose.runtime.remember(q?.text) { androidx.compose.animation.core.Animatable(if (ferma) 1f else 0f) }
-    LaunchedEffect(q?.text, ferma) { if (!ferma && q != null) arrivo.animateTo(1f, androidx.compose.animation.core.tween(620 + 6 * it.pixelbox.cmwatch.rules.Animazioni.STAGGER_MS, easing = androidx.compose.animation.core.LinearEasing)) }
-    val sale = androidx.compose.animation.core.CubicBezierEasing(0.34f, 1.3f, 0.64f, 1f)
+    val totale = 300 + 6 * it.pixelbox.cmwatch.rules.Animazioni.STAGGER_MS
+    LaunchedEffect(q?.text, ferma) { if (!ferma && q != null) arrivo.animateTo(1f, androidx.compose.animation.core.tween(totale.toInt(), easing = androidx.compose.animation.core.LinearEasing)) }
+    val pila = androidx.compose.animation.core.CubicBezierEasing(0.23f, 1f, 0.32f, 1f)
     fun Modifier.arriva(i: Int): Modifier = graphicsLayer {
-        val total = 620f + 6 * it.pixelbox.cmwatch.rules.Animazioni.STAGGER_MS
-        val local = ((arrivo.value * total - i * it.pixelbox.cmwatch.rules.Animazioni.STAGGER_MS) / 620f).coerceIn(0f, 1f)
-        translationY = (1f - sale.transform(local)) * 14.dp.toPx()
-        alpha = (local / 0.3f).coerceAtMost(1f)
+        val local = ((arrivo.value * totale - i * it.pixelbox.cmwatch.rules.Animazioni.STAGGER_MS) / 300f).coerceIn(0f, 1f)
+        val e = pila.transform(local)
+        translationY = (1f - e) * 10.dp.toPx()
+        val k = 0.95f + 0.05f * e
+        scaleX = k; scaleY = k
+        alpha = e
     }
 
     // Domanda sparita: se l'abbiamo mandata noi si chiude al risultato; altrimenti «già risposta» e si chiude.
