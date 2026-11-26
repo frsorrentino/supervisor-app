@@ -1,0 +1,1031 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Animazioni, terzo giro</title>
+<style>/* Mockup delle animazioni (app-animazioni-stile-26-11): colori e caratteri v3 (web/src/v3.css), curve e tempi di CmMotion e
+   app.css. Nessun valore nuovo: le proposte usano le tre molle che l'app ha già, più il ciclo di 1,6 s della linea al lavoro. */
+@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@600;700&family=Geist+Mono:wght@400;500&display=swap');
+:root {
+  --bg: #0B0B0B; --s1: #111111; --s2: #181818; --s3: #222222; --line: #2A2A2A;
+  --tx: #EEEEEE; --tx2: #9B9B9B; --tx3: #8A8A8A; --act: #FFFFFF; --on-act: #0B0B0B;
+  --wait: #FFB23F; --busy: #8FA8D2; --good: #71D083; --red: #FF5A5F;
+  --sans: Barlow, system-ui, sans-serif; --display: 'Barlow Semi Condensed', Barlow, system-ui, sans-serif; --mono: 'Geist Mono', ui-monospace, monospace;
+  --spring-fast: linear(0, .253, .577, .786, .899, .954, .98, .991, 1); --spring-fast-t: 200ms;
+  --spring-bounce: linear(0, .206, .553, .826, .979, 1.038, 1.045, 1.031, 1.016, 1.005, 1, .998, .998, .999, .999, 1, 1); --spring-bounce-t: 620ms;
+  --spring-slow: linear(0, .158, .413, .626, .774, .868, .925, .958, .977, .987, 1); --spring-slow-t: 500ms;
+  --ease-out: cubic-bezier(.3, 0, .2, 1); /* CmMotion.easing */
+  --cycle: 1.6s; /* la linea del lavoro in corso, voce 1 */
+}
+/* Riduzione delle animazioni, come app.css: niente rimbalzo, tempi brevi; i cicli si fermano. */
+@media (prefers-reduced-motion: reduce) { :root { --spring-bounce: var(--spring-fast); --spring-bounce-t: 1ms; --spring-fast-t: 1ms; --spring-slow-t: 120ms; } }
+html.reduce { --spring-bounce: var(--spring-fast); --spring-bounce-t: 1ms; --spring-fast-t: 1ms; --spring-slow-t: 120ms; }
+* { box-sizing: border-box; margin: 0; }
+html, body { background: var(--bg); color: var(--tx); font: 400 16px/1.4 var(--sans); -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
+body { width: 360px; margin: 0; padding: 16px 16px 20px; }
+.top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.top h1 { font: 700 22px/1.15 var(--display); }
+.top .ref { font: 400 12px/1.3 var(--mono); color: var(--tx3); text-align: right; }
+.card { background: var(--s1); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+.card + .card { margin-top: 10px; }
+.k { font: 600 15px/22px var(--display); color: var(--tx2); }
+.meta { font-size: 13.5px; color: var(--tx2); }
+.mono { font: 400 12.5px/1.4 var(--mono); color: var(--tx2); }
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+.tonal { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 16px; border-radius: 20px; background: var(--s3); color: var(--tx); font-weight: 500; transition: transform var(--spring-fast-t) var(--spring-fast); }
+.tonal:active, .tonal.press { transform: scale(.97); transition-duration: 100ms; }
+html.reduce .tonal.press { transform: none; }
+.note { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 13.5px; line-height: 1.45; color: var(--tx2); }
+.note b { color: var(--tx); font-weight: 600; }
+.note .t { font: 400 12px/1.5 var(--mono); color: var(--tx3); margin-top: 6px; }
+.ctl { display: flex; gap: 10px; align-items: center; margin-top: 12px; font-size: 13px; color: var(--tx3); }
+.ctl label { display: inline-flex; gap: 6px; align-items: center; }
+html.still .ctl { display: none; }
+/* Il fotogramma del PNG (?still): lo stato finale, senza transizioni a metà. */
+html.still *, html.still *::before, html.still *::after { transition: none !important; }
+/* Nel fotogramma del PNG le animazioni d ingresso non restano al primo fotogramma. */
+html.still *, html.still *::before, html.still *::after { animation: none !important; }
+
+  body { width: auto; max-width: 1560px; padding: 20px 16px; }
+  h1 { font: 700 26px/1.2 var(--display); }
+  .sub { color: var(--tx2); margin: 4px 0 18px; max-width: 70ch; }
+  .grid { display: flex; flex-wrap: wrap; gap: 16px; }
+  figure { margin: 0; }
+  iframe { width: 360px; height: 720px; border: 1px solid var(--line); border-radius: 14px; background: var(--bg); display: block; }
+  figcaption { font: 400 12.5px/1.4 var(--mono); color: var(--tx3); margin-top: 6px; }
+</style></head><body>
+<h1>Animazioni, terzo giro</h1>
+<p class="sub">Le idee di Franz del 26/11 alle 14:49, con le stesse molle e gli stessi tempi dell'app. Ognuna si ripete da sola; dentro c'è il riquadro per le animazioni ridotte. Costi e opzioni A-D sono in proposta.md.</p>
+<div class="grid">
+  <figure><iframe title="Citare una sessione con @" srcdoc="&lt;!doctype html&gt;&lt;html lang=&quot;it&quot;&gt;&lt;head&gt;&lt;meta charset=&quot;utf-8&quot;&gt;&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
+&lt;title&gt;Citare una sessione con @&lt;/title&gt;&lt;style&gt;/* Mockup delle animazioni (app-animazioni-stile-26-11): colori e caratteri v3 (web/src/v3.css), curve e tempi di CmMotion e
+   app.css. Nessun valore nuovo: le proposte usano le tre molle che l&#x27;app ha già, più il ciclo di 1,6 s della linea al lavoro. */
+@import url(&#x27;https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&amp;family=Barlow+Semi+Condensed:wght@600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap&#x27;);
+:root {
+  --bg: #0B0B0B; --s1: #111111; --s2: #181818; --s3: #222222; --line: #2A2A2A;
+  --tx: #EEEEEE; --tx2: #9B9B9B; --tx3: #8A8A8A; --act: #FFFFFF; --on-act: #0B0B0B;
+  --wait: #FFB23F; --busy: #8FA8D2; --good: #71D083; --red: #FF5A5F;
+  --sans: Barlow, system-ui, sans-serif; --display: &#x27;Barlow Semi Condensed&#x27;, Barlow, system-ui, sans-serif; --mono: &#x27;Geist Mono&#x27;, ui-monospace, monospace;
+  --spring-fast: linear(0, .253, .577, .786, .899, .954, .98, .991, 1); --spring-fast-t: 200ms;
+  --spring-bounce: linear(0, .206, .553, .826, .979, 1.038, 1.045, 1.031, 1.016, 1.005, 1, .998, .998, .999, .999, 1, 1); --spring-bounce-t: 620ms;
+  --spring-slow: linear(0, .158, .413, .626, .774, .868, .925, .958, .977, .987, 1); --spring-slow-t: 500ms;
+  --ease-out: cubic-bezier(.3, 0, .2, 1); /* CmMotion.easing */
+  --cycle: 1.6s; /* la linea del lavoro in corso, voce 1 */
+}
+/* Riduzione delle animazioni, come app.css: niente rimbalzo, tempi brevi; i cicli si fermano. */
+@media (prefers-reduced-motion: reduce) { :root { --spring-bounce: var(--spring-fast); --spring-bounce-t: 1ms; --spring-fast-t: 1ms; --spring-slow-t: 120ms; } }
+html.reduce { --spring-bounce: var(--spring-fast); --spring-bounce-t: 1ms; --spring-fast-t: 1ms; --spring-slow-t: 120ms; }
+* { box-sizing: border-box; margin: 0; }
+html, body { background: var(--bg); color: var(--tx); font: 400 16px/1.4 var(--sans); -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
+body { width: 360px; margin: 0; padding: 16px 16px 20px; }
+.top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.top h1 { font: 700 22px/1.15 var(--display); }
+.top .ref { font: 400 12px/1.3 var(--mono); color: var(--tx3); text-align: right; }
+.card { background: var(--s1); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+.card + .card { margin-top: 10px; }
+.k { font: 600 15px/22px var(--display); color: var(--tx2); }
+.meta { font-size: 13.5px; color: var(--tx2); }
+.mono { font: 400 12.5px/1.4 var(--mono); color: var(--tx2); }
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+.tonal { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 16px; border-radius: 20px; background: var(--s3); color: var(--tx); font-weight: 500; transition: transform var(--spring-fast-t) var(--spring-fast); }
+.tonal:active, .tonal.press { transform: scale(.97); transition-duration: 100ms; }
+html.reduce .tonal.press { transform: none; }
+.note { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 13.5px; line-height: 1.45; color: var(--tx2); }
+.note b { color: var(--tx); font-weight: 600; }
+.note .t { font: 400 12px/1.5 var(--mono); color: var(--tx3); margin-top: 6px; }
+.ctl { display: flex; gap: 10px; align-items: center; margin-top: 12px; font-size: 13px; color: var(--tx3); }
+.ctl label { display: inline-flex; gap: 6px; align-items: center; }
+html.still .ctl { display: none; }
+/* Il fotogramma del PNG (?still): lo stato finale, senza transizioni a metà. */
+html.still *, html.still *::before, html.still *::after { transition: none !important; }
+/* Nel fotogramma del PNG le animazioni d ingresso non restano al primo fotogramma. */
+html.still *, html.still *::before, html.still *::after { animation: none !important; }
+&lt;/style&gt;
+&lt;style&gt;
+  .msgs { min-height: 150px; display: flex; flex-direction: column; justify-content: flex-end; gap: 8px; }
+  .cl { font-size: 15px; line-height: 1.45; }
+  /* L&#x27;elenco delle sessioni sale sopra il campo appena si scrive @; filtra mentre si scrive. */
+  .pick { margin: 10px 0 6px; background: var(--s2); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; transform-origin: bottom left; opacity: 0; transform: translateY(6px) scale(.98); transition: opacity 150ms var(--ease-out), transform var(--spring-fast-t) var(--spring-fast); }
+  .pick.on { opacity: 1; transform: none; }
+  .pick .r { display: flex; align-items: center; gap: 10px; padding: 10px 12px; font-size: 15px; }
+  .pick .r + .r { border-top: 1px solid var(--line); }
+  .pick .r.hi { background: var(--s3); }
+  .pick .r i { width: 8px; height: 8px; border-radius: 4px; }
+  .pick .r .st { margin-left: auto; font: 400 12.5px var(--mono); color: var(--tx3); }
+  .field { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 6px 6px 6px 14px; border-radius: 24px; background: var(--s2); border: 1px solid var(--line); font-size: 16px; }
+  .txt { flex: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-height: 24px; }
+  /* La sessione scelta diventa una pillola nel campo, che entra da 0,9: il tocco la apre, la ✕ la toglie. */
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 14px; background: color-mix(in srgb, var(--busy) 22%, var(--s3)); color: var(--tx); font: 600 14px var(--display); animation: pin var(--spring-bounce-t) var(--spring-bounce) both; }
+  @keyframes pin { from { transform: scale(.9); opacity: 0; } }
+  .caret { width: 2px; height: 20px; background: var(--tx); animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .send { width: 36px; height: 36px; border-radius: 18px; display: grid; place-items: center; background: var(--s3); color: var(--tx2); }
+  .lab { font: 400 12px var(--mono); color: var(--tx3); margin-top: 8px; min-height: 17px; }
+  html.reduce .pick, html.reduce .pill { transition: none; animation: none; }
+  html.still .caret { animation: none; }
+&lt;/style&gt;&lt;/head&gt;&lt;body&gt;
+&lt;div class=&quot;top&quot;&gt;&lt;h1&gt;Citare una sessione con @&lt;/h1&gt;&lt;div class=&quot;ref&quot;&gt;Mention picker&lt;br&gt;telefono · web&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;card&quot;&gt;
+  &lt;div class=&quot;msgs&quot;&gt;&lt;div class=&quot;cl&quot;&gt;La build è verde. Vuoi che chieda a supervisor-app di preparare la pre-release?&lt;/div&gt;&lt;/div&gt;
+  &lt;div class=&quot;pick&quot; id=&quot;pick&quot;&gt;
+    &lt;div class=&quot;r hi&quot;&gt;&lt;i style=&quot;background:var(--busy)&quot;&gt;&lt;/i&gt;supervisor-app&lt;span class=&quot;st&quot;&gt;al lavoro&lt;/span&gt;&lt;/div&gt;
+    &lt;div class=&quot;r&quot;&gt;&lt;i style=&quot;background:var(--good)&quot;&gt;&lt;/i&gt;supervisor&lt;span class=&quot;st&quot;&gt;ferma&lt;/span&gt;&lt;/div&gt;
+    &lt;div class=&quot;r&quot;&gt;&lt;i style=&quot;background:var(--tx3)&quot;&gt;&lt;/i&gt;supervisor-web&lt;span class=&quot;st&quot;&gt;chiusa&lt;/span&gt;&lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class=&quot;field&quot;&gt;&lt;span class=&quot;txt&quot; id=&quot;txt&quot;&gt;&lt;/span&gt;&lt;span class=&quot;send&quot;&gt;&lt;svg viewBox=&quot;0 0 24 24&quot; width=&quot;18&quot; height=&quot;18&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;&gt;&lt;path d=&quot;M12 19V5M5 12l7-7 7 7&quot;/&gt;&lt;/svg&gt;&lt;/span&gt;&lt;/div&gt;
+  &lt;p class=&quot;lab&quot; id=&quot;lab&quot;&gt;&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class=&quot;note&quot;&gt;&lt;b&gt;Cosa fa.&lt;/b&gt; Nel campo della master o di una sessione, «@» apre l&#x27;elenco delle sessioni, che si filtra mentre scrivi; la scelta diventa una pillola. Mandato, il testo va alla sessione citata come un prompt dal telefono (l&#x27;op c&#x27;è già); nella chat da cui scrivi resta una riga «→ supervisor-app». Il tocco sulla pillola apre la sessione. Con due citazioni il messaggio va a tutte e due.
+&lt;div class=&quot;t&quot;&gt;elenco 150 ms + molla veloce · pillola con la molla di casa · ridotte: comparsa secca · relay: niente di nuovo, il prompt a una sessione c&#x27;è&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;ctl&quot;&gt;&lt;/div&gt;
+&lt;script&gt;// Ogni mockup ripete la sua scena: `M.loop(scena, fotogramma)` la fa partire, `?still` la ferma sul fotogramma del PNG,
+// `?reduce` (o il riquadro) mostra la versione con le animazioni ridotte. Script classico: si apre anche da file://.
+window.M = (() =&gt; {
+  const q = new URLSearchParams(location.search)
+  const still = q.has(&#x27;still&#x27;)
+  const root = document.documentElement
+  if (still) root.classList.add(&#x27;still&#x27;)
+  if (q.has(&#x27;reduce&#x27;) || matchMedia(&#x27;(prefers-reduced-motion: reduce)&#x27;).matches) root.classList.add(&#x27;reduce&#x27;)
+  const reduced = () =&gt; root.classList.contains(&#x27;reduce&#x27;)
+  const wait = ms =&gt; new Promise(r =&gt; setTimeout(r, ms))
+  async function loop(scene, stillFrame, every = 900) {
+    // Le misure delle parole valgono solo con i caratteri veri caricati.
+    await document.fonts.ready
+    if (still) { stillFrame(); return }
+    const box = document.querySelector(&#x27;.ctl&#x27;)
+    if (box) box.innerHTML = &#x27;&lt;button class=&quot;tonal&quot; id=&quot;again&quot;&gt;Riproduci&lt;/button&gt;&lt;label&gt;&lt;input type=&quot;checkbox&quot; id=&quot;red&quot;&#x27; + (reduced() ? &#x27; checked&#x27; : &#x27;&#x27;) + &#x27;&gt; Animazioni ridotte&lt;/label&gt;&#x27;
+    document.getElementById(&#x27;red&#x27;)?.addEventListener(&#x27;change&#x27;, e =&gt; root.classList.toggle(&#x27;reduce&#x27;, e.target.checked))
+    let run = 0
+    const go = async () =&gt; { const me = ++run; while (me === run) { await scene(); await wait(every) } }
+    document.getElementById(&#x27;again&#x27;)?.addEventListener(&#x27;click&#x27;, go)
+    go()
+  }
+  return { still, reduced, wait, loop }
+})()
+&lt;/script&gt;
+&lt;script&gt;
+  const pick = document.getElementById(&#x27;pick&#x27;), txt = document.getElementById(&#x27;txt&#x27;), lab = document.getElementById(&#x27;lab&#x27;)
+  const set = h =&gt; { txt.innerHTML = h + &#x27;&lt;span class=&quot;caret&quot;&gt;&lt;/span&gt;&#x27; }
+  M.loop(async () =&gt; {
+    pick.classList.remove(&#x27;on&#x27;); set(&#x27;&#x27;); lab.textContent = &#x27;&#x27;
+    await M.wait(700); set(&#x27;@&#x27;); pick.classList.add(&#x27;on&#x27;); lab.textContent = &#x27;@ apre le sessioni&#x27;
+    await M.wait(700); set(&#x27;@sup&#x27;); await M.wait(900)
+    pick.classList.remove(&#x27;on&#x27;); set(&#x27;&lt;span class=&quot;pill&quot;&gt;@supervisor-app&lt;/span&gt;&#x27;); lab.textContent = &#x27;la scelta diventa una pillola&#x27;
+    await M.wait(800); set(&#x27;&lt;span class=&quot;pill&quot;&gt;@supervisor-app&lt;/span&gt; prepara la pre-release&#x27;); await M.wait(1800)
+  }, () =&gt; { pick.classList.add(&#x27;on&#x27;); set(&#x27;@sup&#x27;); lab.textContent = &#x27;@ apre le sessioni, la scelta diventa una pillola&#x27; })
+&lt;/script&gt;&lt;/body&gt;&lt;/html&gt;
+"></iframe><figcaption>1 · Citare una sessione con @</figcaption></figure>
+  <figure><iframe title="Codice di abbinamento a 6 caselle" srcdoc="&lt;!doctype html&gt;&lt;html lang=&quot;it&quot;&gt;&lt;head&gt;&lt;meta charset=&quot;utf-8&quot;&gt;&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
+&lt;title&gt;Codice di abbinamento&lt;/title&gt;&lt;style&gt;/* Mockup delle animazioni (app-animazioni-stile-26-11): colori e caratteri v3 (web/src/v3.css), curve e tempi di CmMotion e
+   app.css. Nessun valore nuovo: le proposte usano le tre molle che l&#x27;app ha già, più il ciclo di 1,6 s della linea al lavoro. */
+@import url(&#x27;https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&amp;family=Barlow+Semi+Condensed:wght@600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap&#x27;);
+:root {
+  --bg: #0B0B0B; --s1: #111111; --s2: #181818; --s3: #222222; --line: #2A2A2A;
+  --tx: #EEEEEE; --tx2: #9B9B9B; --tx3: #8A8A8A; --act: #FFFFFF; --on-act: #0B0B0B;
+  --wait: #FFB23F; --busy: #8FA8D2; --good: #71D083; --red: #FF5A5F;
+  --sans: Barlow, system-ui, sans-serif; --display: &#x27;Barlow Semi Condensed&#x27;, Barlow, system-ui, sans-serif; --mono: &#x27;Geist Mono&#x27;, ui-monospace, monospace;
+  --spring-fast: linear(0, .253, .577, .786, .899, .954, .98, .991, 1); --spring-fast-t: 200ms;
+  --spring-bounce: linear(0, .206, .553, .826, .979, 1.038, 1.045, 1.031, 1.016, 1.005, 1, .998, .998, .999, .999, 1, 1); --spring-bounce-t: 620ms;
+  --spring-slow: linear(0, .158, .413, .626, .774, .868, .925, .958, .977, .987, 1); --spring-slow-t: 500ms;
+  --ease-out: cubic-bezier(.3, 0, .2, 1); /* CmMotion.easing */
+  --cycle: 1.6s; /* la linea del lavoro in corso, voce 1 */
+}
+/* Riduzione delle animazioni, come app.css: niente rimbalzo, tempi brevi; i cicli si fermano. */
+@media (prefers-reduced-motion: reduce) { :root { --spring-bounce: var(--spring-fast); --spring-bounce-t: 1ms; --spring-fast-t: 1ms; --spring-slow-t: 120ms; } }
+html.reduce { --spring-bounce: var(--spring-fast); --spring-bounce-t: 1ms; --spring-fast-t: 1ms; --spring-slow-t: 120ms; }
+* { box-sizing: border-box; margin: 0; }
+html, body { background: var(--bg); color: var(--tx); font: 400 16px/1.4 var(--sans); -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
+body { width: 360px; margin: 0; padding: 16px 16px 20px; }
+.top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.top h1 { font: 700 22px/1.15 var(--display); }
+.top .ref { font: 400 12px/1.3 var(--mono); color: var(--tx3); text-align: right; }
+.card { background: var(--s1); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+.card + .card { margin-top: 10px; }
+.k { font: 600 15px/22px var(--display); color: var(--tx2); }
+.meta { font-size: 13.5px; color: var(--tx2); }
+.mono { font: 400 12.5px/1.4 var(--mono); color: var(--tx2); }
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+.tonal { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 16px; border-radius: 20px; background: var(--s3); color: var(--tx); font-weight: 500; transition: transform var(--spring-fast-t) var(--spring-fast); }
+.tonal:active, .tonal.press { transform: scale(.97); transition-duration: 100ms; }
+html.reduce .tonal.press { transform: none; }
+.note { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 13.5px; line-height: 1.45; color: var(--tx2); }
+.note b { color: var(--tx); font-weight: 600; }
+.note .t { font: 400 12px/1.5 var(--mono); color: var(--tx3); margin-top: 6px; }
+.ctl { display: flex; gap: 10px; align-items: center; margin-top: 12px; font-size: 13px; color: var(--tx3); }
+.ctl label { display: inline-flex; gap: 6px; align-items: center; }
+html.still .ctl { display: none; }
+/* Il fotogramma del PNG (?still): lo stato finale, senza transizioni a metà. */
+html.still *, html.still *::before, html.still *::after { transition: none !important; }
+/* Nel fotogramma del PNG le animazioni d ingresso non restano al primo fotogramma. */
+html.still *, html.still *::before, html.still *::after { animation: none !important; }
+&lt;/style&gt;
+&lt;style&gt;
+  .k2 { font: 600 17px/1.3 var(--display); }
+  .sub2 { font-size: 14px; color: var(--tx2); margin-top: 4px; }
+  /* Sei caselle: la cifra entra da 0,9, il fuoco passa da solo alla casella dopo; incollato, le sei si riempiono in fila. */
+  .boxes { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-top: 14px; }
+  .bx { height: 52px; border-radius: 12px; background: var(--s2); border: 1px solid var(--line); display: grid; place-items: center; font: 600 24px var(--mono); color: var(--tx); transition: border-color 150ms, box-shadow 150ms; }
+  .bx.f { border-color: var(--tx2); box-shadow: 0 0 0 1px var(--tx2); }
+  .bx span { animation: dg var(--spring-fast-t) var(--spring-fast) both; }
+  @keyframes dg { from { transform: scale(.9) translateY(4px); opacity: 0; } }
+  .boxes.ok .bx { border-color: var(--good); color: var(--good); }
+  .boxes.bad { animation: shake 320ms var(--ease-out); }
+  .boxes.bad .bx { border-color: var(--red); }
+  @keyframes shake { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+  .msg { font-size: 14px; margin-top: 10px; min-height: 20px; color: var(--tx2); }
+  .msg.ok { color: var(--good); } .msg.bad { color: var(--red); }
+  html.reduce .bx span, html.reduce .boxes.bad { animation: none; }
+&lt;/style&gt;&lt;/head&gt;&lt;body&gt;
+&lt;div class=&quot;top&quot;&gt;&lt;h1&gt;Codice di abbinamento&lt;/h1&gt;&lt;div class=&quot;ref&quot;&gt;OTP code&lt;br&gt;telefono · web&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;card&quot;&gt;
+  &lt;div class=&quot;k2&quot;&gt;Abbina questo dispositivo&lt;/div&gt;
+  &lt;p class=&quot;sub2&quot;&gt;Scrivi il codice che il PC mostra con «relay pair --add»&lt;/p&gt;
+  &lt;div class=&quot;boxes&quot; id=&quot;b&quot;&gt;&lt;/div&gt;
+  &lt;p class=&quot;msg&quot; id=&quot;msg&quot;&gt;&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class=&quot;note&quot;&gt;&lt;b&gt;Cosa fa.&lt;/b&gt; Quando il QR non si legge (lo schermo del PC lontano, la fotocamera che non mette a fuoco), il codice si scrive in sei caselle: il fuoco passa da solo alla successiva, la cancellazione torna indietro, l&#x27;incolla riempie tutte e sei. Giusto, le caselle diventano verdi; sbagliato, scuotono una volta e si svuotano.
+&lt;div class=&quot;t&quot;&gt;cifra 200 ms molla veloce · verde 150 ms · scossa 320 ms una volta · ridotte: niente scossa, solo il rosso · relay: da chiedere, oggi l&#x27;abbinamento passa da QR e link&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;ctl&quot;&gt;&lt;/div&gt;
+&lt;script&gt;// Ogni mockup ripete la sua scena: `M.loop(scena, fotogramma)` la fa partire, `?still` la ferma sul fotogramma del PNG,
+// `?reduce` (o il riquadro) mostra la versione con le animazioni ridotte. Script classico: si apre anche da file://.
+window.M = (() =&gt; {
+  const q = new URLSearchParams(location.search)
+  const still = q.has(&#x27;still&#x27;)
+  const root = document.documentElement
+  if (still) root.classList.add(&#x27;still&#x27;)
+  if (q.has(&#x27;reduce&#x27;) || matchMedia(&#x27;(prefers-reduced-motion: reduce)&#x27;).matches) root.classList.add(&#x27;reduce&#x27;)
+  const reduced = () =&gt; root.classList.contains(&#x27;reduce&#x27;)
+  const wait = ms =&gt; new Promise(r =&gt; setTimeout(r, ms))
+  async function loop(scene, stillFrame, every = 900) {
+    // Le misure delle parole valgono solo con i caratteri veri caricati.
+    await document.fonts.ready
+    if (still) { stillFrame(); return }
+    const box = document.querySelector(&#x27;.ctl&#x27;)
+    if (box) box.innerHTML = &#x27;&lt;button class=&quot;tonal&quot; id=&quot;again&quot;&gt;Riproduci&lt;/button&gt;&lt;label&gt;&lt;input type=&quot;checkbox&quot; id=&quot;red&quot;&#x27; + (reduced() ? &#x27; checked&#x27; : &#x27;&#x27;) + &#x27;&gt; Animazioni ridotte&lt;/label&gt;&#x27;
+    document.getElementById(&#x27;red&#x27;)?.addEventListener(&#x27;change&#x27;, e =&gt; root.classList.toggle(&#x27;reduce&#x27;, e.target.checked))
+    let run = 0
+    const go = async () =&gt; { const me = ++run; while (me === run) { await scene(); await wait(every) } }
+    document.getElementById(&#x27;again&#x27;)?.addEventListener(&#x27;click&#x27;, go)
+    go()
+  }
+  return { still, reduced, wait, loop }
+})()
+&lt;/script&gt;
+&lt;script&gt;
+  const b = document.getElementById(&#x27;b&#x27;), msg = document.getElementById(&#x27;msg&#x27;)
+  for (let i = 0; i &lt; 6; i++) b.insertAdjacentHTML(&#x27;beforeend&#x27;, &#x27;&lt;div class=&quot;bx&quot;&gt;&lt;/div&gt;&#x27;)
+  const bx = [...b.children]
+  const show = (code, focus) =&gt; bx.forEach((x, i) =&gt; { x.innerHTML = code[i] ? `&lt;span&gt;${code[i]}&lt;/span&gt;` : &#x27;&#x27;; x.classList.toggle(&#x27;f&#x27;, i === focus) })
+  M.loop(async () =&gt; {
+    b.className = &#x27;boxes&#x27;; msg.className = &#x27;msg&#x27;; msg.textContent = &#x27;&#x27;; show(&#x27;&#x27;, 0); await M.wait(700)
+    const wrong = &#x27;481207&#x27;
+    for (let i = 1; i &lt;= 6; i++) { show(wrong.slice(0, i), i); await M.wait(260) }
+    b.classList.add(&#x27;bad&#x27;); msg.className = &#x27;msg bad&#x27;; msg.textContent = &#x27;Codice sbagliato, riprova&#x27;; await M.wait(900)
+    b.className = &#x27;boxes&#x27;; show(&#x27;&#x27;, 0); msg.className = &#x27;msg&#x27;; msg.textContent = &#x27;incollato&#x27;; await M.wait(500)
+    show(&#x27;481297&#x27;, -1); await M.wait(300)
+    b.classList.add(&#x27;ok&#x27;); msg.className = &#x27;msg ok&#x27;; msg.textContent = &#x27;Abbinato&#x27;; await M.wait(1600)
+  }, () =&gt; { show(&#x27;4812&#x27;, 4); msg.textContent = &#x27;&#x27; })
+&lt;/script&gt;&lt;/body&gt;&lt;/html&gt;
+"></iframe><figcaption>2 · Codice di abbinamento a 6 caselle</figcaption></figure>
+  <figure><iframe title="Passi della chiusura sul filo" srcdoc="&lt;!doctype html&gt;&lt;html lang=&quot;it&quot;&gt;&lt;head&gt;&lt;meta charset=&quot;utf-8&quot;&gt;&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
+&lt;title&gt;Passi della chiusura&lt;/title&gt;&lt;style&gt;/* Mockup delle animazioni (app-animazioni-stile-26-11): colori e caratteri v3 (web/src/v3.css), curve e tempi di CmMotion e
+   app.css. Nessun valore nuovo: le proposte usano le tre molle che l&#x27;app ha già, più il ciclo di 1,6 s della linea al lavoro. */
+@import url(&#x27;https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&amp;family=Barlow+Semi+Condensed:wght@600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap&#x27;);
+:root {
+  --bg: #0B0B0B; --s1: #111111; --s2: #181818; --s3: #222222; --line: #2A2A2A;
+  --tx: #EEEEEE; --tx2: #9B9B9B; --tx3: #8A8A8A; --act: #FFFFFF; --on-act: #0B0B0B;
+  --wait: #FFB23F; --busy: #8FA8D2; --good: #71D083; --red: #FF5A5F;
+  --sans: Barlow, system-ui, sans-serif; --display: &#x27;Barlow Semi Condensed&#x27;, Barlow, system-ui, sans-serif; --mono: &#x27;Geist Mono&#x27;, ui-monospace, monospace;
+  --spring-fast: linear(0, .253, .577, .786, .899, .954, .98, .991, 1); --spring-fast-t: 200ms;
+  --spring-bounce: linear(0, .206, .553, .826, .979, 1.038, 1.045, 1.031, 1.016, 1.005, 1, .998, .998, .999, .999, 1, 1); --spring-bounce-t: 620ms;
+  --spring-slow: linear(0, .158, .413, .626, .774, .868, .925, .958, .977, .987, 1); --spring-slow-t: 500ms;
+  --ease-out: cubic-bezier(.3, 0, .2, 1); /* CmMotion.easing */
+  --cycle: 1.6s; /* la linea del lavoro in corso, voce 1 */
+}
+/* Riduzione delle animazioni, come app.css: niente rimbalzo, tempi brevi; i cicli si fermano. */
+@media (prefers-reduced-motion: reduce) { :root { --spring-bounce: var(--spring-fast); --spring-bounce-t: 1ms; --spring-fast-t: 1ms; --spring-slow-t: 120ms; } }
+html.reduce { --spring-bounce: var(--spring-fast); --spring-bounce-t: 1ms; --spring-fast-t: 1ms; --spring-slow-t: 120ms; }
+* { box-sizing: border-box; margin: 0; }
+html, body { background: var(--bg); color: var(--tx); font: 400 16px/1.4 var(--sans); -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
+body { width: 360px; margin: 0; padding: 16px 16px 20px; }
+.top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.top h1 { font: 700 22px/1.15 var(--display); }
+.top .ref { font: 400 12px/1.3 var(--mono); color: var(--tx3); text-align: right; }
+.card { background: var(--s1); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+.card + .card { margin-top: 10px; }
+.k { font: 600 15px/22px var(--display); color: var(--tx2); }
+.meta { font-size: 13.5px; color: var(--tx2); }
+.mono { font: 400 12.5px/1.4 var(--mono); color: var(--tx2); }
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+.tonal { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 16px; border-radius: 20px; background: var(--s3); color: var(--tx); font-weight: 500; transition: transform var(--spring-fast-t) var(--spring-fast); }
+.tonal:active, .tonal.press { transform: scale(.97); transition-duration: 100ms; }
+html.reduce .tonal.press { transform: none; }
+.note { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 13.5px; line-height: 1.45; color: var(--tx2); }
+.note b { color: var(--tx); font-weight: 600; }
+.note .t { font: 400 12px/1.5 var(--mono); color: var(--tx3); margin-top: 6px; }
+.ctl { display: flex; gap: 10px; align-items: center; margin-top: 12px; font-size: 13px; color: var(--tx3); }
+.ctl label { display: inline-flex; gap: 6px; align-items: center; }
+html.still .ctl { display: none; }
+/* Il fotogramma del PNG (?still): lo stato finale, senza transizioni a metà. */
+html.still *, html.still *::before, html.still *::after { transition: none !important; }
+/* Nel fotogramma del PNG le animazioni d ingresso non restano al primo fotogramma. */
+html.still *, html.still *::before, html.still *::after { animation: none !important; }
+&lt;/style&gt;
+&lt;style&gt;
+  .k2 { font: 600 18px/1.25 var(--display); }
+  .sub2 { font-size: 14px; color: var(--tx2); margin-top: 4px; }
+  .steps { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 18px; }
+  .rail { position: absolute; left: 16.66%; right: 16.66%; top: 11px; height: 2px; background: var(--s3); }
+  .rail i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--good); transition: width 400ms var(--ease-out); }
+  .st { position: relative; display: grid; justify-items: center; gap: 6px; font-size: 13px; color: var(--tx2); }
+  .dot { position: relative; width: 24px; height: 24px; border-radius: 12px; background: var(--s1); border: 2px solid var(--tx3); display: grid; place-items: center; transition: background 200ms, border-color 200ms; }
+  .dot svg { opacity: 0; transform: scale(.9); transition: opacity 180ms, transform var(--spring-fast-t) var(--spring-fast); }
+  .st.ok .dot { background: var(--good); border-color: var(--good); } .st.ok .dot svg { opacity: 1; transform: none; } .st.ok { color: var(--tx); }
+  .st.now { color: var(--busy); } .st.now .dot { border-color: color-mix(in srgb, var(--busy) 35%, transparent); }
+  .st.now .dot::after { content: &quot;&quot;; position: absolute; inset: -2px; border-radius: 50%; border: 2px solid transparent; border-top-color: var(--busy); animation: spin 1.2s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .say { font: 400 12.5px var(--mono); color: var(--tx2); margin-top: 14px; min-height: 18px; }
+  html.reduce .st.now .dot::after { animation: none; border-color: var(--busy); }
+  html.still .st.now .dot::after { animation: none; transform: rotate(40deg); }
+&lt;/style&gt;&lt;/head&gt;&lt;body&gt;
+&lt;div class=&quot;top&quot;&gt;&lt;h1&gt;Passi della chiusura&lt;/h1&gt;&lt;div class=&quot;ref&quot;&gt;Agent steps&lt;br&gt;telefono · web&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;card&quot;&gt;
+  &lt;div class=&quot;k2&quot;&gt;Chiudo supervisor-app&lt;/div&gt;
+  &lt;p class=&quot;sub2&quot;&gt;Salvo esito e prossimo passo, poi chiudo la finestra sul PC&lt;/p&gt;
+  &lt;div class=&quot;steps&quot;&gt;&lt;div class=&quot;rail&quot;&gt;&lt;i id=&quot;fill&quot;&gt;&lt;/i&gt;&lt;/div&gt;
+    &lt;div class=&quot;st&quot;&gt;&lt;span class=&quot;dot&quot;&gt;&lt;svg viewBox=&quot;0 0 24 24&quot; width=&quot;14&quot; height=&quot;14&quot; fill=&quot;none&quot; stroke=&quot;#0B0B0B&quot; stroke-width=&quot;3&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;&gt;&lt;path d=&quot;M20 6 9 17l-5-5&quot;/&gt;&lt;/svg&gt;&lt;/span&gt;Salvataggio&lt;/div&gt;
+    &lt;div class=&quot;st&quot;&gt;&lt;span class=&quot;dot&quot;&gt;&lt;svg viewBox=&quot;0 0 24 24&quot; width=&quot;14&quot; height=&quot;14&quot; fill=&quot;none&quot; stroke=&quot;#0B0B0B&quot; stroke-width=&quot;3&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;&gt;&lt;path d=&quot;M20 6 9 17l-5-5&quot;/&gt;&lt;/svg&gt;&lt;/span&gt;Attesa&lt;/div&gt;
+    &lt;div class=&quot;st&quot;&gt;&lt;span class=&quot;dot&quot;&gt;&lt;svg viewBox=&quot;0 0 24 24&quot; width=&quot;14&quot; height=&quot;14&quot; fill=&quot;none&quot; stroke=&quot;#0B0B0B&quot; stroke-width=&quot;3&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;&gt;&lt;path d=&quot;M20 6 9 17l-5-5&quot;/&gt;&lt;/svg&gt;&lt;/span&gt;Chiusura&lt;/div&gt;
+  &lt;/div&gt;
+  &lt;p class=&quot;say&quot; id=&quot;say&quot;&gt;&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class=&quot;note&quot;&gt;&lt;b&gt;Cosa fa.&lt;/b&gt; La schermata di chiusura oggi elenca i passi con ○ e ✓. Qui gli stessi passi stanno sul filo della voce 5 (le tappe della prova): salvataggio, attesa che la sessione esca, chiusura; quello in corso ha l&#x27;arco, i fatti la spunta. Stesso componente, stessi tempi: un solo linguaggio per «sta succedendo una cosa a tappe».
+&lt;div class=&quot;t&quot;&gt;filo 400 ms · spunta 250 ms + molla veloce · arco 1,2 s · ridotte: tappe accese senza movimento · relay: niente di nuovo, i passi li dice già il risultato di close&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;ctl&quot;&gt;&lt;/div&gt;
+&lt;script&gt;// Ogni mockup ripete la sua scena: `M.loop(scena, fotogramma)` la fa partire, `?still` la ferma sul fotogramma del PNG,
+// `?reduce` (o il riquadro) mostra la versione con le animazioni ridotte. Script classico: si apre anche da file://.
+window.M = (() =&gt; {
+  const q = new URLSearchParams(location.search)
+  const still = q.has(&#x27;still&#x27;)
+  const root = document.documentElement
+  if (still) root.classList.add(&#x27;still&#x27;)
+  if (q.has(&#x27;reduce&#x27;) || matchMedia(&#x27;(prefers-reduced-motion: reduce)&#x27;).matches) root.classList.add(&#x27;reduce&#x27;)
+  const reduced = () =&gt; root.classList.contains(&#x27;reduce&#x27;)
+  const wait = ms =&gt; new Promise(r =&gt; setTimeout(r, ms))
+  async function loop(scene, stillFrame, every = 900) {
+    // Le misure delle parole valgono solo con i caratteri veri caricati.
+    await document.fonts.ready
+    if (still) { stillFrame(); return }
+    const box = document.querySelector(&#x27;.ctl&#x27;)
+    if (box) box.innerHTML = &#x27;&lt;button class=&quot;tonal&quot; id=&quot;again&quot;&gt;Riproduci&lt;/button&gt;&lt;label&gt;&lt;input type=&quot;checkbox&quot; id=&quot;red&quot;&#x27; + (reduced() ? &#x27; checked&#x27; : &#x27;&#x27;) + &#x27;&gt; Animazioni ridotte&lt;/label&gt;&#x27;
+    document.getElementById(&#x27;red&#x27;)?.addEventListener(&#x27;change&#x27;, e =&gt; root.classList.toggle(&#x27;reduce&#x27;, e.target.checked))
+    let run = 0
+    const go = async () =&gt; { const me = ++run; while (me === run) { await scene(); await wait(every) } }
+    document.getElementById(&#x27;again&#x27;)?.addEventListener(&#x27;click&#x27;, go)
+    go()
+  }
+  return { still, reduced, wait, loop }
+})()
+&lt;/script&gt;
+&lt;script&gt;
+  const st = [...document.querySelectorAll(&#x27;.st&#x27;)], fill = document.getElementById(&#x27;fill&#x27;), say = document.getElementById(&#x27;say&#x27;)
+  const words = [&#x27;salvo esito e prossimo passo&#x27;, &#x27;aspetto che la sessione esca&#x27;, &#x27;chiudo la finestra&#x27;, &#x27;chiusa: si riapre da «Chiuse»&#x27;]
+  const set = k =&gt; { st.forEach((s, i) =&gt; { s.classList.toggle(&#x27;ok&#x27;, i &lt; k); s.classList.toggle(&#x27;now&#x27;, i === k) }); fill.style.width = (Math.min(k, 2) / 2 * 100) + &#x27;%&#x27;; say.textContent = words[k] }
+  M.loop(async () =&gt; { for (let k = 0; k &lt;= 3; k++) { set(k); await M.wait(1300) } await M.wait(600) }, () =&gt; set(1))
+&lt;/script&gt;&lt;/body&gt;&lt;/html&gt;
+"></iframe><figcaption>3 · Passi della chiusura sul filo</figcaption></figure>
+  <figure><iframe title="Il nostro campo di testo" srcdoc="&lt;!doctype html&gt;&lt;html lang=&quot;it&quot;&gt;&lt;head&gt;&lt;meta charset=&quot;utf-8&quot;&gt;&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
+&lt;title&gt;Il nostro campo di testo&lt;/title&gt;&lt;style&gt;/* Mockup delle animazioni (app-animazioni-stile-26-11): colori e caratteri v3 (web/src/v3.css), curve e tempi di CmMotion e
+   app.css. Nessun valore nuovo: le proposte usano le tre molle che l&#x27;app ha già, più il ciclo di 1,6 s della linea al lavoro. */
+@import url(&#x27;https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&amp;family=Barlow+Semi+Condensed:wght@600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap&#x27;);
+:root {
+  --bg: #0B0B0B; --s1: #111111; --s2: #181818; --s3: #222222; --line: #2A2A2A;
+  --tx: #EEEEEE; --tx2: #9B9B9B; --tx3: #8A8A8A; --act: #FFFFFF; --on-act: #0B0B0B;
+  --wait: #FFB23F; --busy: #8FA8D2; --good: #71D083; --red: #FF5A5F;
+  --sans: Barlow, system-ui, sans-serif; --display: &#x27;Barlow Semi Condensed&#x27;, Barlow, system-ui, sans-serif; --mono: &#x27;Geist Mono&#x27;, ui-monospace, monospace;
+  --spring-fast: linear(0, .253, .577, .786, .899, .954, .98, .991, 1); --spring-fast-t: 200ms;
+  --spring-bounce: linear(0, .206, .553, .826, .979, 1.038, 1.045, 1.031, 1.016, 1.005, 1, .998, .998, .999, .999, 1, 1); --spring-bounce-t: 620ms;
+  --spring-slow: linear(0, .158, .413, .626, .774, .868, .925, .958, .977, .987, 1); --spring-slow-t: 500ms;
+  --ease-out: cubic-bezier(.3, 0, .2, 1); /* CmMotion.easing */
+  --cycle: 1.6s; /* la linea del lavoro in corso, voce 1 */
+}
+/* Riduzione delle animazioni, come app.css: niente rimbalzo, tempi brevi; i cicli si fermano. */
+@media (prefers-reduced-motion: reduce) { :root { --spring-bounce: var(--spring-fast); --spring-bounce-t: 1ms; --spring-fast-t: 1ms; --spring-slow-t: 120ms; } }
+html.reduce { --spring-bounce: var(--spring-fast); --spring-bounce-t: 1ms; --spring-fast-t: 1ms; --spring-slow-t: 120ms; }
+* { box-sizing: border-box; margin: 0; }
+html, body { background: var(--bg); color: var(--tx); font: 400 16px/1.4 var(--sans); -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
+body { width: 360px; margin: 0; padding: 16px 16px 20px; }
+.top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.top h1 { font: 700 22px/1.15 var(--display); }
+.top .ref { font: 400 12px/1.3 var(--mono); color: var(--tx3); text-align: right; }
+.card { background: var(--s1); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+.card + .card { margin-top: 10px; }
+.k { font: 600 15px/22px var(--display); color: var(--tx2); }
+.meta { font-size: 13.5px; color: var(--tx2); }
+.mono { font: 400 12.5px/1.4 var(--mono); color: var(--tx2); }
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+.tonal { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 16px; border-radius: 20px; background: var(--s3); color: var(--tx); font-weight: 500; transition: transform var(--spring-fast-t) var(--spring-fast); }
+.tonal:active, .tonal.press { transform: scale(.97); transition-duration: 100ms; }
+html.reduce .tonal.press { transform: none; }
+.note { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 13.5px; line-height: 1.45; color: var(--tx2); }
+.note b { color: var(--tx); font-weight: 600; }
+.note .t { font: 400 12px/1.5 var(--mono); color: var(--tx3); margin-top: 6px; }
+.ctl { display: flex; gap: 10px; align-items: center; margin-top: 12px; font-size: 13px; color: var(--tx3); }
+.ctl label { display: inline-flex; gap: 6px; align-items: center; }
+html.still .ctl { display: none; }
+/* Il fotogramma del PNG (?still): lo stato finale, senza transizioni a metà. */
+html.still *, html.still *::before, html.still *::after { transition: none !important; }
+/* Nel fotogramma del PNG le animazioni d ingresso non restano al primo fotogramma. */
+html.still *, html.still *::before, html.still *::after { animation: none !important; }
+&lt;/style&gt;
+&lt;style&gt;
+  .wrap { min-height: 260px; display: flex; flex-direction: column; justify-content: flex-end; }
+  /* Il campo cresce con il testo (fino a 5 righe) con la molla veloce; gli allegati entrano come miniature sopra il testo. */
+  .field { display: flex; flex-direction: column; gap: 8px; padding: 8px 6px 6px 14px; border-radius: 24px; background: var(--s2); border: 1px solid var(--line); transition: border-radius var(--spring-fast-t) var(--spring-fast); }
+  .field.tall { border-radius: 18px; }
+  .att { display: flex; gap: 6px; }
+  .th { width: 48px; height: 48px; border-radius: 10px; background: var(--s3); display: grid; place-items: center; font: 400 11px var(--mono); color: var(--tx2); animation: th-in var(--spring-bounce-t) var(--spring-bounce) both; }
+  @keyframes th-in { from { transform: scale(.9); opacity: 0; } }
+  .row { display: flex; align-items: flex-end; gap: 8px; }
+  .txt { flex: 1; font-size: 16px; line-height: 22px; overflow: hidden; transition: height 200ms var(--spring-fast); padding-bottom: 7px; }
+  .ph { color: var(--tx3); }
+  /* Invio: da grigio a pieno appena c&#x27;è qualcosa da mandare; premuto, la freccia parte verso l&#x27;alto e torna. */
+  .send { flex: none; width: 36px; height: 36px; border-radius: 18px; display: grid; place-items: center; background: var(--s3); color: var(--tx3); transition: background 150ms, color 150ms, transform 100ms; }
+  .send.on { background: color-mix(in srgb, var(--wait) 30%, var(--s3)); color: var(--tx); }
+  .send.go svg { animation: fly 260ms var(--ease-out); }
+  @keyframes fly { 50% { transform: translateY(-10px); opacity: 0; } 51% { transform: translateY(10px); opacity: 0; } }
+  .plus { flex: none; width: 36px; height: 36px; border-radius: 18px; display: grid; place-items: center; color: var(--tx2); }
+  html.reduce .txt, html.reduce .field { transition: none; } html.reduce .th, html.reduce .send.go svg { animation: none; }
+&lt;/style&gt;&lt;/head&gt;&lt;body&gt;
+&lt;div class=&quot;top&quot;&gt;&lt;h1&gt;Il nostro campo di testo&lt;/h1&gt;&lt;div class=&quot;ref&quot;&gt;Prompt box&lt;br&gt;telefono · web&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;card&quot;&gt;&lt;div class=&quot;wrap&quot;&gt;
+  &lt;div class=&quot;field&quot; id=&quot;f&quot;&gt;&lt;div class=&quot;att&quot; id=&quot;att&quot;&gt;&lt;/div&gt;
+    &lt;div class=&quot;row&quot;&gt;&lt;span class=&quot;plus&quot;&gt;+&lt;/span&gt;&lt;div class=&quot;txt&quot; id=&quot;t&quot;&gt;&lt;span class=&quot;ph&quot;&gt;Scrivi a supervisor-app&lt;/span&gt;&lt;/div&gt;
+      &lt;span class=&quot;send&quot; id=&quot;s&quot;&gt;&lt;svg viewBox=&quot;0 0 24 24&quot; width=&quot;18&quot; height=&quot;18&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;2&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;&gt;&lt;path d=&quot;M12 19V5M5 12l7-7 7 7&quot;/&gt;&lt;/svg&gt;&lt;/span&gt;&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;note&quot;&gt;&lt;b&gt;Cosa fa.&lt;/b&gt; Il campo che c&#x27;è, con tre movimenti: cresce con il testo fino a cinque righe senza scatti, e gli angoli si fanno meno tondi quando è alto; gli allegati entrano come miniature sopra il testo; l&#x27;invio passa da grigio a pieno quando c&#x27;è qualcosa da mandare, e al tocco la freccia parte verso l&#x27;alto. La lettura per blocchi e l&#x27;Annulla non c&#x27;entrano.
+&lt;div class=&quot;t&quot;&gt;altezza 200 ms molla veloce · miniature con la molla di casa · invio 150 ms, freccia 260 ms · ridotte: senza movimento&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;ctl&quot;&gt;&lt;/div&gt;
+&lt;script&gt;// Ogni mockup ripete la sua scena: `M.loop(scena, fotogramma)` la fa partire, `?still` la ferma sul fotogramma del PNG,
+// `?reduce` (o il riquadro) mostra la versione con le animazioni ridotte. Script classico: si apre anche da file://.
+window.M = (() =&gt; {
+  const q = new URLSearchParams(location.search)
+  const still = q.has(&#x27;still&#x27;)
+  const root = document.documentElement
+  if (still) root.classList.add(&#x27;still&#x27;)
+  if (q.has(&#x27;reduce&#x27;) || matchMedia(&#x27;(prefers-reduced-motion: reduce)&#x27;).matches) root.classList.add(&#x27;reduce&#x27;)
+  const reduced = () =&gt; root.classList.contains(&#x27;reduce&#x27;)
+  const wait = ms =&gt; new Promise(r =&gt; setTimeout(r, ms))
+  async function loop(scene, stillFrame, every = 900) {
+    // Le misure delle parole valgono solo con i caratteri veri caricati.
+    await document.fonts.ready
+    if (still) { stillFrame(); return }
+    const box = document.querySelector(&#x27;.ctl&#x27;)
+    if (box) box.innerHTML = &#x27;&lt;button class=&quot;tonal&quot; id=&quot;again&quot;&gt;Riproduci&lt;/button&gt;&lt;label&gt;&lt;input type=&quot;checkbox&quot; id=&quot;red&quot;&#x27; + (reduced() ? &#x27; checked&#x27; : &#x27;&#x27;) + &#x27;&gt; Animazioni ridotte&lt;/label&gt;&#x27;
+    document.getElementById(&#x27;red&#x27;)?.addEventListener(&#x27;change&#x27;, e =&gt; root.classList.toggle(&#x27;reduce&#x27;, e.target.checked))
+    let run = 0
+    const go = async () =&gt; { const me = ++run; while (me === run) { await scene(); await wait(every) } }
+    document.getElementById(&#x27;again&#x27;)?.addEventListener(&#x27;click&#x27;, go)
+    go()
+  }
+  return { still, reduced, wait, loop }
+})()
+&lt;/script&gt;
+&lt;script&gt;
+  const t = document.getElementById(&#x27;t&#x27;), f = document.getElementById(&#x27;f&#x27;), s = document.getElementById(&#x27;s&#x27;), att = document.getElementById(&#x27;att&#x27;)
+  const lines = [&#x27;Prepara la pre-release&#x27;, &#x27;con le tappe della prova&#x27;, &#x27;e manda il link a Franz&#x27;]
+  const setText = n =&gt; { if (!n) { t.innerHTML = &#x27;&lt;span class=&quot;ph&quot;&gt;Scrivi a supervisor-app&lt;/span&gt;&#x27;; t.style.height = &#x27;22px&#x27; } else { t.innerHTML = lines.slice(0, n).join(&#x27;&lt;br&gt;&#x27;); t.style.height = (22 * n) + &#x27;px&#x27; } f.classList.toggle(&#x27;tall&#x27;, n &gt; 1); s.classList.toggle(&#x27;on&#x27;, n &gt; 0) }
+  M.loop(async () =&gt; {
+    att.innerHTML = &#x27;&#x27;; s.classList.remove(&#x27;go&#x27;); setText(0); await M.wait(700)
+    for (let n = 1; n &lt;= 3; n++) { setText(n); await M.wait(650) }
+    att.innerHTML = &#x27;&lt;span class=&quot;th&quot;&gt;PNG&lt;/span&gt;&#x27;; await M.wait(500); att.insertAdjacentHTML(&#x27;beforeend&#x27;, &#x27;&lt;span class=&quot;th&quot;&gt;PDF&lt;/span&gt;&#x27;); await M.wait(800)
+    s.classList.add(&#x27;go&#x27;); await M.wait(300); att.innerHTML = &#x27;&#x27;; setText(0); await M.wait(900)
+  }, () =&gt; { setText(2); att.innerHTML = &#x27;&lt;span class=&quot;th&quot;&gt;PNG&lt;/span&gt;&#x27; })
+&lt;/script&gt;&lt;/body&gt;&lt;/html&gt;
+"></iframe><figcaption>4 · Il nostro campo di testo</figcaption></figure>
+  <figure><iframe title="Velocità della voce" srcdoc="&lt;!doctype html&gt;&lt;html lang=&quot;it&quot;&gt;&lt;head&gt;&lt;meta charset=&quot;utf-8&quot;&gt;&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
+&lt;title&gt;Velocità della voce&lt;/title&gt;&lt;style&gt;/* Mockup delle animazioni (app-animazioni-stile-26-11): colori e caratteri v3 (web/src/v3.css), curve e tempi di CmMotion e
+   app.css. Nessun valore nuovo: le proposte usano le tre molle che l&#x27;app ha già, più il ciclo di 1,6 s della linea al lavoro. */
+@import url(&#x27;https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&amp;family=Barlow+Semi+Condensed:wght@600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap&#x27;);
+:root {
+  --bg: #0B0B0B; --s1: #111111; --s2: #181818; --s3: #222222; --line: #2A2A2A;
+  --tx: #EEEEEE; --tx2: #9B9B9B; --tx3: #8A8A8A; --act: #FFFFFF; --on-act: #0B0B0B;
+  --wait: #FFB23F; --busy: #8FA8D2; --good: #71D083; --red: #FF5A5F;
+  --sans: Barlow, system-ui, sans-serif; --display: &#x27;Barlow Semi Condensed&#x27;, Barlow, system-ui, sans-serif; --mono: &#x27;Geist Mono&#x27;, ui-monospace, monospace;
+  --spring-fast: linear(0, .253, .577, .786, .899, .954, .98, .991, 1); --spring-fast-t: 200ms;
+  --spring-bounce: linear(0, .206, .553, .826, .979, 1.038, 1.045, 1.031, 1.016, 1.005, 1, .998, .998, .999, .999, 1, 1); --spring-bounce-t: 620ms;
+  --spring-slow: linear(0, .158, .413, .626, .774, .868, .925, .958, .977, .987, 1); --spring-slow-t: 500ms;
+  --ease-out: cubic-bezier(.3, 0, .2, 1); /* CmMotion.easing */
+  --cycle: 1.6s; /* la linea del lavoro in corso, voce 1 */
+}
+/* Riduzione delle animazioni, come app.css: niente rimbalzo, tempi brevi; i cicli si fermano. */
+@media (prefers-reduced-motion: reduce) { :root { --spring-bounce: var(--spring-fast); --spring-bounce-t: 1ms; --spring-fast-t: 1ms; --spring-slow-t: 120ms; } }
+html.reduce { --spring-bounce: var(--spring-fast); --spring-bounce-t: 1ms; --spring-fast-t: 1ms; --spring-slow-t: 120ms; }
+* { box-sizing: border-box; margin: 0; }
+html, body { background: var(--bg); color: var(--tx); font: 400 16px/1.4 var(--sans); -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
+body { width: 360px; margin: 0; padding: 16px 16px 20px; }
+.top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.top h1 { font: 700 22px/1.15 var(--display); }
+.top .ref { font: 400 12px/1.3 var(--mono); color: var(--tx3); text-align: right; }
+.card { background: var(--s1); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+.card + .card { margin-top: 10px; }
+.k { font: 600 15px/22px var(--display); color: var(--tx2); }
+.meta { font-size: 13.5px; color: var(--tx2); }
+.mono { font: 400 12.5px/1.4 var(--mono); color: var(--tx2); }
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+.tonal { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 16px; border-radius: 20px; background: var(--s3); color: var(--tx); font-weight: 500; transition: transform var(--spring-fast-t) var(--spring-fast); }
+.tonal:active, .tonal.press { transform: scale(.97); transition-duration: 100ms; }
+html.reduce .tonal.press { transform: none; }
+.note { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 13.5px; line-height: 1.45; color: var(--tx2); }
+.note b { color: var(--tx); font-weight: 600; }
+.note .t { font: 400 12px/1.5 var(--mono); color: var(--tx3); margin-top: 6px; }
+.ctl { display: flex; gap: 10px; align-items: center; margin-top: 12px; font-size: 13px; color: var(--tx3); }
+.ctl label { display: inline-flex; gap: 6px; align-items: center; }
+html.still .ctl { display: none; }
+/* Il fotogramma del PNG (?still): lo stato finale, senza transizioni a metà. */
+html.still *, html.still *::before, html.still *::after { transition: none !important; }
+/* Nel fotogramma del PNG le animazioni d ingresso non restano al primo fotogramma. */
+html.still *, html.still *::before, html.still *::after { animation: none !important; }
+&lt;/style&gt;
+&lt;style&gt;
+  .k2 { font: 600 16px var(--display); display: flex; justify-content: space-between; }
+  .val { font: 600 22px var(--mono); color: var(--tx); display: inline-block; transition: transform 120ms; }
+  .val.bump { transform: scale(1.06); }
+  /* Il cursore: la manopola si allarga mentre la tieni, il binario si riempie; vicino a 1× si aggancia con un piccolo scatto. */
+  .track { position: relative; height: 40px; margin-top: 14px; }
+  .bar { position: absolute; left: 0; right: 0; top: 18px; height: 4px; border-radius: 2px; background: var(--s3); }
+  .bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 2px; background: var(--tx2); }
+  .tick { position: absolute; top: 12px; width: 2px; height: 16px; border-radius: 1px; background: var(--tx3); }
+  .knob { position: absolute; top: 8px; width: 24px; height: 24px; margin-left: -12px; border-radius: 12px; background: var(--tx); box-shadow: 0 2px 6px rgb(0 0 0 / .4); transition: width var(--spring-fast-t) var(--spring-fast), margin-left var(--spring-fast-t) var(--spring-fast), left 140ms var(--spring-bounce); }
+  .knob.held { width: 32px; margin-left: -16px; }
+  .marks { display: flex; justify-content: space-between; font: 400 12px var(--mono); color: var(--tx3); }
+  html.reduce .knob, html.reduce .val { transition: none; }
+&lt;/style&gt;&lt;/head&gt;&lt;body&gt;
+&lt;div class=&quot;top&quot;&gt;&lt;h1&gt;Velocità della voce&lt;/h1&gt;&lt;div class=&quot;ref&quot;&gt;Jelly slider (sobrio)&lt;br&gt;telefono · web&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;card&quot;&gt;
+  &lt;div class=&quot;k2&quot;&gt;&lt;span&gt;Velocità di lettura&lt;/span&gt;&lt;span class=&quot;val&quot; id=&quot;v&quot;&gt;1,25×&lt;/span&gt;&lt;/div&gt;
+  &lt;div class=&quot;track&quot; id=&quot;tr&quot;&gt;&lt;div class=&quot;bar&quot;&gt;&lt;i id=&quot;fl&quot;&gt;&lt;/i&gt;&lt;/div&gt;&lt;span class=&quot;tick&quot; id=&quot;tk&quot;&gt;&lt;/span&gt;&lt;span class=&quot;knob&quot; id=&quot;k&quot;&gt;&lt;/span&gt;&lt;/div&gt;
+  &lt;div class=&quot;marks&quot;&gt;&lt;span&gt;0,5×&lt;/span&gt;&lt;span&gt;1×&lt;/span&gt;&lt;span&gt;2×&lt;/span&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class=&quot;note&quot;&gt;&lt;b&gt;Cosa fa.&lt;/b&gt; Il cursore della velocità che c&#x27;è (da 0,5× a 2×, scatto su 1×) con una molla sobria, non gommosa: la manopola si allarga un poco mentre la tieni, il valore cambia di passo in passo con un piccolo battito, e passando vicino a 1× si aggancia con un mezzo scatto e la vibrazione leggera. Niente deformazioni: si deve leggere il numero.
+&lt;div class=&quot;t&quot;&gt;manopola 200 ms molla veloce · aggancio con la molla di casa · numero 120 ms · ridotte: niente movimento&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;ctl&quot;&gt;&lt;/div&gt;
+&lt;script&gt;// Ogni mockup ripete la sua scena: `M.loop(scena, fotogramma)` la fa partire, `?still` la ferma sul fotogramma del PNG,
+// `?reduce` (o il riquadro) mostra la versione con le animazioni ridotte. Script classico: si apre anche da file://.
+window.M = (() =&gt; {
+  const q = new URLSearchParams(location.search)
+  const still = q.has(&#x27;still&#x27;)
+  const root = document.documentElement
+  if (still) root.classList.add(&#x27;still&#x27;)
+  if (q.has(&#x27;reduce&#x27;) || matchMedia(&#x27;(prefers-reduced-motion: reduce)&#x27;).matches) root.classList.add(&#x27;reduce&#x27;)
+  const reduced = () =&gt; root.classList.contains(&#x27;reduce&#x27;)
+  const wait = ms =&gt; new Promise(r =&gt; setTimeout(r, ms))
+  async function loop(scene, stillFrame, every = 900) {
+    // Le misure delle parole valgono solo con i caratteri veri caricati.
+    await document.fonts.ready
+    if (still) { stillFrame(); return }
+    const box = document.querySelector(&#x27;.ctl&#x27;)
+    if (box) box.innerHTML = &#x27;&lt;button class=&quot;tonal&quot; id=&quot;again&quot;&gt;Riproduci&lt;/button&gt;&lt;label&gt;&lt;input type=&quot;checkbox&quot; id=&quot;red&quot;&#x27; + (reduced() ? &#x27; checked&#x27; : &#x27;&#x27;) + &#x27;&gt; Animazioni ridotte&lt;/label&gt;&#x27;
+    document.getElementById(&#x27;red&#x27;)?.addEventListener(&#x27;change&#x27;, e =&gt; root.classList.toggle(&#x27;reduce&#x27;, e.target.checked))
+    let run = 0
+    const go = async () =&gt; { const me = ++run; while (me === run) { await scene(); await wait(every) } }
+    document.getElementById(&#x27;again&#x27;)?.addEventListener(&#x27;click&#x27;, go)
+    go()
+  }
+  return { still, reduced, wait, loop }
+})()
+&lt;/script&gt;
+&lt;script&gt;
+  const k = document.getElementById(&#x27;k&#x27;), fl = document.getElementById(&#x27;fl&#x27;), v = document.getElementById(&#x27;v&#x27;), tk = document.getElementById(&#x27;tk&#x27;)
+  const pos = r =&gt; ((r - 0.5) / 1.5 * 100)
+  tk.style.left = pos(1) + &#x27;%&#x27;
+  const set = r =&gt; { k.style.left = pos(r) + &#x27;%&#x27;; fl.style.width = pos(r) + &#x27;%&#x27;; v.textContent = r.toFixed(2).replace(/0$/, &#x27;&#x27;).replace(&#x27;.&#x27;, &#x27;,&#x27;) + &#x27;×&#x27;; v.classList.add(&#x27;bump&#x27;); setTimeout(() =&gt; v.classList.remove(&#x27;bump&#x27;), 120) }
+  M.loop(async () =&gt; {
+    set(1.25); await M.wait(700); k.classList.add(&#x27;held&#x27;)
+    for (const r of [1.2, 1.15, 1.1, 1.05, 1, 1, 1, 0.95, 0.9]) { set(r); await M.wait(r === 1 ? 260 : 180) }
+    for (const r of [0.95, 1, 1.05, 1.1, 1.15, 1.2, 1.25]) { set(r); await M.wait(160) }
+    k.classList.remove(&#x27;held&#x27;); await M.wait(1000)
+  }, () =&gt; { k.classList.add(&#x27;held&#x27;); set(1) })
+&lt;/script&gt;&lt;/body&gt;&lt;/html&gt;
+"></iframe><figcaption>5 · Velocità della voce</figcaption></figure>
+  <figure><iframe title="File trascinati nella web" srcdoc="&lt;!doctype html&gt;&lt;html lang=&quot;it&quot;&gt;&lt;head&gt;&lt;meta charset=&quot;utf-8&quot;&gt;&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
+&lt;title&gt;File trascinati nella web&lt;/title&gt;&lt;style&gt;/* Mockup delle animazioni (app-animazioni-stile-26-11): colori e caratteri v3 (web/src/v3.css), curve e tempi di CmMotion e
+   app.css. Nessun valore nuovo: le proposte usano le tre molle che l&#x27;app ha già, più il ciclo di 1,6 s della linea al lavoro. */
+@import url(&#x27;https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&amp;family=Barlow+Semi+Condensed:wght@600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap&#x27;);
+:root {
+  --bg: #0B0B0B; --s1: #111111; --s2: #181818; --s3: #222222; --line: #2A2A2A;
+  --tx: #EEEEEE; --tx2: #9B9B9B; --tx3: #8A8A8A; --act: #FFFFFF; --on-act: #0B0B0B;
+  --wait: #FFB23F; --busy: #8FA8D2; --good: #71D083; --red: #FF5A5F;
+  --sans: Barlow, system-ui, sans-serif; --display: &#x27;Barlow Semi Condensed&#x27;, Barlow, system-ui, sans-serif; --mono: &#x27;Geist Mono&#x27;, ui-monospace, monospace;
+  --spring-fast: linear(0, .253, .577, .786, .899, .954, .98, .991, 1); --spring-fast-t: 200ms;
+  --spring-bounce: linear(0, .206, .553, .826, .979, 1.038, 1.045, 1.031, 1.016, 1.005, 1, .998, .998, .999, .999, 1, 1); --spring-bounce-t: 620ms;
+  --spring-slow: linear(0, .158, .413, .626, .774, .868, .925, .958, .977, .987, 1); --spring-slow-t: 500ms;
+  --ease-out: cubic-bezier(.3, 0, .2, 1); /* CmMotion.easing */
+  --cycle: 1.6s; /* la linea del lavoro in corso, voce 1 */
+}
+/* Riduzione delle animazioni, come app.css: niente rimbalzo, tempi brevi; i cicli si fermano. */
+@media (prefers-reduced-motion: reduce) { :root { --spring-bounce: var(--spring-fast); --spring-bounce-t: 1ms; --spring-fast-t: 1ms; --spring-slow-t: 120ms; } }
+html.reduce { --spring-bounce: var(--spring-fast); --spring-bounce-t: 1ms; --spring-fast-t: 1ms; --spring-slow-t: 120ms; }
+* { box-sizing: border-box; margin: 0; }
+html, body { background: var(--bg); color: var(--tx); font: 400 16px/1.4 var(--sans); -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
+body { width: 360px; margin: 0; padding: 16px 16px 20px; }
+.top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.top h1 { font: 700 22px/1.15 var(--display); }
+.top .ref { font: 400 12px/1.3 var(--mono); color: var(--tx3); text-align: right; }
+.card { background: var(--s1); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+.card + .card { margin-top: 10px; }
+.k { font: 600 15px/22px var(--display); color: var(--tx2); }
+.meta { font-size: 13.5px; color: var(--tx2); }
+.mono { font: 400 12.5px/1.4 var(--mono); color: var(--tx2); }
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+.tonal { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 16px; border-radius: 20px; background: var(--s3); color: var(--tx); font-weight: 500; transition: transform var(--spring-fast-t) var(--spring-fast); }
+.tonal:active, .tonal.press { transform: scale(.97); transition-duration: 100ms; }
+html.reduce .tonal.press { transform: none; }
+.note { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 13.5px; line-height: 1.45; color: var(--tx2); }
+.note b { color: var(--tx); font-weight: 600; }
+.note .t { font: 400 12px/1.5 var(--mono); color: var(--tx3); margin-top: 6px; }
+.ctl { display: flex; gap: 10px; align-items: center; margin-top: 12px; font-size: 13px; color: var(--tx3); }
+.ctl label { display: inline-flex; gap: 6px; align-items: center; }
+html.still .ctl { display: none; }
+/* Il fotogramma del PNG (?still): lo stato finale, senza transizioni a metà. */
+html.still *, html.still *::before, html.still *::after { transition: none !important; }
+/* Nel fotogramma del PNG le animazioni d ingresso non restano al primo fotogramma. */
+html.still *, html.still *::before, html.still *::after { animation: none !important; }
+&lt;/style&gt;
+&lt;style&gt;
+  .chat { position: relative; height: 300px; border-radius: 14px; background: var(--s1); border: 1px solid var(--line); overflow: hidden; padding: 12px; }
+  .cl { font-size: 15px; line-height: 1.45; color: var(--tx2); }
+  /* Mentre un file passa sopra la chat: il velo e il bordo tratteggiato entrano, il riquadro respira una volta; al rilascio i file
+     volano nel campo come miniature. */
+  .drop { position: absolute; inset: 8px; border-radius: 12px; border: 2px dashed var(--tx2); background: color-mix(in srgb, var(--bg) 70%, transparent); display: grid; place-items: center; text-align: center; opacity: 0; transform: scale(.98); transition: opacity 150ms var(--ease-out), transform var(--spring-fast-t) var(--spring-fast); }
+  .drop.on { opacity: 1; transform: none; }
+  .drop b { font: 600 18px var(--display); display: block; }
+  .drop span { font-size: 13.5px; color: var(--tx2); }
+  .file { position: absolute; width: 56px; height: 68px; border-radius: 8px; background: var(--s3); border: 1px solid var(--line); display: grid; place-items: center; font: 400 11px var(--mono); color: var(--tx2); transition: left 420ms var(--spring-bounce), top 420ms var(--spring-bounce), transform 420ms var(--spring-bounce), opacity 200ms; }
+  .field { position: absolute; left: 12px; right: 12px; bottom: 12px; min-height: 44px; border-radius: 22px; background: var(--s2); border: 1px solid var(--line); display: flex; align-items: center; gap: 6px; padding: 0 12px; font-size: 14px; color: var(--tx3); }
+  .mini { width: 30px; height: 30px; border-radius: 6px; background: var(--s3); display: grid; place-items: center; font: 400 9px var(--mono); color: var(--tx2); animation: mi var(--spring-bounce-t) var(--spring-bounce) both; }
+  @keyframes mi { from { transform: scale(.9); opacity: 0; } }
+  html.reduce .drop, html.reduce .file { transition: opacity 120ms; } html.reduce .mini { animation: none; }
+&lt;/style&gt;&lt;/head&gt;&lt;body&gt;
+&lt;div class=&quot;top&quot;&gt;&lt;h1&gt;File trascinati nella web&lt;/h1&gt;&lt;div class=&quot;ref&quot;&gt;File drop&lt;br&gt;web&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;chat&quot; id=&quot;c&quot;&gt;
+  &lt;p class=&quot;cl&quot;&gt;Mandami gli screenshot della scheda dell&#x27;aggiornamento.&lt;/p&gt;
+  &lt;div class=&quot;drop&quot; id=&quot;d&quot;&gt;&lt;div&gt;&lt;b&gt;Lascia qui&lt;/b&gt;&lt;span&gt;2 file per supervisor-app&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;
+  &lt;div class=&quot;field&quot; id=&quot;fd&quot;&gt;Scrivi a supervisor-app&lt;/div&gt;
+  &lt;div class=&quot;file&quot; id=&quot;f1&quot; style=&quot;left:240px;top:-80px&quot;&gt;PNG&lt;/div&gt;&lt;div class=&quot;file&quot; id=&quot;f2&quot; style=&quot;left:270px;top:-90px&quot;&gt;PNG&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class=&quot;note&quot;&gt;&lt;b&gt;Cosa fa.&lt;/b&gt; Trascinare file sulla chat c&#x27;è già («Lascia qui»). Qui il velo entra in 150 ms invece di comparire, dice quanti file e per chi, e al rilascio i file volano nel campo e diventano miniature, dove si possono togliere prima di mandare. Solo la web: sul telefono i file arrivano dal + e dalla condivisione.
+&lt;div class=&quot;t&quot;&gt;velo 150 ms + molla veloce · volo con la molla di casa · ridotte: velo in dissolvenza, miniature senza volo&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;ctl&quot;&gt;&lt;/div&gt;
+&lt;script&gt;// Ogni mockup ripete la sua scena: `M.loop(scena, fotogramma)` la fa partire, `?still` la ferma sul fotogramma del PNG,
+// `?reduce` (o il riquadro) mostra la versione con le animazioni ridotte. Script classico: si apre anche da file://.
+window.M = (() =&gt; {
+  const q = new URLSearchParams(location.search)
+  const still = q.has(&#x27;still&#x27;)
+  const root = document.documentElement
+  if (still) root.classList.add(&#x27;still&#x27;)
+  if (q.has(&#x27;reduce&#x27;) || matchMedia(&#x27;(prefers-reduced-motion: reduce)&#x27;).matches) root.classList.add(&#x27;reduce&#x27;)
+  const reduced = () =&gt; root.classList.contains(&#x27;reduce&#x27;)
+  const wait = ms =&gt; new Promise(r =&gt; setTimeout(r, ms))
+  async function loop(scene, stillFrame, every = 900) {
+    // Le misure delle parole valgono solo con i caratteri veri caricati.
+    await document.fonts.ready
+    if (still) { stillFrame(); return }
+    const box = document.querySelector(&#x27;.ctl&#x27;)
+    if (box) box.innerHTML = &#x27;&lt;button class=&quot;tonal&quot; id=&quot;again&quot;&gt;Riproduci&lt;/button&gt;&lt;label&gt;&lt;input type=&quot;checkbox&quot; id=&quot;red&quot;&#x27; + (reduced() ? &#x27; checked&#x27; : &#x27;&#x27;) + &#x27;&gt; Animazioni ridotte&lt;/label&gt;&#x27;
+    document.getElementById(&#x27;red&#x27;)?.addEventListener(&#x27;change&#x27;, e =&gt; root.classList.toggle(&#x27;reduce&#x27;, e.target.checked))
+    let run = 0
+    const go = async () =&gt; { const me = ++run; while (me === run) { await scene(); await wait(every) } }
+    document.getElementById(&#x27;again&#x27;)?.addEventListener(&#x27;click&#x27;, go)
+    go()
+  }
+  return { still, reduced, wait, loop }
+})()
+&lt;/script&gt;
+&lt;script&gt;
+  const d = document.getElementById(&#x27;d&#x27;), f1 = document.getElementById(&#x27;f1&#x27;), f2 = document.getElementById(&#x27;f2&#x27;), fd = document.getElementById(&#x27;fd&#x27;)
+  const place = (el, l, t, s, o) =&gt; { el.style.left = l + &#x27;px&#x27;; el.style.top = t + &#x27;px&#x27;; el.style.transform = `scale(${s})`; el.style.opacity = o }
+  M.loop(async () =&gt; {
+    d.classList.remove(&#x27;on&#x27;); fd.innerHTML = &#x27;Scrivi a supervisor-app&#x27;; place(f1, 240, -80, 1, 1); place(f2, 270, -90, 1, 1); await M.wait(600)
+    place(f1, 120, 90, 1, 1); place(f2, 150, 100, 1, 1); d.classList.add(&#x27;on&#x27;); await M.wait(1200)
+    d.classList.remove(&#x27;on&#x27;); place(f1, 20, 250, .5, 0); place(f2, 50, 250, .5, 0); await M.wait(300)
+    fd.innerHTML = &#x27;&lt;span class=&quot;mini&quot;&gt;PNG&lt;/span&gt;&lt;span class=&quot;mini&quot;&gt;PNG&lt;/span&gt;Scrivi a supervisor-app&#x27;; await M.wait(1800)
+  }, () =&gt; { d.classList.add(&#x27;on&#x27;); place(f1, 120, 90, 1, 1); place(f2, 150, 100, 1, 1) })
+&lt;/script&gt;&lt;/body&gt;&lt;/html&gt;
+"></iframe><figcaption>6 · File trascinati nella web</figcaption></figure>
+  <figure><iframe title="Ricerca come palette di comandi" srcdoc="&lt;!doctype html&gt;&lt;html lang=&quot;it&quot;&gt;&lt;head&gt;&lt;meta charset=&quot;utf-8&quot;&gt;&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
+&lt;title&gt;Ricerca come palette&lt;/title&gt;&lt;style&gt;/* Mockup delle animazioni (app-animazioni-stile-26-11): colori e caratteri v3 (web/src/v3.css), curve e tempi di CmMotion e
+   app.css. Nessun valore nuovo: le proposte usano le tre molle che l&#x27;app ha già, più il ciclo di 1,6 s della linea al lavoro. */
+@import url(&#x27;https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&amp;family=Barlow+Semi+Condensed:wght@600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap&#x27;);
+:root {
+  --bg: #0B0B0B; --s1: #111111; --s2: #181818; --s3: #222222; --line: #2A2A2A;
+  --tx: #EEEEEE; --tx2: #9B9B9B; --tx3: #8A8A8A; --act: #FFFFFF; --on-act: #0B0B0B;
+  --wait: #FFB23F; --busy: #8FA8D2; --good: #71D083; --red: #FF5A5F;
+  --sans: Barlow, system-ui, sans-serif; --display: &#x27;Barlow Semi Condensed&#x27;, Barlow, system-ui, sans-serif; --mono: &#x27;Geist Mono&#x27;, ui-monospace, monospace;
+  --spring-fast: linear(0, .253, .577, .786, .899, .954, .98, .991, 1); --spring-fast-t: 200ms;
+  --spring-bounce: linear(0, .206, .553, .826, .979, 1.038, 1.045, 1.031, 1.016, 1.005, 1, .998, .998, .999, .999, 1, 1); --spring-bounce-t: 620ms;
+  --spring-slow: linear(0, .158, .413, .626, .774, .868, .925, .958, .977, .987, 1); --spring-slow-t: 500ms;
+  --ease-out: cubic-bezier(.3, 0, .2, 1); /* CmMotion.easing */
+  --cycle: 1.6s; /* la linea del lavoro in corso, voce 1 */
+}
+/* Riduzione delle animazioni, come app.css: niente rimbalzo, tempi brevi; i cicli si fermano. */
+@media (prefers-reduced-motion: reduce) { :root { --spring-bounce: var(--spring-fast); --spring-bounce-t: 1ms; --spring-fast-t: 1ms; --spring-slow-t: 120ms; } }
+html.reduce { --spring-bounce: var(--spring-fast); --spring-bounce-t: 1ms; --spring-fast-t: 1ms; --spring-slow-t: 120ms; }
+* { box-sizing: border-box; margin: 0; }
+html, body { background: var(--bg); color: var(--tx); font: 400 16px/1.4 var(--sans); -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
+body { width: 360px; margin: 0; padding: 16px 16px 20px; }
+.top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.top h1 { font: 700 22px/1.15 var(--display); }
+.top .ref { font: 400 12px/1.3 var(--mono); color: var(--tx3); text-align: right; }
+.card { background: var(--s1); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+.card + .card { margin-top: 10px; }
+.k { font: 600 15px/22px var(--display); color: var(--tx2); }
+.meta { font-size: 13.5px; color: var(--tx2); }
+.mono { font: 400 12.5px/1.4 var(--mono); color: var(--tx2); }
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+.tonal { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 16px; border-radius: 20px; background: var(--s3); color: var(--tx); font-weight: 500; transition: transform var(--spring-fast-t) var(--spring-fast); }
+.tonal:active, .tonal.press { transform: scale(.97); transition-duration: 100ms; }
+html.reduce .tonal.press { transform: none; }
+.note { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 13.5px; line-height: 1.45; color: var(--tx2); }
+.note b { color: var(--tx); font-weight: 600; }
+.note .t { font: 400 12px/1.5 var(--mono); color: var(--tx3); margin-top: 6px; }
+.ctl { display: flex; gap: 10px; align-items: center; margin-top: 12px; font-size: 13px; color: var(--tx3); }
+.ctl label { display: inline-flex; gap: 6px; align-items: center; }
+html.still .ctl { display: none; }
+/* Il fotogramma del PNG (?still): lo stato finale, senza transizioni a metà. */
+html.still *, html.still *::before, html.still *::after { transition: none !important; }
+/* Nel fotogramma del PNG le animazioni d ingresso non restano al primo fotogramma. */
+html.still *, html.still *::before, html.still *::after { animation: none !important; }
+&lt;/style&gt;
+&lt;style&gt;
+  .pal { background: var(--s1); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; transform-origin: top center; animation: pal-in 200ms var(--ease-out) both; }
+  @keyframes pal-in { from { opacity: 0; transform: translateY(-6px) scale(.98); } }
+  .q { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--line); font-size: 16px; }
+  .q .ph { color: var(--tx3); }
+  .grp { padding: 8px 14px 2px; font: 400 12px var(--mono); color: var(--tx3); }
+  /* Le righe filtrano senza animare (si scrive tante volte); solo la riga scelta ha un fondo che scivola con la molla veloce. */
+  .list { position: relative; padding-bottom: 6px; }
+  .hl { position: absolute; left: 6px; right: 6px; height: 40px; border-radius: 10px; background: var(--s3); transition: top var(--spring-fast-t) var(--spring-fast); }
+  .r { position: relative; display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 14px; font-size: 15px; }
+  .r .kb { margin-left: auto; font: 400 12px var(--mono); color: var(--tx3); }
+  .r .ic { width: 20px; text-align: center; color: var(--tx2); }
+  html.reduce .pal { animation: none; } html.reduce .hl { transition: none; }
+&lt;/style&gt;&lt;/head&gt;&lt;body&gt;
+&lt;div class=&quot;top&quot;&gt;&lt;h1&gt;Ricerca come palette&lt;/h1&gt;&lt;div class=&quot;ref&quot;&gt;Command palette&lt;br&gt;web · telefono&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;pal&quot; id=&quot;p&quot;&gt;
+  &lt;div class=&quot;q&quot;&gt;&lt;span&gt;⌕&lt;/span&gt;&lt;span id=&quot;qt&quot;&gt;&lt;span class=&quot;ph&quot;&gt;Cerca o scrivi un comando&lt;/span&gt;&lt;/span&gt;&lt;/div&gt;
+  &lt;div class=&quot;grp&quot;&gt;Azioni&lt;/div&gt;
+  &lt;div class=&quot;list&quot; id=&quot;l&quot;&gt;&lt;span class=&quot;hl&quot; id=&quot;hl&quot;&gt;&lt;/span&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class=&quot;note&quot;&gt;&lt;b&gt;Cosa fa.&lt;/b&gt; «Cerca» diventa anche il posto dei comandi: scrivendo, sopra i risultati compaiono le azioni (Lancia, Riapri, Chiudi, Vai a) col nome della sessione già dentro; frecce e Invio sulla web, tocco sul telefono. Si apre e si chiude spesso: niente animazioni lunghe, solo 200 ms all&#x27;apertura e il fondo della riga scelta che scivola. Riapri e Chiudi seguono le regole di issue #4 (niente Riapri su una aperta, niente Chiudi su una in uso).
+&lt;div class=&quot;t&quot;&gt;apertura 200 ms in uscita · riga scelta con la molla veloce · nessuna animazione sul filtro · ridotte: niente · relay: niente di nuovo&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;ctl&quot;&gt;&lt;/div&gt;
+&lt;script&gt;// Ogni mockup ripete la sua scena: `M.loop(scena, fotogramma)` la fa partire, `?still` la ferma sul fotogramma del PNG,
+// `?reduce` (o il riquadro) mostra la versione con le animazioni ridotte. Script classico: si apre anche da file://.
+window.M = (() =&gt; {
+  const q = new URLSearchParams(location.search)
+  const still = q.has(&#x27;still&#x27;)
+  const root = document.documentElement
+  if (still) root.classList.add(&#x27;still&#x27;)
+  if (q.has(&#x27;reduce&#x27;) || matchMedia(&#x27;(prefers-reduced-motion: reduce)&#x27;).matches) root.classList.add(&#x27;reduce&#x27;)
+  const reduced = () =&gt; root.classList.contains(&#x27;reduce&#x27;)
+  const wait = ms =&gt; new Promise(r =&gt; setTimeout(r, ms))
+  async function loop(scene, stillFrame, every = 900) {
+    // Le misure delle parole valgono solo con i caratteri veri caricati.
+    await document.fonts.ready
+    if (still) { stillFrame(); return }
+    const box = document.querySelector(&#x27;.ctl&#x27;)
+    if (box) box.innerHTML = &#x27;&lt;button class=&quot;tonal&quot; id=&quot;again&quot;&gt;Riproduci&lt;/button&gt;&lt;label&gt;&lt;input type=&quot;checkbox&quot; id=&quot;red&quot;&#x27; + (reduced() ? &#x27; checked&#x27; : &#x27;&#x27;) + &#x27;&gt; Animazioni ridotte&lt;/label&gt;&#x27;
+    document.getElementById(&#x27;red&#x27;)?.addEventListener(&#x27;change&#x27;, e =&gt; root.classList.toggle(&#x27;reduce&#x27;, e.target.checked))
+    let run = 0
+    const go = async () =&gt; { const me = ++run; while (me === run) { await scene(); await wait(every) } }
+    document.getElementById(&#x27;again&#x27;)?.addEventListener(&#x27;click&#x27;, go)
+    go()
+  }
+  return { still, reduced, wait, loop }
+})()
+&lt;/script&gt;
+&lt;script&gt;
+  const l = document.getElementById(&#x27;l&#x27;), hl = document.getElementById(&#x27;hl&#x27;), qt = document.getElementById(&#x27;qt&#x27;)
+  const all = [[&#x27;▶&#x27;, &#x27;Lancia supervisor-app&#x27;, &#x27;Invio&#x27;], [&#x27;↻&#x27;, &#x27;Riapri supervisor-web&#x27;, &#x27;&#x27;], [&#x27;✕&#x27;, &#x27;Chiudi watchface&#x27;, &#x27;&#x27;], [&#x27;→&#x27;, &#x27;Vai a claude-master&#x27;, &#x27;&#x27;]]
+  const show = (rows, at) =&gt; { l.querySelectorAll(&#x27;.r&#x27;).forEach(x =&gt; x.remove()); rows.forEach(r =&gt; l.insertAdjacentHTML(&#x27;beforeend&#x27;, `&lt;div class=&quot;r&quot;&gt;&lt;span class=&quot;ic&quot;&gt;${r[0]}&lt;/span&gt;${r[1]}&lt;span class=&quot;kb&quot;&gt;${r[2]}&lt;/span&gt;&lt;/div&gt;`)); hl.style.top = (at * 40) + &#x27;px&#x27;; hl.style.display = rows.length ? &#x27;&#x27; : &#x27;none&#x27; }
+  M.loop(async () =&gt; {
+    qt.innerHTML = &#x27;&lt;span class=&quot;ph&quot;&gt;Cerca o scrivi un comando&lt;/span&gt;&#x27;; show(all, 0); await M.wait(1100)
+    for (const i of [1, 2, 3, 0]) { hl.style.top = (i * 40) + &#x27;px&#x27;; await M.wait(420) }
+    qt.textContent = &#x27;sup&#x27;; show([all[0], all[1]], 0); await M.wait(700); hl.style.top = &#x27;40px&#x27;; await M.wait(1200)
+  }, () =&gt; { qt.textContent = &#x27;sup&#x27;; show([all[0], all[1]], 0) })
+&lt;/script&gt;&lt;/body&gt;&lt;/html&gt;
+"></iframe><figcaption>7 · Ricerca come palette di comandi</figcaption></figure>
+  <figure><iframe title="Lettura a voce con lo scrubber" srcdoc="&lt;!doctype html&gt;&lt;html lang=&quot;it&quot;&gt;&lt;head&gt;&lt;meta charset=&quot;utf-8&quot;&gt;&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
+&lt;title&gt;Lettura a voce con lo scrubber&lt;/title&gt;&lt;style&gt;/* Mockup delle animazioni (app-animazioni-stile-26-11): colori e caratteri v3 (web/src/v3.css), curve e tempi di CmMotion e
+   app.css. Nessun valore nuovo: le proposte usano le tre molle che l&#x27;app ha già, più il ciclo di 1,6 s della linea al lavoro. */
+@import url(&#x27;https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&amp;family=Barlow+Semi+Condensed:wght@600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap&#x27;);
+:root {
+  --bg: #0B0B0B; --s1: #111111; --s2: #181818; --s3: #222222; --line: #2A2A2A;
+  --tx: #EEEEEE; --tx2: #9B9B9B; --tx3: #8A8A8A; --act: #FFFFFF; --on-act: #0B0B0B;
+  --wait: #FFB23F; --busy: #8FA8D2; --good: #71D083; --red: #FF5A5F;
+  --sans: Barlow, system-ui, sans-serif; --display: &#x27;Barlow Semi Condensed&#x27;, Barlow, system-ui, sans-serif; --mono: &#x27;Geist Mono&#x27;, ui-monospace, monospace;
+  --spring-fast: linear(0, .253, .577, .786, .899, .954, .98, .991, 1); --spring-fast-t: 200ms;
+  --spring-bounce: linear(0, .206, .553, .826, .979, 1.038, 1.045, 1.031, 1.016, 1.005, 1, .998, .998, .999, .999, 1, 1); --spring-bounce-t: 620ms;
+  --spring-slow: linear(0, .158, .413, .626, .774, .868, .925, .958, .977, .987, 1); --spring-slow-t: 500ms;
+  --ease-out: cubic-bezier(.3, 0, .2, 1); /* CmMotion.easing */
+  --cycle: 1.6s; /* la linea del lavoro in corso, voce 1 */
+}
+/* Riduzione delle animazioni, come app.css: niente rimbalzo, tempi brevi; i cicli si fermano. */
+@media (prefers-reduced-motion: reduce) { :root { --spring-bounce: var(--spring-fast); --spring-bounce-t: 1ms; --spring-fast-t: 1ms; --spring-slow-t: 120ms; } }
+html.reduce { --spring-bounce: var(--spring-fast); --spring-bounce-t: 1ms; --spring-fast-t: 1ms; --spring-slow-t: 120ms; }
+* { box-sizing: border-box; margin: 0; }
+html, body { background: var(--bg); color: var(--tx); font: 400 16px/1.4 var(--sans); -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
+body { width: 360px; margin: 0; padding: 16px 16px 20px; }
+.top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.top h1 { font: 700 22px/1.15 var(--display); }
+.top .ref { font: 400 12px/1.3 var(--mono); color: var(--tx3); text-align: right; }
+.card { background: var(--s1); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+.card + .card { margin-top: 10px; }
+.k { font: 600 15px/22px var(--display); color: var(--tx2); }
+.meta { font-size: 13.5px; color: var(--tx2); }
+.mono { font: 400 12.5px/1.4 var(--mono); color: var(--tx2); }
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+.tonal { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 16px; border-radius: 20px; background: var(--s3); color: var(--tx); font-weight: 500; transition: transform var(--spring-fast-t) var(--spring-fast); }
+.tonal:active, .tonal.press { transform: scale(.97); transition-duration: 100ms; }
+html.reduce .tonal.press { transform: none; }
+.note { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 13.5px; line-height: 1.45; color: var(--tx2); }
+.note b { color: var(--tx); font-weight: 600; }
+.note .t { font: 400 12px/1.5 var(--mono); color: var(--tx3); margin-top: 6px; }
+.ctl { display: flex; gap: 10px; align-items: center; margin-top: 12px; font-size: 13px; color: var(--tx3); }
+.ctl label { display: inline-flex; gap: 6px; align-items: center; }
+html.still .ctl { display: none; }
+/* Il fotogramma del PNG (?still): lo stato finale, senza transizioni a metà. */
+html.still *, html.still *::before, html.still *::after { transition: none !important; }
+/* Nel fotogramma del PNG le animazioni d ingresso non restano al primo fotogramma. */
+html.still *, html.still *::before, html.still *::after { animation: none !important; }
+&lt;/style&gt;
+&lt;style&gt;
+  .pill { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-radius: 18px; background: var(--s2); border: 1px solid var(--line); }
+  .row { display: flex; align-items: center; gap: 10px; }
+  .pp { width: 36px; height: 36px; border-radius: 18px; background: var(--s3); display: grid; place-items: center; }
+  .what { flex: 1; min-width: 0; }
+  .what b { font: 600 14px var(--display); display: block; }
+  .what span { font-size: 13px; color: var(--tx2); white-space: nowrap; overflow: hidden; display: block; }
+  .rate { font: 500 13px var(--mono); color: var(--tx2); padding: 6px 10px; border-radius: 14px; background: var(--s3); }
+  /* Lo scrubber: una tacca per paragrafo; il pieno avanza lineare mentre legge; trascinato, la manopola si allarga e la lettura
+     riparte dal paragrafo dove la lasci (la scelta del blocco resta). */
+  .sc { position: relative; height: 22px; }
+  .tr { position: absolute; left: 0; right: 0; top: 9px; height: 4px; border-radius: 2px; background: var(--s3); }
+  .tr i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 2px; background: var(--busy); }
+  .nk { position: absolute; top: 7px; width: 2px; height: 8px; background: var(--bg); }
+  .kn { position: absolute; top: 3px; width: 16px; height: 16px; margin-left: -8px; border-radius: 8px; background: var(--tx); transition: width var(--spring-fast-t) var(--spring-fast), height var(--spring-fast-t) var(--spring-fast), margin var(--spring-fast-t) var(--spring-fast), top var(--spring-fast-t) var(--spring-fast); }
+  .kn.held { width: 22px; height: 22px; margin-left: -11px; top: 0; }
+  .tip { position: absolute; bottom: 26px; transform: translateX(-50%); font: 400 12px var(--mono); padding: 4px 8px; border-radius: 8px; background: var(--s3); white-space: nowrap; opacity: 0; transition: opacity 150ms; }
+  .tip.on { opacity: 1; }
+  html.reduce .kn { transition: none; }
+&lt;/style&gt;&lt;/head&gt;&lt;body&gt;
+&lt;div class=&quot;top&quot;&gt;&lt;h1&gt;Lettura con lo scrubber&lt;/h1&gt;&lt;div class=&quot;ref&quot;&gt;Read along · Range slider&lt;br&gt;telefono · web&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;pill&quot;&gt;
+  &lt;div class=&quot;row&quot;&gt;&lt;span class=&quot;pp&quot;&gt;&lt;svg viewBox=&quot;0 0 24 24&quot; width=&quot;18&quot; height=&quot;18&quot;&gt;&lt;rect x=&quot;6.5&quot; y=&quot;5&quot; width=&quot;4&quot; height=&quot;14&quot; rx=&quot;1&quot; fill=&quot;var(--tx)&quot;/&gt;&lt;rect x=&quot;13.5&quot; y=&quot;5&quot; width=&quot;4&quot; height=&quot;14&quot; rx=&quot;1&quot; fill=&quot;var(--tx)&quot;/&gt;&lt;/svg&gt;&lt;/span&gt;
+    &lt;div class=&quot;what&quot;&gt;&lt;b&gt;supervisor-app&lt;/b&gt;&lt;span id=&quot;w&quot;&gt;Paragrafo 3 di 7 · Le tappe della prova&lt;/span&gt;&lt;/div&gt;&lt;span class=&quot;rate&quot;&gt;1,25×&lt;/span&gt;&lt;/div&gt;
+  &lt;div class=&quot;sc&quot; id=&quot;sc&quot;&gt;&lt;div class=&quot;tr&quot;&gt;&lt;i id=&quot;fl&quot;&gt;&lt;/i&gt;&lt;/div&gt;&lt;span class=&quot;tip&quot; id=&quot;tip&quot;&gt;&lt;/span&gt;&lt;span class=&quot;kn&quot; id=&quot;kn&quot;&gt;&lt;/span&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class=&quot;note&quot;&gt;&lt;b&gt;Cosa fa.&lt;/b&gt; La pillola della lettura oggi dice cosa legge ma non a che punto è. Qui una barra con una tacca per paragrafo avanza mentre la voce legge; trascinandola, un&#x27;etichetta dice a quale paragrafo arrivi e al rilascio la lettura riparte da lì. È un altro modo di scegliere il blocco da leggere: il tocco su un paragrafo in chat resta com&#x27;è.
+&lt;div class=&quot;t&quot;&gt;avanzamento lineare · manopola 200 ms molla veloce · etichetta 150 ms · ridotte: senza movimento della manopola&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;ctl&quot;&gt;&lt;/div&gt;
+&lt;script&gt;// Ogni mockup ripete la sua scena: `M.loop(scena, fotogramma)` la fa partire, `?still` la ferma sul fotogramma del PNG,
+// `?reduce` (o il riquadro) mostra la versione con le animazioni ridotte. Script classico: si apre anche da file://.
+window.M = (() =&gt; {
+  const q = new URLSearchParams(location.search)
+  const still = q.has(&#x27;still&#x27;)
+  const root = document.documentElement
+  if (still) root.classList.add(&#x27;still&#x27;)
+  if (q.has(&#x27;reduce&#x27;) || matchMedia(&#x27;(prefers-reduced-motion: reduce)&#x27;).matches) root.classList.add(&#x27;reduce&#x27;)
+  const reduced = () =&gt; root.classList.contains(&#x27;reduce&#x27;)
+  const wait = ms =&gt; new Promise(r =&gt; setTimeout(r, ms))
+  async function loop(scene, stillFrame, every = 900) {
+    // Le misure delle parole valgono solo con i caratteri veri caricati.
+    await document.fonts.ready
+    if (still) { stillFrame(); return }
+    const box = document.querySelector(&#x27;.ctl&#x27;)
+    if (box) box.innerHTML = &#x27;&lt;button class=&quot;tonal&quot; id=&quot;again&quot;&gt;Riproduci&lt;/button&gt;&lt;label&gt;&lt;input type=&quot;checkbox&quot; id=&quot;red&quot;&#x27; + (reduced() ? &#x27; checked&#x27; : &#x27;&#x27;) + &#x27;&gt; Animazioni ridotte&lt;/label&gt;&#x27;
+    document.getElementById(&#x27;red&#x27;)?.addEventListener(&#x27;change&#x27;, e =&gt; root.classList.toggle(&#x27;reduce&#x27;, e.target.checked))
+    let run = 0
+    const go = async () =&gt; { const me = ++run; while (me === run) { await scene(); await wait(every) } }
+    document.getElementById(&#x27;again&#x27;)?.addEventListener(&#x27;click&#x27;, go)
+    go()
+  }
+  return { still, reduced, wait, loop }
+})()
+&lt;/script&gt;
+&lt;script&gt;
+  const N = 7, sc = document.getElementById(&#x27;sc&#x27;), fl = document.getElementById(&#x27;fl&#x27;), kn = document.getElementById(&#x27;kn&#x27;), tip = document.getElementById(&#x27;tip&#x27;), w = document.getElementById(&#x27;w&#x27;)
+  for (let i = 1; i &lt; N; i++) sc.insertAdjacentHTML(&#x27;afterbegin&#x27;, `&lt;span class=&quot;nk&quot; style=&quot;left:${i / N * 100}%&quot;&gt;&lt;/span&gt;`)
+  const titles = [&#x27;Fatto&#x27;, &#x27;Cosa cambia&#x27;, &#x27;Le tappe della prova&#x27;, &#x27;Il filo&#x27;, &#x27;La riga sotto&#x27;, &#x27;Test&#x27;, &#x27;Prossimo passo&#x27;]
+  const at = p =&gt; { fl.style.width = p * 100 + &#x27;%&#x27;; kn.style.left = p * 100 + &#x27;%&#x27;; const k = Math.min(N - 1, Math.floor(p * N)); w.textContent = `Paragrafo ${k + 1} di ${N} · ${titles[k]}`; return k }
+  M.loop(async () =&gt; {
+    kn.classList.remove(&#x27;held&#x27;); tip.classList.remove(&#x27;on&#x27;)
+    for (let p = 0.3; p &lt; 0.42; p += 0.01) { at(p); await M.wait(90) }
+    kn.classList.add(&#x27;held&#x27;); tip.classList.add(&#x27;on&#x27;)
+    for (let p = 0.42; p &lt; 0.8; p += 0.04) { const k = at(p); tip.style.left = p * 100 + &#x27;%&#x27;; tip.textContent = `${k + 1} · ${titles[k]}`; await M.wait(110) }
+    await M.wait(500); kn.classList.remove(&#x27;held&#x27;); tip.classList.remove(&#x27;on&#x27;); at(5 / 7); await M.wait(1200)
+  }, () =&gt; { kn.classList.add(&#x27;held&#x27;); tip.classList.add(&#x27;on&#x27;); const p = 0.62; const k = at(p); tip.style.left = p * 100 + &#x27;%&#x27;; tip.textContent = `${k + 1} · ${titles[k]}` })
+&lt;/script&gt;&lt;/body&gt;&lt;/html&gt;
+"></iframe><figcaption>8 · Lettura a voce con lo scrubber</figcaption></figure>
+  <figure><iframe title="Tieni premuto per Play" srcdoc="&lt;!doctype html&gt;&lt;html lang=&quot;it&quot;&gt;&lt;head&gt;&lt;meta charset=&quot;utf-8&quot;&gt;&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
+&lt;title&gt;Tieni premuto per Play&lt;/title&gt;&lt;style&gt;/* Mockup delle animazioni (app-animazioni-stile-26-11): colori e caratteri v3 (web/src/v3.css), curve e tempi di CmMotion e
+   app.css. Nessun valore nuovo: le proposte usano le tre molle che l&#x27;app ha già, più il ciclo di 1,6 s della linea al lavoro. */
+@import url(&#x27;https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&amp;family=Barlow+Semi+Condensed:wght@600;700&amp;family=Geist+Mono:wght@400;500&amp;display=swap&#x27;);
+:root {
+  --bg: #0B0B0B; --s1: #111111; --s2: #181818; --s3: #222222; --line: #2A2A2A;
+  --tx: #EEEEEE; --tx2: #9B9B9B; --tx3: #8A8A8A; --act: #FFFFFF; --on-act: #0B0B0B;
+  --wait: #FFB23F; --busy: #8FA8D2; --good: #71D083; --red: #FF5A5F;
+  --sans: Barlow, system-ui, sans-serif; --display: &#x27;Barlow Semi Condensed&#x27;, Barlow, system-ui, sans-serif; --mono: &#x27;Geist Mono&#x27;, ui-monospace, monospace;
+  --spring-fast: linear(0, .253, .577, .786, .899, .954, .98, .991, 1); --spring-fast-t: 200ms;
+  --spring-bounce: linear(0, .206, .553, .826, .979, 1.038, 1.045, 1.031, 1.016, 1.005, 1, .998, .998, .999, .999, 1, 1); --spring-bounce-t: 620ms;
+  --spring-slow: linear(0, .158, .413, .626, .774, .868, .925, .958, .977, .987, 1); --spring-slow-t: 500ms;
+  --ease-out: cubic-bezier(.3, 0, .2, 1); /* CmMotion.easing */
+  --cycle: 1.6s; /* la linea del lavoro in corso, voce 1 */
+}
+/* Riduzione delle animazioni, come app.css: niente rimbalzo, tempi brevi; i cicli si fermano. */
+@media (prefers-reduced-motion: reduce) { :root { --spring-bounce: var(--spring-fast); --spring-bounce-t: 1ms; --spring-fast-t: 1ms; --spring-slow-t: 120ms; } }
+html.reduce { --spring-bounce: var(--spring-fast); --spring-bounce-t: 1ms; --spring-fast-t: 1ms; --spring-slow-t: 120ms; }
+* { box-sizing: border-box; margin: 0; }
+html, body { background: var(--bg); color: var(--tx); font: 400 16px/1.4 var(--sans); -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
+body { width: 360px; margin: 0; padding: 16px 16px 20px; }
+.top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.top h1 { font: 700 22px/1.15 var(--display); }
+.top .ref { font: 400 12px/1.3 var(--mono); color: var(--tx3); text-align: right; }
+.card { background: var(--s1); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+.card + .card { margin-top: 10px; }
+.k { font: 600 15px/22px var(--display); color: var(--tx2); }
+.meta { font-size: 13.5px; color: var(--tx2); }
+.mono { font: 400 12.5px/1.4 var(--mono); color: var(--tx2); }
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+.tonal { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 16px; border-radius: 20px; background: var(--s3); color: var(--tx); font-weight: 500; transition: transform var(--spring-fast-t) var(--spring-fast); }
+.tonal:active, .tonal.press { transform: scale(.97); transition-duration: 100ms; }
+html.reduce .tonal.press { transform: none; }
+.note { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 13.5px; line-height: 1.45; color: var(--tx2); }
+.note b { color: var(--tx); font-weight: 600; }
+.note .t { font: 400 12px/1.5 var(--mono); color: var(--tx3); margin-top: 6px; }
+.ctl { display: flex; gap: 10px; align-items: center; margin-top: 12px; font-size: 13px; color: var(--tx3); }
+.ctl label { display: inline-flex; gap: 6px; align-items: center; }
+html.still .ctl { display: none; }
+/* Il fotogramma del PNG (?still): lo stato finale, senza transizioni a metà. */
+html.still *, html.still *::before, html.still *::after { transition: none !important; }
+/* Nel fotogramma del PNG le animazioni d ingresso non restano al primo fotogramma. */
+html.still *, html.still *::before, html.still *::after { animation: none !important; }
+&lt;/style&gt;
+&lt;style&gt;
+  .k b { color: var(--red); font-weight: 600; }
+  .ask { font-size: 16px; line-height: 1.4; margin: 4px 0 12px; }
+  .row { display: flex; gap: 8px; }
+  .hold { position: relative; flex: 1; overflow: hidden; justify-content: center; border: 1px solid color-mix(in srgb, var(--red) 45%, transparent); background: var(--s2); }
+  .hold .fill { position: absolute; inset: 0; background: color-mix(in srgb, var(--red) 30%, var(--s3)); clip-path: inset(0 100% 0 0); transition: clip-path 200ms var(--ease-out); }
+  .hold.down .fill { clip-path: inset(0 0 0 0); transition: clip-path 600ms linear; }
+  .hold span { position: relative; }
+  .tbl { margin-top: 14px; font-size: 13.5px; color: var(--tx2); }
+  .tbl div { display: flex; justify-content: space-between; padding: 6px 0; border-top: 1px solid var(--line); }
+  .tbl b { color: var(--tx); font-weight: 500; }
+&lt;/style&gt;&lt;/head&gt;&lt;body&gt;
+&lt;div class=&quot;top&quot;&gt;&lt;h1&gt;Tieni premuto per Play&lt;/h1&gt;&lt;div class=&quot;ref&quot;&gt;Hold button&lt;br&gt;telefono · web · orologio&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;card&quot;&gt;
+  &lt;span class=&quot;k&quot;&gt;claude-master · approvazione · &lt;b&gt;Play&lt;/b&gt;&lt;/span&gt;
+  &lt;p class=&quot;ask&quot;&gt;Carico la release 6 su Google Play (61 e 62)?&lt;/p&gt;
+  &lt;div class=&quot;row&quot;&gt;&lt;button class=&quot;tonal hold&quot; id=&quot;h&quot;&gt;&lt;span class=&quot;fill&quot;&gt;&lt;/span&gt;&lt;span&gt;Tieni premuto: Carica&lt;/span&gt;&lt;/button&gt;&lt;button class=&quot;tonal&quot;&gt;No&lt;/button&gt;&lt;/div&gt;
+  &lt;div class=&quot;tbl&quot;&gt;
+    &lt;div&gt;&lt;span&gt;Pubblicare su Play&lt;/span&gt;&lt;b&gt;tieni premuto&lt;/b&gt;&lt;/div&gt;
+    &lt;div&gt;&lt;span&gt;Ok in produzione (già oggi)&lt;/span&gt;&lt;b&gt;tieni premuto&lt;/b&gt;&lt;/div&gt;
+    &lt;div&gt;&lt;span&gt;Non ora, Mai, Visto, Chiudi senza salvare&lt;/span&gt;&lt;b&gt;Annulla 5 s&lt;/b&gt;&lt;/div&gt;
+    &lt;div&gt;&lt;span&gt;Tutto il resto&lt;/span&gt;&lt;b&gt;un tocco&lt;/b&gt;&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+&lt;div class=&quot;note&quot;&gt;&lt;b&gt;Cosa fa.&lt;/b&gt; Il tieni premuto c&#x27;è già sulle approvazioni di produzione. Qui si estende solo a ciò che non si può annullare: la pubblicazione su Play, che una volta partita non torna indietro. Dove c&#x27;è l&#x27;Annulla di 5 s non si aggiunge: due protezioni sullo stesso gesto sarebbero di troppo.
+&lt;div class=&quot;t&quot;&gt;riempimento 600 ms lineare · ritorno 200 ms · come la voce 6 del primo giro · relay: serve il segno «play» sull&#x27;approvazione, oggi c&#x27;è solo deploy&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;ctl&quot;&gt;&lt;/div&gt;
+&lt;script&gt;// Ogni mockup ripete la sua scena: `M.loop(scena, fotogramma)` la fa partire, `?still` la ferma sul fotogramma del PNG,
+// `?reduce` (o il riquadro) mostra la versione con le animazioni ridotte. Script classico: si apre anche da file://.
+window.M = (() =&gt; {
+  const q = new URLSearchParams(location.search)
+  const still = q.has(&#x27;still&#x27;)
+  const root = document.documentElement
+  if (still) root.classList.add(&#x27;still&#x27;)
+  if (q.has(&#x27;reduce&#x27;) || matchMedia(&#x27;(prefers-reduced-motion: reduce)&#x27;).matches) root.classList.add(&#x27;reduce&#x27;)
+  const reduced = () =&gt; root.classList.contains(&#x27;reduce&#x27;)
+  const wait = ms =&gt; new Promise(r =&gt; setTimeout(r, ms))
+  async function loop(scene, stillFrame, every = 900) {
+    // Le misure delle parole valgono solo con i caratteri veri caricati.
+    await document.fonts.ready
+    if (still) { stillFrame(); return }
+    const box = document.querySelector(&#x27;.ctl&#x27;)
+    if (box) box.innerHTML = &#x27;&lt;button class=&quot;tonal&quot; id=&quot;again&quot;&gt;Riproduci&lt;/button&gt;&lt;label&gt;&lt;input type=&quot;checkbox&quot; id=&quot;red&quot;&#x27; + (reduced() ? &#x27; checked&#x27; : &#x27;&#x27;) + &#x27;&gt; Animazioni ridotte&lt;/label&gt;&#x27;
+    document.getElementById(&#x27;red&#x27;)?.addEventListener(&#x27;change&#x27;, e =&gt; root.classList.toggle(&#x27;reduce&#x27;, e.target.checked))
+    let run = 0
+    const go = async () =&gt; { const me = ++run; while (me === run) { await scene(); await wait(every) } }
+    document.getElementById(&#x27;again&#x27;)?.addEventListener(&#x27;click&#x27;, go)
+    go()
+  }
+  return { still, reduced, wait, loop }
+})()
+&lt;/script&gt;
+&lt;script&gt;
+  const h = document.getElementById(&#x27;h&#x27;)
+  M.loop(async () =&gt; { h.classList.remove(&#x27;down&#x27;); await M.wait(900); h.classList.add(&#x27;down&#x27;); await M.wait(700); h.classList.remove(&#x27;down&#x27;); await M.wait(900) }, () =&gt; { h.classList.add(&#x27;down&#x27;); const f = h.querySelector(&#x27;.fill&#x27;); f.style.transition = &#x27;none&#x27;; f.style.clipPath = &#x27;inset(0 40% 0 0)&#x27; })
+&lt;/script&gt;&lt;/body&gt;&lt;/html&gt;
+"></iframe><figcaption>9 · Tieni premuto per Play</figcaption></figure>
+</div>
+</body></html>

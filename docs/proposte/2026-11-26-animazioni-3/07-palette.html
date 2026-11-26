@@ -1,0 +1,36 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ricerca come palette</title><link rel="stylesheet" href="motion.css">
+<style>
+  .pal { background: var(--s1); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; transform-origin: top center; animation: pal-in 200ms var(--ease-out) both; }
+  @keyframes pal-in { from { opacity: 0; transform: translateY(-6px) scale(.98); } }
+  .q { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--line); font-size: 16px; }
+  .q .ph { color: var(--tx3); }
+  .grp { padding: 8px 14px 2px; font: 400 12px var(--mono); color: var(--tx3); }
+  /* Le righe filtrano senza animare (si scrive tante volte); solo la riga scelta ha un fondo che scivola con la molla veloce. */
+  .list { position: relative; padding-bottom: 6px; }
+  .hl { position: absolute; left: 6px; right: 6px; height: 40px; border-radius: 10px; background: var(--s3); transition: top var(--spring-fast-t) var(--spring-fast); }
+  .r { position: relative; display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 14px; font-size: 15px; }
+  .r .kb { margin-left: auto; font: 400 12px var(--mono); color: var(--tx3); }
+  .r .ic { width: 20px; text-align: center; color: var(--tx2); }
+  html.reduce .pal { animation: none; } html.reduce .hl { transition: none; }
+</style></head><body>
+<div class="top"><h1>Ricerca come palette</h1><div class="ref">Command palette<br>web · telefono</div></div>
+<div class="pal" id="p">
+  <div class="q"><span>⌕</span><span id="qt"><span class="ph">Cerca o scrivi un comando</span></span></div>
+  <div class="grp">Azioni</div>
+  <div class="list" id="l"><span class="hl" id="hl"></span></div>
+</div>
+<div class="note"><b>Cosa fa.</b> «Cerca» diventa anche il posto dei comandi: scrivendo, sopra i risultati compaiono le azioni (Lancia, Riapri, Chiudi, Vai a) col nome della sessione già dentro; frecce e Invio sulla web, tocco sul telefono. Si apre e si chiude spesso: niente animazioni lunghe, solo 200 ms all'apertura e il fondo della riga scelta che scivola. Riapri e Chiudi seguono le regole di issue #4 (niente Riapri su una aperta, niente Chiudi su una in uso).
+<div class="t">apertura 200 ms in uscita · riga scelta con la molla veloce · nessuna animazione sul filtro · ridotte: niente · relay: niente di nuovo</div></div>
+<div class="ctl"></div>
+<script src="motion.js"></script>
+<script>
+  const l = document.getElementById('l'), hl = document.getElementById('hl'), qt = document.getElementById('qt')
+  const all = [['▶', 'Lancia supervisor-app', 'Invio'], ['↻', 'Riapri supervisor-web', ''], ['✕', 'Chiudi watchface', ''], ['→', 'Vai a claude-master', '']]
+  const show = (rows, at) => { l.querySelectorAll('.r').forEach(x => x.remove()); rows.forEach(r => l.insertAdjacentHTML('beforeend', `<div class="r"><span class="ic">${r[0]}</span>${r[1]}<span class="kb">${r[2]}</span></div>`)); hl.style.top = (at * 40) + 'px'; hl.style.display = rows.length ? '' : 'none' }
+  M.loop(async () => {
+    qt.innerHTML = '<span class="ph">Cerca o scrivi un comando</span>'; show(all, 0); await M.wait(1100)
+    for (const i of [1, 2, 3, 0]) { hl.style.top = (i * 40) + 'px'; await M.wait(420) }
+    qt.textContent = 'sup'; show([all[0], all[1]], 0); await M.wait(700); hl.style.top = '40px'; await M.wait(1200)
+  }, () => { qt.textContent = 'sup'; show([all[0], all[1]], 0) })
+</script></body></html>

@@ -1,0 +1,51 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Citare una sessione con @</title><link rel="stylesheet" href="motion.css">
+<style>
+  .msgs { min-height: 150px; display: flex; flex-direction: column; justify-content: flex-end; gap: 8px; }
+  .cl { font-size: 15px; line-height: 1.45; }
+  /* L'elenco delle sessioni sale sopra il campo appena si scrive @; filtra mentre si scrive. */
+  .pick { margin: 10px 0 6px; background: var(--s2); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; transform-origin: bottom left; opacity: 0; transform: translateY(6px) scale(.98); transition: opacity 150ms var(--ease-out), transform var(--spring-fast-t) var(--spring-fast); }
+  .pick.on { opacity: 1; transform: none; }
+  .pick .r { display: flex; align-items: center; gap: 10px; padding: 10px 12px; font-size: 15px; }
+  .pick .r + .r { border-top: 1px solid var(--line); }
+  .pick .r.hi { background: var(--s3); }
+  .pick .r i { width: 8px; height: 8px; border-radius: 4px; }
+  .pick .r .st { margin-left: auto; font: 400 12.5px var(--mono); color: var(--tx3); }
+  .field { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 6px 6px 6px 14px; border-radius: 24px; background: var(--s2); border: 1px solid var(--line); font-size: 16px; }
+  .txt { flex: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-height: 24px; }
+  /* La sessione scelta diventa una pillola nel campo, che entra da 0,9: il tocco la apre, la ✕ la toglie. */
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 14px; background: color-mix(in srgb, var(--busy) 22%, var(--s3)); color: var(--tx); font: 600 14px var(--display); animation: pin var(--spring-bounce-t) var(--spring-bounce) both; }
+  @keyframes pin { from { transform: scale(.9); opacity: 0; } }
+  .caret { width: 2px; height: 20px; background: var(--tx); animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .send { width: 36px; height: 36px; border-radius: 18px; display: grid; place-items: center; background: var(--s3); color: var(--tx2); }
+  .lab { font: 400 12px var(--mono); color: var(--tx3); margin-top: 8px; min-height: 17px; }
+  html.reduce .pick, html.reduce .pill { transition: none; animation: none; }
+  html.still .caret { animation: none; }
+</style></head><body>
+<div class="top"><h1>Citare una sessione con @</h1><div class="ref">Mention picker<br>telefono · web</div></div>
+<div class="card">
+  <div class="msgs"><div class="cl">La build è verde. Vuoi che chieda a supervisor-app di preparare la pre-release?</div></div>
+  <div class="pick" id="pick">
+    <div class="r hi"><i style="background:var(--busy)"></i>supervisor-app<span class="st">al lavoro</span></div>
+    <div class="r"><i style="background:var(--good)"></i>supervisor<span class="st">ferma</span></div>
+    <div class="r"><i style="background:var(--tx3)"></i>supervisor-web<span class="st">chiusa</span></div>
+  </div>
+  <div class="field"><span class="txt" id="txt"></span><span class="send"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></span></div>
+  <p class="lab" id="lab"></p>
+</div>
+<div class="note"><b>Cosa fa.</b> Nel campo della master o di una sessione, «@» apre l'elenco delle sessioni, che si filtra mentre scrivi; la scelta diventa una pillola. Mandato, il testo va alla sessione citata come un prompt dal telefono (l'op c'è già); nella chat da cui scrivi resta una riga «→ supervisor-app». Il tocco sulla pillola apre la sessione. Con due citazioni il messaggio va a tutte e due.
+<div class="t">elenco 150 ms + molla veloce · pillola con la molla di casa · ridotte: comparsa secca · relay: niente di nuovo, il prompt a una sessione c'è</div></div>
+<div class="ctl"></div>
+<script src="motion.js"></script>
+<script>
+  const pick = document.getElementById('pick'), txt = document.getElementById('txt'), lab = document.getElementById('lab')
+  const set = h => { txt.innerHTML = h + '<span class="caret"></span>' }
+  M.loop(async () => {
+    pick.classList.remove('on'); set(''); lab.textContent = ''
+    await M.wait(700); set('@'); pick.classList.add('on'); lab.textContent = '@ apre le sessioni'
+    await M.wait(700); set('@sup'); await M.wait(900)
+    pick.classList.remove('on'); set('<span class="pill">@supervisor-app</span>'); lab.textContent = 'la scelta diventa una pillola'
+    await M.wait(800); set('<span class="pill">@supervisor-app</span> prepara la pre-release'); await M.wait(1800)
+  }, () => { pick.classList.add('on'); set('@sup'); lab.textContent = '@ apre le sessioni, la scelta diventa una pillola' })
+</script></body></html>

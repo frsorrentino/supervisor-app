@@ -1,0 +1,43 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Il nostro campo di testo</title><link rel="stylesheet" href="motion.css">
+<style>
+  .wrap { min-height: 260px; display: flex; flex-direction: column; justify-content: flex-end; }
+  /* Il campo cresce con il testo (fino a 5 righe) con la molla veloce; gli allegati entrano come miniature sopra il testo. */
+  .field { display: flex; flex-direction: column; gap: 8px; padding: 8px 6px 6px 14px; border-radius: 24px; background: var(--s2); border: 1px solid var(--line); transition: border-radius var(--spring-fast-t) var(--spring-fast); }
+  .field.tall { border-radius: 18px; }
+  .att { display: flex; gap: 6px; }
+  .th { width: 48px; height: 48px; border-radius: 10px; background: var(--s3); display: grid; place-items: center; font: 400 11px var(--mono); color: var(--tx2); animation: th-in var(--spring-bounce-t) var(--spring-bounce) both; }
+  @keyframes th-in { from { transform: scale(.9); opacity: 0; } }
+  .row { display: flex; align-items: flex-end; gap: 8px; }
+  .txt { flex: 1; font-size: 16px; line-height: 22px; overflow: hidden; transition: height 200ms var(--spring-fast); padding-bottom: 7px; }
+  .ph { color: var(--tx3); }
+  /* Invio: da grigio a pieno appena c'è qualcosa da mandare; premuto, la freccia parte verso l'alto e torna. */
+  .send { flex: none; width: 36px; height: 36px; border-radius: 18px; display: grid; place-items: center; background: var(--s3); color: var(--tx3); transition: background 150ms, color 150ms, transform 100ms; }
+  .send.on { background: color-mix(in srgb, var(--wait) 30%, var(--s3)); color: var(--tx); }
+  .send.go svg { animation: fly 260ms var(--ease-out); }
+  @keyframes fly { 50% { transform: translateY(-10px); opacity: 0; } 51% { transform: translateY(10px); opacity: 0; } }
+  .plus { flex: none; width: 36px; height: 36px; border-radius: 18px; display: grid; place-items: center; color: var(--tx2); }
+  html.reduce .txt, html.reduce .field { transition: none; } html.reduce .th, html.reduce .send.go svg { animation: none; }
+</style></head><body>
+<div class="top"><h1>Il nostro campo di testo</h1><div class="ref">Prompt box<br>telefono · web</div></div>
+<div class="card"><div class="wrap">
+  <div class="field" id="f"><div class="att" id="att"></div>
+    <div class="row"><span class="plus">+</span><div class="txt" id="t"><span class="ph">Scrivi a supervisor-app</span></div>
+      <span class="send" id="s"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></span></div>
+  </div>
+</div></div>
+<div class="note"><b>Cosa fa.</b> Il campo che c'è, con tre movimenti: cresce con il testo fino a cinque righe senza scatti, e gli angoli si fanno meno tondi quando è alto; gli allegati entrano come miniature sopra il testo; l'invio passa da grigio a pieno quando c'è qualcosa da mandare, e al tocco la freccia parte verso l'alto. La lettura per blocchi e l'Annulla non c'entrano.
+<div class="t">altezza 200 ms molla veloce · miniature con la molla di casa · invio 150 ms, freccia 260 ms · ridotte: senza movimento</div></div>
+<div class="ctl"></div>
+<script src="motion.js"></script>
+<script>
+  const t = document.getElementById('t'), f = document.getElementById('f'), s = document.getElementById('s'), att = document.getElementById('att')
+  const lines = ['Prepara la pre-release', 'con le tappe della prova', 'e manda il link a Franz']
+  const setText = n => { if (!n) { t.innerHTML = '<span class="ph">Scrivi a supervisor-app</span>'; t.style.height = '22px' } else { t.innerHTML = lines.slice(0, n).join('<br>'); t.style.height = (22 * n) + 'px' } f.classList.toggle('tall', n > 1); s.classList.toggle('on', n > 0) }
+  M.loop(async () => {
+    att.innerHTML = ''; s.classList.remove('go'); setText(0); await M.wait(700)
+    for (let n = 1; n <= 3; n++) { setText(n); await M.wait(650) }
+    att.innerHTML = '<span class="th">PNG</span>'; await M.wait(500); att.insertAdjacentHTML('beforeend', '<span class="th">PDF</span>'); await M.wait(800)
+    s.classList.add('go'); await M.wait(300); att.innerHTML = ''; setText(0); await M.wait(900)
+  }, () => { setText(2); att.innerHTML = '<span class="th">PNG</span>' })
+</script></body></html>

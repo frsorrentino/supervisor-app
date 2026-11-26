@@ -1,0 +1,38 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Velocità della voce</title><link rel="stylesheet" href="motion.css">
+<style>
+  .k2 { font: 600 16px var(--display); display: flex; justify-content: space-between; }
+  .val { font: 600 22px var(--mono); color: var(--tx); display: inline-block; transition: transform 120ms; }
+  .val.bump { transform: scale(1.06); }
+  /* Il cursore: la manopola si allarga mentre la tieni, il binario si riempie; vicino a 1× si aggancia con un piccolo scatto. */
+  .track { position: relative; height: 40px; margin-top: 14px; }
+  .bar { position: absolute; left: 0; right: 0; top: 18px; height: 4px; border-radius: 2px; background: var(--s3); }
+  .bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 2px; background: var(--tx2); }
+  .tick { position: absolute; top: 12px; width: 2px; height: 16px; border-radius: 1px; background: var(--tx3); }
+  .knob { position: absolute; top: 8px; width: 24px; height: 24px; margin-left: -12px; border-radius: 12px; background: var(--tx); box-shadow: 0 2px 6px rgb(0 0 0 / .4); transition: width var(--spring-fast-t) var(--spring-fast), margin-left var(--spring-fast-t) var(--spring-fast), left 140ms var(--spring-bounce); }
+  .knob.held { width: 32px; margin-left: -16px; }
+  .marks { display: flex; justify-content: space-between; font: 400 12px var(--mono); color: var(--tx3); }
+  html.reduce .knob, html.reduce .val { transition: none; }
+</style></head><body>
+<div class="top"><h1>Velocità della voce</h1><div class="ref">Jelly slider (sobrio)<br>telefono · web</div></div>
+<div class="card">
+  <div class="k2"><span>Velocità di lettura</span><span class="val" id="v">1,25×</span></div>
+  <div class="track" id="tr"><div class="bar"><i id="fl"></i></div><span class="tick" id="tk"></span><span class="knob" id="k"></span></div>
+  <div class="marks"><span>0,5×</span><span>1×</span><span>2×</span></div>
+</div>
+<div class="note"><b>Cosa fa.</b> Il cursore della velocità che c'è (da 0,5× a 2×, scatto su 1×) con una molla sobria, non gommosa: la manopola si allarga un poco mentre la tieni, il valore cambia di passo in passo con un piccolo battito, e passando vicino a 1× si aggancia con un mezzo scatto e la vibrazione leggera. Niente deformazioni: si deve leggere il numero.
+<div class="t">manopola 200 ms molla veloce · aggancio con la molla di casa · numero 120 ms · ridotte: niente movimento</div></div>
+<div class="ctl"></div>
+<script src="motion.js"></script>
+<script>
+  const k = document.getElementById('k'), fl = document.getElementById('fl'), v = document.getElementById('v'), tk = document.getElementById('tk')
+  const pos = r => ((r - 0.5) / 1.5 * 100)
+  tk.style.left = pos(1) + '%'
+  const set = r => { k.style.left = pos(r) + '%'; fl.style.width = pos(r) + '%'; v.textContent = r.toFixed(2).replace(/0$/, '').replace('.', ',') + '×'; v.classList.add('bump'); setTimeout(() => v.classList.remove('bump'), 120) }
+  M.loop(async () => {
+    set(1.25); await M.wait(700); k.classList.add('held')
+    for (const r of [1.2, 1.15, 1.1, 1.05, 1, 1, 1, 0.95, 0.9]) { set(r); await M.wait(r === 1 ? 260 : 180) }
+    for (const r of [0.95, 1, 1.05, 1.1, 1.15, 1.2, 1.25]) { set(r); await M.wait(160) }
+    k.classList.remove('held'); await M.wait(1000)
+  }, () => { k.classList.add('held'); set(1) })
+</script></body></html>

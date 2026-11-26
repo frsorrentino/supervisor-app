@@ -1,0 +1,40 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Passi della chiusura</title><link rel="stylesheet" href="motion.css">
+<style>
+  .k2 { font: 600 18px/1.25 var(--display); }
+  .sub2 { font-size: 14px; color: var(--tx2); margin-top: 4px; }
+  .steps { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 18px; }
+  .rail { position: absolute; left: 16.66%; right: 16.66%; top: 11px; height: 2px; background: var(--s3); }
+  .rail i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--good); transition: width 400ms var(--ease-out); }
+  .st { position: relative; display: grid; justify-items: center; gap: 6px; font-size: 13px; color: var(--tx2); }
+  .dot { position: relative; width: 24px; height: 24px; border-radius: 12px; background: var(--s1); border: 2px solid var(--tx3); display: grid; place-items: center; transition: background 200ms, border-color 200ms; }
+  .dot svg { opacity: 0; transform: scale(.9); transition: opacity 180ms, transform var(--spring-fast-t) var(--spring-fast); }
+  .st.ok .dot { background: var(--good); border-color: var(--good); } .st.ok .dot svg { opacity: 1; transform: none; } .st.ok { color: var(--tx); }
+  .st.now { color: var(--busy); } .st.now .dot { border-color: color-mix(in srgb, var(--busy) 35%, transparent); }
+  .st.now .dot::after { content: ""; position: absolute; inset: -2px; border-radius: 50%; border: 2px solid transparent; border-top-color: var(--busy); animation: spin 1.2s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .say { font: 400 12.5px var(--mono); color: var(--tx2); margin-top: 14px; min-height: 18px; }
+  html.reduce .st.now .dot::after { animation: none; border-color: var(--busy); }
+  html.still .st.now .dot::after { animation: none; transform: rotate(40deg); }
+</style></head><body>
+<div class="top"><h1>Passi della chiusura</h1><div class="ref">Agent steps<br>telefono · web</div></div>
+<div class="card">
+  <div class="k2">Chiudo supervisor-app</div>
+  <p class="sub2">Salvo esito e prossimo passo, poi chiudo la finestra sul PC</p>
+  <div class="steps"><div class="rail"><i id="fill"></i></div>
+    <div class="st"><span class="dot"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#0B0B0B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>Salvataggio</div>
+    <div class="st"><span class="dot"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#0B0B0B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>Attesa</div>
+    <div class="st"><span class="dot"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#0B0B0B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>Chiusura</div>
+  </div>
+  <p class="say" id="say"></p>
+</div>
+<div class="note"><b>Cosa fa.</b> La schermata di chiusura oggi elenca i passi con ○ e ✓. Qui gli stessi passi stanno sul filo della voce 5 (le tappe della prova): salvataggio, attesa che la sessione esca, chiusura; quello in corso ha l'arco, i fatti la spunta. Stesso componente, stessi tempi: un solo linguaggio per «sta succedendo una cosa a tappe».
+<div class="t">filo 400 ms · spunta 250 ms + molla veloce · arco 1,2 s · ridotte: tappe accese senza movimento · relay: niente di nuovo, i passi li dice già il risultato di close</div></div>
+<div class="ctl"></div>
+<script src="motion.js"></script>
+<script>
+  const st = [...document.querySelectorAll('.st')], fill = document.getElementById('fill'), say = document.getElementById('say')
+  const words = ['salvo esito e prossimo passo', 'aspetto che la sessione esca', 'chiudo la finestra', 'chiusa: si riapre da «Chiuse»']
+  const set = k => { st.forEach((s, i) => { s.classList.toggle('ok', i < k); s.classList.toggle('now', i === k) }); fill.style.width = (Math.min(k, 2) / 2 * 100) + '%'; say.textContent = words[k] }
+  M.loop(async () => { for (let k = 0; k <= 3; k++) { set(k); await M.wait(1300) } await M.wait(600) }, () => set(1))
+</script></body></html>

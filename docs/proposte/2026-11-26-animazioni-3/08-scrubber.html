@@ -1,0 +1,45 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lettura a voce con lo scrubber</title><link rel="stylesheet" href="motion.css">
+<style>
+  .pill { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-radius: 18px; background: var(--s2); border: 1px solid var(--line); }
+  .row { display: flex; align-items: center; gap: 10px; }
+  .pp { width: 36px; height: 36px; border-radius: 18px; background: var(--s3); display: grid; place-items: center; }
+  .what { flex: 1; min-width: 0; }
+  .what b { font: 600 14px var(--display); display: block; }
+  .what span { font-size: 13px; color: var(--tx2); white-space: nowrap; overflow: hidden; display: block; }
+  .rate { font: 500 13px var(--mono); color: var(--tx2); padding: 6px 10px; border-radius: 14px; background: var(--s3); }
+  /* Lo scrubber: una tacca per paragrafo; il pieno avanza lineare mentre legge; trascinato, la manopola si allarga e la lettura
+     riparte dal paragrafo dove la lasci (la scelta del blocco resta). */
+  .sc { position: relative; height: 22px; }
+  .tr { position: absolute; left: 0; right: 0; top: 9px; height: 4px; border-radius: 2px; background: var(--s3); }
+  .tr i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 2px; background: var(--busy); }
+  .nk { position: absolute; top: 7px; width: 2px; height: 8px; background: var(--bg); }
+  .kn { position: absolute; top: 3px; width: 16px; height: 16px; margin-left: -8px; border-radius: 8px; background: var(--tx); transition: width var(--spring-fast-t) var(--spring-fast), height var(--spring-fast-t) var(--spring-fast), margin var(--spring-fast-t) var(--spring-fast), top var(--spring-fast-t) var(--spring-fast); }
+  .kn.held { width: 22px; height: 22px; margin-left: -11px; top: 0; }
+  .tip { position: absolute; bottom: 26px; transform: translateX(-50%); font: 400 12px var(--mono); padding: 4px 8px; border-radius: 8px; background: var(--s3); white-space: nowrap; opacity: 0; transition: opacity 150ms; }
+  .tip.on { opacity: 1; }
+  html.reduce .kn { transition: none; }
+</style></head><body>
+<div class="top"><h1>Lettura con lo scrubber</h1><div class="ref">Read along · Range slider<br>telefono · web</div></div>
+<div class="pill">
+  <div class="row"><span class="pp"><svg viewBox="0 0 24 24" width="18" height="18"><rect x="6.5" y="5" width="4" height="14" rx="1" fill="var(--tx)"/><rect x="13.5" y="5" width="4" height="14" rx="1" fill="var(--tx)"/></svg></span>
+    <div class="what"><b>supervisor-app</b><span id="w">Paragrafo 3 di 7 · Le tappe della prova</span></div><span class="rate">1,25×</span></div>
+  <div class="sc" id="sc"><div class="tr"><i id="fl"></i></div><span class="tip" id="tip"></span><span class="kn" id="kn"></span></div>
+</div>
+<div class="note"><b>Cosa fa.</b> La pillola della lettura oggi dice cosa legge ma non a che punto è. Qui una barra con una tacca per paragrafo avanza mentre la voce legge; trascinandola, un'etichetta dice a quale paragrafo arrivi e al rilascio la lettura riparte da lì. È un altro modo di scegliere il blocco da leggere: il tocco su un paragrafo in chat resta com'è.
+<div class="t">avanzamento lineare · manopola 200 ms molla veloce · etichetta 150 ms · ridotte: senza movimento della manopola</div></div>
+<div class="ctl"></div>
+<script src="motion.js"></script>
+<script>
+  const N = 7, sc = document.getElementById('sc'), fl = document.getElementById('fl'), kn = document.getElementById('kn'), tip = document.getElementById('tip'), w = document.getElementById('w')
+  for (let i = 1; i < N; i++) sc.insertAdjacentHTML('afterbegin', `<span class="nk" style="left:${i / N * 100}%"></span>`)
+  const titles = ['Fatto', 'Cosa cambia', 'Le tappe della prova', 'Il filo', 'La riga sotto', 'Test', 'Prossimo passo']
+  const at = p => { fl.style.width = p * 100 + '%'; kn.style.left = p * 100 + '%'; const k = Math.min(N - 1, Math.floor(p * N)); w.textContent = `Paragrafo ${k + 1} di ${N} · ${titles[k]}`; return k }
+  M.loop(async () => {
+    kn.classList.remove('held'); tip.classList.remove('on')
+    for (let p = 0.3; p < 0.42; p += 0.01) { at(p); await M.wait(90) }
+    kn.classList.add('held'); tip.classList.add('on')
+    for (let p = 0.42; p < 0.8; p += 0.04) { const k = at(p); tip.style.left = p * 100 + '%'; tip.textContent = `${k + 1} · ${titles[k]}`; await M.wait(110) }
+    await M.wait(500); kn.classList.remove('held'); tip.classList.remove('on'); at(5 / 7); await M.wait(1200)
+  }, () => { kn.classList.add('held'); tip.classList.add('on'); const p = 0.62; const k = at(p); tip.style.left = p * 100 + '%'; tip.textContent = `${k + 1} · ${titles[k]}` })
+</script></body></html>
