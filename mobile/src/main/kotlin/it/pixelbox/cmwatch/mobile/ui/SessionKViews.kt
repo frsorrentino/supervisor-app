@@ -1,6 +1,7 @@
 package it.pixelbox.cmwatch.mobile.ui
 
 import kotlinx.coroutines.launch
+import it.pixelbox.cmwatch.rules.PassiProva.Look as ProvaLook
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.ui.graphics.graphicsLayer
 
@@ -292,9 +293,9 @@ internal fun KStepBar(steps: it.pixelbox.cmwatch.contract.ProofSteps) {
     // dopo (140 20); il segmento che diventa quello in corso si accende (il filo dell'originale, 160 22) e il suo nome fa il pop da 0,7
     // (500 14, spinta 6); in corso la rotella (un giro in 0,8 s) e l'onda sul nome (50 ms per lettera). Animazioni spente: al posto.
     val off = animationsOff()
-    val fs = androidx.compose.runtime.remember(n) { List(n) { k -> androidx.compose.animation.core.Animatable(if (looks[k] == it.pixelbox.cmwatch.rules.PassiProva.Look.DONE) 1f else 0f) } }
-    val cs = androidx.compose.runtime.remember(n) { List(n) { k -> androidx.compose.animation.core.Animatable(if (looks[k] == it.pixelbox.cmwatch.rules.PassiProva.Look.DONE) 1f else 0f) } }
-    val ls = androidx.compose.runtime.remember(n) { List(n) { k -> androidx.compose.animation.core.Animatable(if (looks[k] == it.pixelbox.cmwatch.rules.PassiProva.Look.NOW) 1f else 0f) } }
+    val fs = androidx.compose.runtime.remember(n) { List(n) { k -> androidx.compose.animation.core.Animatable(if (looks[k] == ProvaLook.DONE) 1f else 0f) } }
+    val cs = androidx.compose.runtime.remember(n) { List(n) { k -> androidx.compose.animation.core.Animatable(if (looks[k] == ProvaLook.DONE) 1f else 0f) } }
+    val ls = androidx.compose.runtime.remember(n) { List(n) { k -> androidx.compose.animation.core.Animatable(if (looks[k] == ProvaLook.NOW) 1f else 0f) } }
     val ps = androidx.compose.runtime.remember(n) { List(n) { androidx.compose.animation.core.Animatable(1f) } }
     val prev = androidx.compose.runtime.remember(n) { arrayOf(looks) }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
@@ -302,17 +303,17 @@ internal fun KStepBar(steps: it.pixelbox.cmwatch.contract.ProofSteps) {
         val before = prev[0]
         prev[0] = looks
         looks.forEachIndexed { k, l ->
-            val done = if (l == it.pixelbox.cmwatch.rules.PassiProva.Look.DONE) 1f else 0f
-            val lit = if (l == it.pixelbox.cmwatch.rules.PassiProva.Look.NOW) 1f else 0f
+            val done = if (l == ProvaLook.DONE) 1f else 0f
+            val lit = if (l == ProvaLook.NOW) 1f else 0f
             if (off) { fs[k].snapTo(done); cs[k].snapTo(done); ls[k].snapTo(lit); ps[k].snapTo(1f); return@forEachIndexed }
             scope.launch { fs[k].animateTo(done, Molla.of(260f, 24f)) }
             scope.launch { ls[k].animateTo(lit, Molla.of(160f, 22f)) }
             if (done == 1f && cs[k].targetValue < 1f) scope.launch { kotlinx.coroutines.delay(120); cs[k].animateTo(1f, Molla.of(140f, 20f)) }
             if (done == 0f) scope.launch { cs[k].snapTo(0f) }
-            if (l == it.pixelbox.cmwatch.rules.PassiProva.Look.NOW && before.getOrNull(k) != it.pixelbox.cmwatch.rules.PassiProva.Look.NOW) scope.launch { ps[k].snapTo(0.7f); ps[k].animateTo(1f, Molla.of(500f, 14f), initialVelocity = 6f) }
+            if (l == ProvaLook.NOW && before.getOrNull(k) != ProvaLook.NOW) scope.launch { ps[k].snapTo(0.7f); ps[k].animateTo(1f, Molla.of(500f, 14f), initialVelocity = 6f) }
         }
     }
-    val running = !off && looks.any { it == it.pixelbox.cmwatch.rules.PassiProva.Look.NOW }
+    val running = !off && looks.any { it == ProvaLook.NOW }
     val clock = if (!running) 0f else {
         val t = androidx.compose.animation.core.rememberInfiniteTransition(label = "tappa")
         t.animateFloat(0f, 4000f, androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(4000, easing = androidx.compose.animation.core.LinearEasing)), label = "tempo").value
@@ -326,24 +327,24 @@ internal fun KStepBar(steps: it.pixelbox.cmwatch.contract.ProofSteps) {
                 val f = fs[i].value.coerceIn(0f, 1f)
                 val lit = ls[i].value.coerceIn(0f, 1f)
                 val (fg, bg, line) = when (look) {
-                    it.pixelbox.cmwatch.rules.PassiProva.Look.FAILED -> Triple(V3.Red, V3.Red.copy(alpha = 0.16f).compositeOver(V3.S1), V3.Red.copy(alpha = 0.45f))
+                    ProvaLook.FAILED -> Triple(V3.Red, V3.Red.copy(alpha = 0.16f).compositeOver(V3.S1), V3.Red.copy(alpha = 0.45f))
                     else -> Triple(
-                        if (look == it.pixelbox.cmwatch.rules.PassiProva.Look.DONE) V3.Good else if (look == it.pixelbox.cmwatch.rules.PassiProva.Look.NOW) V3.Busy else V3.Tx2, V3.S2,
+                        if (look == ProvaLook.DONE) V3.Good else if (look == ProvaLook.NOW) V3.Busy else V3.Tx2, V3.S2,
                         androidx.compose.ui.graphics.lerp(androidx.compose.ui.graphics.lerp(V3.Line, V3.Busy, lit), V3.Good.copy(alpha = 0.45f), f),
                     )
                 }
                 val shape = RoundedCornerShape(6.dp)
                 Box(
                     Modifier.weight(1f).clip(shape).background(bg)
-                        .drawBehind { if (f > 0f && look != it.pixelbox.cmwatch.rules.PassiProva.Look.FAILED) drawRect(green, size = androidx.compose.ui.geometry.Size(size.width * f, size.height)) }
+                        .drawBehind { if (f > 0f && look != ProvaLook.FAILED) drawRect(green, size = androidx.compose.ui.geometry.Size(size.width * f, size.height)) }
                         .border(1.dp, line, shape).padding(vertical = 7.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         val k = cs[i].value.coerceIn(0f, 1f)
                         val ink = fg
-                        if (look == it.pixelbox.cmwatch.rules.PassiProva.Look.FAILED) Text("✕", style = V3.Small.copy(fontSize = 13.sp, color = fg), maxLines = 1)
-                        else if (k > 0f || (look == it.pixelbox.cmwatch.rules.PassiProva.Look.NOW && running)) androidx.compose.foundation.Canvas(Modifier.size(12.dp)) {
+                        if (look == ProvaLook.FAILED) Text("✕", style = V3.Small.copy(fontSize = 13.sp, color = fg), maxLines = 1)
+                        else if (k > 0f || (look == ProvaLook.NOW && running)) androidx.compose.foundation.Canvas(Modifier.size(12.dp)) {
                             val round = androidx.compose.ui.graphics.drawscope.Stroke(1.8.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round)
                             if (k > 0f) {
                                 val u = size.width / 24f
@@ -354,7 +355,7 @@ internal fun KStepBar(steps: it.pixelbox.cmwatch.contract.ProofSteps) {
                                 drawPath(part, ink, style = round)
                             } else drawArc(ink, (clock % 800f) / 800f * 360f - 90f, 90f, false, style = round)
                         }
-                        val label = if (look == it.pixelbox.cmwatch.rules.PassiProva.Look.NOW && running) androidx.compose.ui.text.buildAnnotatedString {
+                        val label = if (look == ProvaLook.NOW && running) androidx.compose.ui.text.buildAnnotatedString {
                             st.label.forEachIndexed { j, ch ->
                                 val ph = (((clock - j * 50f) % 1600f) + 1600f) % 1600f / 1600f
                                 val half = if (ph < 0.5f) ph * 2f else (1f - ph) * 2f
