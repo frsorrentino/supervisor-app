@@ -24,6 +24,22 @@ export function thumb(i: ResultItem): TranscriptFile | null {
   return null
 }
 
+/**
+ * Gli altri file della stessa consegna (app-carta-immagini-26-11: un SendUserFile con un HTML e otto PNG mostrava solo il primo PNG):
+ * tutti, in ordine, tranne quello già in grande e il file principale quando c'è già «Apri il file». Come Guardare.others.
+ */
+export function others(i: ResultItem): TranscriptFile[] {
+  const k = kindOf(i.kind)
+  const shown = (thumb(i) ?? (k === 'video' ? { path: i.path } : null))?.path
+  const opened = k !== 'video' && k !== 'image' ? i.path : null
+  const seen = new Set<string>()
+  return [{ path: i.path, mime: i.mime, size: i.size }, ...(i.files ?? [])].filter(f => {
+    if (!f.path || seen.has(f.path)) return false
+    seen.add(f.path)
+    return f.path !== shown && f.path !== opened
+  })
+}
+
 /** Nella sessione, la riga «Risultati»: i suoi lavori e l'ultima versione consegnata. */
 /** La X della riga «Risultati» (Guardare.lastKey, app-risultati-x-05-11): il risultato più recente della sessione. */
 export function lastKey(l: { groups: ResultGroup[] }): string | null {

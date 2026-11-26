@@ -142,9 +142,22 @@ object Scelta {
     /** Le miniature della scheda chiusa: la prima immagine di ogni opzione con lettera e nome; senza opzioni, le immagini della scheda. */
     data class Thumb(val letter: String?, val name: String, val file: WaitFile)
 
-    fun thumbsOf(w: WaitItem, max: Int = 4): List<Thumb> =
-        if (isChoice(w)) optsOf(w.options).filter { it.images.isNotEmpty() }.map { Thumb(it.letter, it.name, it.images[0]) }.take(max)
-        else splitFiles(w.files).images.take(max).map { Thumb(null, "", it) }
+    fun thumbsOf(w: WaitItem, max: Int = 4): List<Thumb> = allThumbs(w).take(max)
+
+    private fun allThumbs(w: WaitItem): List<Thumb> =
+        if (isChoice(w)) optsOf(w.options).filter { it.images.isNotEmpty() }.map { Thumb(it.letter, it.name, it.images[0]) }
+        else splitFiles(w.files).images.map { Thumb(null, "", it) }
+
+    /**
+     * La fila della scheda chiusa (app-carta-immagini-26-11, Franz 26/11 11:43: «non vedo tutti i mockup»): fino a `max` miniature;
+     * con più immagini le prime `max - 1` e una casella «+N» con quante restano, così si capisce che la scheda ne ha altre.
+     */
+    data class ThumbStrip(val thumbs: List<Thumb>, val more: Int)
+
+    fun thumbStrip(w: WaitItem, max: Int = 4): ThumbStrip {
+        val all = allThumbs(w)
+        return if (all.size <= max) ThumbStrip(all, 0) else ThumbStrip(all.take(max - 1), all.size - (max - 1))
+    }
 
     /**
      * La forma della cornice delle immagini di una scheda aperta: quella della prima immagine già arrivata, fra 9:16 e 16:9; finché

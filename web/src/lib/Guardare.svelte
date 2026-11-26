@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { CmdResult, ResultItem, ResultsPage, ResultsSummary, TranscriptFile } from './contract'
-  import { line, note as cleanNote, NOTE_MAX, older, pos, splitSeen, thumb, type Line } from './guardare'
+  import { line, note as cleanNote, NOTE_MAX, older, others, pos, splitSeen, thumb, type Line } from './guardare'
   import { newCmd } from './transport'
   import { t } from './t'
   import LongText from './LongText.svelte'
@@ -10,11 +10,13 @@
   // «Da guardare» (app-da-guardare-02-11, mockup della master delle 08:16; contratto 1.106), porta di GuardareUi.kt: in home le
   // ultime versioni non viste con Visto e Nota; la pagina coi lavori e le versioni precedenti (anche di una sessione sola); il
   // risultato aperto col lettore della chat e la nota che va alla sessione col secondo in cui si è.
-  let { run, summary, mode, session = null, openId = null, getFile, onExternal, onSession, onAll = () => {}, onOpen = () => {}, thumbs = false }: {
+  let { run, summary, mode, session = null, openId = null, getFile, onExternal, onExternalFile = null, onSession, onAll = () => {}, onOpen = () => {}, thumbs = false }: {
     run: (c: ReturnType<typeof newCmd>) => Promise<CmdResult | null>; summary: ResultsSummary | null | undefined; mode: 'body' | 'page'
     session?: string | null; openId?: string | null
     getFile: (r: ResultItem, f: TranscriptFile, quiet: boolean) => Promise<Blob | null>; onExternal: (r: ResultItem) => void; onSession: (name: string) => void
     onAll?: () => void; onOpen?: (r: ResultItem) => void
+    /** Un altro file della stessa consegna, aperto come «Apri il file» (app-carta-immagini-26-11). */
+    onExternalFile?: ((r: ResultItem, f: TranscriptFile) => void) | null
     /** Contratto 1.136: il relay sa fare le anteprime dei documenti (op `thumb`); senza, resta l'icona. */
     thumbs?: boolean
   } = $props()
@@ -123,6 +125,7 @@
   {@const l = line(r)}
   {@const show = thumb(r) ?? (l.kind === 'video' ? { path: r.path, mime: r.mime, size: r.size } : null)}
   {@const u = show ? urlOf(r, show, true) : null}
+  {@const rest = others(r)}
   <div class="viewer" data-testid="risultato-aperto">
     <div class="vh">{#if fromList}<button class="back" aria-label={t.back} onclick={() => { opened = null; fromList = false }}><CatIcon name="back" size={24} /></button>{/if}<h2>{l.title}</h2></div>
     {#if u && l.kind === 'video'}<!-- svelte-ignore a11y_media_has_caption --><video src={u} controls playsinline ontimeupdate={(e) => (at = (e.currentTarget as HTMLVideoElement).currentTime)}></video>
@@ -131,6 +134,20 @@
     {:else if show}<div class="ph"></div>
     {:else}{@const pv = previewOf(r)}{#if pv?.kind === 'image'}<img class="full pv" src={pv.src} alt={l.title} data-testid="anteprima-aperta" />{:else if pv?.kind === 'lines'}<div class="pvlines" data-testid="anteprima-aperta">{pv.text}</div>{/if}{/if}
     {#if l.kind !== 'video' && l.kind !== 'image'}<button class="pill" onclick={() => onExternal(r)}>{t.watchOpenFile}</button>{/if}
+    {#if rest.length}
+      <!-- app-carta-immagini-26-11: tutti i file dell'invio, le immagini in griglia (un tocco le ingrandisce), gli altri una riga l'uno. -->
+      <div class="others" data-testid="risultato-altri">
+        <p class="oh">{t.watchOtherFiles(rest.length)}</p>
+        {#if rest.some(f => f.mime?.startsWith('image/'))}<div class="ogrid">
+          {#each rest.filter(f => f.mime?.startsWith('image/')) as f (f.path)}{@const ou = urlOf(r, f, true)}{@const nm = f.path.split('/').pop() ?? f.path}
+            <button class="otile" aria-label={t.imageOpenFull} title={nm} onclick={() => { if (ou) zoomed = { src: ou, name: nm } }}>{#if ou}<img src={ou} alt={nm} />{:else if failedFiles[`${r.id}:${f.path}`]}<span class="onm">{nm}</span>{/if}</button>
+          {/each}
+        </div>{/if}
+        {#each rest.filter(f => !f.mime?.startsWith('image/')) as f (f.path)}
+          <button class="orow" disabled={!onExternalFile} onclick={() => onExternalFile?.(r, f)}><CatIcon name="doc" size={18} /><span>{f.path.split('/').pop()}</span></button>
+        {/each}
+      </div>
+    {/if}
     <p class="vline"><b>{t.watchVersionOf(r.version, r.versions)}</b><span class="mono">{[hm(r.at), l.seconds != null ? t.watchSeconds(l.seconds) : null].filter(Boolean).join(' · ')}</span></p>
     {#if r.changed?.trim()}<p class="changed"><b>{t.watchChanged}</b> {r.changed}</p>{/if}
     {#if r.caption?.trim() && r.caption !== r.title}<div class="sub"><LongText text={r.caption} /></div>{/if}
@@ -174,6 +191,13 @@
 {#if zoomed}<ImageViewer src={zoomed.src} name={zoomed.name} onClose={() => (zoomed = null)} />{/if}
 
 <style>
+  .others { display: flex; flex-direction: column; gap: 8px; }
+  .oh { font-size: 14px; color: var(--tx2); }
+  .ogrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .otile { aspect-ratio: 4 / 3; border-radius: 10px; overflow: hidden; background: var(--s2); padding: 0; display: grid; place-items: center; }
+  .otile img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
+  .onm { font-size: 12.5px; color: var(--tx2); padding: 6px; overflow-wrap: anywhere; }
+  .orow { display: flex; align-items: center; gap: 8px; min-height: 44px; text-align: left; color: var(--tx); font-size: 15px; text-decoration: underline; text-decoration-color: var(--tx3); text-underline-offset: 3px; }
   .list, .pg { display: flex; flex-direction: column; gap: 4px; }
   .pg { gap: 12px; padding: 8px 16px 24px; }
   .row { display: flex; gap: 12px; padding: 8px 0; cursor: pointer; border-bottom: 1px solid var(--line, rgba(255,255,255,.08)); text-align: left; }

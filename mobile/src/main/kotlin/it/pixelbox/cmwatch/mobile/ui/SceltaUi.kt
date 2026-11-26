@@ -62,6 +62,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
@@ -598,7 +600,8 @@ private fun CompactCard(id: String, w: WaitItem?, flat: Boolean, onOpen: () -> U
         listOfNotNull(w.text, w.description).firstOrNull { it.isNotBlank() && it != head }?.let {
             Text(it, style = V3.Body.copy(fontSize = 14.5.sp, color = V3.Tx2), maxLines = 1, softWrap = false, overflow = TextOverflow.Clip)
         }
-        val thumbs = remember(w) { Scelta.thumbsOf(w) }
+        val strip = remember(w) { Scelta.thumbStrip(w) }
+        val thumbs = strip.thumbs
         if (thumbs.isNotEmpty()) Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.Top) {
             thumbs.forEach { t ->
                 val picked = o.state == Scelta.State.CHOSEN && o.letter != null && t.letter == o.letter
@@ -607,6 +610,16 @@ private fun CompactCard(id: String, w: WaitItem?, flat: Boolean, onOpen: () -> U
                     t.file, Modifier.weight(1f).alpha(if (dim) 0.5f else 1f), letter = t.letter, name = t.name, small = true, strip = true, picked = picked,
                     ratio = { r -> Scelta.stripRatio(r) },
                 )
+            }
+            // app-carta-immagini-26-11 (Franz 26/11 11:43: «vedo solo il primo»): le immagini oltre la fila si contano in una casella
+            // della stessa forma, non spariscono.
+            if (strip.more > 0) {
+                val more = pluralStringResource(R.plurals.scelta_more_images, strip.more, strip.more)
+                Box(
+                    Modifier.weight(1f).aspectRatio(Scelta.stripRatio(null)).clip(RoundedCornerShape(8.dp)).background(Mat)
+                        .semantics { contentDescription = more }.testTag("scelta-altre"),
+                    contentAlignment = Alignment.Center,
+                ) { Text(stringResource(R.string.scelta_more_short, strip.more), style = TextStyle(fontFamily = V3.Display, fontWeight = FontWeight.SemiBold, fontSize = 22.sp, color = V3.Tx2)) }
             }
         }
     }

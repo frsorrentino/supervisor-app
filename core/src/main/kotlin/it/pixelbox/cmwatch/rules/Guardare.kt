@@ -36,6 +36,17 @@ object Guardare {
     fun main(i: ResultItem): TranscriptFile = TranscriptFile(i.path, i.mime, i.size)
 
     /**
+     * Gli altri file della stessa consegna (app-carta-immagini-26-11: un SendUserFile con un HTML e otto PNG mostrava solo il primo PNG):
+     * tutti, in ordine, tranne quello già in grande e il file principale quando c'è già «Apri il file». Vuota con un file solo.
+     */
+    fun others(i: ResultItem): List<TranscriptFile> {
+        val k = kind(i.kind)
+        val shown = (thumb(i) ?: main(i).takeIf { k == Kind.VIDEO })?.path
+        val opened = i.path.takeIf { k != Kind.VIDEO && k != Kind.IMAGE }
+        return (listOf(main(i)) + i.files).filter { it.path.isNotEmpty() }.distinctBy { it.path }.filter { it.path != shown && it.path != opened }
+    }
+
+    /**
      * La X della riga «Risultati» (app-risultati-x-05-11, Franz 05/11 23:59: «aggiungere la x per chiuderla, ma che comunque
      * ritorni al risultato successivo»): chiusa, si ricorda il risultato più recente della sessione; la riga torna quando ne
      * arriva uno diverso. Null senza risultati.

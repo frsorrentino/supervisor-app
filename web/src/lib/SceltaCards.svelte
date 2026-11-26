@@ -3,7 +3,7 @@
   import type { WaitItem } from './contract'
   import AttesaImmagine from './AttesaImmagine.svelte'
   import { imageRatios } from './mediaCache.svelte'
-  import { outcomeOf, thumbsOf, waitFileKey, type WaitCardsHost } from './scelta'
+  import { outcomeOf, thumbStrip, waitFileKey, type WaitCardsHost } from './scelta'
   import { t } from './t'
   // Le richieste citate nelle chat come schede compatte (app-scheda-scelta-12-11, descrizione approvata da Franz il 12/11 alle 15:10:
   // «in chat, al posto del link, una scheda compatta: titolo, una riga su cosa decidere, miniature delle opzioni, stato; un tocco la
@@ -35,7 +35,8 @@
   {#if !host || w === 'gone'}
     <a class="lnk" href="#/attesa/{id}" data-testid="scelta-link-{id}">{t.sceltaOpenCard}</a>
   {:else}
-    {@const thumbs = w ? thumbsOf(w) : []}
+    {@const strip = w ? thumbStrip(w) : { thumbs: [], more: 0 }}
+    {@const thumbs = strip.thumbs}
     <div class="wc" class:flat role="button" tabindex="0" data-testid="scelta-scheda-{id}" onclick={(e) => { e.stopPropagation(); host.open(id) }} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); host.open(id) } }}>
       {#if !w}
         <span class="m">{t.sceltaCardLoading}</span>
@@ -45,7 +46,7 @@
         {#if what(w)}<span class="m one">{what(w)}</span>{/if}
         {#if thumbs.length}
           {@const o = outcomeOf(w)}
-          <div class="th" style:--n={thumbs.length}>{#each thumbs as x (waitFileKey(x.file))}<div class="tf" class:dim={o.state === 'chosen' && !!o.letter && x.letter !== o.letter} style:--ar={stripRatio(imageRatios[waitFileKey(x.file)])}><AttesaImmagine small strip file={x.file} letter={x.letter} name={x.name} picked={o.state === 'chosen' && !!o.letter && x.letter === o.letter} label={[x.letter, x.name || x.file.name].filter(Boolean).join(', ')} onAsk={host.file} /></div>{/each}</div>
+          <div class="th" style:--n={thumbs.length + (strip.more ? 1 : 0)}>{#each thumbs as x (waitFileKey(x.file))}<div class="tf" class:dim={o.state === 'chosen' && !!o.letter && x.letter !== o.letter} style:--ar={stripRatio(imageRatios[waitFileKey(x.file)])}><AttesaImmagine small strip file={x.file} letter={x.letter} name={x.name} picked={o.state === 'chosen' && !!o.letter && x.letter === o.letter} label={[x.letter, x.name || x.file.name].filter(Boolean).join(', ')} onAsk={host.file} /></div>{/each}{#if strip.more}<span class="tm" role="img" aria-label={t.sceltaMoreImages(strip.more)} data-testid="scelta-altre">+{strip.more}</span>{/if}</div>
         {/if}
       {/if}
     </div>
@@ -70,6 +71,8 @@
   .th { display: grid; grid-template-columns: repeat(var(--n, 2), minmax(0, 1fr)); gap: 6px; margin-top: 6px; align-items: start; }
   .tf { min-width: 0; }
   .tf.dim { opacity: .5; }
+  /* app-carta-immagini-26-11: le immagini oltre la fila si contano in una casella della stessa forma, non spariscono. */
+  .tm { display: grid; place-items: center; aspect-ratio: 1.1; border-radius: 8px; background: color-mix(in srgb, var(--tx) 6%, var(--s1)); font: 600 22px/1 var(--display); color: var(--tx2); }
   .lnk { display: inline-block; margin-top: 8px; color: var(--tx); text-decoration: underline; text-decoration-color: var(--tx3); text-underline-offset: 3px; }
   @media (hover: hover) and (pointer: fine) { .wc:hover { border-color: var(--tx3); } .wc.flat:hover .top b { text-decoration: underline; text-decoration-color: var(--tx3); text-underline-offset: 3px; } }
   @media (prefers-reduced-motion: reduce) { .wc { transition: none; } }

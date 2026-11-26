@@ -111,9 +111,19 @@ export const redoReady = (text: string): boolean => { const n = text.trim().leng
 
 /** Le miniature della scheda compatta: la prima immagine di ogni opzione con la sua lettera; senza opzioni, le immagini della scheda. */
 export type Thumb = { letter: string | null; name: string; file: WaitFile }
-export function thumbsOf(w: WaitItem, max = 4): Thumb[] {
-  if (isChoice(w)) return optsOf(w.options).filter(o => o.images.length).map(o => ({ letter: o.letter, name: o.name, file: o.images[0] })).slice(0, max)
-  return splitFiles(w.files).images.slice(0, max).map(file => ({ letter: null, name: '', file }))
+export const thumbsOf = (w: WaitItem, max = 4): Thumb[] => allThumbs(w).slice(0, max)
+function allThumbs(w: WaitItem): Thumb[] {
+  if (isChoice(w)) return optsOf(w.options).filter(o => o.images.length).map(o => ({ letter: o.letter, name: o.name, file: o.images[0] }))
+  return splitFiles(w.files).images.map(file => ({ letter: null, name: '', file }))
+}
+/**
+ * La fila della scheda chiusa (app-carta-immagini-26-11, Franz 26/11 11:43: «non vedo tutti i mockup»): fino a `max` miniature; con più
+ * immagini le prime `max - 1` e una casella «+N» con quante restano, così si capisce che la scheda ne ha altre. Come Scelta.thumbStrip.
+ */
+export type ThumbStrip = { thumbs: Thumb[]; more: number }
+export function thumbStrip(w: WaitItem, max = 4): ThumbStrip {
+  const all = allThumbs(w)
+  return all.length <= max ? { thumbs: all, more: 0 } : { thumbs: all.slice(0, max - 1), more: all.length - (max - 1) }
 }
 
 /**

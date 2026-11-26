@@ -1735,6 +1735,7 @@ class MainActivity : ComponentActivity() {
             open = { r -> resultOpen = fullResult(r) },
             session = { name -> resultOpen = null; watchOpen = false; open = name },
             external = { r -> val f = it.pixelbox.cmwatch.rules.Guardare.main(r); withFile(r.session.orEmpty(), "result:${r.id}:${f.path}", f, false) { file, mime -> viewFile(file, mime ?: f.mime) } },
+            externalFile = { r, f -> withFile(r.session.orEmpty(), "result:${r.id}:${f.path}", f, false) { file, mime -> viewFile(file, mime ?: f.mime) } },
         )
         // Tocca a te dentro le sessioni (app-sessioni-compatte-06-11, Franz 06/11 20:25): le decisioni e le verifiche di una sessione
         // aperta stanno nella sua scheda; in Tocca a te resta solo quello che non è di una sessione aperta.

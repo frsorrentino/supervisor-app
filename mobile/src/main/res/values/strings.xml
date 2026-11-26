@@ -1903,6 +1903,10 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="watch_seen_word">vista</string>
     <string name="watch_results">Risultati</string>
     <string name="watch_results_close">Chiudi i risultati fino al prossimo</string>
+    <plurals name="watch_other_files">
+        <item quantity="one">Un altro file dell\'invio</item>
+        <item quantity="other">Gli altri %d file dell\'invio</item>
+    </plurals>
     <string name="watch_open_file">Apri il file</string>
     <string name="watch_replaced">Il file sul PC è stato riscritto: questa versione non c\'è più.</string>
     <string name="watch_empty">Niente di nuovo da guardare.</string>
@@ -2135,6 +2139,7 @@ Parte dal tuo ultimo messaggio alla master.</string>
         <item quantity="one">resta %d carattere</item>
         <item quantity="other">restano %d caratteri</item>
     </plurals>
+    <string name="scelta_more_short">+%1$d</string>
     <plurals name="scelta_more_images">
         <item quantity="one">Un\'altra immagine</item>
         <item quantity="other">Altre %d immagini</item>

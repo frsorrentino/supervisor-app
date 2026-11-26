@@ -1860,6 +1860,10 @@ It starts at your last message to the master.</string>
     <string name="watch_seen_word">seen</string>
     <string name="watch_results">Results</string>
     <string name="watch_results_close">Close the results until the next one</string>
+    <plurals name="watch_other_files">
+        <item quantity="one">One more file in this delivery</item>
+        <item quantity="other">The other %d files in this delivery</item>
+    </plurals>
     <string name="watch_open_file">Open the file</string>
     <string name="watch_replaced">The file on the PC was rewritten: this version is gone.</string>
     <string name="watch_empty">Nothing new to look at.</string>
@@ -2095,6 +2099,7 @@ It starts at your last message to the master.</string>
         <item quantity="one">%d character left</item>
         <item quantity="other">%d characters left</item>
     </plurals>
+    <string name="scelta_more_short">+%1$d</string>
     <plurals name="scelta_more_images">
         <item quantity="one">One more image</item>
         <item quantity="other">%d more images</item>

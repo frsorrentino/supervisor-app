@@ -28,6 +28,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -62,7 +63,26 @@ class GuardareActions(
      * anteprima o con un relay senza l'op `thumb`, e resta l'icona.
      */
     val preview: (ResultItem, (it.pixelbox.cmwatch.contract.ThumbPreview?) -> Unit) -> Unit = { _, _ -> },
+    /** Un altro file della stessa consegna, all'app di sistema come «Apri il file» (app-carta-immagini-26-11). */
+    val externalFile: (ResultItem, TranscriptFile) -> Unit = { _, _ -> },
 )
+
+/** Un'immagine in più della consegna: chiesta da sola come la principale, un tocco la apre intera. */
+@Composable
+private fun OtherImage(i: ResultItem, f: TranscriptFile, a: GuardareActions, modifier: Modifier) {
+    var path by remember(i.id, f.path) { mutableStateOf<String?>(null) }
+    var failed by remember(i.id, f.path) { mutableStateOf(false) }
+    LaunchedEffect(i.id, f.path) { a.file(i, f, true) { p -> if (p == null) failed = true else path = p } }
+    val p = path
+    val bmp by produceState<androidx.compose.ui.graphics.ImageBitmap?>(null, p) { value = p?.let { kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { decodeScaled(it, 720, 4_000_000) } } }
+    var full by remember(p) { mutableStateOf(false) }
+    Box(modifier.aspectRatio(4f / 3f).clip(RoundedCornerShape(10.dp)).background(V3.S2).clickable(enabled = p != null) { full = true }, contentAlignment = Alignment.Center) {
+        val b = bmp
+        if (b != null) Image(b, stringResource(R.string.image_open_full), Modifier.fillMaxSize(), contentScale = ContentScale.Crop, alignment = Alignment.TopCenter)
+        else if (failed) Text(f.path.substringAfterLast('/'), style = V3.Small, modifier = Modifier.padding(6.dp))
+    }
+    if (full && p != null) FileImageViewer(p) { full = false }
+}
 
 /** L'anteprima di un documento (contratto 1.136): la prima pagina, le prime righe come una pagina, o null (resta l'icona). */
 @Composable
@@ -229,7 +249,7 @@ fun GuardareScreen(page: ResultsPage?, failed: Boolean, session: String?, a: Gua
         // subito, senza aspettare la lettura dopo la risposta del PC.
         var local by remember { mutableStateOf(emptySet<String>()) }
         val seenNow: (ResultItem) -> Unit = { r -> if (r.id !in local) { local = local + r.id; a.seen(r) } }
-        val acts = GuardareActions(a.file, seenNow, a.note, { r -> if (r.seenAt == null) seenNow(r); a.open(r) }, a.session, a.external)
+        val acts = GuardareActions(a.file, seenNow, a.note, { r -> if (r.seenAt == null) seenNow(r); a.open(r) }, a.session, a.external, externalFile = a.externalFile)
         val split = Guardare.splitSeen(groups, local)
         var seenOpen by rememberSaveable { mutableStateOf(false) }
         when {
@@ -338,6 +358,23 @@ fun ResultViewer(i: ResultItem, a: GuardareActions, onBack: () -> Unit) {
             }
         }
         if (kind != Guardare.Kind.VIDEO && kind != Guardare.Kind.IMAGE) V3Pill(stringResource(R.string.watch_open_file)) { a.external(i) }
+        // app-carta-immagini-26-11: tutti i file dell'invio, le immagini due a due (un tocco le apre intere), gli altri una riga l'uno.
+        val rest = remember(i.id) { Guardare.others(i) }
+        if (rest.isNotEmpty()) Column(Modifier.fillMaxWidth().testTag("risultato-altri"), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(pluralStringResource(R.plurals.watch_other_files, rest.size, rest.size), style = V3.Small)
+            rest.filter { it.mime?.startsWith("image/") == true }.chunked(2).forEach { line ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    line.forEach { f -> OtherImage(i, f, a, Modifier.weight(1f)) }
+                    if (line.size == 1) Spacer(Modifier.weight(1f))
+                }
+            }
+            rest.filter { it.mime?.startsWith("image/") != true }.forEach { f ->
+                Row(Modifier.fillMaxWidth().heightIn(min = 44.dp).clickable { a.externalFile(i, f) }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3, modifier = Modifier.size(18.dp))
+                    Text(f.path.substringAfterLast('/'), style = V3.Body)
+                }
+            }
+        }
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(stringResource(R.string.watch_version_of, i.version, i.versions), style = V3.Name)
             Text(listOfNotNull(hhmmOf(i.at), l.seconds?.let { stringResource(R.string.watch_seconds, it) }).joinToString(" · "), style = V3.Meter)
