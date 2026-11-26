@@ -12,6 +12,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -290,6 +292,81 @@ internal fun UndoSnack() {
                 }
                 Text(stringResource(R.string.undo), style = TextStyle(fontFamily = V3.Display, fontWeight = FontWeight.SemiBold, fontSize = 15.sp), color = V3.Tx, modifier = Modifier.padding(start = 8.dp))
             }
+        }
+    }
+}
+
+/**
+ * Voce 5 della prima proposta (Passi della prova, app-animazioni-passi-26-11, contratto 1.162): le tappe del compito in verifica su
+ * un filo. Il filo si riempie fino alla tappa a cui si è arrivati (400 ms), le passate sono spunte verdi, quella in corso ha un arco
+ * che gira in 1,2 s, una fallita è rossa; sotto, a parole, dove si è. Con le animazioni spente niente movimento, arco fermo.
+ */
+@Composable
+internal fun ProofRail(steps: it.pixelbox.cmwatch.contract.ProofSteps) {
+    val items = steps.items
+    if (items.isEmpty()) return
+    val off = animationsOff()
+    val fill by androidx.compose.animation.core.animateFloatAsState(
+        it.pixelbox.cmwatch.rules.PassiProva.fill(items), if (off) androidx.compose.animation.core.snap() else tween(400, easing = CmMotion.easing), label = "filo",
+    )
+    val turn = if (off || items.none { it.state == "run" }) 0f else {
+        val t = androidx.compose.animation.core.rememberInfiniteTransition(label = "tappa")
+        t.animateFloat(0f, 360f, androidx.compose.animation.core.infiniteRepeatable(tween(1200, easing = androidx.compose.animation.core.LinearEasing)), label = "arco").value
+    }
+    val good = V3.Good; val red = V3.Red; val busy = V3.Busy; val line = V3.S3; val ink = V3.Tx3; val bg = V3.S1
+    androidx.compose.foundation.layout.Column(Modifier.fillMaxWidth().padding(top = 6.dp).testTag("passi-prova")) {
+        androidx.compose.foundation.Canvas(Modifier.fillMaxWidth().height(24.dp)) {
+            val n = items.size
+            val cw = size.width / n
+            val cy = size.height / 2
+            val x0 = cw / 2; val x1 = size.width - cw / 2
+            drawLine(line, androidx.compose.ui.geometry.Offset(x0, cy), androidx.compose.ui.geometry.Offset(x1, cy), 2.dp.toPx())
+            if (n > 1) drawLine(good, androidx.compose.ui.geometry.Offset(x0, cy), androidx.compose.ui.geometry.Offset(x0 + (x1 - x0) * fill, cy), 2.dp.toPx())
+            val r = 10.dp.toPx()
+            items.forEachIndexed { i, s ->
+                val c = androidx.compose.ui.geometry.Offset(x0 + i * cw, cy)
+                when (it.pixelbox.cmwatch.rules.PassiProva.look(s)) {
+                    it.pixelbox.cmwatch.rules.PassiProva.Look.DONE -> {
+                        drawCircle(good, r, c)
+                        val a = c + androidx.compose.ui.geometry.Offset(-r * .45f, 0f); val b = c + androidx.compose.ui.geometry.Offset(-r * .1f, r * .35f); val e = c + androidx.compose.ui.geometry.Offset(r * .5f, -r * .35f)
+                        drawLine(androidx.compose.ui.graphics.Color.Black, a, b, 2.5.dp.toPx(), androidx.compose.ui.graphics.StrokeCap.Round)
+                        drawLine(androidx.compose.ui.graphics.Color.Black, b, e, 2.5.dp.toPx(), androidx.compose.ui.graphics.StrokeCap.Round)
+                    }
+                    it.pixelbox.cmwatch.rules.PassiProva.Look.FAILED -> {
+                        drawCircle(red, r, c)
+                        val d = r * .35f
+                        drawLine(androidx.compose.ui.graphics.Color.Black, c + androidx.compose.ui.geometry.Offset(-d, -d), c + androidx.compose.ui.geometry.Offset(d, d), 2.5.dp.toPx(), androidx.compose.ui.graphics.StrokeCap.Round)
+                        drawLine(androidx.compose.ui.graphics.Color.Black, c + androidx.compose.ui.geometry.Offset(d, -d), c + androidx.compose.ui.geometry.Offset(-d, d), 2.5.dp.toPx(), androidx.compose.ui.graphics.StrokeCap.Round)
+                    }
+                    it.pixelbox.cmwatch.rules.PassiProva.Look.NOW -> {
+                        drawCircle(bg, r, c)
+                        drawCircle(busy.copy(alpha = 0.35f), r - 1.dp.toPx(), c, style = androidx.compose.ui.graphics.drawscope.Stroke(2.dp.toPx()))
+                        drawArc(busy, turn - 90f, 90f, false, topLeft = c - androidx.compose.ui.geometry.Offset(r - 1.dp.toPx(), r - 1.dp.toPx()), size = androidx.compose.ui.geometry.Size(2 * (r - 1.dp.toPx()), 2 * (r - 1.dp.toPx())), style = androidx.compose.ui.graphics.drawscope.Stroke(2.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round))
+                    }
+                    it.pixelbox.cmwatch.rules.PassiProva.Look.TODO -> {
+                        drawCircle(bg, r, c)
+                        drawCircle(ink, r - 1.dp.toPx(), c, style = androidx.compose.ui.graphics.drawscope.Stroke(2.dp.toPx()))
+                    }
+                }
+            }
+        }
+        Row(Modifier.fillMaxWidth()) {
+            items.forEach { s ->
+                val look = it.pixelbox.cmwatch.rules.PassiProva.look(s)
+                Text(
+                    s.label, style = V3.Small.copy(fontSize = 13.sp, color = when (look) { it.pixelbox.cmwatch.rules.PassiProva.Look.DONE -> V3.Tx; it.pixelbox.cmwatch.rules.PassiProva.Look.NOW -> V3.Busy; it.pixelbox.cmwatch.rules.PassiProva.Look.FAILED -> V3.Red; else -> V3.Tx2 }),
+                    maxLines = 1, softWrap = false, textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.weight(1f),
+                )
+            }
+        }
+        it.pixelbox.cmwatch.rules.PassiProva.line(steps)?.let { l ->
+            val text = when (l.say) {
+                it.pixelbox.cmwatch.rules.PassiProva.Say.RUNNING -> stringResource(R.string.proof_running, l.label)
+                it.pixelbox.cmwatch.rules.PassiProva.Say.FAILED -> stringResource(R.string.proof_failed, l.label)
+                it.pixelbox.cmwatch.rules.PassiProva.Say.TODO -> stringResource(R.string.proof_todo, l.label)
+                it.pixelbox.cmwatch.rules.PassiProva.Say.ALL_DONE -> stringResource(R.string.proof_all_done)
+            }
+            Text(text, style = V3.Meter, maxLines = 1, modifier = Modifier.padding(top = 2.dp))
         }
     }
 }

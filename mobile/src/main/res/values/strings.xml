@@ -443,6 +443,10 @@
     <string name="close_stop_background">Ha un lavoro in sottofondo sul PC</string>
     <string name="close_stop_line">Chiudila dal PC quando hai finito.</string>
     <string name="typed_refusal">Non mandato: sul PC, nella casella di %1$s, c\'è del testo scritto a mano e lo avrei cancellato. Mandalo o cancellalo sul PC, poi riprova.</string>
+    <string name="proof_running">%1$s in corso</string>
+    <string name="proof_failed">%1$s non è passata</string>
+    <string name="proof_todo">%1$s da fare</string>
+    <string name="proof_all_done">Tutte le tappe passate</string>
     <string name="copy">Copia</string>
     <string name="edit">Modifica</string>
     <string name="resend">Reinvia</string>

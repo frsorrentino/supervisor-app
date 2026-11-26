@@ -80,6 +80,8 @@ export type Session = {
   next_steps?: NextStep[] | null
   /** Contratto 1.84: per una sessione chiusa, lo stato salvato alla chiusura; `session_id` per riprenderla con Riprendi. */
   closed?: ClosedState | null
+  /** Contratto 1.162: le tappe della prova del compito in verifica; assente senza un compito in verifica. */
+  steps?: ProofSteps | null
 }
 /** Contratto 1.155: `handoff` e `file` = chiusa dopo il passaggio di consegne; `reason` = il salvataggio è scaduto. */
 export type ClosedState = { at: number; outcome?: string | null; next?: string | null; dirty_n?: number | null; dirty?: string[] | null; session_id?: string | null; handoff?: boolean | null; file?: string | null; reason?: string | null }
@@ -109,6 +111,9 @@ export type ToccaState = { n: number; prove: number; decidi: number; rispondi?: 
  * Contratto 1.151 (app-riall-1-dati-16-11): `attese` è la lista unica di ciò che aspetta la persona. `rev` cambia quando entra o
  * esce una voce, o ne cambiano titolo o tasti; `closed` le voci chiuse negli ultimi 10 minuti, da chiunque (cade per prima sopra gli 8 KB).
  */
+/** Contratto 1.162: le tappe della prova; `key` test | ci | prerelease | proof, `state` todo | run | ok | ko. */
+export type ProofStep = { key: string; label: string; state: 'todo' | 'run' | 'ok' | 'ko' | string; at: number | null }
+export type ProofSteps = { task: string; items: ProofStep[] }
 export type AtteseState = { rev: string; n: number; closed?: { id: string; at: number }[] | null }
 export type ProveItem = { id: number; task: string; short?: string | null; title?: string | null; session?: string | null; project?: string | null; build: string; dove?: string | null; fai: string; atteso: string; at: number; wid?: string | null; silence_until?: number | null; silence_ok?: boolean | null }
 /** Contratto 1.106: un file consegnato da una sessione con SendUserFile; `caption`, `files`, `notes`, `replaced` solo nell'op `results`. */

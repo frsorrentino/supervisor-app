@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ProofRail from './ProofRail.svelte'
   import { dtf } from './dtf'
   import { asking as primaAsking, homeStatus as primaHome } from './primaRaccolta'
   import { MENU_ICON, mineOf, sessionMenu, type MenuKind } from './sessionMenu'
@@ -1308,6 +1309,8 @@
           <svg viewBox="0 0 24 24" width="22" height="22"><path d={open ? 'M7 14l5-5 5 5' : 'M7 10l5 5 5-5'} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
         </button>
       </div>
+      <!-- app-animazioni-passi-26-11 (contratto 1.162): le tappe della prova del compito in verifica su un filo. -->
+      {#if s.steps?.items?.length}<ProofRail steps={s.steps} />{/if}
       <!-- app-scheda-sessione-semplice-19-11: i blocchi della scheda, gli stessi chiusa e aperta; aperta li mette nell'ordine della K. -->
       {#snippet okDoneB()}
       {#if open && !unified && group === 'waiting' && !s.question}

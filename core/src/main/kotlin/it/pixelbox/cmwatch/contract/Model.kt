@@ -318,6 +318,8 @@ enum class CmdOp {
     @SerialName("next_steps") val nextSteps: List<NextStep>? = null,
     /** Contratto 1.84: per una sessione chiusa, lo stato salvato alla chiusura; `session_id` per riprenderla con Riprendi. */
     val closed: ClosedState? = null,
+    /** Contratto 1.162: le tappe della prova del compito in verifica; assente (null) senza un compito in verifica. */
+    val steps: ProofSteps? = null,
     /** Contratto 1.54: default | acceptEdits | plan | bypassPermissions, o un nome nuovo da mostrare così; null = non si sa. */
     @SerialName("permission_mode") val permissionMode: String? = null,
     /** Contratto 1.55: la domanda risolta al terminale negli ultimi 5 minuti. */
@@ -566,6 +568,9 @@ enum class CmdOp {
  * Contratto 1.151 (app-riall-1-dati-16-11): `attese` è la lista unica di ciò che aspetta la persona. [rev] cambia quando entra o
  * esce una voce, o ne cambiano titolo o tasti; [closed] le voci chiuse negli ultimi 10 minuti, da chiunque (cade per prima sopra gli 8 KB).
  */
+/** Contratto 1.162: le tappe della prova di un compito; `key` test | ci | prerelease | proof, `state` todo | run | ok | ko. */
+@Serializable data class ProofSteps(val task: String = "", val items: List<ProofStep> = emptyList())
+@Serializable data class ProofStep(val key: String = "", val label: String = "", val state: String = "todo", val at: Long? = null)
 @Serializable data class AtteseState(val rev: String = "", val n: Int = 0, val closed: List<AtteseClosed>? = null)
 @Serializable data class AtteseClosed(val id: String, val at: Long = 0)
 @Serializable data class ToccaToday(val n: Int = 0, val items: List<ToccaClosed> = emptyList())
