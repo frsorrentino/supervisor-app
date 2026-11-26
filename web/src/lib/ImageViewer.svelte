@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { molla, motore } from './molla'
   // Il visore delle immagini della chat (app-chat-zoom-02-11), come ImageViewer di SessionSheet.kt: due dita ingrandiscono
   // attorno alle dita, ingrandita si sposta col dito, il doppio tocco porta a tutta larghezza o torna intera. Col mouse la
   // rotella con Ctrl e il pizzico del trackpad (che il browser manda come rotella con Ctrl) ingrandiscono attorno al
@@ -91,6 +92,24 @@
   })
   // Se la finestra cambia misura l'immagine resta dentro i bordi.
   $effect(() => { const [cw, ch] = content(); untrack(() => { view = clamp(view, cw, ch, vw, vh) }) })
+  function pill(el: HTMLElement, at: number) {
+    const c = (i: number) => i * 22 + 4
+    const A = molla(c(at) - 10), B = molla(c(at) + 10)
+    const b = el.querySelector<HTMLElement>('.ivpill')
+    const render = () => { if (b) { b.style.transform = `translateX(${A.x.toFixed(2)}px)`; b.style.width = Math.max(8, B.x - A.x).toFixed(2) + 'px' } }
+    const m = motore([A, B], render)
+    render()
+    return {
+      update(i: number) {
+        const right = c(i) > (A.t + B.t) / 2
+        A.t = c(i) - 10; B.t = c(i) + 10
+        A.k = right ? 140 : 520; A.c = right ? 18 : 34
+        B.k = right ? 520 : 140; B.c = right ? 34 : 18
+        m.vai()
+      },
+      destroy() { m.stop() },
+    }
+  }
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
@@ -104,9 +123,10 @@
     {#key cur.src}<img src={cur.src} alt={cur.name} draggable="false" class:settle onload={(e) => { const im = e.currentTarget as HTMLImageElement; iw = im.naturalWidth; ih = im.naturalHeight }} style:transform="translate({view.x + drag}px, {view.y}px) scale({view.scale})" />{/key}
   </div>
   {#if many}
-    <!-- Voce 5 di app-animazioni-seconde-26-11 (Puntini del visore): uno per immagine, quello di adesso allungato a pillola; oltre 7 i 7 attorno. -->
+    <!-- Voce 5, fedele all'originale (Pagination dots; app-animazioni-fedeli-26-11): puntini da 8 px a 14 px, pillola da 20 px con due bordi,
+         davanti 520 34 e dietro 140 18; mai sotto 8 px. Oltre 7 immagini, i 7 attorno a quella di adesso. -->
     {@const [d0, d1] = dots(items!.length, at)}
-    <div class="ivdots" aria-hidden="true">{#each Array.from({ length: d1 - d0 }, (_, k) => d0 + k) as k (k)}<i class:on={k === at}></i>{/each}</div>
+    <div class="ivdots" aria-hidden="true" use:pill={at - d0}>{#each Array.from({ length: d1 - d0 }, (_, k) => d0 + k) as k (k)}<i></i>{/each}<b class="ivpill"></b></div>
     <button class="ivstep prev" aria-label={t.viewerPrev} disabled={at === 0} onclick={() => show(at - 1)}><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></button>
     <button class="ivstep next" aria-label={t.viewerNext} disabled={at === items!.length - 1} onclick={() => show(at + 1)}><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></button>
   {/if}
@@ -124,9 +144,9 @@
   .ivbox img { display: block; width: 100%; height: 100%; object-fit: contain; transform-origin: center; will-change: transform; -webkit-touch-callout: none; }
   /* Rilasciata senza cambiare immagine torna al centro; mentre il dito la tiene segue il dito, senza transizione. */
   .ivbox img.settle { transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1); }
-  .ivdots { position: absolute; left: 0; right: 0; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); display: flex; justify-content: center; gap: 6px; pointer-events: none; }
-  .ivdots i { width: 6px; height: 6px; border-radius: 3px; background: color-mix(in srgb, #fff 30%, transparent); transition: width var(--spring-fast-t, 200ms) var(--spring-fast, ease-out), background 200ms; }
-  .ivdots i.on { width: 18px; background: #fff; }
+  .ivdots { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 14px; pointer-events: none; }
+  .ivdots i { width: 8px; height: 8px; border-radius: 4px; background: color-mix(in srgb, #fff 30%, transparent); }
+  .ivpill { position: absolute; left: 0; top: 0; width: 20px; height: 8px; border-radius: 4px; background: #fff; will-change: transform, width; }
   .ivstep { position: absolute; top: 50%; width: 48px; height: 48px; margin-top: -24px; border-radius: 50%; background: color-mix(in srgb, #000 55%, transparent); color: #fff; display: grid; place-items: center; touch-action: manipulation; transition: opacity 160ms ease-out, transform 120ms ease-out; }
   .ivstep.prev { left: calc(10px + env(safe-area-inset-left, 0px)); }
   .ivstep.next { right: calc(10px + env(safe-area-inset-right, 0px)); }
@@ -134,5 +154,5 @@
   .ivstep:active { transform: scale(.94); }
   .ivclose:focus-visible, .ivstep:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
   @media (hover: hover) and (pointer: fine) { .ivstep:hover { background: color-mix(in srgb, #fff 18%, #000); } }
-  @media (prefers-reduced-motion: reduce) { .ivbox img.settle, .ivstep, .ivdots i { transition: none; } }
+  @media (prefers-reduced-motion: reduce) { .ivbox img.settle, .ivstep { transition: none; } }
 </style>

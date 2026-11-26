@@ -545,15 +545,32 @@ fun WaitImagesViewer(items: List<Pair<String, String>>, start: Int, onClose: () 
                 }
                 step(pager.currentPage - 1, true)
                 step(pager.currentPage + 1, false)
-                // Voce 5 di app-animazioni-seconde-26-11 (Puntini del visore): uno per immagine, quello di adesso allungato a pillola con la
-                // molla veloce; oltre 7 i 7 attorno a quello di adesso.
+                // Voce 5, fedele all'originale (Pagination dots; app-animazioni-fedeli-26-11): puntini da 8 dp a 14 dp l'uno dall'altro,
+                // e una pillola da 20 dp con due bordi e due molle: quello davanti 520 34, quello dietro 140 18, così si allunga sul
+                // vuoto e si raccoglie sul puntino nuovo; mai sotto 8 dp. Oltre 7 immagini, i 7 attorno a quella di adesso.
                 val off = animationsOff()
-                Row(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 16.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    for (k in it.pixelbox.cmwatch.rules.Animazioni.dots(items.size, pager.currentPage)) {
-                        val on = k == pager.currentPage
-                        val w by androidx.compose.animation.core.animateDpAsState(if (on) 18.dp else 6.dp, if (off) androidx.compose.animation.core.snap() else androidx.compose.animation.core.spring(stiffness = androidx.compose.animation.core.Spring.StiffnessMedium), label = "puntino")
-                        Box(Modifier.size(w, 6.dp).clip(CircleShape).background(if (on) Color.White else Color.White.copy(alpha = 0.3f)))
-                    }
+                val range = it.pixelbox.cmwatch.rules.Animazioni.dots(items.size, pager.currentPage)
+                val count = range.count()
+                val at = (pager.currentPage - range.first).coerceIn(0, (count - 1).coerceAtLeast(0))
+                val edgeA = remember { androidx.compose.animation.core.Animatable(at * 22f + 4f - 10f) }
+                val edgeB = remember { androidx.compose.animation.core.Animatable(at * 22f + 4f + 10f) }
+                val dotScope = androidx.compose.runtime.rememberCoroutineScope()
+                LaunchedEffect(at, off) {
+                    val c = at * 22f + 4f
+                    if (off) { edgeA.snapTo(c - 10f); edgeB.snapTo(c + 10f); return@LaunchedEffect }
+                    val right = c > (edgeA.targetValue + edgeB.targetValue) / 2f
+                    dotScope.launch { edgeA.animateTo(c - 10f, if (right) Molla.of(140f, 18f) else Molla.of(520f, 34f)) }
+                    dotScope.launch { edgeB.animateTo(c + 10f, if (right) Molla.of(520f, 34f) else Molla.of(140f, 18f)) }
+                }
+                androidx.compose.foundation.Canvas(
+                    Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 16.dp).size((count * 8 + (count - 1).coerceAtLeast(0) * 14).dp, 8.dp),
+                ) {
+                    val u = 1.dp.toPx()
+                    for (k in 0 until count) drawCircle(Color.White.copy(alpha = 0.3f), 4f * u, androidx.compose.ui.geometry.Offset((k * 22f + 4f) * u, 4f * u))
+                    val a = edgeA.value
+                    val w = maxOf(8f, edgeB.value - a)
+                    drawRoundRect(Color.White, topLeft = androidx.compose.ui.geometry.Offset(a * u, 0f), size = androidx.compose.ui.geometry.Size(w * u, 8f * u), cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f * u))
+                }
                 }
             }
         }

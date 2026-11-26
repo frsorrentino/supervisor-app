@@ -373,20 +373,40 @@ internal fun HoldButton(label: String, onDone: () -> Unit, modifier: Modifier = 
  */
 @Composable
 internal fun LimitRing(length: Int, max: Int) {
+    // Fedele all'originale (Letter limit; app-animazioni-fedeli-26-11): l'anello va con la molla 280 22; a ogni carattere il numero fa
+    // un pop (da 1,12, molla 520 16); ogni carattere oltre il limite dà una scossa (spinta 34 dp/s sulla molla 700 12, metà ampiezza)
+    // e il pop da 1,25. Colori in 200 ms. Il testo oltre il limite non si taglia (regola dell'app).
     val state = Animazioni.limit(length, max)
     val off = animationsOff()
-    val p by androidx.compose.animation.core.animateFloatAsState(Animazioni.fill(length, max), if (off) androidx.compose.animation.core.snap() else tween(120), label = "limite")
-    val tone = when (state) { Animazioni.Limit.OK -> V3.Tx2; Animazioni.Limit.NEAR -> V3.Wait; Animazioni.Limit.OVER -> V3.Red }
+    val fillTo = Animazioni.fill(length, max)
+    val F = remember { androidx.compose.animation.core.Animatable(fillTo) }
+    val CP = remember { androidx.compose.animation.core.Animatable(1f) }
+    val SH = remember { androidx.compose.animation.core.Animatable(0f) }
+    var last by remember { mutableIntStateOf(length) }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    LaunchedEffect(length, off) {
+        val before = last
+        last = length
+        if (off) { F.snapTo(fillTo); return@LaunchedEffect }
+        scope.launch { F.animateTo(fillTo, Molla.of(280f, 22f)) }
+        if (length == before) return@LaunchedEffect
+        val over = length > max && length > before
+        scope.launch { CP.snapTo(if (over) 1.25f else maxOf(CP.value, 1.12f)); CP.animateTo(1f, Molla.of(520f, 16f)) }
+        if (over) scope.launch { SH.animateTo(0f, Molla.of(700f, 12f), initialVelocity = SH.velocity + 34f * (length - before)) }
+    }
+    val tone by androidx.compose.animation.animateColorAsState(
+        when (state) { Animazioni.Limit.OK -> V3.Tx2; Animazioni.Limit.NEAR -> V3.Wait; Animazioni.Limit.OVER -> V3.Red }, if (off) snap() else tween(200), label = "limite-colore",
+    )
     val track = V3.Tx.copy(alpha = 0.14f)
     val left = max - length
     val label = androidx.compose.ui.res.pluralStringResource(R.plurals.scelta_left, maxOf(0, left), maxOf(0, left))
-    Row(Modifier.testTag("limite").semantics { contentDescription = label }, verticalAlignment = Alignment.CenterVertically) {
-        if (state != Animazioni.Limit.OK) Text("$left", style = V3.Meter.copy(color = tone), modifier = Modifier.padding(end = 6.dp))
+    Row(Modifier.testTag("limite").semantics { contentDescription = label }.graphicsLayer { translationX = SH.value * 0.5f * density }, verticalAlignment = Alignment.CenterVertically) {
+        if (state != Animazioni.Limit.OK) Text("$left", style = V3.Meter.copy(color = tone), modifier = Modifier.padding(end = 6.dp).graphicsLayer { scaleX = CP.value; scaleY = CP.value })
         androidx.compose.foundation.Canvas(Modifier.size(22.dp)) {
             val w = 3.dp.toPx()
             val st = androidx.compose.ui.graphics.drawscope.Stroke(w, cap = androidx.compose.ui.graphics.StrokeCap.Round)
             drawArc(track, 0f, 360f, false, topLeft = androidx.compose.ui.geometry.Offset(w / 2, w / 2), size = androidx.compose.ui.geometry.Size(size.width - w, size.height - w), style = st)
-            drawArc(tone, -90f, 360f * p, false, topLeft = androidx.compose.ui.geometry.Offset(w / 2, w / 2), size = androidx.compose.ui.geometry.Size(size.width - w, size.height - w), style = st)
+            drawArc(tone, -90f, 360f * F.value.coerceIn(0f, 1f), false, topLeft = androidx.compose.ui.geometry.Offset(w / 2, w / 2), size = androidx.compose.ui.geometry.Size(size.width - w, size.height - w), style = st)
         }
     }
 }
@@ -448,20 +468,45 @@ internal fun UndoSnack() {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(s.text, style = V3.Body.copy(fontSize = 14.5.sp), maxLines = 2, modifier = Modifier.weight(1f, fill = false).padding(end = 8.dp))
+            // Fedele all'originale (Kokonut Undo button; app-animazioni-fedeli-26-11): il bordo del tasto si svuota in senso orario dal
+            // centro in alto, lineare in [Animazioni.UNDO_MS], tratto 1,5 dp; accanto i secondi che restano salgono di 10 dp, 200 ms,
+            // ease-out (0.23, 1, 0.32, 1). Con le animazioni spente il bordo resta pieno e i secondi cambiano e basta.
+            val ease = androidx.compose.animation.core.CubicBezierEasing(0.23f, 1f, 0.32f, 1f)
+            val secs = kotlin.math.ceil(ring.value * Animazioni.UNDO_MS / 1000f).toInt().coerceAtLeast(1)
+            val tone = V3.Tx
+            val density = androidx.compose.ui.platform.LocalDensity.current.density
             Row(
-                Modifier.clip(CircleShape).handCursor().clickable { Undo.cancel() }.padding(horizontal = 10.dp, vertical = 10.dp),
+                Modifier.clip(CircleShape).handCursor().clickable { Undo.cancel() }
+                    .drawWithContent {
+                        drawContent()
+                        val sw = 1.5.dp.toPx()
+                        val h = size.height; val w = size.width; val st = sw / 2; val r = h / 2 - st
+                        val path = androidx.compose.ui.graphics.Path().apply {
+                            moveTo(w / 2, st); lineTo(w - st - r, st)
+                            arcTo(androidx.compose.ui.geometry.Rect(w - st - 2 * r, st, w - st, h - st), -90f, 180f, false)
+                            lineTo(st + r, h - st)
+                            arcTo(androidx.compose.ui.geometry.Rect(st, st, st + 2 * r, h - st), 90f, 180f, false)
+                            close()
+                        }
+                        val pm = androidx.compose.ui.graphics.PathMeasure().apply { setPath(path, false) }
+                        val part = androidx.compose.ui.graphics.Path()
+                        pm.getSegment(0f, pm.length * (if (off) 1f else ring.value), part, true)
+                        drawPath(part, tone, style = androidx.compose.ui.graphics.drawscope.Stroke(sw, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+                    }
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                val tone = V3.Tx
-                androidx.compose.foundation.Canvas(Modifier.size(22.dp).padding(end = 0.dp)) {
-                    val w = 3.dp.toPx()
-                    val st = androidx.compose.ui.graphics.drawscope.Stroke(w, cap = androidx.compose.ui.graphics.StrokeCap.Round)
-                    val tl = androidx.compose.ui.geometry.Offset(w / 2, w / 2)
-                    val sz = androidx.compose.ui.geometry.Size(size.width - w, size.height - w)
-                    drawArc(tone.copy(alpha = 0.18f), 0f, 360f, false, topLeft = tl, size = sz, style = st)
-                    drawArc(tone, -90f, 360f * ring.value, false, topLeft = tl, size = sz, style = st)
-                }
-                Text(stringResource(R.string.undo), style = TextStyle(fontFamily = V3.Display, fontWeight = FontWeight.SemiBold, fontSize = 15.sp), color = V3.Tx, modifier = Modifier.padding(start = 8.dp))
+                Text(stringResource(R.string.undo), style = TextStyle(fontFamily = V3.Display, fontWeight = FontWeight.SemiBold, fontSize = 15.sp), color = V3.Tx)
+                AnimatedContent(
+                    secs,
+                    transitionSpec = {
+                        if (off) fadeIn(tween(0)) togetherWith fadeOut(tween(0))
+                        else (androidx.compose.animation.slideInVertically(tween(200, easing = ease)) { (10 * density).toInt() } + fadeIn(tween(200, easing = ease))) togetherWith
+                            (androidx.compose.animation.slideOutVertically(tween(200, easing = ease)) { -(10 * density).toInt() } + fadeOut(tween(200, easing = ease)))
+                    },
+                    label = "annulla-secondi",
+                    modifier = Modifier.padding(start = 8.dp),
+                ) { n -> Text("$n", style = V3.Meter.copy(color = V3.Tx2)) }
             }
         }
     }
