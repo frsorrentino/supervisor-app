@@ -231,3 +231,51 @@ export function saltaLettere(area: HTMLTextAreaElement, from = 'var(--stale)', t
   letters.forEach((l, i) => setTimeout(() => { l.el.style.color = to; l.s.v = -70; m.vai() }, i * 16))
   setTimeout(() => { m.stop(); ov.remove(); area.style.color = was }, letters.length * 16 + 500)
 }
+
+/**
+ * Voce 4 del terzo giro, fedele all'originale (Prompt box e Mention picker; app-animazioni-terzo-c-26-11): sul tasto d'invio la freccia
+ * diventa il quadrato dello Stop sulla molla 520 30 (la freccia scala a 0 ruotando di 90°, il quadrato scala fino a 1,2 e torna);
+ * all'invio il tasto si stringe a 0,94 in 260 ms e la freccia vola su di 26 px svanendo e sfocandosi, poi rientra da 22 px sotto, in
+ * 560 ms con (.3, .7, .2, 1). Moto ridotto: cambia e basta.
+ */
+export function invio(node: HTMLButtonElement, stop: boolean) {
+  const M = molla(stop ? 1 : 0, 520, 30)
+  const ar = () => node.querySelector<SVGElement>('.ar'), sq = () => node.querySelector<SVGElement>('.sq')
+  const render = () => {
+    const m = clamp(M.x, 0, 1.2)
+    const a = ar(), q = sq()
+    if (a) a.style.transform = `scale(${Math.max(0, 1 - m).toFixed(4)}) rotate(${(m * 90).toFixed(2)}deg)`
+    if (q) q.style.transform = `scale(${Math.max(0, m).toFixed(4)})`
+  }
+  const mm = motore([M], render)
+  render()
+  const fly = () => {
+    if (M.t === 1 || ridotto() || !node.animate) return
+    ar()?.animate([{ translate: '0 0', opacity: 1, filter: 'blur(0)' }, { translate: '0 -26px', opacity: 0, filter: 'blur(2px)', offset: 0.5 }, { translate: '0 22px', opacity: 0, filter: 'blur(2px)', offset: 0.5 }, { translate: '0 0', opacity: 1, filter: 'blur(0)' }], { duration: 560, easing: 'cubic-bezier(.3, .7, .2, 1)' })
+    node.animate([{ scale: '1' }, { scale: '.94' }, { scale: '1' }], { duration: 260 })
+  }
+  node.addEventListener('click', fly)
+  return {
+    update(s: boolean) { M.t = s ? 1 : 0; if (ridotto()) { M.x = M.t; M.v = 0; render() } else mm.vai() },
+    destroy() { node.removeEventListener('click', fly); mm.stop() },
+  }
+}
+
+/** Voce 4 del terzo giro (Prompt box): il campo cresce con il testo, fino a cinque righe, sulla molla 420 34 invece di scattare. */
+export function crescita(node: HTMLTextAreaElement, _v: string) {
+  const H = molla(node.offsetHeight, 420, 34)
+  let on = false
+  const render = () => { node.style.height = on && !ferma(H) ? `${H.x.toFixed(2)}px` : ''; if (ferma(H)) on = false }
+  const mm = motore([H], render)
+  return {
+    update() {
+      const from = on ? H.x : node.offsetHeight
+      node.style.height = ''
+      const to = node.offsetHeight
+      if (Math.abs(to - from) < 0.5 || ridotto()) { H.x = H.t = to; H.v = 0; return }
+      H.x = from; H.t = to; on = true
+      render(); mm.vai()
+    },
+    destroy: () => mm.stop(),
+  }
+}

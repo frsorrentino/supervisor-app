@@ -13,7 +13,7 @@
   import Badge from './Badge.svelte'
   import Icon from './Icon.svelte'
   import { onDestroy, tick } from 'svelte'
-  import { saltaLettere } from './molla'
+  import { crescita, invio, saltaLettere } from './molla'
   import { lang } from './lang'
   import { dictate, dictLang, speechCtor, type Dictation, type DictError } from './dictation'
 
@@ -190,7 +190,7 @@
       <input bind:this={images} type="file" accept="image/*" multiple hidden onchange={picked} />
       <input bind:this={camera} type="file" accept="image/*" capture="environment" hidden onchange={picked} />
       <input bind:this={any} type="file" multiple hidden onchange={picked} />
-      <textarea bind:this={area} data-fix="sugg-focus" rows="1" class:sug={!!inField} bind:value={draft} onkeydown={key} onpaste={paste} {placeholder}></textarea>
+      <textarea bind:this={area} use:crescita={draft} data-fix="sugg-focus" rows="1" class:sug={!!inField} bind:value={draft} onkeydown={key} onpaste={paste} {placeholder}></textarea>
       {#if Speech && md !== 'reopen'}
         <button type="button" class="round mic" class:on={!!dictation} aria-label={t.micStart} aria-pressed={!!dictation} title={dictation ? t.micStop : t.micStart} onclick={mic}>
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></svg>
@@ -215,11 +215,13 @@
       {#if md === 'reopen'}
         <!-- Contratto 1.65: anche una chiusa ha il campo; a campo vuoto «Riapri», scrivendo Invia la riapre e consegna. -->
         <button type="button" class="reopen small" onclick={onReopen}>{t.reopen}</button>
-      {:else if md === 'stop'}
-        <button type="button" class="round filled" aria-label={t.stop} title={t.stop} onclick={onStop}><svg viewBox="0 0 24 24" width="20" height="20"><rect x="6.5" y="6.5" width="11" height="11" rx="2" fill="currentColor" /></svg></button>
       {:else}
-        <button type="submit" class="round" class:filled={md === 'send'} class:tonal={md === 'send_tonal'} disabled={md === 'none'} aria-label={t.send}>
-          <svg viewBox="0 0 24 24" width="22" height="22"><path d="M3.4 20.4 21 12 3.4 3.6 3.4 10.2 15 12 3.4 13.8z" fill="currentColor" /></svg>
+        <!-- Voce 4 del terzo giro (Prompt box; app-animazioni-terzo-c-26-11): un tasto solo, la freccia che diventa lo Stop con
+             `invio` in molla.ts, fondo e colore in 200 ms. -->
+        <button type={md === 'stop' ? 'button' : 'submit'} class="round psend" class:filled={md === 'send' || md === 'stop'} class:tonal={md === 'send_tonal'} disabled={md === 'none'}
+          aria-label={md === 'stop' ? t.stop : t.send} title={md === 'stop' ? t.stop : undefined} onclick={md === 'stop' ? onStop : undefined} use:invio={md === 'stop'}>
+          <svg class="ar" viewBox="0 0 24 24" width="22" height="22"><path d="M3.4 20.4 21 12 3.4 3.6 3.4 10.2 15 12 3.4 13.8z" fill="currentColor" /></svg>
+          <svg class="sq" viewBox="0 0 24 24" width="20" height="20"><rect x="6.5" y="6.5" width="11" height="11" rx="2" fill="currentColor" /></svg>
         </button>
       {/if}
     </form>
@@ -273,6 +275,8 @@
   .menu button { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 16px; font-size: 15px; text-align: left; }
   .menu button:hover { background: var(--high); }
   .menu hr { border: 0; height: 1px; background: var(--line); margin: 4px 0; }
+  .psend { position: relative; transition: background-color .2s ease, color .2s ease; }
+  .psend svg { position: absolute; inset: 0; margin: auto; }
   textarea { flex: 1; resize: none; background: none; border: 0; outline: 0; color: var(--text); font: inherit; font-size: 16px; letter-spacing: .03em; field-sizing: content; max-height: 5lh; padding: 14px 0 14px 12px; min-width: 0; }
   .field:has(.anchor) textarea { padding-left: 4px; }
   textarea::placeholder { color: var(--text2); }

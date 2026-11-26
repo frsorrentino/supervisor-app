@@ -1105,7 +1105,7 @@ private fun Composer(
         OutlinedTextField(
             state = fieldState, lineLimits = androidx.compose.foundation.text.input.TextFieldLineLimits.MultiLine(maxHeightInLines = 5),
             textStyle = if (hop != null) baseStyle.copy(color = androidx.compose.ui.graphics.Color.Transparent) else baseStyle,
-            modifier = Modifier.fillMaxWidth().onSizeChanged { if (lineH == 0 || it.height < lineH) lineH = it.height; fieldW = it.width }
+            modifier = Modifier.fillMaxWidth().promptHeight().onSizeChanged { if (lineH == 0 || it.height < lineH) lineH = it.height; fieldW = it.width }
                 .ghostHop(
                     hop, baseStyle.copy(color = Cm.text), Cm.stale, Cm.text,
                     // La posizione del testo nel campo Material 3: 16 dp senza icona davanti, dopo l'icona (almeno 48 dp) più 4; a destra
@@ -1166,22 +1166,16 @@ private fun Composer(
                     IconButton(onClick = { pickTime = true }, modifier = Modifier.size(40.dp).handCursor()) { Icon(Icons.Rounded.Schedule, stringResource(R.string.send_at), tint = Cm.text2) }
                 }
                 when (mode) {
-                    PhonePrimary.Composer.SEND -> FilledIconButton(onClick = send, colors = filled, modifier = size) {
-                        Icon(Icons.AutoMirrored.Rounded.Send, stringResource(R.string.send))
-                    }
-                    PhonePrimary.Composer.SEND_TONAL -> FilledTonalIconButton(onClick = send, modifier = size) {
-                        Icon(Icons.AutoMirrored.Rounded.Send, stringResource(R.string.send))
-                    }
+                    // Voce 4 del terzo giro, fedele all'originale (Prompt box; app-animazioni-terzo-c-26-11): un tasto solo che cambia
+                    // fondo e colore in 200 ms, la freccia che diventa il quadrato dello Stop con la molla 520 30 (scala e 90° di
+                    // rotazione), e al tocco d'invio la freccia che vola su e rientra da sotto (Mention picker).
+                    PhonePrimary.Composer.SEND, PhonePrimary.Composer.SEND_TONAL, PhonePrimary.Composer.STOP, PhonePrimary.Composer.NONE ->
+                        PromptSend(mode, filled, size, onSend = send, onStop = actions.interrupt)
                     PhonePrimary.Composer.REOPEN -> Button(
                         onClick = actions.reopen, colors = ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary),
                         modifier = Modifier.padding(end = if (lineH > 0) endPad else 8.dp).height(40.dp).handCursor(),
                     ) { Text(stringResource(R.string.reopen)) }
-                    PhonePrimary.Composer.STOP -> FilledIconButton(onClick = actions.interrupt, colors = filled, modifier = size) {
-                        Icon(Icons.Rounded.Stop, stringResource(R.string.stop))
-                    }
-                    else -> FilledTonalIconButton(onClick = {}, enabled = false, modifier = size) {
-                        Icon(Icons.AutoMirrored.Rounded.Send, stringResource(R.string.send))
-                    }
+                    else -> PromptSend(mode, filled, size, onSend = {}, onStop = {})
                 }
             } },
         )
