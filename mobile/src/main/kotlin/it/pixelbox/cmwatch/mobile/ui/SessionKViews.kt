@@ -282,7 +282,11 @@ internal fun KTaskLine(title: String, state: String? = null, paused: Boolean = f
  * con ✕, quella in corso col bordo blu, da fare grigia; sotto il motivo a parole. Prende il posto del filo in alto.
  */
 @Composable
-internal fun KStepBar(steps: it.pixelbox.cmwatch.contract.ProofSteps) {
+internal fun KStepBar(
+    steps: it.pixelbox.cmwatch.contract.ProofSteps,
+    /** Voce 3 del terzo giro (passi della chiusura, opzione a): senza nomi nei segmenti, e sotto [caption] al posto della riga della prova. */
+    names: Boolean = true, caption: String? = null,
+) {
     if (steps.items.isEmpty()) return
     val P = it.pixelbox.cmwatch.rules.PassiProva
     val items = steps.items
@@ -364,7 +368,7 @@ internal fun KStepBar(steps: it.pixelbox.cmwatch.contract.ProofSteps) {
                                 pop()
                             }
                         } else androidx.compose.ui.text.AnnotatedString(st.label)
-                        Text(
+                        if (names) Text(
                             label, style = V3.Small.copy(fontSize = 13.sp, color = fg), maxLines = 1, softWrap = false, overflow = TextOverflow.Clip,
                             modifier = Modifier.graphicsLayer { scaleX = ps[i].value; scaleY = ps[i].value },
                         )
@@ -372,7 +376,8 @@ internal fun KStepBar(steps: it.pixelbox.cmwatch.contract.ProofSteps) {
                 }
             }
         }
-        it.pixelbox.cmwatch.rules.PassiProva.line(steps)?.let { l ->
+        if (caption != null) Text(caption, style = V3.Small.copy(color = V3.Tx2))
+        else it.pixelbox.cmwatch.rules.PassiProva.line(steps)?.let { l ->
             val text = when (l.say) {
                 it.pixelbox.cmwatch.rules.PassiProva.Say.RUNNING -> stringResource(R.string.proof_running, l.label)
                 it.pixelbox.cmwatch.rules.PassiProva.Say.FAILED -> stringResource(R.string.proof_failed, l.label)

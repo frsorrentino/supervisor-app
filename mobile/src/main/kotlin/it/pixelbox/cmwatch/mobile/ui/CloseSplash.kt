@@ -1,5 +1,7 @@
 package it.pixelbox.cmwatch.mobile.ui
 
+import it.pixelbox.cmwatch.contract.ProofStep
+import it.pixelbox.cmwatch.contract.ProofSteps
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -68,13 +70,16 @@ fun CloseSplashOverlay(
                     CloseTitle(stringResource(R.string.splash_closing, phase.name))
                     // Contratto 1.155 (app-chiudi-salva-19-11): «Salva e chiudi» segue closing.mode, save e poi exit.
                     CloseLine(stringResource(if (phase.save) R.string.splash_save_sent_at else R.string.splash_sent_at, hm(phase.sentAt)))
-                    Column(Modifier.fillMaxWidth().padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        if (phase.save) {
-                            SplashStep(phase.step == "exit", stringResource(R.string.splash_saving), now = phase.step != "exit")
-                            SplashStep(false, stringResource(R.string.splash_exiting), now = phase.step == "exit")
-                        } else SplashStep(phase.delivered, stringResource(R.string.splash_step_delivered))
-                        SplashStep(false, stringResource(R.string.splash_step_confirmed))
-                    }
+                    // Voce 3 del terzo giro (app-animazioni-terzo-c-26-11, opzione a della master): i passi della chiusura sulla barra a
+                    // segmenti dei passi della prova, col suo moto, senza nomi dentro; sotto, per intero, il passo in corso.
+                    val st = { k: String, s: String -> ProofStep(key = k, state = s) }
+                    val (bar, now) = if (phase.save) {
+                        val exiting = phase.step == "exit"
+                        listOf(st("save", if (exiting) "ok" else "run"), st("exit", if (exiting) "run" else "todo"), st("done", "todo")) to
+                            stringResource(if (exiting) R.string.splash_exiting else R.string.splash_saving)
+                    } else listOf(st("sent", if (phase.delivered) "ok" else "run"), st("done", if (phase.delivered) "run" else "todo")) to
+                        stringResource(if (phase.delivered) R.string.splash_step_confirmed else R.string.splash_step_delivered)
+                    KStepBar(ProofSteps(items = bar), names = false, caption = now)
                     LinearProgressIndicator(Modifier.fillMaxWidth().padding(top = 10.dp), color = V3.Busy, trackColor = Cm.surfaceHigh)
                     if (phase.slow) {
                         Text(stringResource(R.string.splash_slow), style = MaterialTheme.typography.labelMedium, color = Cm.waiting)

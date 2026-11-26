@@ -1,6 +1,7 @@
 <script lang="ts">
   import { locale } from './lang'
   import { CLOSED_SHOW_MS, type Phase } from './closeSplash'
+  import StepBar from './StepBar.svelte'
   import { t } from './t'
   // Il pannello di chiusura sopra la pagina della sessione (CloseSplash.kt; Franz, 08/10 18:29, variante A): la pagina resta
   // sotto, velata. «Si sta chiudendo» con i passi veri; «è chiusa» con l'ora, «Riapri» e «Torna alla home», e dopo 3 s il
@@ -28,17 +29,11 @@
       <h3>{t.splashClosing(phase.name)}</h3>
       {#if phase.save}
         <p>{t.splashSaveSentAt(hm(phase.sentAt))}</p>
-        <ul>
-          <li class:done={phase.step === 'exit'} class:now={phase.step !== 'exit'}><i>{phase.step === 'exit' ? '✓' : '○'}</i>{t.splashSaving}</li>
-          <li class:now={phase.step === 'exit'}><i>○</i>{t.splashExiting}</li>
-          <li><i>○</i>{t.splashConfirmed}</li>
-        </ul>
+        <!-- Voce 3 del terzo giro (app-animazioni-terzo-c-26-11, opzione a): i passi sulla barra della prova, senza nomi; sotto il passo in corso. -->
+        <StepBar steps={{ task: '', items: [{ key: 'save', label: '', state: phase.step === 'exit' ? 'ok' : 'run' }, { key: 'exit', label: '', state: phase.step === 'exit' ? 'run' : 'todo' }, { key: 'done', label: '', state: 'todo' }] }} names={false} caption={phase.step === 'exit' ? t.splashExiting : t.splashSaving} />
       {:else}
         <p>{t.splashSentAt(hm(phase.sentAt))}</p>
-        <ul>
-          <li class:done={phase.delivered}><i>{phase.delivered ? '✓' : '○'}</i>{t.splashDelivered}</li>
-          <li><i>○</i>{t.splashConfirmed}</li>
-        </ul>
+        <StepBar steps={{ task: '', items: [{ key: 'sent', label: '', state: phase.delivered ? 'ok' : 'run' }, { key: 'done', label: '', state: phase.delivered ? 'run' : 'todo' }] }} names={false} caption={phase.delivered ? t.splashConfirmed : t.splashDelivered} />
       {/if}
       <div class="bar"><b class="run"></b></div>
       {#if phase.slow}
