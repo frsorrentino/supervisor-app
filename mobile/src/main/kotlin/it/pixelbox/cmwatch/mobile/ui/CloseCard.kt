@@ -131,9 +131,33 @@ internal fun CloseAskBody(s: Session, save: Boolean, onKeep: () -> Unit, onClose
         CloseTitle(stringResource(R.string.close_title, s.name))
         CloseLine(closeStateLine(s))
     }
-    if (s.attached) CloseAttachedNote()
+    // Contratto 1.161 (issue #4): su una sessione in uso al PC (dal 20/11 `attached` vale solo per quelle) o con un lavoro in
+    // sottofondo (`close_preview` → `blocked_by: background`) Chiudi non si offre: il motivo e «Lascia aperta».
+    val preview = LocalClosePreview.current
+    var blocked by androidx.compose.runtime.remember(s.name) { androidx.compose.runtime.mutableStateOf<String?>(null) }
+    androidx.compose.runtime.LaunchedEffect(s.name, preview) { blocked = preview?.invoke(listOf(s.name))?.sessions?.firstOrNull { it.name == s.name }?.blockedBy }
+    if (!it.pixelbox.cmwatch.rules.VociAssenti.close(s, blocked)) {
+        CloseBlockedNote(background = !s.attached)
+        Column(Modifier.fillMaxWidth().padding(top = 12.dp)) { CloseKey(stringResource(R.string.close_keep), CloseKeyKind.TONAL, onKeep, Modifier.fillMaxWidth()) }
+        return
+    }
     if (!inCard) Text(stringResource(if (save) R.string.close_what_save else R.string.close_what), style = MaterialTheme.typography.bodyMedium, color = V3.Tx2, modifier = Modifier.padding(top = 8.dp))
     CloseAskKeys(save, if (inCard) stringResource(R.string.cleanup_close_short) else stringResource(R.string.cleanup_close, s.name), onKeep, onClose)
+}
+
+/** La lettura `close_preview` del Chiudi (contratto 1.161); null senza l'op. */
+val LocalClosePreview = androidx.compose.runtime.staticCompositionLocalOf<(suspend (List<String>) -> it.pixelbox.cmwatch.rules.CloseFinished.Preview?)?> { null }
+
+/** Perché Chiudi non c'è: in uso al PC, o un lavoro in sottofondo. */
+@Composable
+internal fun CloseBlockedNote(background: Boolean) = Surface(Modifier.fillMaxWidth().padding(top = 6.dp).testTag("close-blocked"), shape = RoundedCornerShape(14.dp), color = V3.S3) {
+    Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Icon(Icons.Rounded.Computer, null, tint = V3.Busy, modifier = Modifier.size(20.dp))
+        Column {
+            Text(stringResource(if (background) R.string.close_blocked_background else R.string.close_blocked_attached), style = MaterialTheme.typography.bodyMedium, color = V3.Tx)
+            Text(stringResource(R.string.close_blocked_line), style = MaterialTheme.typography.bodySmall, color = V3.Tx2)
+        }
+    }
 }
 
 /**

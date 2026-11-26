@@ -165,7 +165,8 @@ fun QuestionScreen(
                 }
             }
             // «Chat about this» come nel terminale: si parla prima di scegliere (Franz, 15/09 18:14; contratto 1.10).
-            item {
+            // Contratto 1.161 (issue #4): «Chat about this» e «Scrivi» solo se il dialogo li ha davvero.
+            if (it.pixelbox.cmwatch.rules.VociAssenti.chat(q)) item {
                 WideButton(
                     stringResource(R.string.question_chat), onClick = onChat, enabled = enabled && pending == null,
                     transformation = SurfaceTransformation(spec), modifier = Modifier.transformedHeight(this, spec),
@@ -176,7 +177,7 @@ fun QuestionScreen(
             }
             // Le opzioni restano bottoni in lista, perché sono contenuto; l'azione della schermata è «Scrivi», ultima voce e
             // curva sul bordo: nello slot fisso copriva le opzioni mentre si scorreva (video 16/09 18:48).
-            item { CmEdgeButton(stringResource(R.string.question_write), onClick = onFreeText, enabled = enabled && pending == null) }
+            if (it.pixelbox.cmwatch.rules.VociAssenti.type(q)) item { CmEdgeButton(stringResource(R.string.question_write), onClick = onFreeText, enabled = enabled && pending == null) }
         }
     }
 }

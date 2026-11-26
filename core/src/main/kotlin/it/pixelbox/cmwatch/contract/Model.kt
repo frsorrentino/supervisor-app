@@ -234,6 +234,10 @@ enum class CmdOp {
     val what: String? = null,
     /** Contratto 1.101, solo per un permesso: il testo del dialogo, senza segreti; il primo a cadere se lo stato è grande. */
     val body: String? = null,
+    /** Contratto 1.161: la domanda ha davvero «don't ask again»; assente con un relay precedente (si fa come prima). */
+    @SerialName("allow_all") val allowAll: Boolean? = null,
+    /** Contratto 1.161: le voci fisse in fondo al dialogo che ci sono davvero, "type" e "chat"; assente se non letta dallo schermo. */
+    val foot: List<String>? = null,
 ) {
     /** Contratto 1.101: cosa si approva, se è un permesso e il relay lo sa. */
     val approves: String? get() = what?.trim()?.takeIf { kind == QuestionKind.PERMISSION && it.isNotEmpty() }

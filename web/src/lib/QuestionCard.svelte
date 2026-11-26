@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Question } from './contract'
   import { allowAllVisible, FOLD_LINES, permissionCard } from './questionRules'
+  import { chat } from './vociAssenti'
   import { question } from './speechRules'
   import { speech, toggle } from './speech.svelte'
   import { t } from './t'
@@ -39,10 +40,11 @@
     </button>
   </div>
   <Options {q} {onAnswer} />
-  <div class="more">
-    <button class="outl" onclick={onChat}>{t.chatAboutThis}</button>
+  <!-- Contratto 1.161 (issue #4): «Parliamone» e «Consenti sempre» solo se il dialogo li ha davvero. -->
+  {#if chat(q) || allowAllVisible(q)}<div class="more">
+    {#if chat(q)}<button class="outl" onclick={onChat}>{t.chatAboutThis}</button>{/if}
     {#if allowAllVisible(q)}<button class="outl" onclick={onAllowAll}>{t.allowAll}</button>{/if}
-  </div>
+  </div>{/if}
 </div>
 
 <style>

@@ -432,6 +432,11 @@
     <string name="undo_never">Mai più: %1$s</string>
     <string name="undo_seen">Visto: %1$s</string>
     <string name="undo_close">Chiudo %1$s senza salvare</string>
+    <string name="slash_gone">%1$s non è più aperta: il comando non parte</string>
+    <string name="close_blocked_attached">È in uso sul PC</string>
+    <string name="close_blocked_background">Ha un lavoro in sottofondo sul PC</string>
+    <string name="close_blocked_line">Chiudila dal PC quando hai finito.</string>
+    <string name="typed_refusal">Non mandato: sul PC, nella casella di %1$s, c\'è del testo scritto a mano e lo avrei cancellato. Mandalo o cancellalo sul PC, poi riprova.</string>
     <string name="copy">Copia</string>
     <string name="edit">Modifica</string>
     <string name="resend">Reinvia</string>

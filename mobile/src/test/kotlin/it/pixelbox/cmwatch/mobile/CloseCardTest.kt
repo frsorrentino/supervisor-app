@@ -44,6 +44,10 @@ abstract class CloseCardShots(scale: Float) {
     }
 
     @Test fun ask() = page {
+        CloseCardFrame(Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp)) { CloseAskBody(s, save = true, onKeep = {}, onClose = {}) }
+    }
+    // Contratto 1.161 (issue #4): una sessione in uso al PC non offre Chiudi, solo il motivo e «Lascia aperta».
+    @Test fun askBlocked() = page {
         CloseCardFrame(Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp)) { CloseAskBody(s.copy(attached = true), save = true, onKeep = {}, onClose = {}) }
     }
     @Test fun refusedItalian() = page {

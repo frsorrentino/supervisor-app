@@ -421,6 +421,11 @@
     <string name="undo_never">Never again: %1$s</string>
     <string name="undo_seen">Seen: %1$s</string>
     <string name="undo_close">Closing %1$s without saving</string>
+    <string name="slash_gone">%1$s is no longer open: the command is not sent</string>
+    <string name="close_blocked_attached">It is in use on the PC</string>
+    <string name="close_blocked_background">It has a job running in the background on the PC</string>
+    <string name="close_blocked_line">Close it from the PC when you are done.</string>
+    <string name="typed_refusal">Not sent: on the PC, the input box of %1$s has hand-typed text and sending would have wiped it. Send or clear it on the PC, then try again.</string>
     <string name="copy">Copy</string>
     <string name="edit">Edit</string>
     <string name="resend">Send again</string>

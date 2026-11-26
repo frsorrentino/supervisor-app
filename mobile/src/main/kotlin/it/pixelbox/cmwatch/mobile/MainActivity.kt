@@ -304,11 +304,14 @@ class MainActivity : ComponentActivity() {
                             it.pixelbox.cmwatch.mobile.ui.ReadingOverlayHost(readingOverlay)
                             // Contratto 1.55: una risposta a una domanda già risolta al PC lo dice in chiaro.
                             val resolvedWord = androidx.compose.ui.res.stringResource(R.string.answer_already_resolved)
-                            val refusals = remember(resolvedWord) {
+                            val typedWord = androidx.compose.ui.res.stringResource(R.string.typed_refusal)
+                            val refusals = remember(resolvedWord, typedWord) {
                                 // app-chiudi-scheda-20-11: il no di una chiusura lo dice una volta sola la carta della chiusura, in
                                 // italiano; qui sotto ripeteva il testo del relay («not closed: it is attached to the PC»).
                                 app.repo.userResults.filter { r -> it.pixelbox.cmwatch.rules.CloseSplash.refusals(r.text).isEmpty() && !it.pixelbox.cmwatch.rules.ProveOk.alreadyDone(r.text) && !it.pixelbox.cmwatch.rules.WaitGone.gone(r.text) }.map { r ->
-                                    r.copy(text = it.pixelbox.cmwatch.rules.QuestionRules.refusalText(
+                                    // Contratto 1.161 (issue #4): il testo scritto a mano nella casella del PC detto per bene.
+                                    val typed = it.pixelbox.cmwatch.rules.VociAssenti.typedIn(r.text)
+                                    r.copy(text = if (typed != null) typedWord.format(typed) else it.pixelbox.cmwatch.rules.QuestionRules.refusalText(
                                         r, app.repo.answeredQuestion(r.id), app.repo.snapshot.value.state?.sessions.orEmpty(), resolvedWord,
                                     ))
                                 }
@@ -942,7 +945,8 @@ class MainActivity : ComponentActivity() {
         var boxId by remember { mutableStateOf<String?>(null) }
         var boxPage by remember { mutableStateOf<it.pixelbox.cmwatch.rules.NightPage.Page?>(null) }
         LaunchedEffect(nightRef?.date, showNightBox) {
-            if (!showNightBox || boxPage?.day?.toString() == nightRef?.date) return@LaunchedEffect
+            // Contratto 1.161 (issue #4): `night` solo se il PC ha un rapporto della notte.
+            if (!showNightBox || boxPage?.day?.toString() == nightRef?.date || !it.pixelbox.cmwatch.rules.VociAssenti.night(state?.ops)) return@LaunchedEffect
             boxId = runCatching { app.repo.command(CmdOp.NIGHT, null, nightRef?.date) }.getOrNull()
         }
         val boxResult = boxId?.let { results[it] }
@@ -1035,7 +1039,7 @@ class MainActivity : ComponentActivity() {
             val askNight: () -> Unit = {
                 scope.launch {
                     nightId?.let { app.repo.forget(it) }
-                    nightId = runCatching { app.repo.command(CmdOp.NIGHT, null, nightDate) }.getOrNull()
+                    nightId = if (!it.pixelbox.cmwatch.rules.VociAssenti.night(state?.ops)) null else runCatching { app.repo.command(CmdOp.NIGHT, null, nightDate) }.getOrNull()
                     if (state?.ops?.contains("nights") == true) {
                         nightsId?.let { app.repo.forget(it) }
                         nightsId = runCatching { app.repo.command(CmdOp.NIGHTS, null, null) }.getOrNull()
@@ -1193,7 +1197,7 @@ class MainActivity : ComponentActivity() {
             clearAfter.all.forEach { (name, v) ->
                 val sentAt = (v as? Long) ?: return@forEach
                 val due = it.pixelbox.cmwatch.rules.ContextActions.clearDue(st0.sessions.firstOrNull { x -> x.name == name }, sentAt)
-                if (due) runCatching { app.repo.command(CmdOp.SLASH, name, "clear", null) }
+                if (due && it.pixelbox.cmwatch.rules.VociAssenti.slash(st0, name)) runCatching { app.repo.command(CmdOp.SLASH, name, "clear", null) }
                 if (due || nowS - sentAt > 3 * 3600) clearAfter.edit().remove(name).apply()
             }
         }
@@ -2313,7 +2317,9 @@ class MainActivity : ComponentActivity() {
                             }) else null,
                             interrupt = { tapResult(scope, getString(R.string.tap_interrupted, session.name)) { app.repo.command(CmdOp.INTERRUPT, session.name, null) } },
                             // Contratto 1.25: il comando resta nella chat come un messaggio, con l'esito del PC.
-                            slash = { c, a -> val at = System.currentTimeMillis() / 1000
+                            slash = slash@{ c, a -> val at = System.currentTimeMillis() / 1000
+                                // Contratto 1.161 (issue #4): niente slash a una sessione che non c'è più.
+                                if (!it.pixelbox.cmwatch.rules.VociAssenti.slash(state, session.name)) { android.widget.Toast.makeText(this@MainActivity, getString(R.string.slash_gone, session.name), android.widget.Toast.LENGTH_SHORT).show(); return@slash }
                                 if (c == "exit") leaving = CloseSplash.Leaving(session.name, at, null)
                                 scope.launch {
                                 runCatching { app.repo.command(CmdOp.SLASH, session.name, c, a) }.getOrNull()?.let { id ->
@@ -2949,7 +2955,7 @@ class MainActivity : ComponentActivity() {
                             phase?.let { ph ->
                                 CloseSplashOverlay(
                                     ph, onHome = drop, onDismiss = { leaving = null }, onArm = { w -> armClose(name, w) },
-                                    onReopen = if (ph is CloseSplash.Phase.Closed && st.ops?.contains("reopen") == true) ({
+                                    onReopen = if (ph is CloseSplash.Phase.Closed && st.ops?.contains("reopen") == true && it.pixelbox.cmwatch.rules.VociAssenti.reopen(st.sessions.firstOrNull { x -> x.name == name })) ({
                                         tapResult(scope, getString(R.string.tap_reopening, name)) { app.repo.command(CmdOp.REOPEN, name, null) }
                                         drop()
                                     }) else null,
@@ -3036,6 +3042,12 @@ class MainActivity : ComponentActivity() {
         CompositionLocalProvider(
             it.pixelbox.cmwatch.mobile.ui.LocalHeadsUp provides it.pixelbox.cmwatch.mobile.ui.HeadsUpActions(headsSeen, { k -> headsSeen = headsSeen + k; headsPrefs.edit().putStringSet("seen", headsSeen).apply() }, { n, p -> sendPrompt(n, p) }),
             it.pixelbox.cmwatch.mobile.ui.LocalTaskLinks provides it.pixelbox.cmwatch.mobile.ui.TaskLinks(remember(state?.commitments) { it.pixelbox.cmwatch.rules.ChatNames.names(state) }) { open = null; tab = StartRoute.Tab.LAVORI },
+            // Contratto 1.161 (issue #4): il Chiudi di una sessione legge prima `close_preview`, per non offrirlo su un lavoro in sottofondo.
+            it.pixelbox.cmwatch.mobile.ui.LocalClosePreview provides (if (state?.ops?.contains("close_preview") == true) ({ names: List<String> ->
+                val id = runCatching { app.repo.closePreview(names) }.getOrNull()
+                val r = id?.let { i -> kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(i) }[i] } }
+                r?.takeIf { x -> x.ok }?.let { x -> it.pixelbox.cmwatch.rules.CloseFinished.read(x.text) }
+            }) else null),
             LocalSpeaking provides speaking, LocalSpeakingBlock provides speakingBlock, it.pixelbox.cmwatch.mobile.ui.LocalSpeakingWord provides speakingWord, LocalBlocksOf provides speech::blocksOf,
             it.pixelbox.cmwatch.mobile.ui.LocalSpeakText provides { t: String -> speech.toggle(t) },
             it.pixelbox.cmwatch.mobile.ui.LocalApprovalClose provides closeTask,
@@ -3374,7 +3386,8 @@ class MainActivity : ComponentActivity() {
             ModalBottomSheet(onDismissRequest = { launching = false }) {
                 LaunchSheet(state, projects = allProjects ?: state.projects, onSession = { name, reopen ->
                     launching = false
-                    if (reopen) scope.launch { app.repo.command(CmdOp.REOPEN, name, null) } else { open = name }
+                    // Contratto 1.161 (issue #4): Riapri solo una sessione chiusa; una aperta si apre e basta.
+                    if (reopen && it.pixelbox.cmwatch.rules.VociAssenti.reopen(state.sessions.firstOrNull { x -> x.name == name })) scope.launch { app.repo.command(CmdOp.REOPEN, name, null) } else { open = name }
                 }, onNewProject = if (state.ops?.contains("project_new") == true && !state.projectParents.isNullOrEmpty()) ({ parent, name, first, confirm ->
                     // Contratto 1.64: un comando per tocco, e il suo esito; riuscito, si apre la sessione nata.
                     val id = runCatching { app.repo.command(CmdOp.PROJECT_NEW, null, parent, name, confirm = confirm.takeIf { c -> c }, prompt = first.ifBlank { null }) }.getOrNull()

@@ -9,7 +9,8 @@ import it.pixelbox.cmwatch.contract.Tier
 object QuestionRules {
     fun needsLongPress(tier: Tier) = tier == Tier.HIGH
     /** Senza opzioni lette non c'è «non chiedere più»: il relay rifiuterebbe allow_all (dal vivo, 30/09). */
-    fun allowAllVisible(q: Question) = q.kind == QuestionKind.PERMISSION && q.tier != Tier.HIGH && q.options.isNotEmpty()
+    // Contratto 1.161 (issue #4): se il relay dice che «don't ask again» non c'è, non si offre.
+    fun allowAllVisible(q: Question) = q.kind == QuestionKind.PERMISSION && q.tier != Tier.HIGH && q.options.isNotEmpty() && q.allowAll != false
     /**
      * «n · etichetta» sulla prima riga che dice qualcosa: l'anteprima dell'opzione arriva disegnata a caratteri
      * (┌─│) e sul tasto diventava righe vuote e un nome tagliato (Franz, 15/09 16:13).

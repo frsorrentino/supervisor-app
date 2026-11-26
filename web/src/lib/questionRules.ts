@@ -4,7 +4,8 @@ import type { CmdResult, Option, Question, Session } from './contract'
 // le opzioni brevi su una riga in parti uguali, l'etichetta senza il riquadro disegnato a caratteri.
 export const needsLongPress = (tier: Question['tier']) => tier === 'high'
 /** Senza opzioni lette non c'è «non chiedere più»: il relay rifiuterebbe allow_all. */
-export const allowAllVisible = (q: Question) => q.kind === 'permission' && q.tier !== 'high' && q.options.length > 0
+// Contratto 1.161 (issue #4): se il relay dice che «don't ask again» non c'è, non si offre.
+export const allowAllVisible = (q: Question) => q.kind === 'permission' && q.tier !== 'high' && q.options.length > 0 && q.allow_all !== false
 
 /** L'etichetta senza il riquadro (U+2500–U+259F): la prima riga che dice qualcosa. */
 export function optionText(label: string): string {

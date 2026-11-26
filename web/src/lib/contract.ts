@@ -11,6 +11,10 @@ export const atWork = (s: { state: SessionState }): boolean => s.state === 'busy
 /** Contratto 1.53: la riga che spiega l'opzione e l'opzione consigliata. */
 export type Option = { n: number; label: string; description?: string | null; recommended?: boolean }
 export type Question = { id: string; kind: 'permission' | 'ask' | 'plan'; text: string; options: Option[]; tier: 'low' | 'medium' | 'high'; asked_at: number
+  /** Contratto 1.161: «don't ask again» c'è davvero; assente con un relay precedente. */
+  allow_all?: boolean | null
+  /** Contratto 1.161: le voci fisse in fondo al dialogo che ci sono, "type" e "chat"; assente se non letta dallo schermo. */
+  foot?: string[] | null
   /** Contratto 1.56: il testo senza segreti, solo quando diverso da `text`. */
   preview?: string | null
   /** Contratto 1.101, solo per un permesso: cosa si approva, una riga, senza segreti; assente con un relay precedente. */

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { night as nightOk, reopen as reopenOk, slash as slashOk, typedIn } from './lib/vociAssenti'
   import UndoSnack from './lib/UndoSnack.svelte'
   import { favicons, wanted as wantedFavicons, remembered as rememberedFavicon, keep as keepFavicon, faviconUrl } from './lib/favicons.svelte'
   import { answer as maxAnswer, canSet as canSetMax } from './lib/maxSessions'
@@ -403,6 +404,8 @@
     const r = await run(newCmd('close_preview', null, names.join(',')))
     return r?.ok ? readPreview(r.text) : null
   }
+  // Contratto 1.161 (issue #4): il dialogo di Chiudi legge `close_preview` per non offrirlo su un lavoro in sottofondo.
+  setContext('close-preview', (names: string[]) => (st.ops?.includes('close_preview') ? closePreview(names) : Promise.resolve(null)))
   // Il relay chiude quelle che può e dice perché le altre restano (`<nome> not closed: <motivo>`): l'avviso conta solo le chiuse.
   async function closeMany(names: string[]) {
     const r = await run(newCmd('close', null, names.join(',')))
@@ -468,7 +471,9 @@
       // Contratto 1.55: una risposta a una domanda già risolta al PC lo dice in chiaro.
       // Contratto 1.112: una lettura rimpiazzata da una più recente si chiude in silenzio.
       if (!r.ok && !superseded(r) && !waitGone(r.text) && !hush?.(r.text)) {
-        const why = refusalText(r, c.question ?? null, st.sessions, t.answerAlreadyResolved)
+        // Contratto 1.161 (issue #4): il testo scritto a mano nella casella del PC detto per bene.
+        const typed = typedIn(r.text)
+        const why = typed ? t.typedRefusal(typed) : refusalText(r, c.question ?? null, st.sessions, t.answerAlreadyResolved)
         const rf = refusals(why)
         // app-carte-stato-vivo-20-11: «prova N: già confermata» vuol dire fatta altrove, non è un errore.
         if (!(quietClose && rf.length) && !provaAlreadyDone(why)) say(`✗ ${rf.length ? rf.map(x => t.closeRefusedSay(x.name, x.why)).join(' · ') : why}`)
@@ -1604,7 +1609,8 @@
     ok: text => (night = { report: JSON.parse(text), error: null, loading: false }),
     fail: text => (night = { report: night.report, error: text == null ? t.noAnswer : /unknown|not allowed|unsupported/i.test(text) ? t.nightOld : text.startsWith('no night report') ? t.nightNone : text, loading: false }),
   })
-  async function loadNight(by: By = 'auto') { if (tr) await nightReader.read(by) }
+  // Contratto 1.161 (issue #4): `night` solo se il PC ha un rapporto della notte (`ops` lo dice).
+  async function loadNight(by: By = 'auto') { if (tr && nightOk(st.ops)) await nightReader.read(by) }
   // Un rapporto nuovo annunciato dal relay riapre la lettura.
   const nightDay = $derived(st.night?.report ?? null)
   $effect(() => { void nightDay; nightReader.reset() })
@@ -2115,6 +2121,10 @@
   }
   // «Chiedi alla master» arriva come `prompt` della sessione: va alla master, come messaggio nella sua chat.
   const cmd = (name: string) => (op: CmdOp, arg?: string, text?: string) => {
+    // Contratto 1.161 (issue #4): Riapri su una sessione aperta non si manda, la si apre e basta.
+    if (op === 'reopen' && !reopenOk(st.sessions.find(x => x.name === name))) { pick(name); return }
+    // Né uno slash a una sessione che non c'è più.
+    if (op === 'slash' && !slashOk(st, name)) { say(`✗ ${t.slashGone(name)}`); return }
     if (op === 'prompt' && arg) sendTo(MASTER, arg)
     else if (((op === 'slash' && arg === 'exit') || (op === 'close' && arg === 'save')) && name && name !== MASTER) {
       // Contratto 1.155 (app-chiudi-salva-19-11): «Salva e chiudi» è `close` con save, «Chiudi senza salvare» resta /exit.

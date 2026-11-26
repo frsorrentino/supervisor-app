@@ -1502,8 +1502,10 @@ internal fun QuestionCard(
             }
             QuestionOptions(q, firstFilled = false, holdHint, onHold, actions.answer, tonal = V3.S3, v3 = true)
             val allowAll = QuestionRules.allowAllVisible(q)
-            ButtonGroup(overflowIndicator = { ButtonGroupDefaults.OverflowIndicator(it) }, modifier = Modifier.fillMaxWidth()) {
-                customItem(
+            // Contratto 1.161 (issue #4): «Parliamone» solo se il dialogo l'ha davvero.
+            val chatOk = it.pixelbox.cmwatch.rules.VociAssenti.chat(q)
+            if (chatOk || allowAll) ButtonGroup(overflowIndicator = { ButtonGroupDefaults.OverflowIndicator(it) }, modifier = Modifier.fillMaxWidth()) {
+                if (chatOk) customItem(
                     buttonGroupContent = {
                         val src = remember { MutableInteractionSource() }
                         OutlinedButton(onClick = actions.chat, interactionSource = src, border = BorderStroke(1.dp, V3.Tx3.copy(alpha = .5f)), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 8.dp), modifier = Modifier.weight(1f).animateWidth(src)) {
