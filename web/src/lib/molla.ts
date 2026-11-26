@@ -93,6 +93,11 @@ export function parole(node: HTMLElement, p: { on: boolean }) {
     tn.replaceWith(frag)
   }
   if (!words.length) return
+  // app-apertura-master-scatti-26-11 (Franz 26/11 23:39, «la sezione esito tremola»): quello che sta sotto la risposta (il piede con
+  // l'Esito) resta nascosto mentre la scheda cresce e compare in 200 ms quando è ferma, invece di essere spinto giù a ogni riga.
+  const below: HTMLElement[] = []
+  for (let n = node.nextElementSibling; n; n = n.nextElementSibling) below.push(n as HTMLElement)
+  below.forEach((b) => { b.style.opacity = '0' })
   const gap = words.length <= 20 ? 70 : 1400 / words.length
   const H = molla(40, 260, 26)
   const full = node.scrollHeight
@@ -109,7 +114,10 @@ export function parole(node: HTMLElement, p: { on: boolean }) {
       w.el.style.transform = `translateY(${((1 - w.s.x) * 6).toFixed(2)}px)`
       w.el.style.filter = v < 0.98 ? `blur(${((1 - clamp(v, 0, 1)) * 4).toFixed(2)}px)` : 'none'
     }
-    if (done && ferma(H)) node.style.overflow = ''
+    if (done && ferma(H)) {
+      node.style.overflow = ''
+      below.forEach((b) => { if (b.style.opacity === '0') { b.style.transition = 'opacity 200ms ease'; b.style.opacity = '' } })
+    }
   }
   const m = motore([H, ...words.map((w) => w.s)], render)
   words.forEach((w, i) => timers.push(window.setTimeout(() => {
@@ -121,7 +129,7 @@ export function parole(node: HTMLElement, p: { on: boolean }) {
   timers.push(window.setTimeout(() => { done = true; H.t = node.scrollHeight; m.vai() }, words.length * gap + 1000))
   render()
   m.vai()
-  return { destroy: () => { timers.forEach(clearTimeout); m.stop() } }
+  return { destroy: () => { timers.forEach(clearTimeout); m.stop(); below.forEach((b) => { b.style.opacity = '' }) } }
 }
 
 /**

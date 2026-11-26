@@ -49,6 +49,8 @@ internal class WordStream(val words: Int) {
     var start by mutableLongStateOf(0L)
     var now by mutableLongStateOf(0L)
     var done by mutableStateOf(false)
+    /** La scheda è tornata alla sua altezza: quello che sta sotto può comparire fermo (app-apertura-master-scatti-26-11). */
+    var settled by mutableStateOf(false)
     /** Il fondo, in coordinate della radice, della riga dell'ultima parola partita. */
     var bottom by mutableFloatStateOf(0f)
     private var next = 0
@@ -111,6 +113,7 @@ internal fun Modifier.streamBox(ws: WordStream?): Modifier {
         val p = m.measure(c)
         full[0] = p.height
         val settled = ws.done && !h.isRunning
+        if (settled && !ws.settled) ws.settled = true
         val ht = if (settled) p.height else h.value.roundToInt().coerceIn(0, p.height)
         layout(p.width, ht) { p.place(0, 0) }
     }

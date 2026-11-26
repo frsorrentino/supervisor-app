@@ -3202,8 +3202,11 @@ private fun AnswerZones(e: TranscriptEntry, flashed: Boolean, actions: SheetActi
         EntryExtras(e, r, actions)
     } }
     // I PROSSIMI nel turno solo nella master: in una sessione stanno sopra il campo (app-riall-3-doppioni-16-11); l'ESITO resta.
+    // app-apertura-master-scatti-26-11 (Franz 26/11 23:39, «la sezione esito tremola»): mentre la risposta scorre e la scheda cresce
+    // riga per riga, il piede con l'Esito verrebbe spinto giù a ogni riga; entra in 200 ms solo quando la scheda è ferma.
+    val footA by androidx.compose.animation.core.animateFloatAsState(if (ws == null || ws.settled) 1f else 0f, androidx.compose.animation.core.tween(200), label = "piede")
     if (r.outcome != null || r.tipo != null || (showSteps && r.steps.isNotEmpty())) Column(
-        Modifier.fillMaxWidth().background(F3.foot(type)).padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 14.dp), verticalArrangement = Arrangement.spacedBy(6.dp),
+        Modifier.fillMaxWidth().graphicsLayer { alpha = footA }.background(F3.foot(type)).padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 14.dp), verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         r.outcome?.let { FootHead(label, true); EsitoRow(it, type, strong = true) }
         r.tipo?.let { tipo ->
