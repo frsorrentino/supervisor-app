@@ -158,7 +158,9 @@ fun MasterDock(
         if (fresh && !expanded) { peek = true; kotlinx.coroutines.delay(it.pixelbox.cmwatch.rules.Animazioni.DOCK_PEEK_MS); peek = false } else if (expanded) peek = false
     }
     val lines = if (peek) maxOf(2, headlineLines) else headlineLines
-    Column(Modifier.fillMaxWidth().islandMorph(dockOff)) {
+    // app-apertura-master-scatti-26-11: la molla dell'isola (voce 2) vale solo per la barra chiusa che si allunga; aprendo la
+    // conversazione la barra non si abbassa né si ritaglia mentre il dito la scorre, come prima.
+    Column(Modifier.fillMaxWidth().then(if (expanded) Modifier.animateContentSize(if (dockOff) androidx.compose.animation.core.snap() else androidx.compose.animation.core.spring(dampingRatio = 0.7f, stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow)) else Modifier.islandMorph(dockOff))) {
         val look = LocalMasterLook.current
         if (!expanded && look.thread) MasterThread()
         // Franz, 03/10 17:05: anche col gesto. Trascinare in su la barra ridotta la espande, trascinarla in giù da espansa la

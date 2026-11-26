@@ -2,6 +2,7 @@
 
 package it.pixelbox.cmwatch.mobile.ui
 
+import it.pixelbox.cmwatch.rules.ChatFollow
 import androidx.compose.ui.unit.toSize
 import kotlin.math.roundToInt
 import android.net.Uri
@@ -378,6 +379,8 @@ fun SessionSheet(
     // solo quando lo scorrimento si ferma: letto dopo l'arrivo di un testo nuovo, il fondo era già più giù e la chat
     // restava ferma. Un proprio invio torna a seguire; una pagina di messaggi precedenti non rimbalza in fondo.
     var follow by remember(s.id) { mutableStateOf(true) }
+    // app-apertura-master-scatti-26-11 (Franz 26/11 23:34): un dito sulla lista ferma subito l'inseguimento del fondo (ChatFollow).
+    var touching by remember(s.id) { mutableStateOf(false) }
     LaunchedEffect(list) {
         androidx.compose.runtime.snapshotFlow { list.isScrollInProgress }.collect { moving -> if (!moving) follow = !list.canScrollForward }
     }
@@ -406,7 +409,7 @@ fun SessionSheet(
     LaunchedEffect(list, anchored) {
         if (!anchored) return@LaunchedEffect
         androidx.compose.runtime.snapshotFlow { list.layoutInfo.totalItemsCount to list.canScrollForward }.collect { (n, below) ->
-            if (follow && below && n > 0 && !list.isScrollInProgress) list.scrollToEnd()
+            if (ChatFollow.chase(follow, below, n, list.isScrollInProgress, touching)) list.scrollToEnd()
         }
     }
     // Da Cerca: si caricano le pagine più vecchie finché la voce non c'è (al massimo 8), poi la chat la porta in vista con un lampo
@@ -570,7 +573,16 @@ fun SessionSheet(
                 // 09/11 23:02): la conversazione vera arriva col dito ancora sulla pagina, l'ancora riparte e il primo fotogramma
                 // mostrava l'inizio («Carica i messaggi precedenti») prima dell'ultimo messaggio.
                 // Negli snapshot fermi gli effetti non girano e la chat non si ancora: lì si disegna com'è.
-                Modifier.fillMaxSize().then(if (still) Modifier else Modifier.graphicsLayer { if (!anchored && (chat.isNotEmpty() || !feed.isNullOrEmpty())) alpha = 0f }).nestedScroll(reading), state = list,
+                Modifier.fillMaxSize().then(if (still) Modifier else Modifier.graphicsLayer { if (!anchored && (chat.isNotEmpty() || !feed.isNullOrEmpty())) alpha = 0f }).nestedScroll(reading).pointerInput(Unit) {
+                    // Il dito sulla lista, osservato senza prenderlo: la lista resta sua al primo gesto.
+                    awaitEachGesture {
+                        awaitFirstDown(requireUnconsumed = false, pass = androidx.compose.ui.input.pointer.PointerEventPass.Initial)
+                        touching = true
+                        do { val e = awaitPointerEvent(androidx.compose.ui.input.pointer.PointerEventPass.Initial) } while (e.changes.any { c -> c.pressed })
+                        touching = false
+                        if (!list.isScrollInProgress) follow = ChatFollow.afterRelease(!list.canScrollForward)
+                    }
+                }, state = list,
                 // Con il controller in vista, in fondo lo spazio per leggere l'ultimo messaggio sopra di lui; con un box sopra il
                 // campo il controller ha la sua nicchia sotto il box, e qui basta il margine.
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 12.dp + if (niche) 0.dp else readingRoom()), verticalArrangement = Arrangement.spacedBy(12.dp),
