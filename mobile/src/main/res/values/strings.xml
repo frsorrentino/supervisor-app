@@ -2017,7 +2017,7 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="approval_superseded">Superata, chiudi</string>
     <string name="approval_close_reason">superata</string>
     <string name="approval_closed">Chiusa come superata</string>
-    <string name="approval_close_refused">Carta non chiusa: riprova</string>
+    <string name="approval_close_refused">Scheda non chiusa: riprova</string>
     <string name="approval_confirm">Conferma</string>
     <string name="card_choose">Scegli</string>
     <string name="card_reply">Rispondi</string>
