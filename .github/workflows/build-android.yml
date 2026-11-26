@@ -188,8 +188,13 @@ jobs:
           ver="0.2.$(git rev-list --count "$GITHUB_SHA")"
           prev=$(gh release list --limit 1 --json tagName --jq '.[0].tagName' || true)
           if [ -n "$prev" ] && git rev-parse -q --verify "refs/tags/$prev" >/dev/null; then range="$prev..$GITHUB_SHA"; else range="-n 10 $GITHUB_SHA"; fi
-          git log --no-merges --format='- %s' $range | head -40 > notes.md
-          [ -s notes.md ] || echo "- $(git log -1 --format=%s "$GITHUB_SHA")" > notes.md
+          # app-changelog-aggiornamento-26-11: in testa «## Novità», le righe `Novita:` dei commit del salto, in italiano e per Franz;
+          # la scheda dell'aggiornamento le legge (Novita.kt). Sotto, come prima, i titoli dei commit.
+          git log --no-merges --format='%(trailers:key=Novita,valueonly,separator=%x0A)' $range | sed -e 's/^[[:space:]]*//' -e '/^$/d' | awk '!seen[$0]++' | head -12 > novita.txt || true
+          : > notes.md
+          if [ -s novita.txt ]; then { echo '## Novità'; sed 's/^/- /' novita.txt; echo; } > notes.md; fi
+          git log --no-merges --format='- %s' $range | head -40 >> notes.md
+          grep -q '^- ' notes.md || echo "- $(git log -1 --format=%s "$GITHUB_SHA")" >> notes.md
           if [ "$SNAPSHOTS" = changed ]; then
             printf '\n%s\n' "Snapshot cambiati: le immagini nuove sono sul ramo goldens/${GITHUB_SHA::8} e nell'artifact paparazzi-snapshots del run $GITHUB_RUN_ID; i golden vanno presi sul ramo dell'app." >> notes.md
           fi
