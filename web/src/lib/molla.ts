@@ -190,3 +190,44 @@ export function cala(node: HTMLElement, index: number) {
     { duration: 300, easing: ease },
   )
 }
+
+/**
+ * Voce 6a, fedele all'originale (Ghost suggestion; app-animazioni-fedeli-26-11, scelta della master del 26/11): preso il suggerimento,
+ * le sue lettere vere, sopra il campo, passano dal grigio al colore pieno in 180 ms e fanno un piccolo salto (spinta di 70 px/s verso
+ * l'alto sulla molla 520 16), da sinistra a destra con 16 ms di scarto; intanto il testo del campo è trasparente, poi torna lui.
+ */
+export function saltaLettere(area: HTMLTextAreaElement, from = 'var(--stale)', to = 'var(--text)') {
+  if (ridotto() || !area.parentElement) return
+  const text = area.value
+  if (!text) return
+  const cs = getComputedStyle(area)
+  const box = area.parentElement
+  if (getComputedStyle(box).position === 'static') box.style.position = 'relative'
+  const ov = document.createElement('div')
+  ov.setAttribute('aria-hidden', 'true')
+  for (const k of ['font', 'letterSpacing', 'lineHeight', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'borderTopWidth', 'borderLeftWidth', 'textAlign', 'tabSize'] as const) (ov.style as unknown as Record<string, string>)[k] = cs[k]
+  Object.assign(ov.style, { position: 'absolute', left: `${area.offsetLeft}px`, top: `${area.offsetTop}px`, width: `${area.offsetWidth}px`, height: `${area.offsetHeight}px`, boxSizing: 'border-box', borderStyle: 'solid', borderColor: 'transparent', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', overflow: 'hidden', pointerEvents: 'none' })
+  const letters: { el: HTMLSpanElement; s: Molla }[] = []
+  for (const part of text.split(/(\s+)/)) {
+    if (!part) continue
+    if (!part.trim()) { ov.append(part); continue }
+    const w = document.createElement('span')
+    w.style.whiteSpace = 'nowrap'
+    for (const ch of part) {
+      const el = document.createElement('span')
+      el.textContent = ch
+      Object.assign(el.style, { display: 'inline-block', color: from, transition: 'color .18s ease' })
+      w.append(el)
+      letters.push({ el, s: molla(0, 520, 16) })
+    }
+    ov.append(w)
+  }
+  ov.scrollTop = area.scrollTop
+  box.append(ov)
+  const was = area.style.color
+  area.style.color = 'transparent'
+  const render = () => { for (const l of letters) l.el.style.transform = `translateY(${l.s.x.toFixed(2)}px)` }
+  const m = motore(letters.map((l) => l.s), render)
+  letters.forEach((l, i) => setTimeout(() => { l.el.style.color = to; l.s.v = -70; m.vai() }, i * 16))
+  setTimeout(() => { m.stop(); ov.remove(); area.style.color = was }, letters.length * 16 + 500)
+}

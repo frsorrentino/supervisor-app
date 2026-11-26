@@ -12,7 +12,8 @@
   import { parseMention, suggestMention } from './mention'
   import Badge from './Badge.svelte'
   import Icon from './Icon.svelte'
-  import { onDestroy } from 'svelte'
+  import { onDestroy, tick } from 'svelte'
+  import { saltaLettere } from './molla'
   import { lang } from './lang'
   import { dictate, dictLang, speechCtor, type Dictation, type DictError } from './dictation'
 
@@ -122,9 +123,9 @@
     e.preventDefault()
     if (md === 'send' || md === 'send_tonal') send()
   }
-  // Voce 6 di app-animazioni-seconde-26-11 (Suggerimento nel campo): preso, il testo passa dal grigio del suggerimento al colore pieno
-  // in 180 ms; con le animazioni ridotte è subito pieno.
-  function took() { if (!area || reducedMotion() || !area.animate) return; area.animate([{ color: 'var(--stale)' }, { color: 'var(--text)' }], { duration: 180, easing: 'cubic-bezier(0.3, 0, 0.2, 1)' }) }
+  // Voce 6a (Suggerimento nel campo), col moto fedele di `saltaLettere` in molla.ts: preso, le lettere vere del suggerimento, sopra il
+  // campo, passano dal grigio al colore pieno e fanno un piccolo salto da sinistra a destra. Con le animazioni ridotte è subito pieno.
+  function took() { if (!area || reducedMotion()) return; const a = area; void tick().then(() => saltaLettere(a)) }
   export function focus() { area?.focus(); area?.setSelectionRange(draft.length, draft.length) }
   // In un campo stretto (le colonne della plancia) il suggerimento accanto a «Usa» e all'invio andava a frammenti: lì sta
   // su una riga sua sopra il campo, intero, e il clic lo mette nel campo (come l'app sotto i 320 dp).

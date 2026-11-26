@@ -1091,19 +1091,29 @@ private fun Composer(
         // app (Franz, 05/10 22:29), che vanno fra gli allegati come dal +. La bozza resta sincronizzata nei due versi.
         val ctx = androidx.compose.ui.platform.LocalContext.current
         val fieldState = rememberDraftField(draftState, onDraft)
-        // Voce 6 di app-animazioni-seconde-26-11 (Suggerimento nel campo): preso con «Usa», il testo passa dal grigio del suggerimento al
-        // colore pieno in 180 ms, così si vede che ora è testo tuo da correggere; con le animazioni spente è subito pieno.
-        val took = remember { androidx.compose.animation.core.Animatable(1f) }
-        val tookScope = rememberCoroutineScope()
+        // Voce 6a (Suggerimento nel campo), col moto fedele di GhostHop.kt: preso con «Usa», le lettere vere del suggerimento, sopra il
+        // campo, passano dal grigio al colore pieno e fanno un piccolo salto da sinistra a destra; intanto il testo del campo è
+        // trasparente, poi torna lui. Con le animazioni spente è subito pieno.
+        var hop by remember { mutableStateOf<String?>(null) }
+        var leadW by remember { androidx.compose.runtime.mutableIntStateOf(0) }
+        var trailW by remember { androidx.compose.runtime.mutableIntStateOf(0) }
         val tookOff = animationsOff()
-        val take = { x: String -> onDraft(x); if (!tookOff) tookScope.launch { took.snapTo(0f); took.animateTo(1f, androidx.compose.animation.core.tween(180, easing = CmMotion.easing)) } }
+        val take = { x: String -> onDraft(x); if (!tookOff) hop = x }
         val baseStyle = androidx.compose.material3.LocalTextStyle.current
         // Il suggerimento attenuato resta un'indicazione: un tocco nel campo vuoto ci entra e basta, lo mette nel campo solo
         // «Usa» (sugg-focus, Franz 26/10 19:56: la superficie che lo accettava al tocco copriva tutto il campo vuoto).
         OutlinedTextField(
             state = fieldState, lineLimits = androidx.compose.foundation.text.input.TextFieldLineLimits.MultiLine(maxHeightInLines = 5),
-            textStyle = if (took.value < 1f) baseStyle.copy(color = androidx.compose.ui.graphics.lerp(Cm.stale, Cm.text, took.value)) else baseStyle,
+            textStyle = if (hop != null) baseStyle.copy(color = androidx.compose.ui.graphics.Color.Transparent) else baseStyle,
             modifier = Modifier.fillMaxWidth().onSizeChanged { if (lineH == 0 || it.height < lineH) lineH = it.height; fieldW = it.width }
+                .ghostHop(
+                    hop, baseStyle.copy(color = Cm.text), Cm.stale, Cm.text,
+                    // La posizione del testo nel campo Material 3: 16 dp senza icona davanti, dopo l'icona (almeno 48 dp) più 4; a destra
+                    // l'area dell'icona dietro (almeno 48 dp) più 4; in alto 16.
+                    start = with(androidx.compose.ui.platform.LocalDensity.current) { if (leadW > 0) maxOf(leadW.toFloat(), 48.dp.toPx()) + 4.dp.toPx() else 16.dp.toPx() },
+                    top = with(androidx.compose.ui.platform.LocalDensity.current) { 16.dp.toPx() },
+                    width = with(androidx.compose.ui.platform.LocalDensity.current) { (fieldW - (if (leadW > 0) maxOf(leadW.toFloat(), 48.dp.toPx()) + 4.dp.toPx() else 16.dp.toPx()) - maxOf(trailW.toFloat(), 48.dp.toPx()) - 4.dp.toPx()).toInt() },
+                ) { hop = null }
                 .contentReceiver { content ->
                     if (!canAttach) return@contentReceiver content
                     content.consume { item ->
@@ -1139,9 +1149,9 @@ private fun Composer(
             else androidx.compose.material3.OutlinedTextFieldDefaults.colors(),
             // Le azioni ricorrenti della master stanno nel menu del + (Franz, 05/10 07:27: il ⟳ nel campo stringeva troppo).
             leadingIcon = if (canAttach || onRecurring != null || onMine != null) ({
-                AttachButton(files = canAttachFiles, attach = canAttach, onRecurring = onRecurring, onMine = onMine) { picked -> images = (images + picked).distinct().take(MAX_IMAGES) }
+                Box(Modifier.onSizeChanged { leadW = it.width }) { AttachButton(files = canAttachFiles, attach = canAttach, onRecurring = onRecurring, onMine = onMine) { picked -> images = (images + picked).distinct().take(MAX_IMAGES) } }
             }) else null,
-            trailingIcon = { Row(verticalAlignment = Alignment.CenterVertically) {
+            trailingIcon = { Row(Modifier.onSizeChanged { trailW = it.width }, verticalAlignment = Alignment.CenterVertically) {
                 if (inField != null && draft.isBlank()) TextButton(onClick = { take(inField) }) { Text(stringResource(R.string.suggestion_use), color = Cm.actionIcon) }
                 // Con una tastiera fisica collegata il campo lo dice, come nel mockup del tablet.
                 else if (hardKeyboard() && mode != PhonePrimary.Composer.STOP && with(density) { fieldW.toDp() } >= 420.dp) Text(stringResource(R.string.enter_sends), style = MonoSmall, modifier = Modifier.padding(end = 10.dp))
