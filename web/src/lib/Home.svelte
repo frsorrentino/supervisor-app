@@ -1,5 +1,5 @@
 <script lang="ts">
-  import ProofRail from './ProofRail.svelte'
+  import StepBar from './StepBar.svelte'
   import { dtf } from './dtf'
   import { asking as primaAsking, homeStatus as primaHome } from './primaRaccolta'
   import { MENU_ICON, mineOf, sessionMenu, type MenuKind } from './sessionMenu'
@@ -1309,9 +1309,7 @@
           <svg viewBox="0 0 24 24" width="22" height="22"><path d={open ? 'M7 14l5-5 5 5' : 'M7 10l5 5 5-5'} fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
         </button>
       </div>
-      <!-- app-animazioni-passi-26-11 (contratto 1.162): le tappe della prova del compito in verifica su un filo. -->
-      <!-- Centrato nella riga: esce a sinistra della colonna del glifo (52 + 8) e rientra di 12, il margine destro della riga. -->
-      {#if s.steps?.items?.length}<ProofRail steps={s.steps} bleed={48} />{/if}
+      <!-- Le tappe della prova stanno nella scheda aperta, sotto il compito che verificano (app-scheda-sessione-a-26-11). -->
       <!-- app-scheda-sessione-semplice-19-11: i blocchi della scheda, gli stessi chiusa e aperta; aperta li mette nell'ordine della K. -->
       {#snippet okDoneB()}
       {#if open && !unified && group === 'waiting' && !s.question}
@@ -1447,16 +1445,23 @@
       {:else}
         <!-- La forma K (Franz 19/11 18:42): dall'alto in ordine di tempo, come la chat; il tasto pieno in fondo, sotto il pollice. La
              giornata a fasce e l'attività per ora sono andate in Utilizzo, i token per turno e la parte di oggi del contesto nelle quote. -->
-        <div class="details stats">{[s.model?.label, s.effort, s.account].filter(Boolean).join(' · ')}</div>
+        <!-- app-scheda-sessione-a-26-11 (proposta A approvata da Franz il 26/11): sotto la testa una riga di stato; poi sezioni a tutta
+             larghezza con una piccola etichetta (Prima e Risultati se ci sono, Ora, In verifica, Tocca a te), senza la colonna delle
+             etichette né il filo in alto; in fondo il contesto come barra sottile e Chiudi. -->
         {@const kb = kBefore(turnsOf(kpiData, s.name), kAll === s.name)}
         {@const kres = kResultsOf(resultsOf(kpiData, s.name), kResAll === s.name)}
         {@const kt = kTask(st.commitments, s.name)}
         {@const kn = kNext(kt, unified ? [] : steps)}
         {@const kRest = unified ? [] : steps.filter(y => y.trim() !== kn)}
         {@const waitsHere = group === 'waiting' || r.approvals.length > 0 || mine.length > 0}
-        <div class="k" data-testid="scheda-k">
+        {@const pv = s.steps?.items?.length ? s.steps : null}
+        {@const pvHere = !!pv && !!kt && pv.task === kt.task}
+        {@const pvTitle = pv ? (st.commitments?.find(cm => cm.task === pv.task)?.short ?? pv.task) : ''}
+        {@const nowAt = dt.saidAt ?? s.outcome?.at ?? null}
+        <p class="kst" data-testid="scheda-stato">{#if s.attached}{t.cleanupAttached}{:else}<b class="alive">● {t.cleanupOpen}</b>{/if}{#each [c ? (c.kind === 'duplicate' ? t.cleanupDuplicate(c.of ?? '') : s.outcome?.at ? t.cleanupFinishedAt(hhmm(s.outcome.at)) : t.cleanupFinished) : group === 'working' ? t.states.busy : group === 'waiting' ? t.kStateWaiting : t.kStillSince(hhmm(s.since)), s.model?.label && s.effort ? `${s.model.label} ${s.effort}` : (s.model?.label ?? s.effort), s.account].filter(Boolean) as bit}<span>{' · '}{bit}</span>{/each}</p>
+        <div class="k ka" data-testid="scheda-k">
           {#if kb}
-            <section class="kg past" data-testid="k-prima"><h4>{t.kBefore}<small>{t.kTurnsToday(kb.total, kb.minutes)}</small></h4>
+            <section class="kg ksec past" data-testid="k-prima"><h4>{t.kBefore}<small>{t.kTurnsToday(kb.total, kb.minutes)}</small></h4>
               {#if kb.hidden}<button class="kmore" data-testid="k-altri-turni" onclick={(e) => { e.stopPropagation(); kAll = s.name }}>{t.kMoreTurns(kb.hidden)}</button>{/if}
               {#each kb.turns as tu (tu.start)}
                 <button class="kr tap" onclick={(e) => { e.stopPropagation(); if (tu.entry && onJump) onJump(s.name, tu.entry); else onPick(s.name) }}>
@@ -1469,7 +1474,7 @@
           {/if}
           {#if kres}
             <!-- Contratto 1.156: i risultati di oggi, il più nuovo per primo; un link si apre fuori, un file sulla sua voce della chat. -->
-            <section class="kg res" data-testid="k-risultati"><h4>{t.kResults}<small>{t.kResultsToday(kres.total)}</small></h4>
+            <section class="kg ksec res" data-testid="k-risultati"><h4>{t.kResults}<small>{t.kResultsToday(kres.total)}</small></h4>
               <div class="kres">
                 {#each kres.shown as rr, j (j)}
                   {#if rr.url}<a class="kpill" href={rr.url} target="_blank" rel="noopener noreferrer" onclick={(e) => e.stopPropagation()}><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d={K_RES_ICON[rr.kind]} /></svg><span>{rr.label}</span></a>
@@ -1479,20 +1484,22 @@
               </div>
             </section>
           {/if}
-          <section class="kg now" data-testid="k-adesso"><h4>{t.kNow}</h4>
-            {#if kt}<div class="kr"><span class="kl">{t.kTask}</span><span class="kx"><span class="ktask"><b>{kt.short ?? kt.task}</b><span class:paused={!!kt.paused}>{kt.paused ? t.kTaskPaused : t.kTaskRunning}</span></span>{#if s.goal?.text}<small>{t.goal}: {s.goal.text}</small>{/if}</span></div>
-            {:else if s.goal?.text}<div class="kr"><span class="kl">{t.kTask}</span><span class="kx">{s.goal.text}</span></div>{/if}
-            {#if dt.doing}<div class="kr" data-testid="scheda-sta-facendo"><span class="kl">{t.kDoing}</span><span class="kx mono2">{dt.doing}</span></div>{/if}
-            {#if x.body && group !== 'waiting'}{@const old = staleHours(r, now)}<div class="kr"><span class="kl mono2">{s.outcome?.at ? hhmm(s.outcome.at) : ''}</span><p class="kx body full strong" class:stale={old != null}>{x.body}{#if old != null}<span class="ago">{t.staleAgo(old)}</span>{/if}</p></div>{/if}
-            {#if dt.said}<div class="kr" data-testid="scheda-ultimo-messaggio"><span class="kl mono2">{dt.saidAt ? hhmm(dt.saidAt) : t.kSaid}</span><p class="kx">{dt.said.replace(/\*\*|__|`/g, '')}</p></div>{/if}
-            {#if s.context != null}<div class="kr"><span class="kl">{t.kContext}</span><span class="kx"><span class="kctx"><span class="kbar" data-kpi="kpi-5"><span style="width:{Math.min(100, s.context)}%;background:{ctxTone(s.context)}"></span></span><b class="mono2">{s.context}%</b></span></span></div>{/if}
+          <section class="kg ksec now" data-testid="k-adesso"><h4>{t.kNow}{#if nowAt}<small class="kat mono2">{hhmm(nowAt)}</small>{/if}</h4>
+            {#if kt}<div class="ktk"><b>{kt.short ?? kt.task}</b><span class:paused={!!kt.paused}>{kt.paused ? t.kTaskPaused : t.kTaskRunning}</span></div>{#if s.goal?.text}<small class="kgoal">{t.goal}: {s.goal.text}</small>{/if}
+            {:else if s.goal?.text}<div class="ktk"><b>{s.goal.text}</b></div>{/if}
+            {#if dt.doing}<p class="kline mono2" data-testid="scheda-sta-facendo">{dt.doing}</p>{/if}
+            {#if x.body && group !== 'waiting'}{@const old = staleHours(r, now)}<p class="kline" class:stale={old != null}>{x.body}{#if old != null} <span class="ago">{t.staleAgo(old)}</span>{/if}</p>{/if}
+            {#if dt.said}<p class="kline" data-testid="scheda-ultimo-messaggio">{dt.said.replace(/\*\*|__|`/g, '')}</p>{/if}
+            {#if pv && pvHere}<StepBar steps={pv} />{/if}
             {@render svcB()}
             {@render headsB()}
-            {@render cleanB()}
           </section>
+          {#if pv && !pvHere}
+            <section class="kg ksec" data-testid="k-verifica"><h4>{t.kVerify}</h4><div class="ktk"><b>{pvTitle}</b></div><StepBar steps={pv} /></section>
+          {/if}
           {#if kn || waitsHere || kRest.length || (!unified && sessionTodo && (todo[s.name]?.d || todo[s.name]?.v))}
-            <section class="kg next" data-testid="k-prossimo"><h4>{t.kNext}</h4>
-              {#if kn}<div class="kr"><span class="kl">{t.kStep}</span><span class="kx">{kn}</span></div>{/if}
+            <section class="kg ksec you" data-testid="k-prossimo"><h4>{t.kYourTurn}</h4>
+              {#if kn}<p class="kline strong">{kn}</p>{/if}
               {#if kRest.length}{@render chipRow(s, kRest, x.blocking)}{/if}
         {#if open && !unified && sessionTodo && (todo[s.name]?.d || todo[s.name]?.v)}<div class="tdbody" role="presentation" onclick={(e) => e.stopPropagation()}>{@render sessionTodo(s.name)}</div>{/if}
               {#if waitsHere}
@@ -1504,6 +1511,13 @@
               {/if}
             </section>
           {/if}
+          <div class="kfoot">
+            {#if s.context != null}<div class="kfctx"><span class="kfl mono2">{t.kContext} {s.context}%</span><span class="kbar" data-kpi="kpi-5"><span style="width:{Math.min(100, s.context)}%;background:{ctxTone(s.context)}"></span></span></div>{:else}<span class="kfctx"></span>{/if}
+            {#if c && closing !== s.name && c.canClose && confirming !== s.name}
+              <button class="close" onclick={(e) => { e.stopPropagation(); confirming = s.name }}><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--b-alert)" stroke-width="2" stroke-linecap="round"><path d="M12 2v10M18.4 6.6a9 9 0 1 1-12.8 0" /></svg>{t.cleanupCloseShort}</button>
+            {/if}
+          </div>
+          {#if closing === s.name}<div class="clean"><span class="closing" role="status"><i class="spin" aria-hidden="true"></i>{t.splashClosing(s.name)}</span></div>{/if}
         </div>
       {/if}
       </div>
@@ -1619,6 +1633,31 @@
      gruppo; ogni riga è etichetta, testo e al massimo un tasto; tutto ciò che si tocca è alto almeno 44 px (mobile-native), la
      pressione risponde subito (emil-design-eng), il monospazio solo per ore e minuti (impeccable). */
   /* Il binario corre sotto la colonna dell'icona (49 px con lo spazio): il testo dei turni ha tutta la larghezza della carta. */
+  /* app-scheda-sessione-a-26-11 (proposta A): la scheda aperta a sezioni piene, senza binario né colonna delle etichette. */
+  .kst { margin: 2px 0 0; font-size: 13.5px; line-height: 19px; color: var(--tx2); }
+  .kst .alive { color: var(--good); font-weight: 500; }
+  .k.ka { margin: 12px 0 0 -48px; padding: 0; gap: 0; }
+  .k.ka::before { display: none; }
+  .ka .ksec { padding: 12px 0 14px; border-top: 1px solid var(--line); }
+  .ka .ksec > h4 { justify-content: space-between; font: 500 12px/16px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--tx3); margin-bottom: 6px; }
+  .ka .ksec > h4::before { display: none; }
+  .ka .ksec > h4 small { font: 400 12px/16px var(--mono); letter-spacing: 0; text-transform: none; }
+  .ka .ktk { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  .ka .ktk b { font: 600 17px/22px var(--display); color: var(--tx); min-width: 0; }
+  .ka .ktk span { flex: none; font-size: 14px; color: var(--busy); }
+  .ka .ktk span.paused { color: var(--wait); }
+  .ka .kgoal { display: block; font-size: 13px; color: var(--tx2); margin-top: 2px; }
+  .ka .kline { margin: 6px 0 0; font-size: 15px; line-height: 21px; color: var(--tx2); overflow-wrap: anywhere; }
+  .ka .kline.strong { color: var(--tx); }
+  .ka .kline.mono2 { font-size: 13px; }
+  .ka .kline .ago { font: 400 12px var(--mono); color: var(--b-warn); }
+  .ka .kr.kw { display: block; padding: 6px 0 0; }
+  .ka .kr.kw .kl { display: none; }
+  .ka .ksec.you { margin: 4px 0 8px; padding: 12px 14px 14px; border: 1px solid color-mix(in srgb, var(--wait) 45%, var(--line)); border-radius: 14px; background: color-mix(in srgb, var(--wait) 9%, var(--s1)); }
+  .ka .ksec.you > h4 { color: var(--wait); }
+  .kfoot { display: flex; align-items: center; gap: 12px; padding: 12px 0 4px; border-top: 1px solid var(--line); }
+  .kfctx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+  .kfl { font-size: 12.5px; color: var(--tx2); }
   .k { position: relative; display: flex; flex-direction: column; gap: 14px; margin: 10px 0 0 -49px; padding-left: 22px; }
   .k::before { content: ''; position: absolute; left: 5px; top: 12px; bottom: 18px; width: 2px; border-radius: 1px; background: var(--s3); }
   .kg { position: relative; display: flex; flex-direction: column; }

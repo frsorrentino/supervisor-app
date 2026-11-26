@@ -641,6 +641,11 @@
     <string name="k_results">Results</string>
     <string name="k_results_today">%1$d today</string>
     <plurals name="k_more_results"><item quantity="one">One more</item><item quantity="other">%1$d more</item></plurals>
+    <string name="k_verify">Under test</string>
+    <string name="k_your_turn">Your turn</string>
+    <string name="k_state_working">working</string>
+    <string name="k_state_waiting">waiting for you</string>
+    <string name="k_still_since">idle since %1$s</string>
     <string name="k_now">Now</string>
     <string name="k_next">Next</string>
     <plurals name="k_turns_today"><item quantity="one">%1$d turn today, %2$d min</item><item quantity="other">%1$d turns today, %2$d min</item></plurals>

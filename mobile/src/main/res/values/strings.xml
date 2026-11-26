@@ -657,7 +657,12 @@
     <string name="k_results">Risultati</string>
     <string name="k_results_today">%1$d oggi</string>
     <plurals name="k_more_results"><item quantity="one">Un altro</item><item quantity="other">Altri %1$d</item></plurals>
-    <string name="k_now">Adesso</string>
+    <string name="k_verify">In verifica</string>
+    <string name="k_your_turn">Tocca a te</string>
+    <string name="k_state_working">al lavoro</string>
+    <string name="k_state_waiting">ti aspetta</string>
+    <string name="k_still_since">ferma dalle %1$s</string>
+    <string name="k_now">Ora</string>
     <string name="k_next">Prossimo</string>
     <plurals name="k_turns_today"><item quantity="one">%1$d turno oggi, %2$d min</item><item quantity="other">%1$d turni oggi, %2$d min</item></plurals>
     <plurals name="k_more_turns"><item quantity="one">Un altro turno prima</item><item quantity="other">Altri %1$d turni prima</item></plurals>

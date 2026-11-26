@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -37,12 +38,14 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.SessionK
@@ -228,6 +231,78 @@ internal fun KSessionsToday(st: it.pixelbox.cmwatch.contract.State, page: it.pix
                 if (ev.isNotEmpty()) Kpi11(it.pixelbox.cmwatch.rules.Kpi.day(ev, from, now, if (live) it.pixelbox.cmwatch.rules.Kpi.waitingSince(s!!) else null), from, now)
                 if (turns.isNotEmpty()) Kpi10(turns)
             }
+        }
+    }
+}
+
+// ---- app-scheda-sessione-a-26-11 (proposta A approvata da Franz il 26/11): sezioni a tutta larghezza, senza binario né etichette ----
+
+/** Le sezioni della scheda aperta, una sotto l'altra, divise da una riga. */
+@Composable
+internal fun KSections(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) =
+    Column(modifier.fillMaxWidth().testTag("scheda-k"), content = content)
+
+/**
+ * Una sezione: l'etichetta piccola in mono maiuscolo e, a destra, una nota (l'ora, «2 turni oggi»); [you] è «Tocca a te», un
+ * riquadro ambra col suo tasto.
+ */
+@Composable
+internal fun KSection(label: String, tag: String, note: String? = null, you: Boolean = false, content: @Composable ColumnScope.() -> Unit) {
+    val head: @Composable () -> Unit = {
+        Row(Modifier.fillMaxWidth().padding(bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(label.uppercase(), style = V3.Meter.copy(color = if (you) V3.Wait else V3.Tx3, letterSpacing = 0.08.em), maxLines = 1, modifier = Modifier.weight(1f))
+            note?.let { Text(it, style = V3.Meter.copy(color = V3.Tx3), maxLines = 1) }
+        }
+    }
+    if (you) Column(
+        Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 8.dp).clip(RoundedCornerShape(14.dp)).background(V3.Wait.copy(alpha = 0.09f).compositeOver(V3.S1))
+            .border(1.dp, V3.Wait.copy(alpha = 0.45f), RoundedCornerShape(14.dp)).padding(start = 14.dp, end = 14.dp, top = 12.dp, bottom = 14.dp).testTag(tag),
+    ) { head(); content() }
+    else Column(Modifier.fillMaxWidth().testTag(tag)) {
+        Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
+        Column(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 14.dp)) { head(); content() }
+    }
+}
+
+/** Il compito di una sezione: il nome a sinistra, lo stato a destra (in corso in blu, in pausa in ambra). */
+@Composable
+internal fun KTaskLine(title: String, state: String? = null, paused: Boolean = false) =
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(title, style = V3.Name.copy(fontSize = 17.sp), modifier = Modifier.weight(1f))
+        state?.let { Text(it, style = V3.Small.copy(color = if (paused) V3.Wait else V3.Busy), maxLines = 1) }
+    }
+
+/**
+ * Le tappe della prova come barra a 4 segmenti col nome dentro, sotto il compito che verificano: passata verde con ✓, fallita rossa
+ * con ✕, quella in corso col bordo blu, da fare grigia; sotto il motivo a parole. Prende il posto del filo in alto.
+ */
+@Composable
+internal fun KStepBar(steps: it.pixelbox.cmwatch.contract.ProofSteps) {
+    if (steps.items.isEmpty()) return
+    Column(Modifier.fillMaxWidth().padding(top = 8.dp).testTag("passi-prova"), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            steps.items.forEach { st ->
+                val look = it.pixelbox.cmwatch.rules.PassiProva.look(st)
+                val (fg, bg, line) = when (look) {
+                    it.pixelbox.cmwatch.rules.PassiProva.Look.DONE -> Triple(V3.Good, V3.Good.copy(alpha = 0.16f).compositeOver(V3.S1), V3.Good.copy(alpha = 0.45f))
+                    it.pixelbox.cmwatch.rules.PassiProva.Look.FAILED -> Triple(V3.Red, V3.Red.copy(alpha = 0.16f).compositeOver(V3.S1), V3.Red.copy(alpha = 0.45f))
+                    it.pixelbox.cmwatch.rules.PassiProva.Look.NOW -> Triple(V3.Busy, V3.S2, V3.Busy)
+                    it.pixelbox.cmwatch.rules.PassiProva.Look.TODO -> Triple(V3.Tx2, V3.S2, V3.Line)
+                }
+                val mark = when (look) { it.pixelbox.cmwatch.rules.PassiProva.Look.DONE -> "✓ "; it.pixelbox.cmwatch.rules.PassiProva.Look.FAILED -> "✕ "; else -> "" }
+                Box(Modifier.weight(1f).clip(RoundedCornerShape(6.dp)).background(bg).border(1.dp, line, RoundedCornerShape(6.dp)).padding(vertical = 7.dp), contentAlignment = Alignment.Center) {
+                    Text(mark + st.label, style = V3.Small.copy(fontSize = 13.sp, color = fg), maxLines = 1, softWrap = false, overflow = TextOverflow.Clip)
+                }
+            }
+        }
+        it.pixelbox.cmwatch.rules.PassiProva.line(steps)?.let { l ->
+            val text = when (l.say) {
+                it.pixelbox.cmwatch.rules.PassiProva.Say.RUNNING -> stringResource(R.string.proof_running, l.label)
+                it.pixelbox.cmwatch.rules.PassiProva.Say.FAILED -> stringResource(R.string.proof_failed, l.label)
+                it.pixelbox.cmwatch.rules.PassiProva.Say.TODO -> stringResource(R.string.proof_todo, l.label)
+                it.pixelbox.cmwatch.rules.PassiProva.Say.ALL_DONE -> stringResource(R.string.proof_all_done)
+            }
+            Text(text, style = V3.Small.copy(color = if (l.say == it.pixelbox.cmwatch.rules.PassiProva.Say.FAILED) V3.Red else V3.Tx2))
         }
     }
 }

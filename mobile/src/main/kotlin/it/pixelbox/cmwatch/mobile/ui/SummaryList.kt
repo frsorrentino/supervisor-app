@@ -1251,6 +1251,31 @@ internal fun groupTone(g: Summary.Group): Color = when (g) {
     Summary.Group.STILL -> Cm.text2
 }
 
+/**
+ * app-scheda-sessione-a-26-11: la riga di stato sotto la testa della scheda aperta, «● aperta · ferma dalle 15:05 · Opus 5.5 medium ·
+ * personale»; con la finestra aperta sul PC lo dice al posto di «aperta».
+ */
+@Composable
+private fun SessionStatusLine(s: Session, group: Summary.Group, now: Long) {
+    val state = when {
+        group == Summary.Group.WORKING -> stringResource(R.string.k_state_working)
+        group == Summary.Group.WAITING -> stringResource(R.string.k_state_waiting)
+        s.outcome?.at != null -> stringResource(R.string.cleanup_finished_at, clockHm(s.outcome!!.at))
+        else -> stringResource(R.string.k_still_since, clockHm(s.since))
+    }
+    val model = listOfNotNull(ModelText.short(s.model), s.effort).joinToString(" ").ifEmpty { null }
+    val open = stringResource(R.string.cleanup_open)
+    val attached = stringResource(R.string.cleanup_attached)
+    Text(
+        androidx.compose.ui.text.buildAnnotatedString {
+            if (s.attached) append(attached)
+            else withStyle(androidx.compose.ui.text.SpanStyle(color = Cm.idle, fontWeight = androidx.compose.ui.text.font.FontWeight.Medium)) { append("● $open") }
+            listOfNotNull(state, model, s.account).forEach { append(" · "); append(it) }
+        },
+        style = V3.Small, modifier = Modifier.testTag("scheda-stato"),
+    )
+}
+
 /** Priorità e «modello · effort · account» (il contesto sta in testa alla card, l'obiettivo sopra il testo). */
 @Composable
 private fun details(s: Session): List<String> = listOfNotNull(
@@ -1485,8 +1510,7 @@ private fun SummaryCard(
         if (!compact && !open) SessionsText.goalLine(s, stringResource(R.string.goal))?.let { g ->
             Text(g, style = V3.Small, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip)
         }
-        // app-animazioni-passi-26-11 (contratto 1.162): le tappe della prova del compito in verifica su un filo.
-        if (!compact) s.steps?.let { st -> ProofRail(st, bleed = V3.Rail + 8.dp, inset = 10.dp) }
+        // Le tappe della prova stanno nella scheda aperta, sotto il compito che verificano (app-scheda-sessione-a-26-11).
         // Franz 24/10 19:46 (B2): l'esito di una ferma più vecchio di 6 ore si spegne e dice da quante ore.
         val old = Summary.staleHours(r, now)
         // Chiusa, una sessione al lavoro è una riga: lo strumento in mono (app-home-riordino-29-10).
@@ -1516,7 +1540,11 @@ private fun SummaryCard(
             Box(Modifier.layout { m, k -> val p = m.measure(k); val top = 8.dp.roundToPx(); armExtra[0] = p.height + top; layout(p.width, p.height + top) { p.place(0, top) } }) { ArmedChip(c.mode) }
         }
         // Aperta: modello, effort e account sotto il nome, come nella testata della K.
-        if (open) details(s).forEach { Text(it, style = V3.Small, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip) }
+        // app-scheda-sessione-a-26-11: aperta, sotto la testa la riga di stato «● aperta · ferma dalle 15:05 · modello · account».
+        if (open) {
+            SessionsText.priority(s, stringResource(R.string.low_priority), stringResource(R.string.low_priority_offered))?.let { p -> Text(p, style = V3.Small, maxLines = 1) }
+            SessionStatusLine(s, r.group, now)
+        }
 
         // I blocchi della scheda, gli stessi chiusa e aperta; aperta li mette nell'ordine della K.
         val askedBlock: @Composable () -> Unit = {
@@ -1643,62 +1671,48 @@ private fun SummaryCard(
             val task = androidx.compose.runtime.remember(menuState?.commitments, s.name) { it.pixelbox.cmwatch.rules.SessionK.task(menuState?.commitments, s.name) }
             val stepList = if (waiting) detail.steps else parsed.steps
             val next = it.pixelbox.cmwatch.rules.SessionK.nextStep(task, if (perTe < 0) stepList else emptyList())
-            KTimeline(Modifier.padding(top = 10.dp)) {
+            // app-scheda-sessione-a-26-11 (proposta A approvata da Franz il 26/11): sezioni a tutta larghezza con una piccola etichetta,
+            // senza binario né colonna delle etichette; le tappe della prova come barra sotto il compito che verificano; «Tocca a te» in
+            // ambra col tasto; in fondo il contesto come barra sottile e Chiudi.
+            val pv = s.steps?.takeIf { x -> x.items.isNotEmpty() }
+            val pvHere = pv != null && task != null && pv.task == task.task
+            val nowAt = detail.saidAt ?: s.outcome?.at
+            KSections(Modifier.padding(top = 10.dp)) {
                 before?.let { b ->
-                    KGroup(stringResource(R.string.k_before), KTone.PAST, pluralStringResource(R.plurals.k_turns_today, b.total, b.total, b.minutes.toInt()), "k-prima") {
+                    KSection(stringResource(R.string.k_before), "k-prima", pluralStringResource(R.plurals.k_turns_today, b.total, b.total, b.minutes.toInt())) {
                         KTurns(b, onAll = { allTurns = true }, onOpen = toEntry)
                     }
                 }
                 results?.let { r ->
-                    KGroup(stringResource(R.string.k_results), KTone.PAST, stringResource(R.string.k_results_today, r.total), "k-risultati") {
+                    KSection(stringResource(R.string.k_results), "k-risultati", stringResource(R.string.k_results_today, r.total)) {
                         KResults(r, onAll = { allResults = true }, onEntry = toEntry)
                     }
                 }
-                KGroup(stringResource(R.string.k_now), KTone.NOW, tag = "k-adesso") {
-                    task?.let { c ->
-                        KRow(stringResource(R.string.k_task)) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Text(c.short ?: c.task, style = V3.Body.copy(fontFamily = V3.Mono, fontSize = 13.5.sp), maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.weight(1f, fill = false).fadeEnd())
-                                Text(stringResource(if (c.paused != null) R.string.k_task_paused else R.string.k_task_running), style = V3.Small.copy(color = if (c.paused != null) V3.Tx2 else V3.Busy), maxLines = 1)
-                            }
-                            SessionsText.goalLine(s, stringResource(R.string.goal))?.let { g -> Text(g, style = V3.Small, maxLines = 2) }
-                        }
-                    }
-                    if (task == null) SessionsText.goalLine(s, stringResource(R.string.goal))?.let { g -> KRow(stringResource(R.string.k_task)) { Text(g, style = V3.Body) } }
-                    detail.doing?.let { d -> KRow(stringResource(R.string.k_doing), mono = false) { Text(d, style = V3.Meter.copy(color = V3.Tx), modifier = Modifier.testTag("scheda-sta-facendo")) } }
-                    if (body.isNotBlank() && !waiting) KRow(s.outcome?.at?.let { hhmmOf(it) } ?: "", mono = true) { bodyText(true) }
+                KSection(stringResource(R.string.k_now), "k-adesso", nowAt?.let { hhmmOf(it) }) {
+                    task?.let { c -> KTaskLine(c.short ?: c.task, stringResource(if (c.paused != null) R.string.k_task_paused else R.string.k_task_running), paused = c.paused != null) }
+                    val goal = SessionsText.goalLine(s, stringResource(R.string.goal))
+                    if (task == null) goal?.let { g -> KTaskLine(g) } else goal?.let { g -> Text(g, style = V3.Small, maxLines = 2, modifier = Modifier.padding(top = 2.dp)) }
+                    detail.doing?.let { d -> Text(d, style = V3.Meter.copy(color = V3.Tx2), modifier = Modifier.padding(top = 6.dp).testTag("scheda-sta-facendo")) }
+                    if (body.isNotBlank() && !waiting) Box(Modifier.padding(top = 6.dp)) { bodyText(true) }
                     detail.said?.let { said ->
-                        KRow(detail.saidAt?.let { hhmmOf(it) } ?: stringResource(R.string.k_said), mono = detail.saidAt != null) {
-                            Text(it.pixelbox.cmwatch.rules.Markdown.parse(said).text.trim(), style = V3.Body, color = V3.Tx, modifier = Modifier.testTag("scheda-ultimo-messaggio"))
-                        }
+                        Text(it.pixelbox.cmwatch.rules.Markdown.parse(said).text.trim(), style = V3.Body.copy(color = V3.Tx2), modifier = Modifier.padding(top = 6.dp).testTag("scheda-ultimo-messaggio"))
                     }
-                    s.context?.let { pct ->
-                        val bar = when (it.pixelbox.cmwatch.rules.SessionMeters.contextTone(pct)) {
-                            it.pixelbox.cmwatch.rules.BriefCards.Tone.ALERT -> V3.Red
-                            it.pixelbox.cmwatch.rules.BriefCards.Tone.WARN -> V3.Wait
-                            else -> V3.Busy
-                        }
-                        KRow(stringResource(R.string.k_context)) {
-                            Box(Modifier.testTag("kpi-5")) { KContextBar(it.pixelbox.cmwatch.rules.SessionMeters.contextFraction(pct) ?: 0f, pct, bar) }
-                        }
-                    }
+                    if (pv != null && pvHere) KStepBar(pv)
                     // Oltre la soglia il consiglio del contesto, col suo tasto tonale (i suggerimenti della sessione).
                     servicesBlock()
-                    cleanup?.let { c ->
-                        KRow(stringResource(R.string.k_window), action = if (!closing && c.canClose && !closeAsk) ({ closeKey() }) else null) {
-                            Text(cleanupText(c), style = V3.Body)
-                        }
-                    }
-                    closeStates()
+                }
+                if (pv != null && !pvHere) KSection(stringResource(R.string.k_verify), "k-verifica") {
+                    KTaskLine(menuState?.commitments?.firstOrNull { c -> c.task == pv.task }?.short ?: pv.task)
+                    KStepBar(pv)
                 }
                 val waitsHere = waiting || r.approvals.isNotEmpty() || works.isNotEmpty() || okStep0 != null
-                if (next != null || waitsHere || (perTe < 0 && stepList.size > 1)) KGroup(stringResource(R.string.k_next), KTone.NEXT, tag = "k-prossimo") {
-                    next?.let { n -> KRow(stringResource(R.string.k_step)) { Text(n, style = V3.Body) } }
+                if (next != null || waitsHere || (perTe < 0 && stepList.size > 1)) KSection(stringResource(R.string.k_your_turn), "k-prossimo", you = true) {
+                    next?.let { n -> Text(n, style = V3.Body) }
                     stepsBlock(next?.trim())
                     if (open && perTe < 0 && sessionTodo != null && todo != null && (todo.first > 0 || todo.second > 0)) Box(Modifier.padding(top = 4.dp)) {
                         androidx.compose.runtime.CompositionLocalProvider(LocalSubCard provides true) { sessionTodo(s.name) }
                     }
-                    if (waitsHere) KRow(stringResource(R.string.k_waits), stack = true) {
+                    if (waitsHere) Column(Modifier.fillMaxWidth().padding(top = 4.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         if (waiting && body.isNotBlank()) bodyText(true)
                         askedBlock()
                         approvalsBlock()
@@ -1706,6 +1720,25 @@ private fun SummaryCard(
                         questionBlock()
                     }
                 }
+                // In fondo il contesto come barra sottile e Chiudi.
+                Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
+                Row(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        s.context?.let { pct ->
+                            val bar = when (it.pixelbox.cmwatch.rules.SessionMeters.contextTone(pct)) {
+                                it.pixelbox.cmwatch.rules.BriefCards.Tone.ALERT -> V3.Red
+                                it.pixelbox.cmwatch.rules.BriefCards.Tone.WARN -> V3.Wait
+                                else -> V3.Busy
+                            }
+                            Text("${stringResource(R.string.k_context)} $pct%", style = V3.Meter.copy(color = V3.Tx2))
+                            Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)).background(V3.S3).testTag("kpi-5")) {
+                                Box(Modifier.fillMaxWidth(it.pixelbox.cmwatch.rules.SessionMeters.contextFraction(pct) ?: 0f).height(4.dp).background(bar))
+                            }
+                        }
+                    }
+                    cleanup?.let { c -> if (!closing && c.canClose && !closeAsk) closeKey() }
+                }
+                closeStates()
             }
         }
         if (menu) {
