@@ -65,7 +65,7 @@ class VociAssentiTest {
         // app-chiudi-sessioni-ferme-26-11: attaccata e ferma si chiude; con Franz al PC (at_pc) no.
         assertTrue(VociAssenti.close(sess(SessionState.IDLE, attached = true)))
         assertFalse(VociAssenti.close(sess(SessionState.IDLE, attached = true, atPc = true)))
-        listOf("busy", "question", "background", "gone").forEach { assertFalse(VociAssenti.close(sess(SessionState.IDLE, attached = true), it), it) }
+        listOf("busy", "question", "background", "gone").forEach { assertFalse(it, VociAssenti.close(sess(SessionState.IDLE, attached = true), it)) }
         assertTrue(VociAssenti.close(sess(SessionState.IDLE, attached = true), "attached"))
     }
 
