@@ -1484,6 +1484,8 @@
               </div>
             </section>
           {/if}
+          <!-- Ora solo se ha qualcosa da dire: una sessione che aspetta senza compito ha tutto in «Tocca a te». -->
+          {#if kt || s.goal?.text || dt.doing || (x.body && group !== 'waiting') || dt.said || pvHere}
           <section class="kg ksec now" data-testid="k-adesso"><h4>{t.kNow}{#if nowAt}<small class="kat mono2">{hhmm(nowAt)}</small>{/if}</h4>
             {#if kt}<div class="ktk"><b>{kt.short ?? kt.task}</b><span class:paused={!!kt.paused}>{kt.paused ? t.kTaskPaused : t.kTaskRunning}</span></div>{#if s.goal?.text}<small class="kgoal">{t.goal}: {s.goal.text}</small>{/if}
             {:else if s.goal?.text}<div class="ktk"><b>{s.goal.text}</b></div>{/if}
@@ -1494,6 +1496,7 @@
             {@render svcB()}
             {@render headsB()}
           </section>
+          {:else}{@render svcB()}{@render headsB()}{/if}
           {#if pv && !pvHere}
             <section class="kg ksec" data-testid="k-verifica"><h4>{t.kVerify}</h4><div class="ktk"><b>{pvTitle}</b></div><StepBar steps={pv} /></section>
           {/if}

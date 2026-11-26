@@ -1688,7 +1688,11 @@ private fun SummaryCard(
                         KResults(r, onAll = { allResults = true }, onEntry = toEntry)
                     }
                 }
-                KSection(stringResource(R.string.k_now), "k-adesso", nowAt?.let { hhmmOf(it) }) {
+                // Ora solo se ha qualcosa da dire: una sessione che aspetta senza compito ha tutto in «Tocca a te».
+                val goalNow = SessionsText.goalLine(s, stringResource(R.string.goal))
+                val hasNow = task != null || goalNow != null || detail.doing != null || (body.isNotBlank() && !waiting) || detail.said != null || pvHere
+                if (!hasNow) servicesBlock()
+                if (hasNow) KSection(stringResource(R.string.k_now), "k-adesso", nowAt?.let { hhmmOf(it) }) {
                     task?.let { c -> KTaskLine(c.short ?: c.task, stringResource(if (c.paused != null) R.string.k_task_paused else R.string.k_task_running), paused = c.paused != null) }
                     val goal = SessionsText.goalLine(s, stringResource(R.string.goal))
                     if (task == null) goal?.let { g -> KTaskLine(g) } else goal?.let { g -> Text(g, style = V3.Small, maxLines = 2, modifier = Modifier.padding(top = 2.dp)) }
