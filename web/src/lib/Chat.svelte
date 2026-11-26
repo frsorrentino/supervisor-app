@@ -1,4 +1,6 @@
 <script lang="ts">
+  import DropZone from './DropZone.svelte'
+  import { volaFile } from './molla'
   import { untrack } from 'svelte'
   import { newPill } from './animazioni'
   import type { Session, State } from './contract'
@@ -176,6 +178,7 @@
   }
   // File trascinati sulla colonna: vanno nel campo come quelli scelti con il +.
   let dragging = $state(false)
+  let dragN = $state(0)
   const hasFiles = (e: DragEvent) => !!e.dataTransfer?.types.includes('Files')
   // Il riquadro resta solo mentre il file è sopra questa colonna; un rilascio in qualunque punto lo spegne (app-web-trascina-riquadro-12-11).
   const hold = dragHold(v => (dragging = v))
@@ -190,7 +193,8 @@
     if (!hasFiles(e)) return
     e.preventDefault()
     hold.off()
-    if (composer?.addFiles([...(e.dataTransfer?.files ?? [])])) composer.focus()
+    const fl = [...(e.dataTransfer?.files ?? [])]
+    if (composer?.addFiles(fl)) { volaFile(fl.map((f) => f.name), e.clientX, e.clientY, (e.currentTarget as HTMLElement | null)?.querySelector('.field') ?? null); composer.focus() }
   }
   // In fondo alla conversazione: subito all'apertura (e dopo che la colonna ha preso la sua misura), con l'animazione
   // quando arriva qualcosa di nuovo, ma solo se si era già in fondo: chi sta rileggendo più su resta dov'è (Franz, 06/10 10:03).
@@ -303,8 +307,8 @@
 </script>
 
 <section class="chat" class:dragging class:master={s.name === MASTER} class:reading={s.name === MASTER && !atEnd} aria-label={s.name}
-  ondragover={(e) => { if (hasFiles(e)) { e.preventDefault(); hold.over() } }} ondragleave={(e) => hold.leave(leftColumn(e))} ondrop={onDrop}>
-  {#if dragging}<div class="dropzone">{t.dropHere}</div>{/if}
+  ondragover={(e) => { if (hasFiles(e)) { e.preventDefault(); dragN = e.dataTransfer?.items?.length ?? 0; hold.over() } }} ondragleave={(e) => hold.leave(leftColumn(e))} ondrop={onDrop}>
+  {#if dragging}<DropZone n={dragN} to={s.name} />{/if}
   <Header {st} {s} wide={wide} {onBack} {onCmd} onPrompt={onSend} {onHandoff} {onUsage} {onGo} {onReopen} {appMenu} {menuMove} {onMine} onChanges={onChanges ? () => (changesOpen = true) : null} />
   <!-- Franz 24/10 18:58: la riga «Home» sopra la conversazione della master è tolta: l'intestazione resta più bassa. -->
 
@@ -437,7 +441,6 @@
   .chat.master :global(.box .row) { border-top-color: var(--line); }
   .chat.master > :global(.bar) { margin-top: 10px; padding-top: 10px; border-radius: 28px 28px 0 0; background: var(--master-high); }
   .chat { display: flex; flex-direction: column; height: 100%; min-width: 0; position: relative; container-type: inline-size; }
-  .dropzone { position: absolute; inset: 8px; z-index: 20; display: grid; place-items: center; border: 2px dashed color-mix(in srgb, var(--icon) 60%, transparent); border-radius: 24px; background: rgb(0 0 0 / .6); color: var(--icon); font-weight: 500; pointer-events: none; }
   /* Gli hover nella master: un passo sopra il suo fondo celeste, non il grigio delle altre sessioni (Franz, 07/10 14:49). */
   .chat.master > :global(header .ib:hover), .chat.master > :global(header .ctxb:not(:disabled):hover),
   .chat.master :global(.bar :is(.plus, .use, .chip, .sugrow):hover), .chat.master .lines :global(.sm:hover) { background: var(--master-highest); }

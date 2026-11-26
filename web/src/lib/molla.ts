@@ -279,3 +279,35 @@ export function crescita(node: HTMLTextAreaElement, _v: string) {
     destroy: () => mm.stop(),
   }
 }
+
+/**
+ * Voce 6 del terzo giro, fedele all'originale (File drop; app-animazioni-terzo-c-26-11): al rilascio ogni file (al massimo tre) parte
+ * dal punto del rilascio come una pastiglia col suo nome e vola nel campo: prima pigro (molla 150 18), dopo 0,35 s deciso (520 36),
+ * inclinato dalla sua velocità (fino a 16°); arrivato si stringe a 0 (520 34) e svanisce 0,16 s dopo. Moto ridotto: niente volo.
+ */
+export function volaFile(names: string[], x: number, y: number, target: HTMLElement | null) {
+  if (ridotto() || !target || !names.length) return
+  const r = target.getBoundingClientRect()
+  const tx = r.left + 24, ty = r.top + r.height / 2
+  names.slice(0, 3).forEach((name, i) => {
+    const el = document.createElement('div')
+    el.textContent = name
+    el.setAttribute('aria-hidden', 'true')
+    Object.assign(el.style, { position: 'fixed', left: '0', top: '0', zIndex: '60', height: '44px', padding: '0 14px', display: 'flex', alignItems: 'center', borderRadius: '14px', background: 'var(--tx)', color: 'var(--bg, #000)', font: '500 14px var(--sans, sans-serif)', whiteSpace: 'nowrap', pointerEvents: 'none', transformOrigin: '50% 50%' })
+    document.body.append(el)
+    const FX = molla(x + i * 12, 150, 18), FY = molla(y + i * 12, 150, 18), FS = molla(1, 520, 34)
+    FX.t = tx + i * 8; FY.t = ty
+    let gone = false
+    const render = () => {
+      const rot = clamp(FX.v * 0.04, -16, 16)
+      el.style.transform = `translate(${(FX.x - el.offsetWidth / 2).toFixed(1)}px, ${(FY.x - 22).toFixed(1)}px) rotate(${rot.toFixed(2)}deg) scale(${Math.max(0, FS.x).toFixed(4)})`
+      if (gone) el.style.opacity = '0'
+    }
+    const mm = motore([FX, FY, FS], render)
+    render(); mm.vai()
+    setTimeout(() => { FX.k = FY.k = 520; FX.c = FY.c = 36; mm.vai() }, 350 + i * 60)
+    setTimeout(() => { FS.t = 0; mm.vai() }, 700 + i * 60)
+    setTimeout(() => { gone = true; render() }, 860 + i * 60)
+    setTimeout(() => { mm.stop(); el.remove() }, 1300 + i * 60)
+  })
+}
