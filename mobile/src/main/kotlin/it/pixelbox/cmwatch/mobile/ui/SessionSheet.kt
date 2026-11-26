@@ -1577,7 +1577,7 @@ private fun MineBubble(m: Sent, status: ChatRules.Status, reason: String?, actio
                     m.attachments.forEach { AttachmentThumb(it, maxW = 150.dp, maxH = 150.dp) }
                 }
                 // Pressione lunga = selezione di una parte del testo, con la barra di sistema per copiarla (Franz, 02/10 20:31).
-                if (m.text.isNotBlank()) Quotable(m.text, m.sentAt) { SelectionContainer { Text(linked(m.text), style = requestStyle(m.text), color = Cm.text) } }
+                if (m.text.isNotBlank()) Quotable(m.text, m.sentAt) { SelectionContainer { QuotedText(m.text) } }
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -1616,7 +1616,7 @@ private fun UserBubble(e: TranscriptEntry, onResend: (String) -> Unit) {
         Surface(color = F3.you, shape = RoundedCornerShape(20.dp, 20.dp, 6.dp, 20.dp)) {
             Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 RequestMeta(from?.let { stringResource(it) }, e.at)
-                Quotable(text, e.at) { SelectionContainer { Text(linked(text), style = requestStyle(text), color = Cm.text) } }
+                Quotable(text, e.at) { SelectionContainer { QuotedText(text) } }
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -2821,13 +2821,52 @@ private fun RichText(text: String, tasks: TaskLinks, tone: androidx.compose.ui.g
 @Composable
 private fun QuoteCard(text: String, tasks: TaskLinks) {
     val clip = LocalClipboardManager.current
+    val quoteBar = V3.Tx.copy(alpha = 0.28f)
     val shape = RoundedCornerShape(12.dp)
     Row(
-        Modifier.fillMaxWidth().testTag("chat-citazione").clip(shape).background(V3.Bg).border(1.dp, V3.Line, shape).padding(start = 14.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
+        // app-citazioni-estetica-26-11: anche nelle risposte la citazione ha la barra a sinistra; resta «Copia».
+        Modifier.fillMaxWidth().testTag("chat-citazione").drawBehind { drawRect(quoteBar, size = androidx.compose.ui.geometry.Size(3.dp.toPx(), size.height)) }.padding(start = 12.dp, end = 0.dp, top = 4.dp, bottom = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Box(Modifier.weight(1f)) { RichText(text, tasks, Cm.text) }
+        Box(Modifier.weight(1f)) { RichText(text, tasks, V3.Tx2) }
         CopyPill { it.pixelbox.cmwatch.rules.Answer.copyText(text) }
+    }
+}
+
+/**
+ * app-citazioni-estetica-26-11 (Franz 26/11 15:46): il testo di un fumetto con le righe «>» come blocco di citazione (barra a sinistra,
+ * testo più piccolo e tenue, tre righe e «altro»), il resto com'era.
+ */
+@Composable
+private fun QuotedText(text: String) {
+    val parts = remember(text) { it.pixelbox.cmwatch.rules.Citazione.parts(text) }
+    if (parts.none { p -> p.quote }) { Text(linked(text), style = requestStyle(text), color = Cm.text); return }
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        parts.forEach { p ->
+            // Con una citazione accanto il testo usa la misura dei messaggi lunghi, come uno con più righe.
+            if (p.quote) QuoteBlock(p.text) else Text(linked(p.text), style = requestStyle(p.text + "\n"), color = Cm.text)
+        }
+    }
+}
+
+/** Una citazione: barra a sinistra, testo tenue, al massimo [Citazione.LINES] righe finché non si tocca «altro». */
+@Composable
+internal fun QuoteBlock(text: String) {
+    var open by remember(text) { mutableStateOf(false) }
+    var over by remember(text) { mutableStateOf(false) }
+    val bar = V3.Tx.copy(alpha = 0.28f)
+    Column(
+        Modifier.drawBehind { drawRect(bar, size = androidx.compose.ui.geometry.Size(3.dp.toPx(), size.height)) }.padding(start = 12.dp, top = 2.dp, bottom = 2.dp).testTag("citazione"),
+    ) {
+        Text(
+            text, style = V3.Small.copy(fontSize = 14.sp, lineHeight = 20.sp, color = V3.Tx2),
+            maxLines = if (open) Int.MAX_VALUE else it.pixelbox.cmwatch.rules.Citazione.LINES, overflow = androidx.compose.ui.text.style.TextOverflow.Clip,
+            onTextLayout = { r -> if (!open) over = r.hasVisualOverflow },
+        )
+        if (over && !open) Text(
+            stringResource(R.string.quote_more), style = V3.Small.copy(fontSize = 13.5.sp, color = V3.Tx, textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline),
+            modifier = Modifier.handCursor().clickable { open = true }.padding(vertical = 4.dp),
+        )
     }
 }
 

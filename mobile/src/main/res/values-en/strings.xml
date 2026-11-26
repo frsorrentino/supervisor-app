@@ -436,6 +436,7 @@
     <string name="proof_failed">%1$s failed</string>
     <string name="proof_todo">%1$s to do</string>
     <string name="proof_all_done">All steps passed</string>
+    <string name="quote_more">more</string>
     <string name="copy">Copy</string>
     <string name="edit">Edit</string>
     <string name="resend">Send again</string>

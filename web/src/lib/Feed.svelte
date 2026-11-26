@@ -3,6 +3,8 @@
   import { DAY } from './durations'
   import { popOnChange, swapOnChange } from './motion'
   import { COPY_HOLD_MS } from './animazioni'
+  import { parts as citeParts } from './citazione'
+  import QuoteBlock from './QuoteBlock.svelte'
   import { locale } from './lang'
   import type { Session, StepDiff, TranscriptEntry, TranscriptFile } from './contract'
   import type { Load } from './diff'
@@ -356,6 +358,7 @@
 <!-- La richiesta: il tuo fumetto a destra. data-quote: il testo che «Cita tutto» mette sopra il campo, con l'ora. -->
 {#snippet request(q: Request)}
   {@const text = reqText(q)}
+  {@const cps = citeParts(text)}
   <!-- data-mine (app-trova-messaggi-20-11): la fermata del salto fra i miei messaggi, la voce o il mandato se non è ancora arrivato. -->
   <div class="me" class:found={flash != null && (q.entry?.id === flash || (q.type === 'mine' && q.sent.id === flash))} data-entry={q.entry?.id} data-mine={q.entry?.id ?? (q.type === 'mine' ? q.sent.id : undefined)}>
     {#if q.type === 'mine'}
@@ -365,7 +368,11 @@
     {#if text}
       <div class="bubble" class:low={q.type === 'user'} data-quote={text} data-quote-at={reqAt(q) ?? ''}>
         <div class="m">{reqMeta(q)}</div>
-        <p class="t" class:long={text.length > 140 || text.includes('\n')}><Md {text} /></p>
+        <!-- app-citazioni-estetica-26-11: le righe con «>» sono un blocco di citazione, il resto la risposta. -->
+        {#each cps as cp, ci (ci)}
+          {#if cp.quote}<QuoteBlock text={cp.text} />
+          {:else}<p class="t" class:long={cp.text.length > 140 || cp.text.includes('\n') || cps.length > 1}><Md text={cp.text} /></p>{/if}
+        {/each}
       </div>
     {/if}
     <div class="mrow">
@@ -606,7 +613,8 @@
   .za .cmd { background: var(--bg); }
   .cmd :global(svg) { flex: none; }
   .cmd code { flex: 1; min-width: 0; font: 13.5px/21px var(--mono); color: var(--tx); white-space: pre-wrap; overflow-wrap: anywhere; }
-  .sq { display: flex; gap: 10px; padding: 12px 8px 12px 14px; border-radius: 12px; background: var(--s2); border: 1px solid var(--line); color: var(--tx); }
+  /* app-citazioni-estetica-26-11: anche nelle risposte la citazione ha la barra a sinistra e il testo tenue; resta «Copia». */
+  .sq { display: flex; gap: 10px; padding: 4px 0 4px 12px; border-left: 3px solid color-mix(in srgb, var(--tx) 28%, transparent); color: var(--tx2); }
   .za .sq { background: var(--bg); }
   .sq > .md { flex: 1; }
   .cmd .cp, .sq .cp { flex: none; align-self: flex-start; font-family: var(--display); font-weight: 600; font-size: 14px; line-height: 20px; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--line); color: var(--tx); }
