@@ -348,6 +348,8 @@ fun RateSlider(
     // Variante A (Franz, 09/10 09:31): mentre il dito trascina, sopra il pallino un fumetto col valore, fuori dal pollice;
     // al passaggio su 1× uno scatto, per sentire il normale senza guardare.
     var ownDrag by remember { mutableStateOf(false) }
+    // Voce 5 del terzo giro (gelatina, JellyRate.kt): dove sta il dito, per l'elastico oltre le estremità.
+    var finger by remember { mutableStateOf<Float?>(null) }
     val showBubble = dragging || ownDrag
     val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
     var last by remember { mutableFloatStateOf(value) }
@@ -376,21 +378,62 @@ fun RateSlider(
                 .pointerInput(Unit) {
                     fun at(x: Float) = r.snap(r.MIN + (x / size.width).coerceIn(0f, 1f) * (r.MAX - r.MIN))
                     detectHorizontalDragGestures(
-                        onDragStart = { o -> ownDrag = true; change(at(o.x)) },
-                        onDragEnd = { ownDrag = false; done() }, onDragCancel = { ownDrag = false; done() },
-                        onHorizontalDrag = { c, _ -> change(at(c.position.x)) },
+                        onDragStart = { o -> ownDrag = true; finger = o.x; change(at(o.x)) },
+                        onDragEnd = { ownDrag = false; finger = null; done() }, onDragCancel = { ownDrag = false; finger = null; done() },
+                        onHorizontalDrag = { c, _ -> finger = c.position.x; change(at(c.position.x)) },
                     )
                 },
             contentAlignment = Alignment.CenterStart,
         ) {
             val f = r.fraction(value).coerceIn(0f, 1f)
-            Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)).background(SLIDER_TRACK))
-            Box(Modifier.width(maxWidth * f).height(4.dp).clip(RoundedCornerShape(2.dp)).background(Cm.actionIcon))
-            Box(Modifier.offset(x = maxWidth * r.fraction(r.NORMAL) - 1.dp).width(2.dp).height(14.dp).clip(RoundedCornerShape(1.dp)).background(Cm.text2))
-            Box(Modifier.offset(x = maxWidth * f - 10.dp).size(20.dp).clip(CircleShape).background(Cm.actionIcon))
-            if (showBubble) {
-                val gap = with(androidx.compose.ui.platform.LocalDensity.current) { 52.dp.roundToPx() }
-                androidx.compose.ui.window.Popup(popupPositionProvider = remember(f, gap) { AboveThumb(f, gap) }) { RateBubble(value) }
+            // Voce 5 del terzo giro, fedele all'originale con la gelatina b (JellyRate.kt): traccia, riempimento che finisce sotto il
+            // centro del pollice, una tacca ogni 0,05 (lunga ogni 0,25) che si accende quando il valore la passa, il pollice che
+            // si allunga con la velocità; mentre trascini pollice, collo e goccia col numero escono sopra, in un popup, per non
+            // tagliarsi al bordo della pillola.
+            val off = animationsOff()
+            val measurer = androidx.compose.ui.text.rememberTextMeasurer()
+            val sim = remember { JellySim() }
+            val dens = androidx.compose.ui.platform.LocalDensity.current
+            val w = constraints.maxWidth.toFloat()
+            val rr = with(dens) { 12.dp.toPx() }
+            val rest = jellyX(f, w, rr)
+            val fingerX = finger
+            if (!sim.ready && w > 0f) { sim.X.x = rest; sim.X.t = rest; sim.DX.x = rest; sim.DX.t = rest; sim.ready = true }
+            sim.X.t = if (ownDrag && fingerX != null) JellySim.rubber(fingerX, rr, w - rr, with(dens) { 18.dp.toPx() }) else rest
+            if (showBubble) { sim.X.k = 900f; sim.X.c = 50f } else { sim.X.k = 300f; sim.X.c = 14f }
+            sim.DY.t = if (showBubble) -with(dens) { 38.dp.toPx() } else 0f
+            sim.DS.t = if (showBubble) 1f else 0.5f
+            sim.PS.t = if (showBubble) 1.16f else 1f
+            val tick = rememberJellyClock(sim, showBubble, off, sim.X.t)
+            val lifted = showBubble || sim.DS.x > 0.52f || kotlin.math.abs(sim.DY.x) > with(dens) { 1.dp.toPx() }
+            val fillColor = Cm.actionIcon
+            val track = SLIDER_TRACK
+            val markOff = V3.S3; val markOn = V3.Tx2; val majorOff = V3.Tx3; val majorOn = V3.Tx
+            androidx.compose.foundation.Canvas(Modifier.fillMaxWidth().height(28.dp)) {
+                tick
+                val cy = size.height / 2
+                drawRoundRect(track, androidx.compose.ui.geometry.Offset(0f, cy - 2.dp.toPx()), androidx.compose.ui.geometry.Size(size.width, 4.dp.toPx()), androidx.compose.ui.geometry.CornerRadius(2.dp.toPx()))
+                val x = sim.X.x
+                val fw = x.coerceIn(0f, size.width) * ((x - rr) / rr).coerceIn(0f, 1f)
+                if (fw > 0f) drawRoundRect(fillColor, androidx.compose.ui.geometry.Offset(0f, cy - 2.dp.toPx()), androidx.compose.ui.geometry.Size(fw, 4.dp.toPx()), androidx.compose.ui.geometry.CornerRadius(2.dp.toPx()))
+                val steps = ((r.MAX - r.MIN) / 0.05f).roundToInt()
+                for (i in 0..steps) {
+                    val v = r.MIN + i * 0.05f
+                    val major = i % 5 == 0
+                    val lit = v <= value + 0.001f
+                    val mx = jellyX(r.fraction(v), size.width, rr)
+                    val mh = (if (major) 8 else 4).dp.toPx()
+                    drawRect(if (major) (if (lit) majorOn else majorOff) else (if (lit) markOn else markOff), androidx.compose.ui.geometry.Offset(mx - 0.75.dp.toPx(), cy + 5.dp.toPx()), androidx.compose.ui.geometry.Size(1.5.dp.toPx(), mh))
+                }
+                if (!lifted) drawJelly(sim, androidx.compose.ui.geometry.Offset(x, cy), fillColor, Cm.onPrimary, "", measurer, androidx.compose.ui.text.TextStyle.Default, withDrop = false)
+            }
+            if (lifted) {
+                val lift = with(dens) { 70.dp.roundToPx() }
+                val labelStyle = MaterialTheme.typography.labelMedium.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                JellyPopup(lift, maxWidth + 80.dp, 110.dp) {
+                    tick
+                    drawJelly(sim, androidx.compose.ui.geometry.Offset(sim.X.x + 40.dp.toPx(), 70.dp.toPx()), fillColor, Cm.onPrimary, label, measurer, labelStyle, withDrop = true)
+                }
             }
         }
         Box(Modifier.fillMaxWidth()) {
