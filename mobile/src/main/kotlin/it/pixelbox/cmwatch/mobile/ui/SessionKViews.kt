@@ -341,7 +341,8 @@ internal fun KStepBar(
                 Box(
                     Modifier.weight(1f).clip(shape).background(bg)
                         .drawBehind { if (f > 0f && look != ProvaLook.FAILED) drawRect(green, size = androidx.compose.ui.geometry.Size(size.width * f, size.height)) }
-                        .border(1.dp, line, shape).padding(vertical = 7.dp),
+                        // Tutti i segmenti alti uguale, anche senza nome dentro (i passi della chiusura) e con le animazioni ferme.
+                        .border(1.dp, line, shape).heightIn(min = 34.dp).padding(vertical = 7.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {

@@ -75,7 +75,7 @@
 
 <style>
   .sb { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 4px; margin-top: 8px; }
-  .seg { --f: 0; --l: 0%; --c: 0; --p: 1; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 7px 4px; border-radius: 6px; font-size: 13px; line-height: 18px; white-space: nowrap; overflow: hidden; color: var(--tx2);
+  .seg { --f: 0; --l: 0%; --c: 0; --p: 1; min-width: 0; min-height: 34px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 7px 4px; border-radius: 6px; font-size: 13px; line-height: 18px; white-space: nowrap; overflow: hidden; color: var(--tx2);
     background: linear-gradient(90deg, color-mix(in srgb, var(--good) 16%, var(--s1)) calc(var(--f) * 100%), var(--s2) calc(var(--f) * 100%));
     border: 1px solid color-mix(in srgb, color-mix(in srgb, var(--good) 45%, transparent) calc(var(--f) * 100%), color-mix(in srgb, var(--busy) var(--l), var(--line))); }
   .seg.done { color: var(--good); }
