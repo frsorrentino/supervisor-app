@@ -571,7 +571,6 @@ fun WaitImagesViewer(items: List<Pair<String, String>>, start: Int, onClose: () 
                     val w = maxOf(8f, edgeB.value - a)
                     drawRoundRect(Color.White, topLeft = androidx.compose.ui.geometry.Offset(a * u, 0f), size = androidx.compose.ui.geometry.Size(w * u, 8f * u), cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f * u))
                 }
-                }
             }
         }
     }
