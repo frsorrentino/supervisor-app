@@ -1310,7 +1310,8 @@
         </button>
       </div>
       <!-- app-animazioni-passi-26-11 (contratto 1.162): le tappe della prova del compito in verifica su un filo. -->
-      {#if s.steps?.items?.length}<ProofRail steps={s.steps} />{/if}
+      <!-- Centrato nella riga: esce a sinistra della colonna del glifo (52 + 8) e rientra di 12, il margine destro della riga. -->
+      {#if s.steps?.items?.length}<ProofRail steps={s.steps} bleed={48} />{/if}
       <!-- app-scheda-sessione-semplice-19-11: i blocchi della scheda, gli stessi chiusa e aperta; aperta li mette nell'ordine della K. -->
       {#snippet okDoneB()}
       {#if open && !unified && group === 'waiting' && !s.question}

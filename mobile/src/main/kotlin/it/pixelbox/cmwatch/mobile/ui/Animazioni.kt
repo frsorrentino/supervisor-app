@@ -34,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -302,7 +303,7 @@ internal fun UndoSnack() {
  * che gira in 1,2 s, una fallita è rossa; sotto, a parole, dove si è. Con le animazioni spente niente movimento, arco fermo.
  */
 @Composable
-internal fun ProofRail(steps: it.pixelbox.cmwatch.contract.ProofSteps) {
+internal fun ProofRail(steps: it.pixelbox.cmwatch.contract.ProofSteps, bleed: androidx.compose.ui.unit.Dp = 0.dp, inset: androidx.compose.ui.unit.Dp = 0.dp) {
     val items = steps.items
     if (items.isEmpty()) return
     val off = animationsOff()
@@ -314,7 +315,16 @@ internal fun ProofRail(steps: it.pixelbox.cmwatch.contract.ProofSteps) {
         t.animateFloat(0f, 360f, androidx.compose.animation.core.infiniteRepeatable(tween(1200, easing = androidx.compose.animation.core.LinearEasing)), label = "arco").value
     }
     val good = V3.Good; val red = V3.Red; val busy = V3.Busy; val line = V3.S3; val ink = V3.Tx3; val bg = V3.S1
-    androidx.compose.foundation.layout.Column(Modifier.fillMaxWidth().padding(top = 6.dp).testTag("passi-prova")) {
+    // app-passi-centrati-26-11 (Franz 26/11 15:02: «troppo a destra, serve ben centrato»): nella riga della sessione il filo esce a
+    // sinistra della colonna del testo di [bleed] (la colonna del glifo) e rientra di [inset], lo stesso margine del lato destro: così
+    // è centrato nella riga intera e non sotto il nome.
+    val wide = Modifier.layout { m, c ->
+        val extra = (bleed - inset).roundToPx()
+        val w = (c.maxWidth + extra).coerceAtLeast(0)
+        val p = m.measure(c.copy(minWidth = w, maxWidth = w))
+        layout(c.maxWidth, p.height) { p.place(-extra, 0) }
+    }
+    androidx.compose.foundation.layout.Column(Modifier.fillMaxWidth().then(if (bleed > 0.dp) wide else Modifier).padding(top = 6.dp).testTag("passi-prova")) {
         androidx.compose.foundation.Canvas(Modifier.fillMaxWidth().height(24.dp)) {
             val n = items.size
             val cw = size.width / n
@@ -366,7 +376,7 @@ internal fun ProofRail(steps: it.pixelbox.cmwatch.contract.ProofSteps) {
                 it.pixelbox.cmwatch.rules.PassiProva.Say.TODO -> stringResource(R.string.proof_todo, l.label)
                 it.pixelbox.cmwatch.rules.PassiProva.Say.ALL_DONE -> stringResource(R.string.proof_all_done)
             }
-            Text(text, style = V3.Meter, maxLines = 1, modifier = Modifier.padding(top = 2.dp))
+            Text(text, style = V3.Meter, maxLines = 1, textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 2.dp))
         }
     }
 }

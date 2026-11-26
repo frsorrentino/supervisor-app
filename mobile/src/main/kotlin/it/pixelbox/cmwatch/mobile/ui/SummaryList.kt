@@ -1486,7 +1486,7 @@ private fun SummaryCard(
             Text(g, style = V3.Small, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip)
         }
         // app-animazioni-passi-26-11 (contratto 1.162): le tappe della prova del compito in verifica su un filo.
-        if (!compact) s.steps?.let { st -> ProofRail(st) }
+        if (!compact) s.steps?.let { st -> ProofRail(st, bleed = V3.Rail + 8.dp, inset = 10.dp) }
         // Franz 24/10 19:46 (B2): l'esito di una ferma più vecchio di 6 ore si spegne e dice da quante ore.
         val old = Summary.staleHours(r, now)
         // Chiusa, una sessione al lavoro è una riga: lo strumento in mono (app-home-riordino-29-10).

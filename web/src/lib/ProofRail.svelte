@@ -5,14 +5,16 @@
   // Voce 5 della prima proposta di animazioni (Passi della prova, app-animazioni-passi-26-11, contratto 1.162), come ProofRail sul
   // telefono: le tappe del compito in verifica su un filo che si riempie fino alla tappa di adesso; le passate spunte verdi, quella in
   // corso con l'arco che gira, una fallita rossa; sotto, a parole, dove si è. Con le animazioni ridotte niente movimento.
-  let { steps }: { steps: ProofSteps } = $props()
+  // app-passi-centrati-26-11 (Franz 26/11 15:02: «troppo a destra, serve ben centrato»): `bleed` px a sinistra fuori dalla colonna del
+  // testo (la colonna del glifo), così il filo è centrato nella riga intera e non sotto il nome.
+  let { steps, bleed = 0 }: { steps: ProofSteps; bleed?: number } = $props()
   const items = $derived(steps.items)
   const l = $derived(line(steps))
   const say = $derived(!l ? '' : l.say === 'running' ? t.proofRunning(l.label) : l.say === 'failed' ? t.proofFailed(l.label) : l.say === 'todo' ? t.proofTodo(l.label) : t.proofAllDone)
 </script>
 
 {#if items.length}
-  <div class="pr" data-testid="passi-prova" style:--n={items.length}>
+  <div class="pr" data-testid="passi-prova" style:--n={items.length} style:margin-left="{-bleed}px">
     <div class="steps">
       <div class="rail" aria-hidden="true"><i style:width="{fill(items) * 100}%"></i></div>
       {#each items as s (s.key)}
@@ -45,6 +47,6 @@
   .now .dot::after { content: ''; position: absolute; inset: -2px; border-radius: 50%; border: 2px solid transparent; border-top-color: var(--busy); animation: pr-spin 1.2s linear infinite; }
   @keyframes pr-spin { to { transform: rotate(360deg); } }
   .lb { white-space: nowrap; }
-  .say { margin: 4px 0 0; }
+  .say { margin: 4px 0 0; text-align: center; }
   @media (prefers-reduced-motion: reduce) { .rail i { transition: none; } .now .dot::after { animation: none; border-color: var(--busy); } }
 </style>
