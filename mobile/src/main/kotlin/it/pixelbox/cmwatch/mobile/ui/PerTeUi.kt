@@ -112,9 +112,11 @@ fun ChatBlock(
     pill: Boolean = false, count: String? = null,
     /** Voce 3 di app-animazioni-seconde-26-11 (Per te a pila): chiuso, quanti bordi di voci si vedono sotto, 0-2. */
     stack: Int = 0,
+    /** Voce 3 (Fan cards, Franz 26/11 20:38): i titoli delle voci sotto, per il ventaglio con la pressione lunga (FanPile.kt). */
+    fan: List<String> = emptyList(),
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    if (pill && !open) return BlockPill(icon, title, count ?: n.toString(), amber, onToggle, modifier, tag, stack)
+    if (pill && !open) return BlockPill(icon, title, count ?: n.toString(), amber, onToggle, modifier, tag, stack, fan)
     val lit = amber && !open
     val shape = RoundedCornerShape(14.dp)
     val label = stringResource(if (open) R.string.box_close else R.string.box_open, title)
@@ -153,7 +155,7 @@ private fun BlockGlyph(icon: BlockIcon, tint: Color, size: Int) {
 
 /** Un riquadro chiuso (app-riquadri-chiusi-16-11): una pillola con icona, nome e numero; il tocco lo apre. 40 dp per il dito. */
 @Composable
-private fun BlockPill(icon: BlockIcon, title: String, count: String, amber: Boolean, onToggle: () -> Unit, modifier: Modifier, tag: String?, stack: Int = 0) {
+private fun BlockPill(icon: BlockIcon, title: String, count: String, amber: Boolean, onToggle: () -> Unit, modifier: Modifier, tag: String?, stack: Int = 0, fan: List<String> = emptyList()) {
     val tint = if (amber) V3.Wait else V3.Tx2
     // Voce 3, fedele all'originale (Notification stack; app-animazioni-fedeli-26-11): sotto la pillola le altre voci come carte
     // impilate, al massimo due, allineate in basso, ognuna 10 dp più giù e scalata del 5 % per livello (0,95, 0,90).
@@ -171,8 +173,8 @@ private fun BlockPill(icon: BlockIcon, title: String, count: String, amber: Bool
             drawRoundRect(edgeLine, androidx.compose.ui.geometry.Offset(dx, dy), androidx.compose.ui.geometry.Size(w, h), r, style = androidx.compose.ui.graphics.drawscope.Stroke(1.dp.toPx()))
         }
     }
-    Row(
-        modifier.then(edges).clip(CircleShape).background(if (amber) veil(0.09f, V3.S1) else V3.S1).border(1.dp, if (amber) veil(0.38f, V3.Line) else V3.Line, CircleShape)
+    val face: @Composable (Boolean) -> Unit = { fanning -> Row(
+        modifier.then(if (fanning) Modifier.padding(bottom = (STACK_PEEK * stack).dp) else edges).clip(CircleShape).background(if (amber) veil(0.09f, V3.S1) else V3.S1).border(1.dp, if (amber) veil(0.38f, V3.Line) else V3.Line, CircleShape)
             .handCursor().clickable(onClickLabel = stringResource(R.string.box_open, title), role = Role.Button, onClick = onToggle)
             .then(if (tag != null) Modifier.testTag(tag) else Modifier)
             .heightIn(min = 40.dp).padding(start = 10.dp, end = 13.dp, top = 4.dp, bottom = 4.dp),
@@ -181,7 +183,8 @@ private fun BlockPill(icon: BlockIcon, title: String, count: String, amber: Bool
         BlockGlyph(icon, tint, 19)
         Text(title, style = V3.Name.copy(fontSize = 15.sp), maxLines = 1, softWrap = false)
         Text(count, style = V3.Small.copy(fontSize = 13.sp, color = tint), maxLines = 1, softWrap = false)
-    }
+    } }
+    if (fan.isEmpty() || stack <= 0) face(false) else FanPile(fan, edgeFill, edgeLine, animationsOff(), onToggle, face)
 }
 
 /** Il tasto principale di una voce: tonale, in ambra sulla voce che aspetta una risposta. */
@@ -303,7 +306,7 @@ fun PerTeBlock(
     val top = items.firstOrNull() ?: return
     ChatBlock(
         BlockIcon.HAND, stringResource(R.string.fy_title), items.size, top.title, open && !(numberOnly && onMaster != null), if (numberOnly && onMaster != null) onMaster else onToggle, modifier, amber = true,
-        hint = stringResource(R.string.per_te_hint), tag = "chat-per-te", pill = true, stack = it.pixelbox.cmwatch.rules.Animazioni.stackEdges(items.size),
+        hint = stringResource(R.string.per_te_hint), tag = "chat-per-te", pill = true, stack = it.pixelbox.cmwatch.rules.Animazioni.stackEdges(items.size), fan = items.drop(1).take(2).map { v -> v.title },
     ) {
         if (onMaster != null && !numberOnly) {
             HorizontalDivider(color = V3.Line)

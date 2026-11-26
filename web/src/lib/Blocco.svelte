@@ -1,18 +1,55 @@
 <script lang="ts">
   import type { Snippet } from 'svelte'
   import { t } from './t'
+  import { ferma, molla, motore, ridotto } from './molla'
   // Un blocco della chat ridotto a una riga (app-formato-unico-12-11, variante B scelta da Franz il 12/11 alle 07:29, tavola 6 del
   // mockup): icona, nome, quante voci e la prima; il tocco lo apre sul posto, con le voci sotto la stessa riga, e lo richiude. Lo
   // stesso per «Per te», «Azioni» e «Risultati». `amber`: il blocco di ciò che aspetta la persona. `extra`: un tasto a destra, prima
   // della freccia (il tasto principale della prima voce, la × dei risultati). La prima voce sta su una riga, tagliata senza «…».
   // `pill` (app-riquadri-chiusi-16-11): chiuso è una pillola con icona, nome e numero, nella riga dei riquadri della sessione;
   // aperto torna il blocco intero, a tutta larghezza.
-  let { icon, title, n, first = null, hint = null, open, amber = false, pill = false, stack = 0, cls = '', testid = undefined, onToggle, extra = null, children }: {
+  let { icon, title, n, first = null, hint = null, open, amber = false, pill = false, stack = 0, fan = [], cls = '', testid = undefined, onToggle, extra = null, children }: {
     icon: 'hand' | 'bolt' | 'eye' | 'warn' | 'layers' | 'flag'; title: string; n: number | string; first?: string | null; hint?: string | null; open: boolean
     amber?: boolean; pill?: boolean
     /** Voce 3 di app-animazioni-seconde-26-11 (Per te a pila): chiuso, quanti bordi di voci si vedono sotto, 0-2. */
-    stack?: number; cls?: string; testid?: string; onToggle: () => void; extra?: Snippet | null; children: Snippet
+    stack?: number
+    /** Voce 3 (Fan cards, Franz 26/11 20:38): i titoli delle voci sotto, per il ventaglio al passaggio del mouse. */
+    fan?: string[]; cls?: string; testid?: string; onToggle: () => void; extra?: Snippet | null; children: Snippet
   } = $props()
+  // Voce 3, la parte Fan cards dell'originale (app-animazioni-fedeli-26-11): col mouse sopra la pila chiusa le carte si aprono a
+  // ventaglio dal bordo in basso: di lato 78 px per livello, 12° di rotazione, le esterne 12 px più giù (molla 220 18); quella sotto il
+  // puntatore sale di 22 px e scala a 1,06 (420 20, 420 22) e passa davanti. Uscendo tornano nella pila. Moto ridotto: niente ventaglio.
+  const F = molla(0, 220, 18)
+  const L = [molla(0, 420, 20), molla(0, 420, 20), molla(0, 420, 20)]
+  const S = [molla(1, 420, 22), molla(1, 420, 22), molla(1, 420, 22)]
+  let hot = $state(-1)
+  let fanning = $state(false)
+  let pillEl = $state<HTMLButtonElement>()
+  const dOf = (i: number) => (i === 1 ? -1 : i === 2 ? 1 : 0)
+  function paint() {
+    if (!pillEl) return
+    const x = F.x
+    fanning = x > 0.001 || !ferma(F)
+    pillEl.style.transform = `translateY(${L[0].x.toFixed(2)}px) scale(${S[0].x.toFixed(4)})`
+    pillEl.querySelectorAll<HTMLElement>('.fc').forEach((el) => {
+      const k = Number(el.dataset.k), d = dOf(k)
+      const y = (1 - x) * 10 * k + x * Math.abs(d) * 12 + L[k].x
+      const sc = ((1 - x) * (1 - 0.05 * k) + x) * S[k].x
+      el.style.transform = `translate(${(d * x * 78).toFixed(2)}px, ${y.toFixed(2)}px) rotate(${(d * x * 12).toFixed(2)}deg) scale(${sc.toFixed(4)})`
+    })
+  }
+  const fm = motore([F, ...L, ...S], paint)
+  function setHot(i: number) { if (i === hot) return; hot = i; L.forEach((l, k) => (l.t = k === i ? -22 : 0)); S.forEach((q, k) => (q.t = k === i ? 1.06 : 1)); fm.vai() }
+  function fanIn(e: PointerEvent) { if (e.pointerType !== 'mouse' || !fan.length || ridotto()) return; F.t = 1; fm.vai() }
+  function fanMove(e: PointerEvent) {
+    if (e.pointerType !== 'mouse' || F.t !== 1 || !pillEl) return
+    const r = pillEl.getBoundingClientRect(), dx = (e.clientX - (r.left + r.width / 2)) / 78
+    let best = 0
+    for (let k = 0; k <= Math.min(2, fan.length); k++) if (Math.abs(dOf(k) - dx) < Math.abs(dOf(best) - dx)) best = k
+    setHot(best)
+  }
+  function fanOut() { if (F.t === 0) return; setHot(-1); F.t = 0; fm.vai() }
+  $effect(() => () => fm.stop())
   const key = (e: KeyboardEvent) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onToggle() } }
 </script>
 
@@ -28,7 +65,8 @@
 {/snippet}
 
 {#if pill && !open}
-  <button class="pill {cls}" class:amber class:s1={stack === 1} class:s2={stack >= 2} data-testid={testid} aria-expanded="false" aria-label={t.boxOpen(title)} onclick={onToggle}>
+  <button class="pill {cls}" bind:this={pillEl} class:amber class:s1={stack === 1} class:s2={stack >= 2} class:fanning data-testid={testid} aria-expanded="false" aria-label={t.boxOpen(title)} onclick={onToggle} onpointerenter={fanIn} onpointermove={fanMove} onpointerleave={fanOut}>
+    {#each fan.slice(0, Math.min(2, stack)) as ft, i}<span class="fc" class:hot={hot === i + 1} data-k={i + 1} aria-hidden="true">{ft}</span>{/each}{#if stack > 0}<span class="face" aria-hidden="true"></span>{/if}
     {@render glyph()}<b>{title}</b><span class="n">{n}</span>
   </button>
 {:else}
@@ -74,8 +112,18 @@
   .pill.s1::before, .pill.s2::before, .pill.s2::after { content: ''; position: absolute; inset: -1px; border-radius: inherit; pointer-events: none; transform-origin: 50% 100%;
     background: var(--s1); border: 1px solid var(--line); }
   .pill.amber.s1::before, .pill.amber.s2::before, .pill.amber.s2::after { background: color-mix(in srgb, var(--wait) 6%, var(--s1)); border-color: color-mix(in srgb, var(--wait) 25%, var(--line)); }
-  .pill.s1::before, .pill.s2::before { z-index: -1; transform: translateY(10px) scale(.95); }
-  .pill.s2::after { z-index: -2; transform: translateY(20px) scale(.9); }
+  /* Dentro la pillola isolata il fondo suo dipingerebbe sotto le carte: lo porta `.face`, sopra le carte e sotto il testo. */
+  .pill.s1, .pill.s2 { background: transparent; border-color: transparent; }
+  .face { position: absolute; inset: -1px; z-index: -1; border-radius: inherit; background: var(--s1); border: 1px solid var(--line); pointer-events: none; }
+  .pill.amber .face { background: color-mix(in srgb, var(--wait) 9%, var(--s1)); border-color: color-mix(in srgb, var(--wait) 38%, var(--line)); }
+  .pill.s1::before, .pill.s2::before { z-index: -2; transform: translateY(10px) scale(.95); }
+  .pill.s2::after { z-index: -3; transform: translateY(20px) scale(.9); }
+  .pill.fanning::before, .pill.fanning::after { visibility: hidden; }
+  .fc { position: absolute; inset: -1px; z-index: -2; display: flex; align-items: center; padding: 0 13px; border-radius: 999px; transform-origin: 50% 100%; pointer-events: none; overflow: hidden;
+    font-size: 13px; color: var(--tx2); background: color-mix(in srgb, var(--wait) 6%, var(--s1)); border: 1px solid color-mix(in srgb, var(--wait) 25%, var(--line)); visibility: hidden; }
+  .pill.fanning .fc { visibility: visible; }
+  .fc[data-k='2'] { z-index: -3; }
+  .fc.hot { z-index: 5; }
   /* Voce 3: sotto il riquadro chiuso i bordi delle altre voci, come carte impilate; aperto, le voci scendono con la molla. */
   .blk.s1 { box-shadow: 0 4px 0 -1px color-mix(in srgb, var(--wait) 14%, var(--s1)), 0 4px 0 0 color-mix(in srgb, var(--wait) 30%, var(--line)); margin-bottom: 12px; }
   .blk.s2 { box-shadow: 0 4px 0 -1px color-mix(in srgb, var(--wait) 14%, var(--s1)), 0 4px 0 0 color-mix(in srgb, var(--wait) 30%, var(--line)), 0 8px 0 -2px color-mix(in srgb, var(--wait) 8%, var(--s1)), 0 8px 0 -1px color-mix(in srgb, var(--wait) 18%, var(--line)); margin-bottom: 16px; }
