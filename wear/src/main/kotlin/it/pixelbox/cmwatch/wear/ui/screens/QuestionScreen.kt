@@ -90,8 +90,9 @@ fun QuestionScreen(
 
     // Voce 8 di app-animazioni-seconde-26-11 (Domanda che arriva al polso): all'arrivo chi chiede, la domanda e i tasti salgono di 14 dp
     // e si posano con un piccolo sforamento, a 40 ms l'uno dall'altro; una volta sola per domanda. Con «riduci animazioni» niente.
-    // Nelle immagini di prova (Paparazzi) la domanda è già al suo posto.
-    val ferma = fermeAnimazioni || androidx.compose.ui.platform.LocalInspectionMode.current
+    // Solo all'arrivo: una domanda di più di 20 s fa (aperta più tardi, o nelle immagini di prova) è già al suo posto.
+    val appena = q != null && System.currentTimeMillis() / 1000 - q.askedAt <= 20
+    val ferma = fermeAnimazioni || !appena || androidx.compose.ui.platform.LocalInspectionMode.current
     val arrivo = androidx.compose.runtime.remember(q?.text) { androidx.compose.animation.core.Animatable(if (ferma) 1f else 0f) }
     LaunchedEffect(q?.text, ferma) { if (!ferma && q != null) arrivo.animateTo(1f, androidx.compose.animation.core.tween(620 + 6 * it.pixelbox.cmwatch.rules.Animazioni.STAGGER_MS, easing = androidx.compose.animation.core.LinearEasing)) }
     val sale = androidx.compose.animation.core.CubicBezierEasing(0.34f, 1.3f, 0.64f, 1f)
