@@ -358,6 +358,12 @@
     <string name="version_title">Version</string>
     <string name="version_value">%1$s · phone and watch</string>
     <!-- In-app update (P6, 21/10): the card at the top of the home and the row in Settings. -->
+    <string name="update_news">What\'s new</string>
+    <string name="update_news_minor">Minor fixes</string>
+    <plurals name="update_news_more">
+        <item quantity="one">and one more change</item>
+        <item quantity="other">and %d more changes</item>
+    </plurals>
     <string name="update_available">Update available</string>
     <string name="update_sub">%1$s · %2$s · published %3$s ago</string>
     <string name="update_install">Install</string>

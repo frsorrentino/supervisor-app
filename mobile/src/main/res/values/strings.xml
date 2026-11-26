@@ -367,6 +367,12 @@
     <string name="version_title">Versione</string>
     <string name="version_value">%1$s · telefono e orologio</string>
     <!-- L'aggiornamento dentro l'app (P6, approvata da Franz il 21/10 alle 23:58): la card in cima alla home e la riga in Impostazioni. -->
+    <string name="update_news">Novità</string>
+    <string name="update_news_minor">Correzioni minori</string>
+    <plurals name="update_news_more">
+        <item quantity="one">e un\'altra novità</item>
+        <item quantity="other">e altre %d novità</item>
+    </plurals>
     <string name="update_available">Aggiornamento disponibile</string>
     <string name="update_sub">%1$s · %2$s · pubblicata da %3$s</string>
     <string name="update_install">Installa</string>

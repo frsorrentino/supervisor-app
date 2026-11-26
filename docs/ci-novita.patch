@@ -1,0 +1,38 @@
+commit 60fa9b94508a943f88f199fabc1656458437dfa5
+Author: frsorrentino <149787678+frsorrentino@users.noreply.github.com>
+Date:   Thu Nov 26 14:05:20 2026 +0100
+
+    feat(phone): «Novità» in the update card, the changes since the installed version in short (app-changelog-aggiornamento-26-11)
+    
+    Franz 26/11 14:00: «nella sezione dell'aggiornamento possiamo aggiungere il changelog dell'aggiornamento in breve? lo mettiamo con accordion espandibile?». The update card gets «Novità», closed by default, with the home section header and the settings fold (200 ms open, 150 close); open, up to six lines in Italian on what changes, summing every pre-release between the installed version and the offered one, newest first, without duplicates, «e altre N novità» beyond six, «Correzioni minori» when nothing is written.
+    Source: each app commit carries one or more `Novita:` trailers written for Franz; the CI puts the trailers of the commits since the previous pre-release in a «## Novità» section at the top of the release body (commit subjects stay below), and the app reads that section (Novita.kt). The update check reads 20 releases instead of 10 to cover skipped ones. NovitaTest.
+    
+    Novita: Copia risponde con una spunta verde, e la voce segue la parola che sta leggendo
+    Novita: Le sessioni al lavoro hanno un riflesso, e il tabellone si muove quando rispondi
+    Novita: Le approvazioni in produzione si tengono premute; Non ora, Mai, Visto e Chiudi senza salvare hanno «Annulla» per 5 secondi
+    Novita: Carte e invii con tante immagini le mostrano tutte, coi puntini nel visore
+    Novita: L'app non offre più tasti che il PC rifiuterebbe (Parliamone, Consenti sempre, Chiudi su una sessione in uso)
+    Novita: In questa scheda, le novità dell'aggiornamento
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+    Claude-Session: https://claude.ai/code/session_01Um1yy785YTnGFzTqanL2UZ
+
+diff --git a/.github/workflows/build-android.yml b/.github/workflows/build-android.yml
+index e1d5aae9..6edec53d 100644
+--- a/.github/workflows/build-android.yml
++++ b/.github/workflows/build-android.yml
+@@ -188,8 +188,13 @@ jobs:
+           ver="0.2.$(git rev-list --count "$GITHUB_SHA")"
+           prev=$(gh release list --limit 1 --json tagName --jq '.[0].tagName' || true)
+           if [ -n "$prev" ] && git rev-parse -q --verify "refs/tags/$prev" >/dev/null; then range="$prev..$GITHUB_SHA"; else range="-n 10 $GITHUB_SHA"; fi
+-          git log --no-merges --format='- %s' $range | head -40 > notes.md
+-          [ -s notes.md ] || echo "- $(git log -1 --format=%s "$GITHUB_SHA")" > notes.md
++          # app-changelog-aggiornamento-26-11: in testa «## Novità», le righe `Novita:` dei commit del salto, in italiano e per Franz;
++          # la scheda dell'aggiornamento le legge (Novita.kt). Sotto, come prima, i titoli dei commit.
++          git log --no-merges --format='%(trailers:key=Novita,valueonly,separator=%x0A)' $range | sed -e 's/^[[:space:]]*//' -e '/^$/d' | awk '!seen[$0]++' | head -12 > novita.txt || true
++          : > notes.md
++          if [ -s novita.txt ]; then { echo '## Novità'; sed 's/^/- /' novita.txt; echo; } > notes.md; fi
++          git log --no-merges --format='- %s' $range | head -40 >> notes.md
++          grep -q '^- ' notes.md || echo "- $(git log -1 --format=%s "$GITHUB_SHA")" >> notes.md
+           if [ "$SNAPSHOTS" = changed ]; then
+             printf '\n%s\n' "Snapshot cambiati: le immagini nuove sono sul ramo goldens/${GITHUB_SHA::8} e nell'artifact paparazzi-snapshots del run $GITHUB_RUN_ID; i golden vanno presi sul ramo dell'app." >> notes.md
+           fi

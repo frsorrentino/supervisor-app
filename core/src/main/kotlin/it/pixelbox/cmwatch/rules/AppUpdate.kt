@@ -19,7 +19,8 @@ object AppUpdate {
     const val REPO = "frsorrentino/supervisor-app"
     /** L'asset dell'APK del telefono nelle release (lo stesso nome della CI). */
     const val ASSET = "mobile-release.apk"
-    const val RELEASES_URL = "https://api.github.com/repos/$REPO/releases?per_page=10"
+    // 20: le novità sommano anche le pre-release saltate (app-changelog-aggiornamento-26-11).
+    const val RELEASES_URL = "https://api.github.com/repos/$REPO/releases?per_page=20"
     /** Da solo l'app controlla al più ogni mezz'ora; «Controlla ora» passa sempre. Anonimo: 60 richieste l'ora. */
     const val CHECK_EVERY_S = 5 * 60L
 

@@ -44,6 +44,8 @@ class AppUpdater(private val ctx: Context, private val scope: CoroutineScope) {
     data class Ui(
         val phase: Phase = Phase.None, val checking: Boolean = false, val checkedAt: Long? = null, val error: String? = null,
         val needsPermission: Boolean = false,
+        /** app-changelog-aggiornamento-26-11: le novità fra l'installata e l'offerta (sezioni «Novità» delle pre-release). */
+        val novita: it.pixelbox.cmwatch.rules.Novita.Lines? = null,
     )
 
     val ui = MutableStateFlow(Ui())
@@ -86,7 +88,7 @@ class AppUpdater(private val ctx: Context, private val scope: CoroutineScope) {
                     same && (u.phase is Phase.Downloading || (u.phase is Phase.Ready && (u.phase as Phase.Ready).file.exists())) -> u.phase
                     else -> cached(offer)?.let { Phase.Ready(offer, it) } ?: Phase.Available(offer)
                 }
-                u.copy(phase = phase, checking = false, checkedAt = now, error = null)
+                u.copy(phase = phase, checking = false, checkedAt = now, error = null, novita = offer?.let { o -> it.pixelbox.cmwatch.rules.Novita.lines(releases, installed().installedAt, o) })
             }
         }
     }
