@@ -289,7 +289,9 @@ fun WaitCardBody(
         if (pills.isNotEmpty()) androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             pills.forEach { (i, a) ->
                 Box(Modifier.graphicsLayer { alpha = if (sent != null && sent != i) 0.45f else 1f }.testTag("ti-aspetta-tasto-$i")) {
-                    V3Pill(a.label, filled = TiAspetta.lookOf(a) == TiAspetta.Look.MAIN, confirmed = sent == i) { go(i, a) }
+                    // Voce 6 di app-animazioni-otto-26-11: l'ok di una carta di produzione si tiene premuto.
+                    if (TiAspetta.lookOf(a) == TiAspetta.Look.MAIN && sent == null && it.pixelbox.cmwatch.rules.Animazioni.needsHold(item)) HoldButton(stringResource(R.string.hold_to_approve, a.label), onDone = { go(i, a) })
+                    else V3Pill(a.label, filled = TiAspetta.lookOf(a) == TiAspetta.Look.MAIN, confirmed = sent == i) { go(i, a) }
                 }
             }
             // Il silenzio assenso accanto ai tasti; a 360 dp va sotto, intero. La riga con la data prende la fila intera.

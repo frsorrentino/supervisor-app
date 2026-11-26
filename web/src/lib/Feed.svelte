@@ -1,7 +1,8 @@
 <script lang="ts">
   import ProvaCards from './ProvaCards.svelte'
   import { DAY } from './durations'
-  import { popOnChange } from './motion'
+  import { popOnChange, swapOnChange } from './motion'
+  import { COPY_HOLD_MS } from './animazioni'
   import { locale } from './lang'
   import type { Session, StepDiff, TranscriptEntry, TranscriptFile } from './contract'
   import type { Load } from './diff'
@@ -114,7 +115,17 @@
     const today = new Date().toDateString() === d.toDateString()
     return `${t.sepReason[r]} · ${today ? '' : `${d.getDate()}/${d.getMonth() + 1} `}${hm(e.at)}`
   }
-  const copy = (x: string) => navigator.clipboard?.writeText(x)
+  // Voce 1 di app-animazioni-otto-26-11: Copia risponde. Il tasto toccato diventa una spunta verde («Copiato» quello a parole) per
+  // COPY_HOLD_MS, poi torna; la chiave è il testo copiato, così si accende solo il tasto di quel testo.
+  let copied = $state<string | null>(null)
+  let copyTimer: ReturnType<typeof setTimeout> | undefined
+  const copy = (x: string) => {
+    void navigator.clipboard?.writeText(x)
+    copied = x
+    clearTimeout(copyTimer)
+    copyTimer = setTimeout(() => (copied = null), COPY_HOLD_MS)
+  }
+  $effect(() => () => clearTimeout(copyTimer))
   const toolIcon = (e: TranscriptEntry): IconName => (e.error ? 'error' : kind(e.tool))
   const fileIcon = (f: TranscriptFile): IconName =>
     f.mime?.startsWith('image/') ? 'image' : f.mime === 'application/pdf' ? 'pdf' : f.mime?.startsWith('video/') ? 'film' : f.mime?.startsWith('audio/') ? 'audio' : 'file'
@@ -163,7 +174,7 @@
 {#snippet actions(text: string, at: number | null | undefined)}
   {@const reading = speech.text === text}
   <div class="acts">
-    <button class="sm" aria-label={t.copy} title={t.copy} onclick={() => copy(text)}><Icon name="copy" /></button>
+    <button class="sm" class:cpd={copied === text} aria-label={copied === text ? t.copiedWord : t.copy} title={t.copy} onclick={() => copy(text)}><span class="cpi" use:swapOnChange={copied === text}>{#if copied === text}<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>{:else}<Icon name="copy" />{/if}</span></button>
     <button class="play" aria-label={reading ? t.stopReading : t.readAloud} onclick={() => toggle(text, s.name)}>
       {#if reading}<svg viewBox="0 0 24 24" width="18" height="18"><rect x="7" y="7" width="10" height="10" rx="1.5" fill="currentColor" /></svg>
       {:else}<svg viewBox="0 0 24 24" width="18" height="18"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" /></svg>{/if}
@@ -197,8 +208,8 @@
     {:else if b.type === 'li'}<div class="li" style="--d:{b.depth}"><span class="mk" class:n={b.mark !== '•'}>{b.mark}</span><p><Md text={b.text} {onTask} bozze={bz} /></p></div>
     {:else if b.type === 'quote'}
       <!-- Un testo da mandare a qualcuno (app-chat-testo-da-inviare-13-11): in un box suo, senza «>», e «Copia» lo copia pulito. -->
-      <div class="sq" data-testid="chat-citazione"><div class="md">{@render richText(b.text, bz)}</div><button class="cp" onclick={() => copy(copyText(b.text))}>{t.copy}</button></div>
-    {:else}<div class="cmd"><Icon name="run" size={18} color="var(--tx3)" /><code>{b.text}</code><button class="cp" onclick={() => copy(b.text)}>{t.copy}</button></div>{/if}
+      <div class="sq" data-testid="chat-citazione"><div class="md">{@render richText(b.text, bz)}</div><button class="cp" class:cpd={copied === copyText(b.text)} onclick={() => copy(copyText(b.text))}><span class="cpi" use:swapOnChange={copied === copyText(b.text)}>{copied === copyText(b.text) ? `✓ ${t.copiedWord}` : t.copy}</span></button></div>
+    {:else}<div class="cmd"><Icon name="run" size={18} color="var(--tx3)" /><code>{b.text}</code><button class="cp" class:cpd={copied === b.text} onclick={() => copy(b.text)}><span class="cpi" use:swapOnChange={copied === b.text}>{copied === b.text ? `✓ ${t.copiedWord}` : t.copy}</span></button></div>{/if}
   {/each}
 {/snippet}
 
@@ -362,7 +373,7 @@
         {@const [ic, tone] = status[q.status]}
         <span class="mark" style="color:{tone}"><span class="pop" use:popOnChange={q.status}><Icon name={ic} size={16} color={tone} /></span>{q.status === 'scheduled' ? t.chatStatus.scheduled(hm(q.sent.scheduledFor ?? q.sent.sentAt)) : t.chatStatus[q.status]('')}</span>
       {:else if q.entry.queued}<span class="meta stale">{t.chatStatus.queued('')}</span>{/if}
-      <button class="sm" aria-label={t.copy} title={t.copy} onclick={() => copy(text)}><Icon name="copy" /></button>
+      <button class="sm" class:cpd={copied === text} aria-label={copied === text ? t.copiedWord : t.copy} title={t.copy} onclick={() => copy(text)}><span class="cpi" use:swapOnChange={copied === text}>{#if copied === text}<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>{:else}<Icon name="copy" />{/if}</span></button>
     </div>
   </div>
 {/snippet}
@@ -468,6 +479,9 @@
   .time { font-size: 12.5px; color: var(--text2); padding: 0 4px; font-weight: 500; }
   .meta { font-size: 12.5px; color: var(--text2); font-weight: 500; }
   .stale { color: var(--stale); }
+  /* Voce 1: lo scambio Copia ↔ spunta entra da 0,9 con la molla veloce e sfuma; con le animazioni ridotte il tempo è 1 ms. */
+  .cpd { color: var(--good); }
+  .cpi { display: inline-grid; place-items: center; }
   .sm { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: var(--text2); }
   .sm:hover { background: var(--surface); }
   .sbtn { align-self: flex-start; display: flex; flex-direction: column; gap: 1px; background: var(--high); color: var(--text); border-radius: 16px; padding: 8px 18px; text-decoration: none; min-height: 44px; justify-content: center; }

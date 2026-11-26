@@ -1,4 +1,6 @@
 <script lang="ts">
+  import HoldButton from './HoldButton.svelte'
+  import { needsHoldWait } from './animazioni'
   import TiAspetta from './TiAspetta.svelte'
   import { waitGone } from './waitGone'
   import CinqueMinuti from './CinqueMinuti.svelte'
@@ -157,7 +159,8 @@
           {#if acts.some(a => lookOf(a) !== 'option')}
             <div class="pills">
               {#each acts as a, i}{#if lookOf(a) !== 'option'}
-                <button class="pill" class:main={lookOf(a) === 'main'} class:done={sent === i} class:off={sent != null && sent !== i} disabled={sent != null} data-testid="ti-aspetta-tasto-{i}" onclick={() => go(i, a)}>{a.label}</button>
+                {#if lookOf(a) === 'main' && needsHoldWait(w) && sent == null}<HoldButton cls="pill main" label={t.holdToApprove(a.label)} onDone={() => go(i, a)} />
+                {:else}<button class="pill" class:main={lookOf(a) === 'main'} class:done={sent === i} class:off={sent != null && sent !== i} disabled={sent != null} data-testid="ti-aspetta-tasto-{i}" onclick={() => go(i, a)}>{a.label}</button>{/if}
               {/if}{/each}
               {#if silenceKey}<button class="pill sil" disabled={silenceBusy} data-testid="ti-aspetta-silenzio" onclick={() => silence(true)}><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2" /><path d="M12 7.5V12l3 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>{silenceBusy ? t.silenceSending : t.silenceKey}</button>{/if}
             </div>
@@ -208,6 +211,8 @@
   dl { display: grid; grid-template-columns: 96px 1fr; gap: 3px 10px; font-size: 14px; line-height: 20px; }
   dt { color: var(--tx3); }
   .pills { display: flex; flex-wrap: wrap; gap: 8px; }
+  /* Voce 6: il tasto da tenere premuto è un componente suo, con le stesse forme. */
+  .pills :global(.hold.pill) { font: 600 15px var(--display); padding: 9px 16px; border-radius: 999px; color: var(--wait); background: color-mix(in srgb, var(--wait) 14%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--red) 60%, transparent); }
   .pill { font: 600 15px var(--display); padding: 9px 16px; border-radius: 999px; background: var(--s3); color: var(--tx); }
   .pill.main { color: var(--wait); background: color-mix(in srgb, var(--wait) 14%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--wait) 60%, transparent); }
   .pill.done { box-shadow: inset 0 0 0 1px var(--good); }

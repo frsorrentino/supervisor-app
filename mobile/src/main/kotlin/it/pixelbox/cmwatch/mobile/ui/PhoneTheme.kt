@@ -232,7 +232,7 @@ fun Modifier.pressScale(source: androidx.compose.foundation.interaction.MutableI
 fun pressShape(source: androidx.compose.foundation.interaction.MutableInteractionSource): androidx.compose.ui.graphics.Shape = androidx.compose.foundation.shape.CircleShape
 
 /** Voce 13: le azioni decisive si sentono, una volta, alla conferma. */
-fun android.view.View.confirmHaptic() { performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM) }
+fun android.view.View.confirmHaptic() { Gesture.mark(); performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM) }
 
 /**
  * Una voce che cambia posto in una colonna normale, dove `animateItem` non arriva: scivola al posto nuovo con [CmMotion.bounce].

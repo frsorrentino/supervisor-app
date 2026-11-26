@@ -33,6 +33,12 @@ class Speech(ctx: Context) {
     val source: StateFlow<String?> = _source
     private val _block = MutableStateFlow<Int?>(null)
     val block: StateFlow<Int?> = _block
+    /**
+     * Voce 2 di app-animazioni-otto-26-11 (Lettura che segue la voce): la parola che il motore sta dicendo dentro il paragrafo
+     * letto, contata dall'inizio del paragrafo (`Animazioni.wordIndex`); null quando il motore non dice dove è arrivato.
+     */
+    private val _word = MutableStateFlow<Int?>(null)
+    val word: StateFlow<Int?> = _word
     private val _voices = MutableStateFlow<List<String>>(emptyList())
     /** Le voci italiane del motore, prima quelle installate e poi quelle di rete (come l'orologio). */
     val voices: StateFlow<List<String>> = _voices
@@ -67,11 +73,23 @@ class Speech(ctx: Context) {
                 if (utteranceId?.startsWith(prefix) != true) return
                 _speaking.value = current
                 val m = BLOCK.find(utteranceId)
-                _block.value = m?.groupValues?.get(1)?.toInt()
+                val nb = m?.groupValues?.get(1)?.toInt()
+                if (nb != _block.value) _word.value = null
+                _block.value = nb
                 m?.groupValues?.get(2)?.toInt()?.let { chunk = it }
                 // La velocità cambiata trascinando: il motore la prende solo a inizio frase, quindi la frase appena partita
                 // riparte subito con quella nuova, senza ripetere quella di prima (Franz, 08/10 20:51).
                 if (rateFrom in 0 until chunk) { rateFrom = -1; startAt(chunk) }
+            }
+            override fun onRangeStart(utteranceId: String?, start: Int, end: Int, frame: Int) {
+                if (utteranceId?.startsWith(prefix) != true) return
+                val m = BLOCK.find(utteranceId) ?: return
+                val b = m.groupValues[1].toInt()
+                val k = m.groupValues[2].toInt()
+                val list = items
+                val piece = list.getOrNull(k)?.second ?: return
+                val before = list.take(k).filter { p -> p.first == b }.sumOf { p -> it.pixelbox.cmwatch.rules.Animazioni.wordCount(p.second) }
+                _word.value = it.pixelbox.cmwatch.rules.Animazioni.wordIndex(piece, start, before, Int.MAX_VALUE)
             }
             // Solo l'ultimo pezzo chiude la lettura: il tasto resta ■ per tutto il testo.
             override fun onDone(utteranceId: String?) { if (utteranceId?.startsWith(prefix) == true && utteranceId.endsWith("-end")) finished() }
@@ -211,7 +229,7 @@ class Speech(ctx: Context) {
         if (!prefs.contains("voice")) _voice.value = VoiceRules.start(null, italian(), loc.language == "it")
     }
 
-    private fun finished() { _speaking.value = null; _block.value = null; _source.value = null; _paused.value = false }
+    private fun finished() { _speaking.value = null; _block.value = null; _word.value = null; _source.value = null; _paused.value = false }
 
     private fun applyVoice() {
         val v = _voice.value?.let { n -> runCatching { tts.voices }.getOrNull()?.firstOrNull { it.name == n } }

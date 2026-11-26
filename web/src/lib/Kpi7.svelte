@@ -4,6 +4,9 @@
   import type { Box } from './HomeBox.svelte'
   import type { State } from './contract'
   import { t } from './t'
+  import { rolls } from './animazioni'
+  import { lastGestureAt } from './attese.svelte'
+  import { bounceMs, reducedMotion } from './motion'
   // Proposta 7 (25/10): tre cifre in testa alla home. Ognuna apre la sua pagina, anche a zero (app-box-cliccabili-29-10).
   // Lo stile «Studio e Diretta» (terza versione, 30/10): il tabellone, con la quota delle 5 ore sotto le cifre al posto della
   // riga nella testata. Si colora solo chi ti aspetta, l'unico avviso della home; i rossi restano rossi. La barra della quota
@@ -17,11 +20,47 @@
   // filtro acceso resta accesa, e a 0 non si tocca e non ha la freccia.
   let { h, st = null, now = 0, onBox = () => {}, onQuota = () => {}, slot, usage = null, onUsage = () => {}, filter = null }: { h: Head; filter?: 'aspetta' | 'lavoro' | null; st?: State | null; now?: number; onBox?: (b: Box) => void; onQuota?: () => void; slot?: Snippet
     usage?: { pct: number; tick: number | null; tone: string; label: string; open: boolean; reset?: string | null } | null; onUsage?: () => void } = $props()
+  // Voce 4 di app-animazioni-otto-26-11 (Cifra che scorre): il numero di chi ti aspetta arriva da sotto solo se è cambiato per una tua
+  // risposta degli ultimi secondi; per un aggiornamento dal PC cambia e basta (regola del 31/10). Senza rimbalzo: è un dato.
+  const GESTURE_MS = 4000
+  function rollOnGesture(el: HTMLElement, value: number) {
+    let last: number | null = value
+    return {
+      update(v: number) {
+        const go = rolls(last, v, Date.now() - lastGestureAt() < GESTURE_MS)
+        last = v
+        if (!go || reducedMotion() || !el.animate) return
+        el.animate([{ transform: 'translateY(60%)', opacity: 0 }, { transform: 'translateY(0)', opacity: 1 }], { duration: 220, easing: getComputedStyle(document.documentElement).getPropertyValue('--spring-fast').trim() || 'ease-out' })
+      },
+    }
+  }
+  // Voce 7 di app-animazioni-otto-26-11 (Anello che si sposta): cambiando filtro l'anello parte dal posto della casella di prima e
+  // arriva alla nuova con la molla di casa (circa 5 %: è posizione); da spento appare al posto. Con le animazioni ridotte, al posto.
+  function slideRing(board: HTMLElement, value: unknown) {
+    const box = (): DOMRect | null => {
+      const r = board.querySelector<HTMLElement>('.cell.on .ring')
+      if (!r) return null
+      const b = board.getBoundingClientRect(), x = r.getBoundingClientRect()
+      return new DOMRect(x.left - b.left, x.top - b.top, x.width, x.height)
+    }
+    let last = box()
+    void value
+    return {
+      update() {
+        const ring = board.querySelector<HTMLElement>('.cell.on .ring'), now = box()
+        if (ring && now && last && !reducedMotion() && ring.animate) {
+          const dx = last.left - now.left, sx = last.width / Math.max(1, now.width)
+          if (Math.abs(dx) > 1) ring.animate([{ transform: `translateX(${dx}px) scaleX(${sx})`, transformOrigin: 'left center' }, { transform: 'none', transformOrigin: 'left center' }], { duration: bounceMs(), easing: getComputedStyle(document.documentElement).getPropertyValue('--spring-bounce').trim() || 'ease-out' })
+        }
+        last = now
+      },
+    }
+  }
 </script>
 
-<div class="board lit" data-kpi="kpi-7">
-  <button class="cell" class:on={filter === 'aspetta'} aria-pressed={filter === 'aspetta'} disabled={!h.waiting} data-testid="home-box-aspetta" onclick={() => onBox('aspetta')}><b class="n" class:wait={h.waiting > 0}>{h.waiting}{#if h.open}<small class="of">/{h.open}</small>{/if}</b><span class="l">{h.waiting ? t.kpi7Waiting(h.waiting, Math.max(1, Math.round((h.oldestWaitS ?? 0) / 60))) : t.kpi7NoneWaiting}</span>{#if h.waiting}<span class="ms chev" aria-hidden="true">chevron_right</span>{/if}</button>
-  <button class="cell" class:on={filter === 'lavoro'} aria-pressed={filter === 'lavoro'} disabled={!h.busy} data-testid="home-box-lavoro" onclick={() => onBox('lavoro')}><b class="n">{h.busy}{#if h.open}<small class="of">/{h.open}</small>{/if}</b><span class="l">{t.kpi7Busy}</span>{#if h.busy}<span class="ms chev" aria-hidden="true">chevron_right</span>{/if}</button>
+<div class="board lit" data-kpi="kpi-7" use:slideRing={filter}>
+  <button class="cell" class:on={filter === 'aspetta'} aria-pressed={filter === 'aspetta'} disabled={!h.waiting} data-testid="home-box-aspetta" onclick={() => onBox('aspetta')}><span class="ring" aria-hidden="true"></span><b class="n" class:wait={h.waiting > 0}><span class="roll" use:rollOnGesture={h.waiting}>{h.waiting}</span>{#if h.open}<small class="of">/{h.open}</small>{/if}</b><span class="l">{h.waiting ? t.kpi7Waiting(h.waiting, Math.max(1, Math.round((h.oldestWaitS ?? 0) / 60))) : t.kpi7NoneWaiting}</span>{#if h.waiting}<span class="ms chev" aria-hidden="true">chevron_right</span>{/if}</button>
+  <button class="cell" class:on={filter === 'lavoro'} aria-pressed={filter === 'lavoro'} disabled={!h.busy} data-testid="home-box-lavoro" onclick={() => onBox('lavoro')}><span class="ring" aria-hidden="true"></span><b class="n">{h.busy}{#if h.open}<small class="of">/{h.open}</small>{/if}</b><span class="l">{t.kpi7Busy}</span>{#if h.busy}<span class="ms chev" aria-hidden="true">chevron_right</span>{/if}</button>
   {#if usage}
     <button class="cell use" data-testid="home-box-utilizzo" aria-expanded={usage.open} onclick={onUsage}><b class="n" style:color={usage.tone === 'var(--tx2)' ? null : usage.tone}>{usage.pct}<sup>%</sup></b><span class="l">{usage.label}</span>{#if usage.reset}<span class="rs" data-testid="home-box-utilizzo-azzera">{usage.reset}</span>{/if}<span class="ms chev" aria-hidden="true">{usage.open ? 'expand_less' : 'expand_more'}</span>
       <span class="edge" style:color={usage.tone}><i style="width:{Math.min(100, usage.pct)}%"></i>{#if usage.tick != null}<u style="left:{usage.tick}%"></u>{/if}</span></button>
@@ -45,13 +84,17 @@
   /* A 0 la casella non si tocca; accesa, il filtro si vede dal fondo e dal filo sul bordo. */
   .cell:disabled { cursor: default; }
   .cell:disabled:hover { background: none; }
-  .cell.on { background: var(--s2); box-shadow: inset 0 0 0 2px var(--tx2); }
+  .cell.on { background: var(--s2); }
+  /* L'anello è un elemento suo, così può viaggiare da una casella all'altra (voce 7); prende gli angoli della casella. */
+  .ring { position: absolute; inset: 0; z-index: 1; border-radius: inherit; box-shadow: inset 0 0 0 2px var(--tx2); pointer-events: none; opacity: 0; transition: opacity 150ms ease-out; }
+  .cell.on .ring { opacity: 1; }
   /* app-tabellone-filtro-25-11: il filo segue gli angoli smussati del tabellone, che prima ne tagliava gli spigoli. */
   .cell.on:first-child { border-top-left-radius: 13px; }
   .board:has(.slot:empty) .cell.on:first-child, .board:not(:has(.slot)) .cell.on:first-child { border-bottom-left-radius: 13px; }
   .cell.on .chev { color: var(--tx); transform: rotate(90deg); }
   .cell:focus-visible { outline: 2px solid var(--tx); outline-offset: -2px; }
   .n { display: block; font: 700 42px/1 var(--display); letter-spacing: -0.01em; }
+  .roll { display: inline-block; }
   .n.wait { color: var(--wait); }
   /* La frazione sulle sessioni aperte (Franz 13/11 13:56: «al lavoro 1/5 e ferme 3/5»): più piccola e neutra, accanto alla cifra. */
   .n .of { font-size: 22px; font-weight: 600; letter-spacing: 0; color: var(--tx2); margin-left: 2px; }

@@ -1344,7 +1344,7 @@ private fun SummaryCard(
     val wScope = androidx.compose.runtime.rememberCoroutineScope()
     val wAct: (String, () -> Unit) -> Unit = { choice, send ->
         if (wPick == null) {
-            wPick = choice; view.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM); send()
+            wPick = choice; Gesture.mark(); view.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM); send()
             wScope.launch { kotlinx.coroutines.delay(it.pixelbox.cmwatch.rules.Leave.confirmMs(offAnim, ok = true)); wGone = true; kotlinx.coroutines.delay(15_000); wGone = false; wPick = null }
         }
     }
@@ -1413,7 +1413,8 @@ private fun SummaryCard(
     val nameRow = with(androidx.compose.ui.platform.LocalDensity.current) { maxOf(32.dp, V3.Name.lineHeight.toDp()) }
     Column(Modifier.width(V3.Rail).padding(top = nameRow / 2 - 10.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) {
         Box(Modifier.capAlign(V3.Name)) { SessionRailIcon(s, glyph, s.context, square) }
-        railText?.let { x -> Text(x, style = V3.RailText.copy(color = if (glyph == it.pixelbox.cmwatch.rules.Rail.Glyph.STILL) V3.Tx2 else V3.tone(glyph)), maxLines = 1) }
+        // Voce 3 di app-animazioni-otto-26-11: il tempo di chi lavora ha il riflesso che passa.
+        railText?.let { x -> Text(x, style = if (glyph == it.pixelbox.cmwatch.rules.Rail.Glyph.BUSY) shineStyle(V3.RailText, V3.tone(glyph)) else V3.RailText.copy(color = if (glyph == it.pixelbox.cmwatch.rules.Rail.Glyph.STILL) V3.Tx2 else V3.tone(glyph)), maxLines = 1) }
     }
     Spacer(Modifier.width(8.dp))
     // Con «Apri» in una colonna stretta il nome viene prima del contesto: sotto 300 dp «ctx» lascia il posto, e il nome non va più
@@ -2505,7 +2506,11 @@ internal fun ApproveDialog(a: it.pixelbox.cmwatch.contract.Approval, choice: Str
                 androidx.compose.material3.OutlinedTextField(note, { note = it }, label = { Text(stringResource(R.string.approve_note)) }, placeholder = { Text("ok") }, singleLine = true)
             }
         },
-        confirmButton = { androidx.compose.material3.Button(onClick = { hapticView.confirmHaptic(); onConfirm(note) }, colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary)) { Text(choice ?: stringResource(R.string.approve)) } },
+        // Voce 6 di app-animazioni-otto-26-11: un ok che esce in produzione si tiene premuto, gli altri restano a un tocco.
+        confirmButton = {
+            if (it.pixelbox.cmwatch.rules.Animazioni.needsHold(a)) HoldButton(stringResource(R.string.hold_to_approve, choice ?: stringResource(R.string.approve)), onDone = { hapticView.confirmHaptic(); onConfirm(note) })
+            else androidx.compose.material3.Button(onClick = { hapticView.confirmHaptic(); onConfirm(note) }, colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary)) { Text(choice ?: stringResource(R.string.approve)) }
+        },
         dismissButton = { androidx.compose.material3.TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel), color = Cm.text2) } },
     )
 }

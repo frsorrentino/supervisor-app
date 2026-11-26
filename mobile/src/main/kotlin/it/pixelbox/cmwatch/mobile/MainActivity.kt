@@ -510,6 +510,7 @@ class MainActivity : ComponentActivity() {
         // La risposta da una voce, uguale in ogni vista: esce subito da tutte; se il PC rifiuta, torna.
         val answerWait: (it.pixelbox.cmwatch.contract.WaitItem, Int) -> Unit = { w, i ->
             w.actions?.getOrNull(i)?.let { a ->
+                it.pixelbox.cmwatch.mobile.ui.Gesture.mark()
                 perTeSent[w.id] = true
                 scope.launch {
                     val sentId = runCatching { app.repo.commandOf(a, null) }.getOrNull()
@@ -2798,6 +2799,7 @@ class MainActivity : ComponentActivity() {
             }
         }
         val speakingBlock by speech.block.collectAsStateWithLifecycle()
+        val speakingWord by speech.word.collectAsStateWithLifecycle()
         val speechRate by speech.rate.collectAsStateWithLifecycle()
         // Lo zoom del testo della conversazione, uno per tutte le sessioni, salvato quando le dita si fermano.
         val uiPrefs = remember { getSharedPreferences("ui", MODE_PRIVATE) }
@@ -3027,7 +3029,7 @@ class MainActivity : ComponentActivity() {
         CompositionLocalProvider(
             it.pixelbox.cmwatch.mobile.ui.LocalHeadsUp provides it.pixelbox.cmwatch.mobile.ui.HeadsUpActions(headsSeen, { k -> headsSeen = headsSeen + k; headsPrefs.edit().putStringSet("seen", headsSeen).apply() }, { n, p -> sendPrompt(n, p) }),
             it.pixelbox.cmwatch.mobile.ui.LocalTaskLinks provides it.pixelbox.cmwatch.mobile.ui.TaskLinks(remember(state?.commitments) { it.pixelbox.cmwatch.rules.ChatNames.names(state) }) { open = null; tab = StartRoute.Tab.LAVORI },
-            LocalSpeaking provides speaking, LocalSpeakingBlock provides speakingBlock, LocalBlocksOf provides speech::blocksOf,
+            LocalSpeaking provides speaking, LocalSpeakingBlock provides speakingBlock, it.pixelbox.cmwatch.mobile.ui.LocalSpeakingWord provides speakingWord, LocalBlocksOf provides speech::blocksOf,
             it.pixelbox.cmwatch.mobile.ui.LocalSpeakText provides { t: String -> speech.toggle(t) },
             it.pixelbox.cmwatch.mobile.ui.LocalApprovalClose provides closeTask,
             LocalSpeechRate provides speechRate, LocalSetSpeechRate provides speech::setRateNow,

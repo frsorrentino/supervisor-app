@@ -2,6 +2,8 @@
   import type { Approval } from './contract'
   import { choices } from './approvals'
   import { t } from './t'
+  import HoldButton from './HoldButton.svelte'
+  import { needsHold } from './animazioni'
   // Franz 24/10 09:25: la finestra di conferma di un ok: titolo corto, la domanda una volta sola con il tasto ▶, le opzioni
   // con quella scelta evidenziata, la nota facoltativa, poi Annulla e la conferma.
   let { a, choice = null, onSpeak = null, onCancel, onConfirm }: {
@@ -21,7 +23,8 @@
 <label class="alab">{t.approveNote}<input bind:value={note} placeholder="ok" /></label>
 <div class="abtns">
   <button class="acancel" onclick={onCancel}>{t.cancel}</button>
-  <button class="aok" onclick={() => onConfirm(note)}>{choice ?? t.approve}</button>
+  {#if needsHold(a)}<HoldButton cls="aok" label={t.holdToApprove(choice ?? t.approve)} onDone={() => onConfirm(note)} />
+  {:else}<button class="aok" onclick={() => onConfirm(note)}>{choice ?? t.approve}</button>{/if}
 </div>
 
 <style>
@@ -36,5 +39,5 @@
   .alab input { padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--low); color: var(--text); font-size: 15px; }
   .abtns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
   .acancel { padding: 10px 16px; border-radius: 999px; color: var(--text2); background: none; }
-  .aok { padding: 10px 20px; border-radius: 999px; background: var(--primary); color: var(--on-primary); font-weight: 500; }
+  .abtns :global(.aok) { padding: 10px 20px; border-radius: 999px; background: var(--primary); color: var(--on-primary); font-weight: 500; }
 </style>

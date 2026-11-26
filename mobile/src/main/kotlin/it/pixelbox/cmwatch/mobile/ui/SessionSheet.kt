@@ -1552,7 +1552,7 @@ private fun MineBubble(m: Sent, status: ChatRules.Status, reason: String?, actio
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
             StatusMark(status, m.scheduledFor ?: m.sentAt.takeIf { status == ChatRules.Status.SCHEDULED })
-            SmallAction(Icons.Rounded.ContentCopy, stringResource(R.string.copy)) { clip.setText(AnnotatedString(m.text)) }
+            CopyIconAction(m.text)
             // La matita solo su un messaggio non arrivato, per correggerlo e rimandarlo (Franz, 03/10 21:11): su uno già
             // elaborato non modificava niente, rimetteva solo il testo nel campo come Copia.
             if (status == ChatRules.Status.FAILED || status == ChatRules.Status.UNCERTAIN) SmallAction(Icons.Rounded.Edit, stringResource(R.string.edit)) { onEdit(m.text) }
@@ -1591,7 +1591,7 @@ private fun UserBubble(e: TranscriptEntry, onResend: (String) -> Unit) {
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
             if (e.queued) Text(stringResource(R.string.chat_queued), style = MaterialTheme.typography.labelMedium, color = Cm.stale)
-            SmallAction(Icons.Rounded.ContentCopy, stringResource(R.string.copy)) { clip.setText(AnnotatedString(text)) }
+            CopyIconAction(text)
         }
     }
 }
@@ -1965,9 +1965,13 @@ private fun ClaudeBubble(
                 if (LocalSpeaking.current == text) {
                     val blocks = LocalBlocksOf.current(text)
                     val cur = LocalSpeakingBlock.current
+                    val word = LocalSpeakingWord.current
                     blocks.forEachIndexed { i, b ->
+                        // Voce 2 di app-animazioni-otto-26-11: nel paragrafo letto le parole già dette in chiaro e quella di adesso col
+                        // fondo; il tocco sul paragrafo fa ripartire la lettura da lì, come prima.
+                        val shownText = linked(b.text)
                         Text(
-                            linked(b.text), style = MaterialTheme.typography.bodyLarge, color = if (i == cur) Cm.text else Cm.text2,
+                            if (i == cur && word != null) readAlong(shownText, word) else shownText, style = MaterialTheme.typography.bodyLarge, color = if (i == cur) Cm.text else Cm.text2,
                             modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.small)
                                 .background(if (i == cur) Cm.surfaceHigh else androidx.compose.ui.graphics.Color.Transparent)
                                 .handCursor().clickable { onSpeakFrom(text, i) }.padding(horizontal = 6.dp, vertical = 4.dp),
@@ -2004,7 +2008,7 @@ private fun ClaudeBubble(
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-            SmallAction(Icons.Rounded.ContentCopy, stringResource(R.string.copy)) { clip.setText(AnnotatedString(text)) }
+            CopyIconAction(text)
             // Esiti sempre leggibili a voce (regola del ▶: esiti, risposte e domande, oltre alla soglia dei 120 caratteri).
             val reading = LocalSpeaking.current == text
             if (reading) RatePill()
@@ -2792,11 +2796,7 @@ private fun QuoteCard(text: String, tasks: TaskLinks) {
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Box(Modifier.weight(1f)) { RichText(text, tasks, Cm.text) }
-        Text(
-            stringResource(R.string.copy), style = androidx.compose.ui.text.TextStyle(fontFamily = V3.Display, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, lineHeight = 20.sp), color = V3.Tx,
-            modifier = Modifier.clip(CircleShape).border(1.dp, V3.Line, CircleShape).handCursor()
-                .clickable { clip.setText(AnnotatedString(it.pixelbox.cmwatch.rules.Answer.copyText(text))) }.padding(horizontal = 12.dp, vertical = 4.dp),
-        )
+        CopyPill { it.pixelbox.cmwatch.rules.Answer.copyText(text) }
     }
 }
 
@@ -2811,10 +2811,7 @@ private fun CommandCard(code: String) {
     ) {
         Icon(Icons.Rounded.Terminal, null, tint = V3.Tx3, modifier = Modifier.size(18.dp))
         Text(code, style = androidx.compose.ui.text.TextStyle(fontFamily = V3.Mono, fontSize = 13.5.sp, lineHeight = 21.sp), color = V3.Tx, modifier = Modifier.weight(1f))
-        Text(
-            stringResource(R.string.copy), style = androidx.compose.ui.text.TextStyle(fontFamily = V3.Display, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, lineHeight = 20.sp), color = V3.Tx,
-            modifier = Modifier.clip(CircleShape).border(1.dp, V3.Line, CircleShape).handCursor().clickable { clip.setText(AnnotatedString(code)) }.padding(horizontal = 12.dp, vertical = 4.dp),
-        )
+        CopyPill { code }
     }
 }
 
@@ -3146,7 +3143,7 @@ private fun AnswerTail(e: TranscriptEntry, actions: SheetActions) {
     val text = remember(e.text, label) { NextSteps.parse(it.pixelbox.cmwatch.rules.Answer.stripTipo(e.text.orEmpty(), label).text).text }
     val clip = LocalClipboardManager.current
     Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-        SmallAction(Icons.Rounded.ContentCopy, stringResource(R.string.copy)) { clip.setText(AnnotatedString(text)) }
+        CopyIconAction(text)
         val reading = LocalSpeaking.current == text
         if (reading) RatePill()
         FilledTonalIconButton(onClick = { actions.speak(text) }, modifier = Modifier.size(36.dp)) {
@@ -3490,6 +3487,8 @@ fun RatePill(rate: Float, onClick: () -> Unit, onLongClick: () -> Unit, interact
 
 /** Il paragrafo che la voce sta leggendo (`Speech.block`) e come dividere un testo in paragrafi (`Speech.blocksOf`). */
 val LocalSpeakingBlock = androidx.compose.runtime.staticCompositionLocalOf<Int?> { null }
+/** Voce 2 di app-animazioni-otto-26-11: la parola detta nel paragrafo letto, o null. */
+val LocalSpeakingWord = androidx.compose.runtime.compositionLocalOf<Int?> { null }
 val LocalBlocksOf = androidx.compose.runtime.staticCompositionLocalOf<(String) -> List<it.pixelbox.cmwatch.rules.AnswerText.Block>> {
     { t: String -> listOf(it.pixelbox.cmwatch.rules.AnswerText.Block(it.pixelbox.cmwatch.rules.AnswerText.Kind.PARA, t)) }
 }
@@ -3594,5 +3593,17 @@ private fun MineJumpArrow(icon: androidx.compose.ui.graphics.vector.ImageVector,
     val press = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     Surface(onClick = onClick, enabled = on, interactionSource = press, modifier = Modifier.size(44.dp).pressScale(press), shape = CircleShape, color = V3.S3, contentColor = if (on) V3.Tx else V3.Tx3.copy(alpha = .4f)) {
         Box(contentAlignment = Alignment.Center) { Icon(icon, label, modifier = Modifier.size(22.dp)) }
+    }
+}
+
+/** Voce 2: le parole fino a `word` in chiaro, quella di adesso su un fondo blu leggero; il resto com'è. */
+private fun readAlong(t: AnnotatedString, word: Int): AnnotatedString {
+    val ws = it.pixelbox.cmwatch.rules.Animazioni.words(t.text)
+    if (ws.isEmpty()) return t
+    val k = word.coerceIn(0, ws.lastIndex)
+    return androidx.compose.ui.text.buildAnnotatedString {
+        append(t)
+        addStyle(androidx.compose.ui.text.SpanStyle(color = Cm.text), 0, ws[k].last + 1)
+        addStyle(androidx.compose.ui.text.SpanStyle(background = V3.Busy.copy(alpha = 0.3f)), ws[k].first, ws[k].last + 1)
     }
 }

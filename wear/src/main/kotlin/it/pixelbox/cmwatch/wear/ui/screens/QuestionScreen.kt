@@ -3,6 +3,11 @@ package it.pixelbox.cmwatch.wear.ui.screens
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
 import it.pixelbox.cmwatch.wear.ui.components.SpeakButton
@@ -106,7 +111,11 @@ fun QuestionScreen(
                         sentId != null -> stringResource(R.string.question_sent)
                         else -> stringResource(R.string.question_answered_elsewhere)
                     }
-                    Text(text, style = MaterialTheme.typography.titleLarge, color = CmColors.text, modifier = Modifier.fillMaxWidth().morph(this, spec))
+                    Column(Modifier.fillMaxWidth().morph(this, spec), horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                        // Voce 8 di app-animazioni-otto-26-11 (Ok al polso): l'arco gira finché il PC non ha preso la risposta, poi la spunta.
+                        if (sentId != null && pending?.status != PendingStatus.FAILED) AnswerMark(done = pending == null)
+                        Text(text, style = MaterialTheme.typography.titleLarge, color = CmColors.text, modifier = Modifier.fillMaxWidth())
+                    }
                 }
                 if (sentId != null && pending?.status == PendingStatus.FAILED) {
                     item { WideButton(stringResource(R.string.question_retry), onClick = { onRetry(sentId) }, primary = true, transformation = SurfaceTransformation(spec), modifier = Modifier.transformedHeight(this, spec)) }
@@ -117,6 +126,8 @@ fun QuestionScreen(
             item { SessionHeader(s, now, enabled, modifier = Modifier.morph(this, spec), trailing = { SpeakButton(speaking, onToggle = onSpeak) }) }
             // La domanda a tutta larghezza; il ▶ che la legge con le opzioni numerate sta in testata (Franz, 15/09 16:13).
             item { QuestionText(QuestionRules.shownText(q.text, stringResource(R.string.question_no_text)), modifier = Modifier.fillMaxWidth().morph(this, spec)) }
+            // Voce 8: mandata la risposta, mentre la domanda è ancora qui, l'arco dice che sta viaggiando.
+            if (pending != null && pending.status != PendingStatus.FAILED) item { Box(Modifier.fillMaxWidth().morph(this, spec), contentAlignment = androidx.compose.ui.Alignment.Center) { AnswerMark(done = false) } }
             if (holdHint) {
                 item { Text(stringResource(R.string.question_hold), style = MaterialTheme.typography.bodyMedium, color = CmColors.waiting, modifier = Modifier.fillMaxWidth().morph(this, spec)) }
             }
@@ -169,4 +180,36 @@ private fun QuestionText(text: String, modifier: Modifier = Modifier) {
             }
         },
     )
+}
+
+/**
+ * Voce 8 di app-animazioni-otto-26-11 (Ok al polso, Franz 26/11 11:50): un arco che gira in 1,2 s mentre la risposta viaggia, poi
+ * una spunta verde che si disegna in 250 ms, sugli stessi tick di «inviato» e «confermato». Una volta, niente cicli lunghi; con
+ * «riduci animazioni» arco fermo e spunta intera.
+ */
+@Composable
+private fun AnswerMark(done: Boolean) {
+    val off = it.pixelbox.cmwatch.wear.ui.ambient.animationsOff()
+    val turn = if (done || off) 0f else {
+        val t = androidx.compose.animation.core.rememberInfiniteTransition(label = "arco")
+        t.animateFloat(0f, 360f, androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(1200, easing = androidx.compose.animation.core.LinearEasing)), label = "giro").value
+    }
+    val tick = androidx.compose.runtime.remember { androidx.compose.animation.core.Animatable(0f) }
+    LaunchedEffect(done) { if (done) { if (off) tick.snapTo(1f) else tick.animateTo(1f, androidx.compose.animation.core.tween(250)) } }
+    val good = CmColors.idle
+    val ink = CmColors.text
+    androidx.compose.foundation.Canvas(Modifier.padding(bottom = 6.dp).size(36.dp)) {
+        val w = 3.dp.toPx()
+        if (!done) drawArc(ink, startAngle = turn - 90f, sweepAngle = 90f, useCenter = false, style = androidx.compose.ui.graphics.drawscope.Stroke(w, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+        else {
+            drawCircle(good)
+            val a = androidx.compose.ui.geometry.Offset(size.width * .28f, size.height * .52f)
+            val b = androidx.compose.ui.geometry.Offset(size.width * .44f, size.height * .68f)
+            val c = androidx.compose.ui.geometry.Offset(size.width * .74f, size.height * .36f)
+            val p = tick.value
+            val first = (p / .4f).coerceAtMost(1f)
+            drawLine(androidx.compose.ui.graphics.Color.Black, a, a + (b - a) * first, w, androidx.compose.ui.graphics.StrokeCap.Round)
+            if (p > .4f) drawLine(androidx.compose.ui.graphics.Color.Black, b, b + (c - b) * ((p - .4f) / .6f), w, androidx.compose.ui.graphics.StrokeCap.Round)
+        }
+    }
 }

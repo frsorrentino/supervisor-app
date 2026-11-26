@@ -27,6 +27,22 @@ export function popOnChange(el: HTMLElement, value: unknown) {
   }
 }
 
+/**
+ * Voce 1 di app-animazioni-otto-26-11 (Copia che risponde): quando il valore cambia il contenuto riparte da 0,9 con la molla veloce,
+ * senza rimbalzo, e dalla dissolvenza; al primo disegno niente, con le animazioni ridotte niente.
+ */
+export function swapOnChange(el: HTMLElement, value: unknown) {
+  let last = value
+  return {
+    update(v: unknown) {
+      if (v === last) return
+      last = v
+      if (reducedMotion() || !el.animate) return
+      el.animate([{ transform: 'scale(.9)', opacity: 0 }, { transform: 'scale(1)', opacity: 1 }], { duration: 200, easing: cssCurve('--spring-fast') })
+    },
+  }
+}
+
 export const FINISH_STILL_MS = 2000, FINISH_GAP_MS = 10000
 export type FinishScene = { fingerDown: boolean; listMoving: boolean; sinceTouchMs: number; wasOnScreen: boolean; writing: boolean; sheetOpen: boolean; distancePx: number; viewportPx: number; sinceLastMs: number }
 

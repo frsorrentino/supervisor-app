@@ -11,7 +11,12 @@ export const waits = $state<{ items: WaitItem[]; rev: string | null; answered: S
 
 export const openWaits = (): WaitItem[] => visible(waits.items, waits.answered)
 
+/** Voce 4 di app-animazioni-otto-26-11: l'ora dell'ultima risposta data da qui (ms). La cifra del tabellone scorre solo subito dopo. */
+let gestureAt = 0
+export const lastGestureAt = (): number => gestureAt
+
 export function markAnswered(id: string, on = true) {
+  if (on) gestureAt = Date.now()
   if (on === waits.answered.has(id)) return
   const s = new Set(waits.answered)
   if (on) s.add(id); else s.delete(id)

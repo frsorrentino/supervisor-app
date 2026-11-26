@@ -421,6 +421,8 @@
     <string name="file_too_big">Il file è troppo grande: il limite è %1$s</string>
     <string name="file_gone">Il file non c\'è più sul telefono: allegalo di nuovo</string>
     <string name="stop">Ferma</string>
+    <string name="copied_word">Copiato</string>
+    <string name="hold_to_approve">Tieni premuto: %1$s</string>
     <string name="copy">Copia</string>
     <string name="edit">Modifica</string>
     <string name="resend">Reinvia</string>
