@@ -2813,6 +2813,13 @@ class MainActivity : ComponentActivity() {
         }
         val speakingBlock by speech.block.collectAsStateWithLifecycle()
         val speakingWord by speech.word.collectAsStateWithLifecycle()
+        // Contratto 1.161 (issue #4): la lettura `close_preview` del Chiudi di una sessione; null senza l'op.
+        val closeRead: (suspend (List<String>) -> it.pixelbox.cmwatch.rules.CloseFinished.Preview?)? =
+            if (state?.ops?.contains("close_preview") == true) { names ->
+                val id = runCatching { app.repo.closePreview(names) }.getOrNull()
+                val r = id?.let { i -> kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(i) }[i] } }
+                r?.takeIf { x -> x.ok }?.let { x -> it.pixelbox.cmwatch.rules.CloseFinished.read(x.text) }
+            } else null
         val speechRate by speech.rate.collectAsStateWithLifecycle()
         // Lo zoom del testo della conversazione, uno per tutte le sessioni, salvato quando le dita si fermano.
         val uiPrefs = remember { getSharedPreferences("ui", MODE_PRIVATE) }
@@ -3043,11 +3050,7 @@ class MainActivity : ComponentActivity() {
             it.pixelbox.cmwatch.mobile.ui.LocalHeadsUp provides it.pixelbox.cmwatch.mobile.ui.HeadsUpActions(headsSeen, { k -> headsSeen = headsSeen + k; headsPrefs.edit().putStringSet("seen", headsSeen).apply() }, { n, p -> sendPrompt(n, p) }),
             it.pixelbox.cmwatch.mobile.ui.LocalTaskLinks provides it.pixelbox.cmwatch.mobile.ui.TaskLinks(remember(state?.commitments) { it.pixelbox.cmwatch.rules.ChatNames.names(state) }) { open = null; tab = StartRoute.Tab.LAVORI },
             // Contratto 1.161 (issue #4): il Chiudi di una sessione legge prima `close_preview`, per non offrirlo su un lavoro in sottofondo.
-            it.pixelbox.cmwatch.mobile.ui.LocalClosePreview provides (if (state?.ops?.contains("close_preview") == true) ({ names: List<String> ->
-                val id = runCatching { app.repo.closePreview(names) }.getOrNull()
-                val r = id?.let { i -> kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(i) }[i] } }
-                r?.takeIf { x -> x.ok }?.let { x -> it.pixelbox.cmwatch.rules.CloseFinished.read(x.text) }
-            }) else null),
+            it.pixelbox.cmwatch.mobile.ui.LocalClosePreview provides closeRead,
             LocalSpeaking provides speaking, LocalSpeakingBlock provides speakingBlock, it.pixelbox.cmwatch.mobile.ui.LocalSpeakingWord provides speakingWord, LocalBlocksOf provides speech::blocksOf,
             it.pixelbox.cmwatch.mobile.ui.LocalSpeakText provides { t: String -> speech.toggle(t) },
             it.pixelbox.cmwatch.mobile.ui.LocalApprovalClose provides closeTask,
