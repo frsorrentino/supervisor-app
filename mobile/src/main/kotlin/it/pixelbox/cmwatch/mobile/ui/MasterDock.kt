@@ -145,7 +145,7 @@ fun MasterDock(
     val label = (if (expanded) listOfNotNull(stringResource(R.string.dock_master), time) else listOfNotNull(stringResource(R.string.dock_master), time, ctx)).joinToString(" · ")
     // Aperta resta una linguetta col verso di quando è chiusa, angoli tondi in alto (Franz, 06/10 08:48).
     val shape = if (screen) androidx.compose.ui.graphics.RectangleShape else RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
-    // Voce 2 di app-animazioni-seconde-26-11 (Barra della master che si allunga): a barra chiusa, quando arriva una risposta nuova la
+    // Voce 2 (Barra della master che si allunga), con il moto fedele di IslandMorph.kt: a barra chiusa, quando arriva una risposta nuova la
     // barra si allunga per DOCK_PEEK_MS e mostra due righe della risposta col punto ambra, poi torna com'era. Con le animazioni
     // spente cambia senza movimento; alla prima apertura no.
     val dockOff = animationsOff()
@@ -158,7 +158,7 @@ fun MasterDock(
         if (fresh && !expanded) { peek = true; kotlinx.coroutines.delay(it.pixelbox.cmwatch.rules.Animazioni.DOCK_PEEK_MS); peek = false } else if (expanded) peek = false
     }
     val lines = if (peek) maxOf(2, headlineLines) else headlineLines
-    Column(Modifier.fillMaxWidth().animateContentSize(if (dockOff) androidx.compose.animation.core.snap() else androidx.compose.animation.core.spring(dampingRatio = 0.7f, stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow))) {
+    Column(Modifier.fillMaxWidth().islandMorph(dockOff)) {
         val look = LocalMasterLook.current
         if (!expanded && look.thread) MasterThread()
         // Franz, 03/10 17:05: anche col gesto. Trascinare in su la barra ridotta la espande, trascinarla in giù da espansa la
@@ -235,8 +235,8 @@ fun MasterDock(
                     Text(
                         t.replace(Regex("""\*\*|__|`"""), ""), style = V3.Small.copy(fontSize = 13.sp, lineHeight = 16.sp), maxLines = 2, overflow = TextOverflow.Ellipsis,
                     )
-                } ?: hero?.let { Text(linked(it.headline), style = V3.Small, maxLines = lines, overflow = TextOverflow.Clip) }
-                else hero?.let { Text(linked(it.headline), style = V3.Small, maxLines = lines, overflow = TextOverflow.Clip) }
+                } ?: hero?.let { androidx.compose.animation.AnimatedContent(lines, transitionSpec = { islandSwap(dockOff) }, label = "isola") { n -> Text(linked(it.headline), style = V3.Small, maxLines = n, overflow = TextOverflow.Clip, modifier = Modifier.islandBlur(this)) } }
+                else hero?.let { androidx.compose.animation.AnimatedContent(lines, transitionSpec = { islandSwap(dockOff) }, label = "isola") { n -> Text(linked(it.headline), style = V3.Small, maxLines = n, overflow = TextOverflow.Clip, modifier = Modifier.islandBlur(this)) } }
             }
             // Durante la lettura il ▶ diventa ■ e la ferma (Franz, 03/10 17:25), come sotto le risposte della chat.
             val spoken = hero?.let { h -> listOf(h.headline, h.body).filter { it.isNotBlank() }.joinToString("\n") }
