@@ -41,7 +41,7 @@
     <h3>{t.closeTitle(s.name)}</h3>
     <p>{line}</p>
     {#if !can}
-      <div class="ck-attached" data-testid="close-blocked"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2" /><path d="M8 20h8M12 16v4" /></svg><span><b>{s.attached ? t.closeBlockedAttached : t.closeBlockedBackground}</b><small>{t.closeBlockedLine}</small></span></div>
+      <div class="ck-attached" data-testid="close-blocked"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2" /><path d="M8 20h8M12 16v4" /></svg><span><b>{s.at_pc ? t.closeBlockedAttached : blocked === 'busy' ? t.closeBlockedBusy : blocked === 'question' ? t.closeBlockedQuestion : blocked === 'gone' ? t.closeBlockedGone : t.closeBlockedBackground}</b><small>{t.closeBlockedLine}</small></span></div>
       <div class="ck-keys"><button class="ck" onclick={() => dlg?.close()}>{t.closeKeep}</button></div>
     {:else}
     <ul>{#each canSave ? t.closeWhatSave : t.closeWhat as w}<li>{w}</li>{/each}</ul>

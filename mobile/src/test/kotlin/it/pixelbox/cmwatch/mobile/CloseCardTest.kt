@@ -48,7 +48,7 @@ abstract class CloseCardShots(scale: Float) {
     }
     // Contratto 1.161 (issue #4): una sessione in uso al PC non offre Chiudi, solo il motivo e «Lascia aperta».
     @Test fun askBlocked() = page {
-        CloseCardFrame(Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp)) { CloseAskBody(s.copy(attached = true), save = true, onKeep = {}, onClose = {}) }
+        CloseCardFrame(Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp)) { CloseAskBody(s.copy(attached = true, atPc = true), save = true, onKeep = {}, onClose = {}) }
     }
     @Test fun refusedItalian() = page {
         CloseSplashOverlay(CloseSplash.Phase.Refused(s.name, "resta aperta: ha una domanda", armable = true), onHome = {}, onReopen = null, onArm = {})

@@ -16,8 +16,13 @@ export const night = (ops: string[] | null | undefined): boolean => ops == null 
 export const reopen = (s: Session | null | undefined): boolean => s == null || s.state === 'gone'
 /** Uno slash va solo a una sessione che c'è ed è aperta. */
 export const slash = (st: State | null | undefined, name: string): boolean => !!st?.sessions?.some(s => s.name === name && s.state !== 'gone')
-/** Chiudi: non su una sessione attaccata al PC né con un lavoro in sottofondo (`close_preview` → `blocked_by: background`). */
-export const close = (s: Session, blockedBy: string | null = null): boolean => !s.attached && blockedBy !== 'background'
+/**
+ * Chiudi (app-chiudi-sessioni-ferme-26-11, contratto del relay dal 20/11, scelta di Franz): una sessione ferma con la finestra aperta
+ * sul PC (`attached`) si chiude, come con `supervisor close`. Il blocco vale solo con `at_pc` (attaccata e un tasto negli ultimi
+ * 120 s) o con `close_preview` → `blocked_by` busy, question, background o gone. Come VociAssenti.close.
+ */
+export const BLOCKING = ['busy', 'question', 'background', 'gone']
+export const close = (s: Session, blockedBy: string | null = null): boolean => !s.at_pc && !BLOCKING.includes(blockedBy ?? '')
 /** Il rifiuto del PC per del testo scritto a mano nella casella della sessione: il nome della sessione, o null. */
 export function typedIn(text: string | null | undefined): string | null {
   const m = /casella di «([^»]+)» c'è del testo digitato/.exec(text ?? '')

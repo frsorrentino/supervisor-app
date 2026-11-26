@@ -6,7 +6,7 @@ import { allowAll, chat, close, night, reopen, slash, type, typedIn } from './vo
 // Le voci che l'app non offre più (app-issue4-cause-app-26-11, contratto 1.161): gli stessi casi di VociAssentiTest in Kotlin.
 const q = (o: Partial<Question> = {}): Question => ({ id: 'q1', kind: 'permission', text: 'Esegui?', options: [{ n: 1, label: 'Sì' }, { n: 2, label: 'No' }], tier: 'low', asked_at: 0, ...o })
 const fixture = decodeState(readFileSync(new URL('../../../contract/state-1-question.json', import.meta.url), 'utf8'))
-const sess = (state: Session['state'], attached = false): Session => ({ ...fixture.sessions[0], name: 's1', state, attached })
+const sess = (state: Session['state'], attached = false, at_pc = false): Session => ({ ...fixture.sessions[0], name: 's1', state, attached, at_pc })
 
 describe('voci assenti', () => {
   it('chat e scrivi seguono foot', () => {
@@ -30,8 +30,10 @@ describe('voci assenti', () => {
     expect(slash(st, 's1')).toBe(true); expect(slash(st, 'gone')).toBe(false); expect(slash(st, 'sparita')).toBe(false); expect(slash(null, 's1')).toBe(false)
   })
   it('chiudi non su attaccate né in sottofondo', () => {
-    expect(close(sess('idle'))).toBe(true); expect(close(sess('idle', true))).toBe(false)
-    expect(close(sess('idle'), 'background')).toBe(false); expect(close(sess('idle'), 'busy')).toBe(true)
+    // app-chiudi-sessioni-ferme-26-11: attaccata e ferma si chiude; con Franz al PC (at_pc) no.
+    expect(close(sess('idle'))).toBe(true); expect(close(sess('idle', true))).toBe(true); expect(close(sess('idle', true, true))).toBe(false)
+    for (const b of ['busy', 'question', 'background', 'gone']) expect(close(sess('idle', true), b)).toBe(false)
+    expect(close(sess('idle', true), 'attached')).toBe(true)
   })
   it('il rifiuto del testo digitato', () => {
     expect(typedIn("supervisor talk: nella casella di «atlas-shop» c'è del testo digitato: «ciao»")).toBe('atlas-shop')

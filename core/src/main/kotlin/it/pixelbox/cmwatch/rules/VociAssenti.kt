@@ -31,10 +31,13 @@ object VociAssenti {
     fun slash(st: State?, name: String): Boolean = st?.sessions?.any { it.name == name && it.state != SessionState.GONE } == true
 
     /**
-     * Chiudi: non su una sessione attaccata al PC (`attached`) né su una col lavoro in sottofondo (`close_preview` dice
-     * `blocked_by: background`); `blockedBy` null se la lettura non c'è.
+     * Chiudi (app-chiudi-sessioni-ferme-26-11, contratto del relay dal 20/11, scelta di Franz): una sessione ferma con la finestra
+     * aperta sul PC (`attached`) si chiude, come con `supervisor close`, che chiude prima la sua scheda. Il blocco vale solo se
+     * Franz è al PC su quella sessione (`at_pc`: attaccata e un tasto negli ultimi 120 s) o se `close_preview` dice
+     * `blocked_by` busy, question, background o gone; `blockedBy` null se la lettura non c'è.
      */
-    fun close(s: Session, blockedBy: String? = null): Boolean = !s.attached && blockedBy != "background"
+    val BLOCKING = setOf("busy", "question", "background", "gone")
+    fun close(s: Session, blockedBy: String? = null): Boolean = !s.atPc && blockedBy !in BLOCKING
 
     private val TYPED = Regex("""casella di «([^»]+)» c'è del testo digitato""")
 

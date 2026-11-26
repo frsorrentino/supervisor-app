@@ -23,7 +23,7 @@ class VociAssentiTest {
         tier = Tier.LOW, askedAt = 0, allowAll = allowAll, foot = foot,
     )
     private val fixture = it.pixelbox.cmwatch.contract.ContractJson.decodeState(java.io.File("../contract/state-1-question.json").readText())
-    private fun sess(state: SessionState, attached: Boolean = false) = fixture.sessions.first().copy(name = "s1", state = state, attached = attached)
+    private fun sess(state: SessionState, attached: Boolean = false, atPc: Boolean = false) = fixture.sessions.first().copy(name = "s1", state = state, attached = attached, atPc = atPc)
 
     @Test fun chatAndTypeFollowTheFoot() {
         assertTrue(VociAssenti.chat(q()))
@@ -62,9 +62,11 @@ class VociAssentiTest {
 
     @Test fun closeNotAttachedNorBackground() {
         assertTrue(VociAssenti.close(sess(SessionState.IDLE)))
-        assertFalse(VociAssenti.close(sess(SessionState.IDLE, attached = true)))
-        assertFalse(VociAssenti.close(sess(SessionState.IDLE), "background"))
-        assertTrue(VociAssenti.close(sess(SessionState.IDLE), "busy"))
+        // app-chiudi-sessioni-ferme-26-11: attaccata e ferma si chiude; con Franz al PC (at_pc) no.
+        assertTrue(VociAssenti.close(sess(SessionState.IDLE, attached = true)))
+        assertFalse(VociAssenti.close(sess(SessionState.IDLE, attached = true, atPc = true)))
+        listOf("busy", "question", "background", "gone").forEach { assertFalse(VociAssenti.close(sess(SessionState.IDLE, attached = true), it), it) }
+        assertTrue(VociAssenti.close(sess(SessionState.IDLE, attached = true), "attached"))
     }
 
     @Test fun typedRefusal() {

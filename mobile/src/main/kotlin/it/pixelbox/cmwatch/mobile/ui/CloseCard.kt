@@ -131,13 +131,14 @@ internal fun CloseAskBody(s: Session, save: Boolean, onKeep: () -> Unit, onClose
         CloseTitle(stringResource(R.string.close_title, s.name))
         CloseLine(closeStateLine(s))
     }
-    // Contratto 1.161 (issue #4): su una sessione in uso al PC (dal 20/11 `attached` vale solo per quelle) o con un lavoro in
-    // sottofondo (`close_preview` → `blocked_by: background`) Chiudi non si offre: il motivo e «Lascia aperta».
+    // app-chiudi-sessioni-ferme-26-11: Chiudi non si offre solo con Franz al PC su quella sessione (`at_pc`) o con `close_preview` →
+    // `blocked_by` busy, question, background o gone; una sessione ferma con la finestra aperta (`attached`) si chiude. Il motivo e
+    // «Lascia aperta».
     val preview = LocalClosePreview.current
     var blocked by androidx.compose.runtime.remember(s.name) { androidx.compose.runtime.mutableStateOf<String?>(null) }
     androidx.compose.runtime.LaunchedEffect(s.name, preview) { blocked = preview?.invoke(listOf(s.name))?.sessions?.firstOrNull { it.name == s.name }?.blockedBy }
     if (!it.pixelbox.cmwatch.rules.VociAssenti.close(s, blocked)) {
-        CloseBlockedNote(background = !s.attached)
+        CloseBlockedNote(if (s.atPc) "at_pc" else blocked)
         Column(Modifier.fillMaxWidth().padding(top = 12.dp)) { CloseKey(stringResource(R.string.close_keep), CloseKeyKind.TONAL, onKeep, Modifier.fillMaxWidth()) }
         return
     }
@@ -148,13 +149,13 @@ internal fun CloseAskBody(s: Session, save: Boolean, onKeep: () -> Unit, onClose
 /** La lettura `close_preview` del Chiudi (contratto 1.161); null senza l'op. */
 val LocalClosePreview = androidx.compose.runtime.staticCompositionLocalOf<(suspend (List<String>) -> it.pixelbox.cmwatch.rules.CloseFinished.Preview?)?> { null }
 
-/** Perché Chiudi non c'è: in uso al PC, o un lavoro in sottofondo. */
+/** Perché Chiudi non c'è: Franz al PC su quella sessione (`at_pc`), o il `blocked_by` di close_preview. */
 @Composable
-internal fun CloseBlockedNote(background: Boolean) = Surface(Modifier.fillMaxWidth().padding(top = 6.dp).testTag("close-blocked"), shape = RoundedCornerShape(14.dp), color = V3.S3) {
+internal fun CloseBlockedNote(reason: String?) = Surface(Modifier.fillMaxWidth().padding(top = 6.dp).testTag("close-blocked"), shape = RoundedCornerShape(14.dp), color = V3.S3) {
     Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         Icon(Icons.Rounded.Computer, null, tint = V3.Busy, modifier = Modifier.size(20.dp))
         Column {
-            Text(stringResource(if (background) R.string.close_stop_background else R.string.close_stop_attached), style = MaterialTheme.typography.bodyMedium, color = V3.Tx)
+            Text(stringResource(when (reason) { "busy" -> R.string.close_stop_busy; "question" -> R.string.close_stop_question; "gone" -> R.string.close_stop_gone; "background" -> R.string.close_stop_background; else -> R.string.close_stop_attached }), style = MaterialTheme.typography.bodyMedium, color = V3.Tx)
             Text(stringResource(R.string.close_stop_line), style = MaterialTheme.typography.bodySmall, color = V3.Tx2)
         }
     }

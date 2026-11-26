@@ -430,6 +430,9 @@
     <string name="slash_gone">%1$s is no longer open: the command is not sent</string>
     <string name="close_stop_attached">It is in use on the PC</string>
     <string name="close_stop_background">It has a job running in the background on the PC</string>
+    <string name="close_stop_busy">It is working</string>
+    <string name="close_stop_question">It has an open question</string>
+    <string name="close_stop_gone">The session is gone</string>
     <string name="close_stop_line">Close it from the PC when you are done.</string>
     <string name="typed_refusal">Not sent: on the PC, the input box of %1$s has hand-typed text and sending would have wiped it. Send or clear it on the PC, then try again.</string>
     <string name="proof_running">%1$s running</string>

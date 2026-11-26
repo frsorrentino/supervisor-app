@@ -441,6 +441,9 @@
     <string name="slash_gone">%1$s non è più aperta: il comando non parte</string>
     <string name="close_stop_attached">È in uso sul PC</string>
     <string name="close_stop_background">Ha un lavoro in sottofondo sul PC</string>
+    <string name="close_stop_busy">Sta lavorando</string>
+    <string name="close_stop_question">Ha una domanda aperta</string>
+    <string name="close_stop_gone">La sessione non c\'è più</string>
     <string name="close_stop_line">Chiudila dal PC quando hai finito.</string>
     <string name="typed_refusal">Non mandato: sul PC, nella casella di %1$s, c\'è del testo scritto a mano e lo avrei cancellato. Mandalo o cancellalo sul PC, poi riprova.</string>
     <string name="proof_running">%1$s in corso</string>
