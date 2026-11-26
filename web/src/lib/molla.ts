@@ -168,3 +168,25 @@ export function isola(node: HTMLElement, peek: boolean) {
     destroy: () => m.stop(),
   }
 }
+
+/**
+ * Voce 3, fedele all'originale (Notification stack; app-animazioni-fedeli-26-11): all'apertura di «Per te» ogni voce scende dalla pila al
+ * suo posto, da 10 px per livello sotto la testa e con la scala del suo livello (-5 % ciascuno), in 300 ms con (0.23, 1, 0.32, 1); dalla
+ * quarta entrano dall'invisibile. Moto ridotto: solo l'opacità, come l'originale.
+ */
+export function cala(node: HTMLElement, index: number) {
+  if (!node.animate) return
+  const depth = Math.min(index + 1, 3)
+  const first = node.parentElement?.firstElementChild as HTMLElement | null
+  const y = node.offsetTop - (first?.offsetTop ?? 0)
+  const ease = 'cubic-bezier(0.23, 1, 0.32, 1)'
+  if (ridotto()) {
+    if (depth > 2) node.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, easing: ease })
+    return
+  }
+  node.style.transformOrigin = '50% 0'
+  node.animate(
+    [{ transform: `translateY(${-y + 10 * depth}px) scale(${1 - 0.05 * depth})`, opacity: depth > 2 ? 0 : 1 }, { transform: 'none', opacity: 1 }],
+    { duration: 300, easing: ease },
+  )
+}

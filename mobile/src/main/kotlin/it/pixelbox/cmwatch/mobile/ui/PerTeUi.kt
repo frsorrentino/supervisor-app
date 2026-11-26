@@ -34,6 +34,9 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onPlaced
+import androidx.compose.ui.layout.positionInParent
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -152,16 +155,20 @@ private fun BlockGlyph(icon: BlockIcon, tint: Color, size: Int) {
 @Composable
 private fun BlockPill(icon: BlockIcon, title: String, count: String, amber: Boolean, onToggle: () -> Unit, modifier: Modifier, tag: String?, stack: Int = 0) {
     val tint = if (amber) V3.Wait else V3.Tx2
-    // Voce 3: sotto la pillola i bordi delle altre voci, come carte impilate (al massimo due), ognuno 4 dp più in basso e più stretto.
+    // Voce 3, fedele all'originale (Notification stack; app-animazioni-fedeli-26-11): sotto la pillola le altre voci come carte
+    // impilate, al massimo due, allineate in basso, ognuna 10 dp più giù e scalata del 5 % per livello (0,95, 0,90).
     val edgeFill = if (amber) veil(0.06f, V3.S1) else V3.S1
     val edgeLine = if (amber) veil(0.25f, V3.Line) else V3.Line
-    val edges = if (stack <= 0) Modifier else Modifier.padding(bottom = (4 * stack).dp).drawBehind {
+    val edges = if (stack <= 0) Modifier else Modifier.padding(bottom = (STACK_PEEK * stack).dp).drawBehind {
         for (k in stack downTo 1) {
-            val dx = 6.dp.toPx() * k
-            val dy = 4.dp.toPx() * k
-            val r = androidx.compose.ui.geometry.CornerRadius(size.height / 2)
-            drawRoundRect(edgeFill, androidx.compose.ui.geometry.Offset(dx, dy), androidx.compose.ui.geometry.Size(size.width - 2 * dx, size.height), r)
-            drawRoundRect(edgeLine, androidx.compose.ui.geometry.Offset(dx, dy), androidx.compose.ui.geometry.Size(size.width - 2 * dx, size.height), r, style = androidx.compose.ui.graphics.drawscope.Stroke(1.dp.toPx()))
+            val sc = 1f - STACK_SCALE * k
+            val w = size.width * sc
+            val h = size.height * sc
+            val dx = (size.width - w) / 2
+            val dy = size.height + STACK_PEEK.dp.toPx() * k - h
+            val r = androidx.compose.ui.geometry.CornerRadius(h / 2)
+            drawRoundRect(edgeFill, androidx.compose.ui.geometry.Offset(dx, dy), androidx.compose.ui.geometry.Size(w, h), r)
+            drawRoundRect(edgeLine, androidx.compose.ui.geometry.Offset(dx, dy), androidx.compose.ui.geometry.Size(w, h), r, style = androidx.compose.ui.graphics.drawscope.Stroke(1.dp.toPx()))
         }
     }
     Row(
@@ -308,9 +315,11 @@ fun PerTeBlock(
                 Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx2, modifier = Modifier.size(16.dp))
             }
         }
-        items.forEach { v ->
-            HorizontalDivider(color = V3.Line)
-            VoceItem(v, now, onOpen, onMain)
+        items.forEachIndexed { i, v ->
+            Column(Modifier.stackDrop(i)) {
+                HorizontalDivider(color = V3.Line)
+                VoceItem(v, now, onOpen, onMain)
+            }
         }
     }
 }
@@ -455,6 +464,36 @@ fun PerTeGroupsBody(
                     }
                 }
             }
+        }
+    }
+}
+
+/** Notification stack: la sporgenza di ogni carta sotto e la scala che perde per livello. */
+private const val STACK_PEEK = 10
+private const val STACK_SCALE = 0.05f
+
+/**
+ * Voce 3, fedele all'originale (Notification stack; app-animazioni-fedeli-26-11): all'apertura ogni voce scende dalla pila al suo posto,
+ * da 10 dp per livello sotto la testa e con la scala del suo livello, in 300 ms con (0.23, 1, 0.32, 1); dalla quarta in giù entrano
+ * dall'invisibile, come nella pila chiusa. Moto ridotto: solo l'opacità, come l'originale.
+ */
+@Composable
+private fun Modifier.stackDrop(index: Int): Modifier {
+    val off = animationsOff()
+    val p = androidx.compose.runtime.remember { androidx.compose.animation.core.Animatable(0f) }
+    var y by androidx.compose.runtime.remember { androidx.compose.runtime.mutableFloatStateOf(Float.NaN) }
+    androidx.compose.runtime.LaunchedEffect(Unit) { p.animateTo(1f, androidx.compose.animation.core.tween(300, easing = androidx.compose.animation.core.CubicBezierEasing(0.23f, 1f, 0.32f, 1f))) }
+    val depth = minOf(index + 1, 3)
+    return onPlaced { c -> if (y.isNaN()) y = c.positionInParent().y }.graphicsLayer {
+        val q = p.value
+        val hidden = depth > 2
+        alpha = if (hidden || off) q else 1f
+        if (!off && !y.isNaN()) {
+            transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 0f)
+            val from = -y + STACK_PEEK.dp.toPx() * depth
+            translationY = from * (1f - q)
+            val sc = 1f - STACK_SCALE * depth * (1f - q)
+            scaleX = sc; scaleY = sc
         }
     }
 }

@@ -66,9 +66,19 @@
     transition: background-color 150ms, transform var(--spring-bounce-t) var(--spring-bounce); }
   .pill.amber { background: color-mix(in srgb, var(--wait) 9%, var(--s1)); border-color: color-mix(in srgb, var(--wait) 38%, var(--line)); }
   .pill b { font: 600 14.5px var(--display); }
+  /* Voce 3, fedele all'originale (Notification stack; app-animazioni-fedeli-26-11): sotto la pillola le altre voci come carte
+     impilate, al massimo due, allineate in basso, ognuna 10 px più giù e scalata del 5 % per livello (0,95, 0,90). */
+  .pill.s1, .pill.s2 { position: relative; isolation: isolate; }
+  .pill.s1 { margin-bottom: 10px; }
+  .pill.s2 { margin-bottom: 20px; }
+  .pill.s1::before, .pill.s2::before, .pill.s2::after { content: ''; position: absolute; inset: -1px; border-radius: inherit; pointer-events: none; transform-origin: 50% 100%;
+    background: var(--s1); border: 1px solid var(--line); }
+  .pill.amber.s1::before, .pill.amber.s2::before, .pill.amber.s2::after { background: color-mix(in srgb, var(--wait) 6%, var(--s1)); border-color: color-mix(in srgb, var(--wait) 25%, var(--line)); }
+  .pill.s1::before, .pill.s2::before { z-index: -1; transform: translateY(10px) scale(.95); }
+  .pill.s2::after { z-index: -2; transform: translateY(20px) scale(.9); }
   /* Voce 3: sotto il riquadro chiuso i bordi delle altre voci, come carte impilate; aperto, le voci scendono con la molla. */
-  .s1 { box-shadow: 0 4px 0 -1px color-mix(in srgb, var(--wait) 14%, var(--s1)), 0 4px 0 0 color-mix(in srgb, var(--wait) 30%, var(--line)); margin-bottom: 12px; }
-  .s2 { box-shadow: 0 4px 0 -1px color-mix(in srgb, var(--wait) 14%, var(--s1)), 0 4px 0 0 color-mix(in srgb, var(--wait) 30%, var(--line)), 0 8px 0 -2px color-mix(in srgb, var(--wait) 8%, var(--s1)), 0 8px 0 -1px color-mix(in srgb, var(--wait) 18%, var(--line)); margin-bottom: 16px; }
+  .blk.s1 { box-shadow: 0 4px 0 -1px color-mix(in srgb, var(--wait) 14%, var(--s1)), 0 4px 0 0 color-mix(in srgb, var(--wait) 30%, var(--line)); margin-bottom: 12px; }
+  .blk.s2 { box-shadow: 0 4px 0 -1px color-mix(in srgb, var(--wait) 14%, var(--s1)), 0 4px 0 0 color-mix(in srgb, var(--wait) 30%, var(--line)), 0 8px 0 -2px color-mix(in srgb, var(--wait) 8%, var(--s1)), 0 8px 0 -1px color-mix(in srgb, var(--wait) 18%, var(--line)); margin-bottom: 16px; }
   .blk.open > :global(*:not(.strip)) { animation: blk-down var(--spring-bounce-t) var(--spring-bounce) both; }
   @keyframes blk-down { from { transform: translateY(-10px); opacity: 0; } }
   .pill:active { transform: scale(.97); }

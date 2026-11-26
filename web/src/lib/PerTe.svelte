@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { CmdResult, ResultsPage, WaitItem } from './contract'
   import { decodeWaits, readPage } from './decideDecode'
+  import { cala } from './molla'
   import { newCmd } from './transport'
   import { voci, type Voce as Item } from './perTe'
   import { results as shared, waits as store } from './attese.svelte'
@@ -56,8 +57,8 @@
 {#if items.length}{@const top = items[0]}
   <Blocco pill stack={stackEdges(items.length)} icon="hand" title={t.forYou} n={items.length} first={top.title} hint={t.perTeHint} open={wide ? here : open} amber testid="chat-per-te" onToggle={tap}>
     {#if onMaster && !wide}<button class="also" data-testid="per-te-in-master" onclick={() => onMaster(session)}>{t.perTeAlsoMaster}<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></button>{/if}
-    {#each items as v (v.key)}
-      <Voce group={v.group} title={v.title} sub={subOf(v)} ago={agoOf(v, now)} silence={silenceOf(v, now)} advice={adviceText(v.advice)} main={mainLabelOf(v)} rec={!!v.main?.recommended} testid="voce-{v.key}" onOpen={() => openOf(v)} onMain={() => void act(v)} />
+    {#each items as v, i (v.key)}
+      <div use:cala={i}><Voce group={v.group} title={v.title} sub={subOf(v)} ago={agoOf(v, now)} silence={silenceOf(v, now)} advice={adviceText(v.advice)} main={mainLabelOf(v)} rec={!!v.main?.recommended} testid="voce-{v.key}" onOpen={() => openOf(v)} onMain={() => void act(v)} /></div>
     {/each}
   </Blocco>
 {/if}
