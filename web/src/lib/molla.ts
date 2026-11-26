@@ -44,3 +44,82 @@ export function motore(molle: Molla[], render: () => void): { vai: () => void; s
     stop() { if (id) cancelAnimationFrame(id); id = 0 },
   }
 }
+
+/**
+ * Voce 1, fedele all'originale (Streaming reply; app-animazioni-fedeli-26-11): la bolla nuova entra con la molla 300 22, sale di 14 px
+ * e l'opacità va da 0; quella di Franz (`me`) anche con la scala da 0,92 senza limite. Moto ridotto: al posto.
+ */
+export function entra(node: HTMLElement, p: { on: boolean; me: boolean }) {
+  if (!p.on || ridotto()) return
+  const s = molla(0, 300, 22)
+  s.t = 1
+  const render = () => {
+    node.style.opacity = clamp(s.x, 0, 1).toFixed(3)
+    node.style.transform = `translateY(${((1 - s.x) * 14).toFixed(2)}px)` + (p.me ? ` scale(${(0.92 + 0.08 * s.x).toFixed(4)})` : '')
+    if (ferma(s)) { node.style.opacity = ''; node.style.transform = '' }
+  }
+  render()
+  const m = motore([s], render)
+  m.vai()
+  return { destroy: () => m.stop() }
+}
+
+/**
+ * Voce 1, fedele all'originale (Streaming reply; app-animazioni-fedeli-26-11), parole della risposta arrivata a chat aperta: ogni parola
+ * parte 70 ms dopo la precedente (oltre 20 parole l'intervallo si accorcia e la risposta intera esce in 1,4 s, scelta b della master
+ * del 26/11), sale di 6 px, l'opacità va da 0 e passa da sfocata (4 px) a nitida con la molla 340 26; la scheda cresce fino al fondo
+ * dell'ultima parola (+ 16 px, il suo margine) con la molla 260 26, poi torna alla sua altezza. Moto ridotto: al posto.
+ */
+export function parole(node: HTMLElement, p: { on: boolean }) {
+  if (!p.on || ridotto()) return
+  const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT)
+  const texts: Text[] = []
+  while (walker.nextNode()) texts.push(walker.currentNode as Text)
+  const words: { el: HTMLSpanElement; s: Molla; on: boolean }[] = []
+  for (const tn of texts) {
+    const parts = (tn.nodeValue ?? '').split(/(\s+)/)
+    if (!parts.some((x) => x.trim())) continue
+    const frag = document.createDocumentFragment()
+    for (const x of parts) {
+      if (!x) continue
+      if (!x.trim()) { frag.append(x); continue }
+      const el = document.createElement('span')
+      el.textContent = x
+      el.style.display = 'inline-block'
+      el.style.opacity = '0'
+      frag.append(el)
+      words.push({ el, s: molla(0, 340, 26), on: false })
+    }
+    tn.replaceWith(frag)
+  }
+  if (!words.length) return
+  const gap = words.length <= 20 ? 70 : 1400 / words.length
+  const H = molla(40, 260, 26)
+  const full = node.scrollHeight
+  node.style.overflow = 'hidden'
+  const top = () => node.getBoundingClientRect().top
+  const timers: number[] = []
+  let done = false
+  const render = () => {
+    node.style.height = done && ferma(H) ? '' : `${Math.max(0, H.x).toFixed(2)}px`
+    for (const w of words) {
+      if (!w.on) continue
+      const v = clamp(w.s.x, 0, 1.2)
+      w.el.style.opacity = clamp(v, 0, 1).toFixed(3)
+      w.el.style.transform = `translateY(${((1 - w.s.x) * 6).toFixed(2)}px)`
+      w.el.style.filter = v < 0.98 ? `blur(${((1 - clamp(v, 0, 1)) * 4).toFixed(2)}px)` : 'none'
+    }
+    if (done && ferma(H)) node.style.overflow = ''
+  }
+  const m = motore([H, ...words.map((w) => w.s)], render)
+  words.forEach((w, i) => timers.push(window.setTimeout(() => {
+    w.on = true; w.s.t = 1
+    const r = w.el.getBoundingClientRect()
+    H.t = Math.min(full, r.bottom - top() + 16)
+    m.vai()
+  }, i * gap)))
+  timers.push(window.setTimeout(() => { done = true; H.t = node.scrollHeight; m.vai() }, words.length * gap + 1000))
+  render()
+  m.vai()
+  return { destroy: () => { timers.forEach(clearTimeout); m.stop() } }
+}

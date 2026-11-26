@@ -359,6 +359,9 @@ fun SessionSheet(
     DisposableEffect(s.name) { onDispose { if (!still) latestAt?.let { seenPrefs.edit().putLong(s.name, it).apply() } } }
     val openedAt = remember(s.name) { android.os.SystemClock.uptimeMillis() }
     val cascaded = remember(s.name) { mutableSetOf<String>() }
+    // Voce 1 (app-animazioni-fedeli-26-11): le risposte già presenti all'apertura non scorrono; scorre solo quella che arriva dopo.
+    val streamGate = remember(s.name) { StreamGate() }
+    turnRows?.let { rs -> if (!streamGate.primed) streamGate.prime(rs.mapNotNull { r -> (r as? it.pixelbox.cmwatch.rules.ChatTurns.Row.Turn)?.answer?.id }) }
     val tinted = remember(s.name) { mutableSetOf<String>() }
     val recurring = LocalRecurring.current
     val recurringRows by remember(recurring, home == null, idle, draftHolder) {
@@ -584,17 +587,17 @@ fun SessionSheet(
                         val k = it.pixelbox.cmwatch.rules.ChatTurns.key(row)
                         val opening = android.os.SystemClock.uptimeMillis() - openedAt < 1_000
                         Column(
-                            Modifier.fillMaxWidth().cascadeIn(ChatNews.rank(index, rows.size), opening, cascaded, k)
+                            Modifier.fillMaxWidth().cascadeIn(ChatNews.rank(index, rows.size), opening, cascaded, k, me = (row as? it.pixelbox.cmwatch.rules.ChatTurns.Row.Turn)?.request != null)
                                 .newsTint(newsFrom != null && index >= newsFrom, tinted, k),
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
                         if (index == newsFrom) NewsDivider()
                         when (row) {
                             is it.pixelbox.cmwatch.rules.ChatTurns.Row.Sep -> Box(Modifier.flashed(flash != null && row.item.entry.id == flash)) { SeparatorBar(row.item, now) }
-                            is it.pixelbox.cmwatch.rules.ChatTurns.Row.Turn -> TurnRow(
+                            is it.pixelbox.cmwatch.rules.ChatTurns.Row.Turn -> androidx.compose.runtime.CompositionLocalProvider(LocalStreamGate provides streamGate) { TurnRow(
                                 row, flash, focus, ttsMinChars, actions, reasonOf = { id -> reasons[id] }, onRetried = { r -> retried = r }, onEdit = { t -> draft = t },
                                 onStep = { step -> draft = NextSteps.append(draft, step, then) }, showSteps = s.name == it.pixelbox.cmwatch.rules.ContextActions.MASTER,
-                            )
+                            ) }
                         }
                         }
                     }
@@ -1791,7 +1794,7 @@ private fun sizeLabel(b: Long): String = when {
  * tornando a schermo scorrendo resta ferma. Con le animazioni spente nessun movimento.
  */
 @Composable
-private fun Modifier.cascadeIn(rank: Int?, opening: Boolean, done: MutableSet<String>, key: String): Modifier {
+private fun Modifier.cascadeIn(rank: Int?, opening: Boolean, done: MutableSet<String>, key: String, me: Boolean = false): Modifier {
     val off = animationsOff()
     // All'apertura niente onda (app-sessione-apertura-06-11): la chat arriva col volo, sale solo quello che arriva dopo.
     val first = remember(key) { rank != null && !off && !opening && done.add(key) }
@@ -1800,10 +1803,14 @@ private fun Modifier.cascadeIn(rank: Int?, opening: Boolean, done: MutableSet<St
     val wait = if (opening) (rank ?: 0) * ChatNews.STAGGER_MS else 0L
     LaunchedEffect(key) {
         kotlinx.coroutines.delay(wait)
-        // Voce 1 di app-animazioni-seconde-26-11: il messaggio nuovo sale di 8 dp in 220 ms.
-        p.animateTo(1f, androidx.compose.animation.core.tween(220, easing = CmMotion.easing))
+        // Voce 1, fedele all'originale (Streaming reply; app-animazioni-fedeli-26-11): la bolla nuova entra con la molla 300 22, sale
+        // di 14 dp e l'opacità va da 0; quella di Franz anche con la scala da 0,92 (senza limite, così si vede il rimbalzo).
+        p.animateTo(1f, Molla.of(300f, 22f))
     }
-    return graphicsLayer { alpha = p.value; translationY = (1f - p.value) * 8.dp.toPx() }
+    return graphicsLayer {
+        alpha = p.value.coerceIn(0f, 1f); translationY = (1f - p.value) * 14.dp.toPx()
+        if (me) { val k = 0.92f + 0.08f * p.value; scaleX = k; scaleY = k }
+    }
 }
 
 /** B: il fondo appena tinto delle voci arrivate dall'ultima visita, che sfuma in 2 s dopo la cascata; una volta sola per voce. */
@@ -2792,18 +2799,18 @@ private fun RichText(text: String, tasks: TaskLinks, tone: androidx.compose.ui.g
     val body = MaterialTheme.typography.bodyLarge
     val lead = if (big) body.copy(fontSize = 17.sp, lineHeight = 25.sp) else body
     val one = parts.singleOrNull() as? it.pixelbox.cmwatch.rules.Answer.Rich.P
-    if (one != null) { Text(linked(one.text, tasks), style = lead, color = tone); return }
+    if (one != null) { StreamText(linked(one.text, tasks), style = lead, color = tone); return }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         parts.forEachIndexed { i, p ->
             when (p) {
-                is it.pixelbox.cmwatch.rules.Answer.Rich.P -> Text(linked(p.text, tasks), style = if (i == 0) lead else body, color = tone)
+                is it.pixelbox.cmwatch.rules.Answer.Rich.P -> StreamText(linked(p.text, tasks), style = if (i == 0) lead else body, color = tone)
                 is it.pixelbox.cmwatch.rules.Answer.Rich.Li -> Row(Modifier.padding(start = (p.depth * 18).dp)) {
                     val number = p.mark != "•"
                     Text(
                         p.mark, style = if (number) body.copy(fontFamily = V3.Display, fontWeight = FontWeight.SemiBold) else body,
                         color = if (number) V3.Tx2 else V3.Tx3, modifier = Modifier.width(22.dp),
                     )
-                    Text(linked(p.text, tasks), style = body, color = tone, modifier = Modifier.weight(1f))
+                    StreamText(linked(p.text, tasks), style = body, color = tone, modifier = Modifier.weight(1f))
                 }
                 is it.pixelbox.cmwatch.rules.Answer.Rich.Code -> CommandCard(p.text)
                 is it.pixelbox.cmwatch.rules.Answer.Rich.Quote -> QuoteCard(p.text, tasks)
@@ -3156,9 +3163,13 @@ private fun AnswerZones(e: TranscriptEntry, flashed: Boolean, actions: SheetActi
     val label = stringResource(R.string.outcome_label)
     val r = remember(e.text, label, actions.sessions) { readEntry(e.text.orEmpty(), label, actions.sessions) }
     val type = it.pixelbox.cmwatch.rules.Kpi.OutcomeType.of(e.outcomeType)
+    // Voce 1 (app-animazioni-fedeli-26-11): una risposta arrivata a chat aperta scorre parola per parola (WordStream.kt).
+    val gate = LocalStreamGate.current
+    val off = animationsOff()
+    val ws = remember(e.id) { if (!off && gate?.claim(e.id) == true) WordStream(WordStream.count(r.body)) else null }
     if (r.body.isNotBlank() || r.buttons.isNotEmpty() || r.waits.ids.isNotEmpty() || e.cut) Column(
-        Modifier.fillMaxWidth().background(F3.paper).flashed(flashed).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
+        Modifier.fillMaxWidth().streamBox(ws).background(F3.paper).flashed(flashed).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) { androidx.compose.runtime.CompositionLocalProvider(LocalWordStream provides ws) {
         // Durante la lettura a voce il testo si mostra a paragrafi, quello letto in evidenza; il tocco su un paragrafo fa ripartire
         // la lettura da lì (Franz, 02/10 00:01: «come in orologio»).
         if (LocalSpeaking.current == r.text) {
@@ -3173,7 +3184,7 @@ private fun AnswerZones(e: TranscriptEntry, flashed: Boolean, actions: SheetActi
             }
         } else Quotable(r.waits.text, e.at) { SelectionContainer { DocBody(r.body, index = true, tone = Cm.text) } }
         EntryExtras(e, r, actions)
-    }
+    } }
     // I PROSSIMI nel turno solo nella master: in una sessione stanno sopra il campo (app-riall-3-doppioni-16-11); l'ESITO resta.
     if (r.outcome != null || r.tipo != null || (showSteps && r.steps.isNotEmpty())) Column(
         Modifier.fillMaxWidth().background(F3.foot(type)).padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 14.dp), verticalArrangement = Arrangement.spacedBy(6.dp),

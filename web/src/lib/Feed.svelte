@@ -2,6 +2,7 @@
   import ProvaCards from './ProvaCards.svelte'
   import { DAY } from './durations'
   import { popOnChange } from './motion'
+  import { entra, parole } from './molla'
   import CopyButton from './CopyButton.svelte'
   import { parts as citeParts } from './citazione'
   import QuoteBlock from './QuoteBlock.svelte'
@@ -94,6 +95,14 @@
   const newsFrom = $derived.by(() => { const i = firstNew(items, seenAt); if (i == null) return null; const r = rowOf(rows, items[i]); return r < 0 ? null : r })
   // All'apertura niente onda (app-sessione-apertura-06-11); sale solo il turno che arriva dopo.
   let born: Set<string> | null = null
+  // Voce 1 (app-animazioni-fedeli-26-11): scorre parola per parola solo la risposta arrivata dopo l'apertura, una volta sola.
+  let bornAns: Set<string> | null = null
+  function liveAnswer(id: string): boolean {
+    if (!bornAns) bornAns = new Set(rows.flatMap((x) => (x.type === 'turn' && x.answer ? [x.answer.id] : [])))
+    if (bornAns.has(id)) return false
+    bornAns.add(id)
+    return true
+  }
   function motion(r: Row): string {
     if (!born) born = new Set(rows.map(rowKey))
     return born.has(rowKey(r)) ? '' : 'rise'
@@ -259,7 +268,7 @@
   {@const r = read(e)}
   <div class="ans" class:found={flash === e.id} data-entry={e.id} data-quote={r.text} data-quote-at={e.at ?? ''}>
     {#if r.es.body.trim() || r.buttons.length || r.wl.ids.length || e.cut}
-      <section class="z za">
+      <section class="z za" use:parole={{ on: liveAnswer(e.id) }}>
         {@render doc(r.es.body, true, bozzeOf(e))}
         {@render extras(e, r)}
       </section>
@@ -375,7 +384,7 @@
 {/snippet}
 
 {#each rows as r, i (rowKey(r))}
-  <div class="it {motion(r)}" class:turn={r.type === 'turn'} class:fresh={newsFrom != null && i >= newsFrom}>
+  <div class="it" use:entra={{ on: motion(r) === 'rise', me: r.type === 'turn' && r.request != null }} class:turn={r.type === 'turn'} class:fresh={newsFrom != null && i >= newsFrom}>
   {#if i === newsFrom}<div class="news"><span>{t.chatNews}</span></div>{/if}
   {#if r.type === 'separator'}
     {@const head = sepHead(r.entry)}
@@ -445,11 +454,7 @@
   .found { animation: found 2.2s ease-out; border-radius: 12px; }
   @keyframes found { from { box-shadow: inset 0 0 0 100vmax rgba(255, 178, 63, .22); } to { box-shadow: inset 0 0 0 100vmax transparent; } }
   @media (prefers-reduced-motion: reduce) { .found { animation: none; box-shadow: inset 0 0 0 100vmax rgba(255, 178, 63, .14); } }
-  /* Voce 1 di app-animazioni-seconde-26-11: il messaggio nuovo sale di 8 px in 220 ms, una volta e solo lui. */
-  .rise { animation: rise 220ms cubic-bezier(0.3, 0, 0.2, 1) both; }
-  @keyframes rise { from { opacity: 0; transform: translateY(8px); } }
   .fresh { animation: fresh 2s ease-out 600ms both; }
-  .rise.fresh { animation: rise 220ms cubic-bezier(0.3, 0, 0.2, 1) both, fresh 2s ease-out 600ms both; }
   /* Il bagliore dei messaggi nuovi in grigio, senza l'azzurro di prima (app-audit-superfici-luci-04-11). */
   @keyframes fresh { from { background: rgb(255 255 255 / .08); box-shadow: 0 0 0 6px rgb(255 255 255 / .08); } to { background: transparent; box-shadow: 0 0 0 6px transparent; } }
   /* Le voci fuori schermo non si impaginano né si disegnano (app-fluidita-06-11): il browser le salta finché non entrano in vista,
@@ -467,7 +472,7 @@
   .sep.light { padding: 6px 0; opacity: .7; }
   .sep.light .sepbar { font-size: 11.5px; font-weight: 500; }
   .sep.light .sepbar::before, .sep.light .sepbar::after { opacity: .5; }
-  @media (prefers-reduced-motion: reduce) { .rise, .fresh, .rise.fresh { animation: none; } }
+  @media (prefers-reduced-motion: reduce) { .fresh { animation: none; } }
   .me { align-self: stretch; display: flex; flex-direction: column; align-items: flex-end; }
   .att { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; margin-bottom: 4px; border-radius: 14px; background: var(--surface); color: var(--text2); font-size: 14px; overflow-wrap: anywhere; }
   .mrow { display: flex; align-items: center; gap: 2px; }
