@@ -1,0 +1,39 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tieni premuto per la produzione</title><link rel="stylesheet" href="_motion.css">
+<style>
+  .k b { color: var(--red); font-weight: 600; }
+  .ask { font-size: 16px; line-height: 1.4; margin: 4px 0 12px; }
+  .row { display: flex; gap: 8px; }
+  /* Il tasto si riempie da sinistra finché il dito resta giù (600 ms, lineare: è un tempo, si deve leggere); lasciato prima,
+     torna indietro in 200 ms; pieno, diventa la conferma della voce 11. */
+  .hold { position: relative; flex: 1; overflow: hidden; justify-content: center; border: 1px solid color-mix(in srgb, var(--red) 45%, transparent); background: var(--s2); }
+  .hold .fill { position: absolute; inset: 0; background: color-mix(in srgb, var(--red) 30%, var(--s3)); clip-path: inset(0 100% 0 0); transition: clip-path 200ms var(--ease-out); }
+  .hold.down .fill { clip-path: inset(0 0 0 0); transition: clip-path 600ms linear; }
+  .hold span { position: relative; }
+  .hold.done { border-color: var(--good); background: color-mix(in srgb, var(--good) 18%, var(--s2)); color: var(--good); }
+  .hold.done .fill { opacity: 0; transition: opacity 150ms; }
+  .hold.down { transform: scale(.97); transition-duration: 100ms; }
+  html.reduce .hold.down { transform: none; }
+  .hint { font: 400 12px/1.4 var(--mono); color: var(--tx3); margin-top: 8px; min-height: 17px; }
+</style></head><body>
+<div class="top"><h1>Tieni premuto per la produzione</h1><div class="ref">Hold to publish · Tool approval<br>telefono · web · orologio</div></div>
+<div class="card">
+  <span class="k">claude-master · approvazione · <b>produzione</b></span>
+  <p class="ask">Carico la release 5 su Google Play (51 e 52)?</p>
+  <div class="row"><button class="tonal hold" id="h"><span class="fill"></span><span id="hl">Tieni premuto per approvare</span></button><button class="tonal">No</button></div>
+  <div class="hint" id="hint"></div>
+</div>
+<div class="note"><b>Cosa cambia.</b> Solo per le approvazioni segnate come produzione (rosse): il tasto si riempie mentre tieni premuto, e l'ok parte quando è pieno. Lasciato prima, torna vuoto e non succede niente. Un tocco per sbaglio in tasca non pubblica. Le altre approvazioni restano a un tocco.
+<div class="t">riempimento 600 ms lineare · ritorno 200 ms · conferma come la voce 11 · ridotte: senza riempimento, il tempo e la conferma restano</div></div>
+<div class="ctl"></div>
+<script src="_motion.js"></script>
+<script>
+  const h = document.getElementById('h'), hl = document.getElementById('hl'), hint = document.getElementById('hint')
+  const reset = () => { h.classList.remove('down', 'done'); hl.textContent = 'Tieni premuto per approvare'; hint.textContent = '' }
+  M.loop(async () => {
+    reset(); await M.wait(900)
+    h.classList.add('down'); hint.textContent = 'lasciato a metà'; await M.wait(300); h.classList.remove('down'); await M.wait(900)
+    h.classList.add('down'); hint.textContent = 'tenuto fino in fondo'; await M.wait(650); h.classList.remove('down'); h.classList.add('done'); hl.textContent = '✓ Approvato'
+    await M.wait(1800)
+  }, () => { h.classList.add('down'); document.querySelector('.fill').style.clipPath = 'inset(0 40% 0 0)'; document.querySelector('.fill').style.transition = 'none'; hint.textContent = 'tenuto: pieno al 60 %' })
+</script></body></html>

@@ -1,0 +1,47 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cifra che scorre</title><link rel="stylesheet" href="_motion.css">
+<style>
+  .board { display: grid; grid-template-columns: 1.15fr 1fr 1.15fr; background: var(--s1); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  .cell { padding: 12px 12px 13px; border-left: 1px solid var(--line); }
+  .cell:first-child { border-left: 0; }
+  .n { display: flex; align-items: baseline; font: 700 42px/1 var(--display); letter-spacing: -0.01em; }
+  .n.wait { color: var(--wait); }
+  .n .of { font-size: 22px; font-weight: 600; color: var(--tx2); margin-left: 2px; }
+  .l { display: block; min-height: 2.5em; font-size: 14px; line-height: 1.25; color: var(--tx2); margin-top: 6px; }
+  /* La cifra vecchia sale e sfuma, la nuova arriva da sotto: un solo scatto, senza rimbalzo, perché è un dato. */
+  .roll { position: relative; display: inline-block; height: 42px; overflow: hidden; }
+  .roll span { display: block; transition: transform 220ms var(--spring-fast), opacity 160ms var(--ease-out); }
+  .roll .nx { position: absolute; left: 0; top: 0; transform: translateY(100%); opacity: 0; }
+  .roll.go .cu { transform: translateY(-100%); opacity: 0; }
+  .roll.go .nx { transform: none; opacity: 1; }
+  html.reduce .roll span { transition: none; }
+  .tag { font: 400 12px/1.4 var(--mono); color: var(--tx3); margin: 8px 0 2px; min-height: 17px; }
+  .q { transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out); }
+  .q.gone { opacity: 0; transform: translateY(-6px); }
+  .q p { font-size: 15px; line-height: 1.4; }
+  .q .row { display: flex; gap: 8px; margin-top: 10px; }
+  .q .ok { background: color-mix(in srgb, var(--wait) 22%, var(--s3)); }
+</style></head><body>
+<div class="top"><h1>Cifra che scorre</h1><div class="ref">Word roll · Stat card<br>telefono · web</div></div>
+<div class="board">
+  <div class="cell"><span class="n wait"><span class="roll" id="r"><span class="cu">3</span><span class="nx">2</span></span></span><span class="l">ti aspettano</span></div>
+  <div class="cell"><span class="n"><span id="busy">1</span><span class="of">/5</span></span><span class="l">al lavoro</span></div>
+  <div class="cell"><span class="n">3<span class="of">/5</span></span><span class="l">ferme</span></div>
+</div>
+<div class="tag" id="tag"></div>
+<div class="card q" id="q"><span class="k">claude-master · domanda</span><p>Pubblico la 0.2.2291 come pre-release?</p><div class="row"><button class="tonal ok" id="ok">Sì</button><button class="tonal">No</button></div></div>
+<div class="note"><b>Cosa cambia.</b> La cifra scorre solo quando cambia per un tuo gesto: rispondi a una domanda e «3» diventa «2» davanti a te. Quando cambia da sola, con un aggiornamento dal PC, si aggiorna e basta come oggi: resta la regola del 31/10, niente conteggi che scorrono sui dati dei push.
+<div class="t">scorrimento 220 ms molla veloce, dissolvenza 160 ms · senza rimbalzo · ridotte: cambio secco</div></div>
+<div class="ctl"></div>
+<script src="_motion.js"></script>
+<script>
+  const r = document.getElementById('r'), q = document.getElementById('q'), ok = document.getElementById('ok'), tag = document.getElementById('tag'), busy = document.getElementById('busy')
+  M.loop(async () => {
+    r.classList.remove('go'); q.classList.remove('gone'); tag.textContent = ''; busy.textContent = '1'
+    await M.wait(900)
+    ok.classList.add('press'); await M.wait(110); ok.classList.remove('press')
+    q.classList.add('gone'); await M.wait(120); r.classList.add('go'); tag.textContent = 'dal tuo Sì: la cifra scorre'
+    await M.wait(1800); busy.textContent = '2'; tag.textContent = 'da un push: al lavoro passa a 2 e basta'
+    await M.wait(2200)
+  }, () => { r.classList.add('go'); ok.textContent = '✓ Sì'; ok.style.color = 'var(--good)'; tag.textContent = 'dal tuo Sì: la cifra scorre' })
+</script></body></html>

@@ -1,0 +1,46 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ok al polso</title><link rel="stylesheet" href="_motion.css">
+<style>
+  /* Pixel Watch 5, 45 mm: circa 228 dp di diametro, disegnato 1:1. */
+  .watch { width: 228px; height: 228px; border-radius: 50%; margin: 6px auto 0; background: #000; box-shadow: 0 0 0 10px #1A1A1A, 0 0 0 11px #2A2A2A; position: relative; overflow: hidden; display: grid; place-items: center; text-align: center; }
+  .time { position: absolute; top: 14px; left: 0; right: 0; font: 500 13px/1 var(--sans); color: var(--tx2); }
+  .q { padding: 0 26px; margin-top: 6px; }
+  .q .from { font-size: 12px; color: var(--wait); }
+  .q p { font: 500 15px/1.25 var(--sans); margin-top: 4px; }
+  .btns { display: flex; justify-content: center; gap: 8px; margin-top: 12px; }
+  .b { position: relative; width: 52px; height: 52px; border-radius: 26px; background: var(--s3); display: grid; place-items: center; font: 600 15px/1 var(--sans); transition: transform var(--spring-fast-t) var(--spring-fast), background 200ms; }
+  .b.press { transform: scale(.94); transition-duration: 100ms; }
+  .b.yes { background: color-mix(in srgb, var(--wait) 30%, var(--s3)); }
+  /* Mandato: l'etichetta lascia il posto a un arco che gira finché il telefono non conferma; poi la spunta si disegna, una volta. */
+  .b .lab, .b .arc, .b .ok { grid-area: 1 / 1; transition: opacity 150ms var(--ease-out); }
+  .b .arc { width: 30px; height: 30px; border-radius: 50%; border: 3px solid transparent; border-top-color: var(--tx); opacity: 0; }
+  .b .ok { opacity: 0; }
+  .b .ok path { stroke-dasharray: 24; stroke-dashoffset: 24; transition: stroke-dashoffset 250ms var(--ease-out); }
+  .b.sending .lab { opacity: 0; } .b.sending .arc { opacity: 1; animation: spin 1.2s linear infinite; }
+  .b.done { background: var(--good); }
+  .b.done .lab { opacity: 0; } .b.done .ok { opacity: 1; } .b.done .ok path { stroke-dashoffset: 0; }
+  .no { transition: opacity 150ms var(--ease-out); }
+  .no.fade { opacity: 0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  html.reduce .b.sending .arc { animation: none; border-color: var(--tx); border-right-color: transparent; }
+  html.reduce .b .ok path { transition: none; }
+</style></head><body>
+<div class="top"><h1>Ok al polso</h1><div class="ref">Loading to success<br>orologio</div></div>
+<div class="watch"><span class="time">10:42</span>
+  <div class="q"><div class="from">claude-master</div><p>Pubblico la pre-release 0.2.2291?</p>
+    <div class="btns"><button class="b yes" id="y"><span class="lab">Sì</span><span class="arc"></span><svg class="ok" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#0B0B0B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></button><button class="b no" id="n">No</button></div>
+  </div>
+</div>
+<div class="note"><b>Cosa cambia.</b> Al polso oggi i due momenti ci sono già, a parole e con la vibrazione: «Inviato» con un tick, «confermato» con due. Qui li dice il tasto stesso: dopo il Sì diventa un arco che gira finché il PC non conferma, poi una spunta verde, sugli stessi tick; il No sfuma. Una volta sola, niente cicli lunghi: regge la batteria. Nell'ambiente a basso consumo non si anima niente.
+<div class="t">pressione 100 ms · arco 1,2 s lineare finché serve · spunta 250 ms · ridotte: arco fermo, spunta senza tratto</div></div>
+<div class="ctl"></div>
+<script src="_motion.js"></script>
+<script>
+  const y = document.getElementById('y'), n = document.getElementById('n')
+  M.loop(async () => {
+    y.className = 'b yes'; n.classList.remove('fade'); await M.wait(900)
+    y.classList.add('press'); await M.wait(110); y.classList.remove('press')
+    y.classList.add('sending'); n.classList.add('fade'); await M.wait(1400)
+    y.classList.remove('sending'); y.classList.add('done'); await M.wait(1800)
+  }, () => { y.classList.add('done'); n.classList.add('fade') })
+</script></body></html>

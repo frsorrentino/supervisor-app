@@ -1,0 +1,41 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anello che si sposta</title><link rel="stylesheet" href="_motion.css">
+<style>
+  .board { position: relative; display: grid; grid-template-columns: 1.15fr 1fr 1.15fr; background: var(--s1); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  .cell { position: relative; z-index: 1; padding: 12px 12px 13px; border-left: 1px solid var(--line); }
+  .cell:first-child { border-left: 0; }
+  .n { font: 700 42px/1 var(--display); letter-spacing: -0.01em; }
+  .n.wait { color: var(--wait); }
+  .n .of { font-size: 22px; font-weight: 600; color: var(--tx2); margin-left: 2px; }
+  .l { display: block; min-height: 2.5em; font-size: 14px; line-height: 1.25; color: var(--tx2); margin-top: 6px; }
+  /* Un solo anello per il tabellone: non si spegne in una casella e si accende nell'altra, ci va. Posizione: la molla col
+     rimbalzo di casa (circa 5 %), l'unico posto dove il rimbalzo è ammesso. */
+  .ring { position: absolute; z-index: 0; top: 0; bottom: 0; left: 0; width: 0; background: var(--s2); box-shadow: inset 0 0 0 2px var(--tx2); border-radius: 13px; opacity: 0; transition: left var(--spring-bounce-t) var(--spring-bounce), width var(--spring-bounce-t) var(--spring-bounce), opacity 150ms var(--ease-out); }
+  .ring.on { opacity: 1; }
+  html.reduce .ring { transition: opacity 150ms var(--ease-out); }
+  .sec { margin-top: 12px; }
+  .sec h2 { font: 600 15px/22px var(--display); color: var(--tx2); display: flex; justify-content: space-between; }
+  .chip { font: 400 12.5px/1 var(--mono); padding: 5px 8px; border-radius: 10px; background: var(--s3); color: var(--tx); }
+  .item { padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
+  .item .s { font-size: 13.5px; color: var(--tx2); }
+</style></head><body>
+<div class="top"><h1>Anello che si sposta</h1><div class="ref">Tab pill · Segmented control<br>telefono · web</div></div>
+<div class="board" id="b">
+  <span class="ring" id="ring"></span>
+  <div class="cell"><span class="n wait">2</span><span class="l">ti aspettano</span></div>
+  <div class="cell"><span class="n">1<span class="of">/5</span></span><span class="l">al lavoro</span></div>
+  <div class="cell"><span class="n">3<span class="of">/5</span></span><span class="l">ferme</span></div>
+</div>
+<div class="sec"><h2><span>Sessioni</span><span class="chip" id="chip">ferme</span></h2>
+  <div class="item">watchface<div class="s">fatto · 1 h</div></div>
+  <div class="item">claude-master<div class="s">ferma · 3 h</div></div>
+</div>
+<div class="note"><b>Cosa cambia.</b> Ieri l'anello della casella scelta ha preso gli angoli del tabellone. Qui, cambiando filtro, l'anello scivola da una casella all'altra invece di spegnersi e riaccendersi: si vede da dove vieni e dove sei. Sulla web la plancia ha già una pillola che scorre (Desk.svelte); questa usa la molla di casa.
+<div class="t">posizione 620 ms molla col rimbalzo (circa 5 %) · comparsa 150 ms · ridotte: l'anello appare al posto, senza viaggio</div></div>
+<div class="ctl"></div>
+<script src="_motion.js"></script>
+<script>
+  const ring = document.getElementById('ring'), cells = [...document.querySelectorAll('.cell')], chip = document.getElementById('chip')
+  const go = i => { const c = cells[i]; ring.style.left = c.offsetLeft + 'px'; ring.style.width = c.offsetWidth + 'px'; ring.classList.add('on'); chip.textContent = ['ti aspettano', 'al lavoro', 'ferme'][i] }
+  M.loop(async () => { go(2); await M.wait(1300); go(1); await M.wait(1300); go(0); await M.wait(1300); ring.classList.remove('on'); await M.wait(700) }, () => { ring.style.transition = 'none'; go(1) })
+</script></body></html>

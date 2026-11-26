@@ -1,0 +1,35 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lettura che segue la voce</title><link rel="stylesheet" href="_motion.css">
+<style>
+  .p { padding: 4px 6px; border-radius: 8px; color: var(--tx2); font-size: 16px; line-height: 1.5; }
+  .p + .p { margin-top: 6px; }
+  .p.cur { background: var(--s3); }
+  /* Dentro il paragrafo letto: le parole già dette in chiaro, la parola di adesso con un fondo che passa di parola in parola. */
+  .wrap { position: relative; }
+  .wrap .w { position: relative; z-index: 1; transition: color 120ms var(--ease-out); }
+  .wrap .w.said { color: var(--tx); }
+  .hl { position: absolute; z-index: 0; height: 24px; border-radius: 6px; background: color-mix(in srgb, var(--busy) 30%, transparent); pointer-events: none; transition: left 140ms var(--spring-fast), top 140ms var(--spring-fast), width 140ms var(--spring-fast); }
+  html.reduce .hl { transition: none; }
+  .bar { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+  .stop { width: 36px; height: 36px; border-radius: 18px; background: var(--s3); display: grid; place-items: center; }
+  .rate { font: 500 13px/1 var(--mono); color: var(--tx2); padding: 6px 10px; border-radius: 14px; background: var(--s2); }
+</style></head><body>
+<div class="top"><h1>Lettura che segue la voce</h1><div class="ref">Read along<br>telefono · web</div></div>
+<div class="card">
+  <p class="p">Ho finito la correzione della voce: i blocchi di testo da copiare ora si leggono per intero.</p>
+  <div class="p cur wrap" id="cur"><span class="hl" id="hl"></span></div>
+  <p class="p">La prova la fai tu sulla 0.2.2291.</p>
+  <div class="bar"><span class="stop"><svg viewBox="0 0 24 24" width="18" height="18" fill="var(--tx)"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></span><span class="rate">1,25×</span></div>
+</div>
+<div class="note"><b>Cosa cambia.</b> Oggi durante la lettura si accende il paragrafo intero. Qui un fondo leggero segue anche la parola detta, e le parole già lette passano in chiaro. Il motore vocale dice dove è arrivato (Android <span class="mono">onRangeStart</span>, browser <span class="mono">boundary</span>): nessuna stima a tempo. L'orologio resta al paragrafo.
+<div class="t">passo di parola 140 ms molla veloce · colore 120 ms · ridotte: il fondo salta senza scorrere</div></div>
+<div class="ctl"></div>
+<script src="_motion.js"></script>
+<script>
+  const text = 'I blocchi di codice veri restano annunciati come «Codice», e il tasto copia resta al suo posto.'
+  const cur = document.getElementById('cur'), hl = document.getElementById('hl')
+  text.split(' ').forEach(w => { const s = document.createElement('span'); s.className = 'w'; s.textContent = w; cur.append(s, ' ') })
+  const ws = [...cur.querySelectorAll('.w')]
+  const at = i => { const w = ws[i]; hl.style.left = (w.offsetLeft - 3) + 'px'; hl.style.top = w.offsetTop + 'px'; hl.style.width = (w.offsetWidth + 6) + 'px'; ws.forEach((x, k) => x.classList.toggle('said', k <= i)) }
+  M.loop(async () => { for (let i = 0; i < ws.length; i++) { at(i); await M.wait(260 + ws[i].textContent.length * 22) } }, () => at(9), 600)
+</script></body></html>

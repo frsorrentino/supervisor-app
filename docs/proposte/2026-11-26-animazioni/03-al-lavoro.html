@@ -1,0 +1,33 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Al lavoro, vivo</title><link rel="stylesheet" href="_motion.css">
+<style>
+  .list { background: var(--s1); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  .row { position: relative; display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+  .row:last-child { border-bottom: 0; }
+  .name { font: 600 17px/1.2 var(--display); }
+  .st { font-size: 14px; color: var(--tx2); }
+  .st b { font-weight: 500; }
+  .busy { color: var(--busy); } .wait { color: var(--wait); } .good { color: var(--good); }
+  .when { font: 400 12.5px/1.4 var(--mono); color: var(--tx3); text-align: right; }
+  /* Un riflesso attraversa «al lavoro» con lo stesso ciclo della linea sul bordo (voce 1): la stessa onda, due punti. */
+  .shine { background: linear-gradient(100deg, var(--busy) 0 40%, #DCE6F7 50%, var(--busy) 60% 100%) 0 0 / 250% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: shine var(--cycle) linear infinite; }
+  @keyframes shine { from { background-position: 100% 0; } to { background-position: -150% 0; } }
+  .edge { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; overflow: hidden; background: color-mix(in srgb, var(--busy) 22%, transparent); }
+  .edge::after { content: ""; position: absolute; inset: 0 auto 0 0; width: 30%; background: var(--busy); animation: run var(--cycle) linear infinite; }
+  @keyframes run { from { transform: translateX(-100%); } to { transform: translateX(334%); } }
+  html.reduce .shine { animation: none; background: none; color: var(--busy); }
+  html.reduce .edge::after { width: 100%; animation: none; }
+  html.still .shine { animation: none; background-position: 72% 0; }
+  html.still .edge::after { animation: none; transform: translateX(120%); }
+</style></head><body>
+<div class="top"><h1>Al lavoro, vivo</h1><div class="ref">Thinking text<br>telefono · web</div></div>
+<div class="list">
+  <div class="row"><span class="name">supervisor-app</span><span class="when">4 min</span><span class="st"><b class="busy shine">al lavoro</b> · build della pre-release</span><span></span><span class="edge"></span></div>
+  <div class="row"><span class="name">claude-master</span><span class="when">12 min</span><span class="st"><b class="wait">ti aspetta</b> · una domanda</span></div>
+  <div class="row"><span class="name">watchface</span><span class="when">1 h</span><span class="st"><b class="good">fatto</b> · release 3 caricata</span></div>
+</div>
+<div class="note"><b>Cosa cambia.</b> Oggi «al lavoro» è una parola blu ferma, e la linea che scorre c'è solo dopo un ok. Qui un riflesso attraversa la parola con lo stesso ciclo di 1,6 s della linea: chi lavora si distingue a colpo d'occhio da chi è fermo, senza icone in più. Solo sulle righe al lavoro; il resto non si muove.
+<div class="t">ciclo 1,6 s lineare, come la voce 1 · ridotte: parola blu ferma · orologio: no, per la batteria</div></div>
+<div class="ctl"></div>
+<script src="_motion.js"></script>
+<script>M.loop(() => M.wait(60000), () => {})</script></body></html>
