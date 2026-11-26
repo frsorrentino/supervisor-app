@@ -1,0 +1,35 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Limite ad anello</title><link rel="stylesheet" href="_motion.css">
+<style>
+  .k2 { font: 600 15px/22px var(--display); }
+  .area { position: relative; margin-top: 8px; min-height: 120px; padding: 12px 12px 36px; border-radius: 12px; background: var(--s2); border: 1px solid var(--line); font-size: 15px; line-height: 1.45; }
+  /* L'anello si riempie col testo; negli ultimi 20 caratteri diventa ambra e dice quanti ne restano; oltre, rosso. */
+  .lim { position: absolute; right: 10px; bottom: 8px; display: flex; align-items: center; gap: 6px; font: 500 12.5px/1 var(--mono); color: var(--wait); }
+  .lim svg { width: 22px; height: 22px; transform: rotate(-90deg); }
+  .lim circle { fill: none; stroke-width: 3; }
+  .lim .bg { stroke: color-mix(in srgb, var(--tx) 14%, transparent); }
+  .lim .fg { stroke: var(--tx2); stroke-dasharray: 56.5; transition: stroke-dashoffset 120ms linear, stroke 200ms; }
+  .lim.near .fg { stroke: var(--wait); }
+  .lim.over .fg { stroke: var(--red); }
+  .lim.over { color: var(--red); }
+  .lim svg { transition: transform var(--spring-fast-t) var(--spring-fast); }
+  .lim.near svg { transform: rotate(-90deg) scale(1.15); }
+  html.reduce .lim .fg, html.reduce .lim svg { transition: none; }
+  .row { display: flex; gap: 8px; margin-top: 12px; }
+</style></head><body>
+<div class="top"><h1>Limite ad anello</h1><div class="ref">Letter limit<br>telefono · web</div></div>
+<div class="card">
+  <span class="k2">Nessuna, rifare: perché?</span>
+  <div class="area"><span id="tx"></span><span class="lim" id="lim"><span id="n"></span><svg viewBox="0 0 22 22"><circle class="bg" cx="11" cy="11" r="9"/><circle class="fg" id="fg" cx="11" cy="11" r="9"/></svg></span></div>
+  <div class="row"><button class="tonal">Manda il motivo</button></div>
+</div>
+<div class="note"><b>Cosa cambia.</b> Il motivo di «Nessuna, rifare» ha 300 caratteri, la nota a un risultato 2000; oggi il limite si legge solo come «restano N caratteri» quando è vicino. Qui un anello piccolo si riempie mentre scrivi; negli ultimi 20 caratteri diventa ambra e mostra il numero, oltre il limite rosso. Non blocca la scrittura.
+<div class="t">anello 120 ms lineare dietro al testo · ingresso dell'ambra 200 ms + molla veloce · ridotte: anello senza scatti</div></div>
+<div class="ctl"></div>
+<script src="_motion.js"></script>
+<script>
+  const MAX = 300, full = 'Le immagini 02 e 03 non arrivano: rifai la carta con un invio per file e metti prima l\'HTML, così Franz vede la pagina animata. Poi controlla la fila del relay sui file dichiarati, che si scavalcano tra telefono e web, e scrivi la causa nel compito prima di chiudere la carta di oggi pomeriggio.'
+  const tx = document.getElementById('tx'), fg = document.getElementById('fg'), lim = document.getElementById('lim'), n = document.getElementById('n')
+  const set = k => { tx.textContent = full.slice(0, k); const left = MAX - k; fg.style.strokeDashoffset = 56.5 * (1 - Math.min(1, k / MAX)); lim.classList.toggle('near', left <= 20 && left >= 0); lim.classList.toggle('over', left < 0); n.textContent = left <= 20 ? String(left) : '' }
+  M.loop(async () => { for (let k = 0; k <= full.length; k += 4) { set(k); await M.wait(40) } await M.wait(1500) }, () => set(287))
+</script></body></html>

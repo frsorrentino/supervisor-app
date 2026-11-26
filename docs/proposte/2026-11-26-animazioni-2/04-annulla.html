@@ -1,0 +1,38 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Annulla col tempo</title><link rel="stylesheet" href="_motion.css">
+<style>
+  .list { position: relative; background: var(--s1); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  .row { max-height: 80px; overflow: hidden; padding: 12px 14px; border-bottom: 1px solid var(--line); transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out), max-height 200ms var(--ease-out) 120ms, padding 200ms var(--ease-out) 120ms; }
+  .row:last-child { border-bottom: 0; }
+  .row b { font: 600 15px/1.2 var(--display); display: block; }
+  .row span { font-size: 13.5px; color: var(--tx2); }
+  .row.gone { opacity: 0; transform: translateX(24px); max-height: 0; padding-top: 0; padding-bottom: 0; border-bottom-width: 0; }
+  /* L'avviso con Annulla: un anello che si svuota in 5 s dice quanto tempo resta per ripensarci. */
+  .snack { display: flex; align-items: center; gap: 12px; margin-top: 12px; padding: 10px 12px 10px 16px; border-radius: 14px; background: var(--s3); opacity: 0; transform: translateY(8px); transition: opacity 150ms var(--ease-out), transform var(--spring-fast-t) var(--spring-fast); }
+  .snack.on { opacity: 1; transform: none; }
+  .snack p { flex: 1; font-size: 14.5px; }
+  .undo { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--tx); padding: 6px 8px; }
+  .ring { width: 22px; height: 22px; transform: rotate(-90deg); }
+  .ring circle { fill: none; stroke-width: 3; }
+  .ring .bg { stroke: color-mix(in srgb, var(--tx) 18%, transparent); }
+  .ring .fg { stroke: var(--tx); stroke-dasharray: 56.5; stroke-dashoffset: 0; }
+  .snack.on .fg { animation: drain 5s linear forwards; }
+  @keyframes drain { to { stroke-dashoffset: 56.5; } }
+  html.reduce .snack.on .fg { animation: none; }
+  html.still .snack.on .fg { animation: none; stroke-dashoffset: 22; }
+</style></head><body>
+<div class="top"><h1>Annulla col tempo</h1><div class="ref">Undo button · Swipe deck<br>telefono · web</div></div>
+<div class="list">
+  <div class="row"><b>watchface</b><span>risultato: release 3 · video 0:42</span></div>
+  <div class="row" id="r"><b>supervisor-app</b><span>suggerimento: pulisci i log di replay</span></div>
+  <div class="row"><b>claude-master</b><span>risultato: carta delle animazioni</span></div>
+</div>
+<div class="snack" id="sn"><p>Messo da parte: «pulisci i log»</p><button class="undo"><svg class="ring" viewBox="0 0 22 22"><circle class="bg" cx="11" cy="11" r="9"/><circle class="fg" cx="11" cy="11" r="9"/></svg>Annulla</button></div>
+<div class="note"><b>Cosa cambia.</b> Dopo un gesto che toglie qualcosa (Non ora, Mai, Visto, chiudere una sessione senza salvare) compare «Annulla» con un anello che si svuota in 5 s: si vede quanto tempo resta per ripensarci, poi l'azione parte davvero. Serve un'attesa di 5 s prima di mandare il comando al PC.
+<div class="t">uscita della riga 160 ms · avviso 150 ms + molla veloce · anello 5 s lineare · ridotte: anello fermo, i 5 s restano</div></div>
+<div class="ctl"></div>
+<script src="_motion.js"></script>
+<script>
+  const r = document.getElementById('r'), sn = document.getElementById('sn')
+  M.loop(async () => { r.classList.remove('gone'); sn.classList.remove('on'); await M.wait(1000); r.classList.add('gone'); await M.wait(120); sn.classList.add('on'); await M.wait(5200) }, () => { r.classList.add('gone'); sn.classList.add('on') })
+</script></body></html>

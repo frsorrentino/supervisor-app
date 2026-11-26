@@ -1,0 +1,39 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Messaggio che entra</title><link rel="stylesheet" href="_motion.css">
+<style>
+  .chat { position: relative; height: 330px; overflow: hidden; background: var(--s1); border: 1px solid var(--line); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; justify-content: flex-end; gap: 10px; }
+  .me { align-self: flex-end; max-width: 80%; background: var(--s3); border-radius: 14px 14px 4px 14px; padding: 8px 12px; font-size: 15px; }
+  .cl { font-size: 15px; line-height: 1.45; }
+  .cl .mono { display: block; margin-top: 4px; }
+  /* Il messaggio nuovo sale di 8 px e compare; i vecchi gli fanno posto con la molla veloce. Una volta, solo per quello nuovo. */
+  .new { animation: none; }
+  .new.in { animation: rise 220ms var(--ease-out) both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+  .pill { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%) scale(.9); opacity: 0; padding: 7px 14px; border-radius: 16px; background: var(--s3); border: 1px solid var(--line); font-size: 13.5px; transition: opacity 150ms var(--ease-out), transform var(--spring-bounce-t) var(--spring-bounce); }
+  .pill.on { opacity: 1; transform: translateX(-50%) scale(1); }
+  html.reduce .new.in { animation: fade 120ms both; }
+  @keyframes fade { from { opacity: 0; } }
+  .lab { font: 400 12px/1.4 var(--mono); color: var(--tx3); margin: 8px 0 0; min-height: 17px; }
+</style></head><body>
+<div class="top"><h1>Messaggio che entra</h1><div class="ref">Streaming reply · Notification stack<br>telefono · web</div></div>
+<div class="chat" id="chat">
+  <div class="me">Rifai la build con i golden nuovi</div>
+  <div class="cl">Spinto 5cbb8742, la CI è partita.<span class="mono">22:41</span></div>
+  <div class="me">Avvisami quando è verde</div>
+  <div class="cl new" id="nw">Verde: run 45656105233, pre-release 0.2.2290.<span class="mono">22:58</span></div>
+  <span class="pill" id="pill">1 nuovo ↓</span>
+</div>
+<p class="lab" id="lab"></p>
+<div class="note"><b>Cosa cambia.</b> Oggi un messaggio nuovo compare di colpo in fondo alla chat. Qui sale di 8 px e compare, una volta sola e solo lui: la conversazione non si muove. Se stai leggendo più in alto, la chat non scorre da sola; compare la pillola «1 nuovo ↓», che ti porta giù. La lettura per blocchi resta com'è.
+<div class="t">entrata 220 ms in uscita · pillola con la molla di casa · ridotte: dissolvenza di 120 ms, pillola senza scala</div></div>
+<div class="ctl"></div>
+<script src="_motion.js"></script>
+<script>
+  const nw = document.getElementById('nw'), pill = document.getElementById('pill'), lab = document.getElementById('lab')
+  M.loop(async () => {
+    nw.style.visibility = 'hidden'; nw.classList.remove('in'); pill.classList.remove('on'); lab.textContent = ''
+    await M.wait(800); nw.style.visibility = ''; nw.classList.add('in'); lab.textContent = 'in fondo alla chat: il messaggio sale'
+    await M.wait(1800); lab.textContent = 'più in alto: niente scorrimento, la pillola'; pill.classList.add('on')
+    await M.wait(1800)
+  }, () => { nw.classList.add('in'); pill.classList.add('on'); lab.textContent = 'il messaggio sale; da più in alto, la pillola' })
+</script></body></html>

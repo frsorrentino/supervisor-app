@@ -1,0 +1,29 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Puntini del visore</title><link rel="stylesheet" href="_motion.css">
+<style>
+  .viewer { position: relative; height: 400px; background: var(--bg); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  .bar { position: absolute; top: 10px; left: 12px; right: 12px; display: flex; justify-content: space-between; font-size: 14px; color: var(--tx2); z-index: 2; }
+  .track { position: absolute; inset: 44px 0 56px; display: flex; transition: transform 300ms var(--spring-fast); }
+  .pg { flex: none; width: 100%; height: 100%; display: grid; place-items: center; }
+  .pic { width: 78%; height: 92%; border-radius: 10px; background: var(--s2); border: 1px solid var(--line); display: grid; place-items: center; font: 700 44px/1 var(--display); color: var(--tx3); }
+  /* I puntini: uno per immagine, quello di adesso diventa una pillola; con più di 7 si vedono i 7 attorno a quello di adesso. */
+  .dots { position: absolute; left: 0; right: 0; bottom: 20px; display: flex; justify-content: center; gap: 6px; }
+  .dots i { width: 6px; height: 6px; border-radius: 3px; background: color-mix(in srgb, var(--tx) 30%, transparent); transition: width var(--spring-fast-t) var(--spring-fast), background 200ms; }
+  .dots i.on { width: 18px; background: var(--tx); }
+  html.reduce .track, html.reduce .dots i { transition: none; }
+</style></head><body>
+<div class="top"><h1>Puntini del visore</h1><div class="ref">Pagination dots<br>telefono · web</div></div>
+<div class="viewer"><div class="bar"><span id="nm">02-lettura.png</span><span id="pos">2 di 8</span></div>
+  <div class="track" id="tr"></div><div class="dots" id="dots"></div></div>
+<div class="note"><b>Cosa cambia.</b> Nel visore delle immagini di una carta o di un invio oggi c'è solo «2 di 8» in alto. Qui sotto l'immagine una fila di puntini, quello di adesso allungato a pillola: si capisce a colpo d'occhio che si scorre di lato e quante ne restano. Completa la correzione di oggi, che mostra tutte le immagini.
+<div class="t">pillola 200 ms molla veloce · scorrimento della pagina col dito, come oggi · ridotte: la pillola salta senza allungarsi</div></div>
+<div class="ctl"></div>
+<script src="_motion.js"></script>
+<script>
+  const names = ['01-copia', '02-lettura', '03-al-lavoro', '04-cifra', '05-passi', '06-tieni-premuto', '07-anello', '08-orologio']
+  const tr = document.getElementById('tr'), dots = document.getElementById('dots'), nm = document.getElementById('nm'), pos = document.getElementById('pos')
+  names.forEach((n, i) => { tr.insertAdjacentHTML('beforeend', `<div class="pg"><div class="pic">${i + 1}</div></div>`); dots.insertAdjacentHTML('beforeend', '<i></i>') })
+  const ds = [...dots.children]
+  const go = k => { tr.style.transform = `translateX(${-k * 100}%)`; ds.forEach((d, i) => d.classList.toggle('on', i === k)); nm.textContent = names[k] + '.png'; pos.textContent = `${k + 1} di ${names.length}` }
+  M.loop(async () => { for (let k = 0; k < names.length; k++) { go(k); await M.wait(900) } }, () => { tr.style.transition = 'none'; go(1) }, 300)
+</script></body></html>
