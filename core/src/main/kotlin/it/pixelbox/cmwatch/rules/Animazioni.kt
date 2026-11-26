@@ -10,10 +10,10 @@ import it.pixelbox.cmwatch.contract.WaitItem
  */
 object Animazioni {
     /** 1, Copia che risponde: quanto resta la spunta «Copiato» prima di tornare Copia. */
-    const val COPY_HOLD_MS = 1600L
+    const val COPY_HOLD_MS = 1800L
 
     /** 6, Tieni premuto: quanto si tiene il dito sul tasto di un'approvazione di produzione. */
-    const val HOLD_MS = 600L
+    const val HOLD_MS = 1200L
 
     /** 3, Al lavoro: il ciclo del riflesso, lo stesso della linea del lavoro in corso (voce 1 del 31/10). */
     const val CYCLE_MS = 1600

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.text.drawText
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -129,8 +130,9 @@ fun QuestionScreen(
                     }
                     Column(Modifier.fillMaxWidth().morph(this, spec), horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
                         // Voce 8 di app-animazioni-otto-26-11 (Ok al polso): l'arco gira finché il PC non ha preso la risposta, poi la spunta.
-                        if (sentId != null && pending?.status != PendingStatus.FAILED) AnswerMark(done = pending == null)
-                        Text(text, style = MaterialTheme.typography.titleLarge, color = CmColors.text, modifier = Modifier.fillMaxWidth())
+                        val mark = sentId != null && pending?.status != PendingStatus.FAILED
+                        if (mark) AnswerMark(done = pending == null, label = text)
+                        if (!mark) Text(text, style = MaterialTheme.typography.titleLarge, color = CmColors.text, modifier = Modifier.fillMaxWidth())
                     }
                 }
                 if (sentId != null && pending?.status == PendingStatus.FAILED) {
@@ -200,33 +202,72 @@ private fun QuestionText(text: String, modifier: Modifier = Modifier) {
 }
 
 /**
- * Voce 8 di app-animazioni-otto-26-11 (Ok al polso, Franz 26/11 11:50): un arco che gira in 1,2 s mentre la risposta viaggia, poi
- * una spunta verde che si disegna in 250 ms, sugli stessi tick di «inviato» e «confermato». Una volta, niente cicli lunghi; con
- * «riduci animazioni» arco fermo e spunta intera.
+ * Voce 8, fedele all'originale (designbookmark.com/motion, Loading to success; app-animazioni-fedeli-26-11). Mentre la risposta
+ * viaggia, un cerchio di 56 dp col velo ambra e la cometa che gira a 504°/s, entrata da 0,6 (molla 300 28). Preso dal PC: la cometa
+ * esce, il cerchio si apre in una pillola (molla 300 22) che diventa verde (200 30), la spunta si disegna dopo 150 ms (120 20) e
+ * [label] sale di 12 dp (220 20). Con «riduci animazioni» niente giro e tutto al posto.
  */
 @Composable
-private fun AnswerMark(done: Boolean) {
+private fun AnswerMark(done: Boolean, label: String? = null) {
     val off = it.pixelbox.cmwatch.wear.ui.ambient.animationsOff()
-    val turn = if (done || off) 0f else {
-        val t = androidx.compose.animation.core.rememberInfiniteTransition(label = "arco")
-        t.animateFloat(0f, 360f, androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(1200, easing = androidx.compose.animation.core.LinearEasing)), label = "giro").value
+    fun m(k: Float, c: Float) = androidx.compose.animation.core.spring<Float>(stiffness = k, dampingRatio = c / (2f * kotlin.math.sqrt(k)))
+    @Composable fun sp(t: Float, k: Float, c: Float, l: String) =
+        androidx.compose.animation.core.animateFloatAsState(t, if (off) androidx.compose.animation.core.snap() else m(k, c), label = l).value
+    val d = if (done) 1f else 0f
+    val pIn = androidx.compose.runtime.remember { androidx.compose.animation.core.Animatable(if (off) 1f else 0f) }
+    LaunchedEffect(done) { if (done) pIn.animateTo(0f, if (off) androidx.compose.animation.core.snap() else m(300f, 28f)) else if (!off) pIn.animateTo(1f, m(300f, 28f)) }
+    val w = sp(d, 300f, 22f, "ok-larghezza")
+    val g = sp(d, 200f, 30f, "ok-verde")
+    val dd = sp(d, 220f, 20f, "ok-scritta")
+    val k = androidx.compose.runtime.remember { androidx.compose.animation.core.Animatable(if (done && off) 1f else 0f) }
+    LaunchedEffect(done) { if (done) { if (off) k.snapTo(1f) else { kotlinx.coroutines.delay(150); k.animateTo(1f, m(120f, 20f)) } } }
+    val turn = if (off || pIn.value <= 0.001f && done) 0f else {
+        val t = androidx.compose.animation.core.rememberInfiniteTransition(label = "cometa")
+        t.animateFloat(0f, 360f, androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(714, easing = androidx.compose.animation.core.LinearEasing)), label = "giro").value
     }
-    val tick = androidx.compose.runtime.remember { androidx.compose.animation.core.Animatable(0f) }
-    LaunchedEffect(done) { if (done) { if (off) tick.snapTo(1f) else tick.animateTo(1f, androidx.compose.animation.core.tween(250)) } }
-    val good = CmColors.idle
-    val ink = CmColors.text
-    androidx.compose.foundation.Canvas(Modifier.padding(bottom = 6.dp).size(36.dp)) {
-        val w = 3.dp.toPx()
-        if (!done) drawArc(ink, startAngle = turn - 90f, sweepAngle = 90f, useCenter = false, style = androidx.compose.ui.graphics.drawscope.Stroke(w, cap = androidx.compose.ui.graphics.StrokeCap.Round))
-        else {
-            drawCircle(good)
-            val a = androidx.compose.ui.geometry.Offset(size.width * .28f, size.height * .52f)
-            val b = androidx.compose.ui.geometry.Offset(size.width * .44f, size.height * .68f)
-            val c = androidx.compose.ui.geometry.Offset(size.width * .74f, size.height * .36f)
-            val p = tick.value
-            val first = (p / .4f).coerceAtMost(1f)
-            drawLine(androidx.compose.ui.graphics.Color.Black, a, a + (b - a) * first, w, androidx.compose.ui.graphics.StrokeCap.Round)
-            if (p > .4f) drawLine(androidx.compose.ui.graphics.Color.Black, b, b + (c - b) * ((p - .4f) / .6f), w, androidx.compose.ui.graphics.StrokeCap.Round)
+    val amber = CmColors.waiting
+    val veil = androidx.compose.ui.graphics.lerp(androidx.compose.ui.graphics.Color.Black, amber, 0.28f)
+    val green = CmColors.idle
+    val ink = androidx.compose.ui.graphics.Color.Black
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val measurer = androidx.compose.ui.text.rememberTextMeasurer()
+    val style = MaterialTheme.typography.labelLarge.copy(color = ink)
+    val text = label?.let { measurer.measure(it, style, maxLines = 1) }
+    val h = 56.dp
+    val openW = with(density) { (22.dp.toPx() + 8.dp.toPx() + (text?.size?.width ?: 0) + 36.dp.toPx()).toDp() }
+    val width = h + (openW - h) * w.coerceAtLeast(0f)
+    androidx.compose.foundation.Canvas(Modifier.padding(bottom = 6.dp).size(width, h)) {
+        val bg = androidx.compose.ui.graphics.lerp(veil, green, g.coerceIn(0f, 1f))
+        drawRoundRect(bg, cornerRadius = androidx.compose.ui.geometry.CornerRadius(size.height / 2))
+        val pv = pIn.value.coerceIn(0f, 1.2f)
+        if (pv > 0.001f) {
+            val r = 12.dp.toPx() * (0.6f + 0.4f * pv)
+            val sw = r * 0.28f
+            androidx.compose.ui.graphics.drawscope.rotate(turn - 90f, center) {
+                drawCircle(
+                    androidx.compose.ui.graphics.Brush.sweepGradient(
+                        0f to androidx.compose.ui.graphics.Color.Transparent, 0.10f to androidx.compose.ui.graphics.Color.Transparent,
+                        0.85f to amber, 0.85f to androidx.compose.ui.graphics.Color.Transparent, 1f to androidx.compose.ui.graphics.Color.Transparent,
+                        center = center,
+                    ),
+                    radius = r - sw / 2, center = center, alpha = pIn.value.coerceIn(0f, 1f),
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(sw),
+                )
+            }
+        }
+        val a = dd.coerceIn(0f, 1f)
+        if (a > 0f) {
+            val dy = (1f - dd) * 12.dp.toPx()
+            val u = 22.dp.toPx() / 24f
+            val total = 22.dp.toPx() + (if (text != null) 8.dp.toPx() + text.size.width else 0f)
+            val x0 = (size.width - total) / 2f
+            val y0 = (size.height - 22.dp.toPx()) / 2f + dy
+            val path = androidx.compose.ui.graphics.Path().apply { moveTo(x0 + 5f * u, y0 + 12.5f * u); lineTo(x0 + 9.5f * u, y0 + 17f * u); lineTo(x0 + 19f * u, y0 + 7.5f * u) }
+            val pm = androidx.compose.ui.graphics.PathMeasure().apply { setPath(path, false) }
+            val part = androidx.compose.ui.graphics.Path()
+            pm.getSegment(0f, pm.length * k.value.coerceIn(0f, 1f), part, true)
+            drawPath(part, ink, alpha = a, style = androidx.compose.ui.graphics.drawscope.Stroke(2.6f * u, cap = androidx.compose.ui.graphics.StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round))
+            if (text != null) drawText(text, topLeft = androidx.compose.ui.geometry.Offset(x0 + 22.dp.toPx() + 8.dp.toPx(), (size.height - text.size.height) / 2f + dy), alpha = a)
         }
     }
 }

@@ -4,9 +4,9 @@ import type { Approval, WaitItem } from './contract'
 // tempi comuni e le decisioni che non sono disegno. Il movimento lo fanno le variabili --spring-* di app.css.
 
 /** 1, Copia che risponde: quanto resta «Copiato» prima di tornare Copia. */
-export const COPY_HOLD_MS = 1600
+export const COPY_HOLD_MS = 1800
 /** 6, Tieni premuto: quanto si tiene il dito su un'approvazione di produzione. */
-export const HOLD_MS = 600
+export const HOLD_MS = 1200
 /** 3, Al lavoro: il ciclo del riflesso, lo stesso della linea del lavoro in corso. */
 export const CYCLE_MS = 1600
 

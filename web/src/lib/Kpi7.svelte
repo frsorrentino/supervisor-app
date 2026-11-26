@@ -6,7 +6,8 @@
   import { t } from './t'
   import { rolls } from './animazioni'
   import { lastGestureAt } from './attese.svelte'
-  import { bounceMs, reducedMotion } from './motion'
+  import { reducedMotion } from './motion'
+  import { ferma, molla, motore } from './molla'
   // Proposta 7 (25/10): tre cifre in testa alla home. Ognuna apre la sua pagina, anche a zero (app-box-cliccabili-29-10).
   // Lo stile «Studio e Diretta» (terza versione, 30/10): il tabellone, con la quota delle 5 ore sotto le cifre al posto della
   // riga nella testata. Si colora solo chi ti aspetta, l'unico avviso della home; i rossi restano rossi. La barra della quota
@@ -34,26 +35,47 @@
       },
     }
   }
-  // Voce 7 di app-animazioni-otto-26-11 (Anello che si sposta): cambiando filtro l'anello parte dal posto della casella di prima e
-  // arriva alla nuova con la molla di casa (circa 5 %: è posizione); da spento appare al posto. Con le animazioni ridotte, al posto.
+  // Voce 7, fedele all'originale (designbookmark.com/motion, Tab pill; app-animazioni-fedeli-26-11): cambiando filtro il filo si
+  // allunga verso la casella nuova e poi richiama la coda. Due bordi, due molle: quello davanti 620 40, quello dietro 170 19.
+  // Durante il viaggio il filo è un elemento del tabellone; fermo, è quello della casella, con i suoi angoli. Moto ridotto: al posto.
   function slideRing(board: HTMLElement, value: unknown) {
-    const box = (): DOMRect | null => {
-      const r = board.querySelector<HTMLElement>('.cell.on .ring')
-      if (!r) return null
-      const b = board.getBoundingClientRect(), x = r.getBoundingClientRect()
-      return new DOMRect(x.left - b.left, x.top - b.top, x.width, x.height)
+    const tr = board.querySelector<HTMLElement>('.tr')
+    const L = molla(0), R = molla(0)
+    type Edge = { l: number; r: number; top: number; h: number; c: HTMLElement }
+    const edges = (): Edge | null => {
+      const c = board.querySelector<HTMLElement>('.cell.on')
+      return c ? { l: c.offsetLeft, r: c.offsetLeft + c.offsetWidth, top: c.offsetTop, h: c.offsetHeight, c } : null
     }
-    let last = box()
+    const roundBottom = () => { const sl = board.querySelector('.slot'); return !sl || !sl.textContent?.trim() && !sl.childElementCount }
+    const render = () => {
+      const e = edges()
+      if (!tr || !e) return
+      tr.style.left = L.x.toFixed(2) + 'px'
+      tr.style.width = Math.max(0, R.x - L.x).toFixed(2) + 'px'
+      tr.style.top = e.top + 'px'
+      tr.style.height = e.h + 'px'
+      const rad = Math.max(0, 13 - L.x)
+      tr.style.borderTopLeftRadius = rad + 'px'
+      tr.style.borderBottomLeftRadius = (roundBottom() ? rad : 0) + 'px'
+      board.classList.toggle('moving', !(ferma(L) && ferma(R)))
+    }
+    const m = motore([L, R], render)
+    let last = edges()
+    if (last) { L.x = L.t = last.l; R.x = R.t = last.r }
     void value
     return {
       update() {
-        const ring = board.querySelector<HTMLElement>('.cell.on .ring'), now = box()
-        if (ring && now && last && !reducedMotion() && ring.animate) {
-          const dx = last.left - now.left, sx = last.width / Math.max(1, now.width)
-          if (Math.abs(dx) > 1) ring.animate([{ transform: `translateX(${dx}px) scaleX(${sx})`, transformOrigin: 'left center' }, { transform: 'none', transformOrigin: 'left center' }], { duration: bounceMs(), easing: getComputedStyle(document.documentElement).getPropertyValue('--spring-bounce').trim() || 'ease-out' })
-        }
+        const now = edges()
+        if (now && last && now.c !== last.c && !reducedMotion()) {
+          const right = now.l > last.l
+          L.t = now.l; R.t = now.r
+          L.k = right ? 170 : 620; L.c = right ? 19 : 40
+          R.k = right ? 620 : 170; R.c = right ? 40 : 19
+          m.vai()
+        } else if (now) { L.x = L.t = now.l; R.x = R.t = now.r; L.v = R.v = 0 }
         last = now
       },
+      destroy() { m.stop() },
     }
   }
 </script>
@@ -70,12 +92,13 @@
   <!-- La barra fissa delle 5 ore non c'è più (app-utilizzo-una-barra-03-11): le finestre d'uso stanno nella riga Utilizzo, e una vicina al
        limite entra da sola nel tabellone. -->
   {#if slot}<div class="slot">{@render slot()}</div>{/if}
+  <span class="tr" aria-hidden="true"></span>
 </div>
 
 <style>
   .slot { grid-column: 1 / -1; min-width: 0; }
   .slot:empty { display: none; }
-  .board { flex: none; display: grid; grid-template-columns: 1.15fr 1fr 1.15fr; margin: 4px 0 2px; background: var(--s1); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  .board { position: relative; flex: none; display: grid; grid-template-columns: 1.15fr 1fr 1.15fr; margin: 4px 0 2px; background: var(--s1); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
   /* In alto, non al centro come fa un button: i tre numeri sulla stessa linea; l'etichetta ha sempre due righe (Franz 03/11 09:38,
      app-tabellone-numeri-03-11). */
   .cell { position: relative; display: flex; flex-direction: column; justify-content: flex-start; padding: 12px 12px 13px; border-left: 1px solid var(--line); text-align: left; color: var(--tx); cursor: pointer; min-width: 0; }
@@ -88,6 +111,9 @@
   /* L'anello è un elemento suo, così può viaggiare da una casella all'altra (voce 7); prende gli angoli della casella. */
   .ring { position: absolute; inset: 0; z-index: 1; border-radius: inherit; box-shadow: inset 0 0 0 2px var(--tx2); pointer-events: none; opacity: 0; transition: opacity 150ms ease-out; }
   .cell.on .ring { opacity: 1; }
+  .tr { position: absolute; z-index: 2; box-shadow: inset 0 0 0 2px var(--tx2); pointer-events: none; opacity: 0; }
+  .board:global(.moving) .tr { opacity: 1; }
+  .board:global(.moving) .cell.on .ring { opacity: 0; transition: none; }
   /* app-tabellone-filtro-25-11: il filo segue gli angoli smussati del tabellone, che prima ne tagliava gli spigoli. */
   .cell.on:first-child { border-top-left-radius: 13px; }
   .board:has(.slot:empty) .cell.on:first-child, .board:not(:has(.slot)) .cell.on:first-child { border-bottom-left-radius: 13px; }

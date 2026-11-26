@@ -15,8 +15,8 @@ import org.junit.Test
  */
 class AnimazioniOttoTest {
     @Test fun commonTimes() {
-        assertEquals(1600L, Animazioni.COPY_HOLD_MS)
-        assertEquals(600L, Animazioni.HOLD_MS)
+        assertEquals(1800L, Animazioni.COPY_HOLD_MS)
+        assertEquals(1200L, Animazioni.HOLD_MS)
         assertEquals(1600, Animazioni.CYCLE_MS)
     }
 

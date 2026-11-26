@@ -4,7 +4,7 @@ import { COPY_HOLD_MS, CYCLE_MS, HOLD_MS, needsHold, needsHoldWait, rolls, wordC
 
 // Le otto animazioni scelte da Franz il 26/11 (app-animazioni-otto-26-11): gli stessi casi di AnimazioniOttoTest in Kotlin.
 describe('animazioni otto', () => {
-  it('tempi comuni', () => { expect([COPY_HOLD_MS, HOLD_MS, CYCLE_MS]).toEqual([1600, 600, 1600]) })
+  it('tempi comuni', () => { expect([COPY_HOLD_MS, HOLD_MS, CYCLE_MS]).toEqual([1800, 1200, 1600]) })
   it('tenere premuto solo per la produzione', () => {
     expect(needsHold({ task: 't', title: 'Release', deploy: true } as Approval)).toBe(true)
     expect(needsHold({ task: 't', title: 'Pre' } as Approval)).toBe(false)

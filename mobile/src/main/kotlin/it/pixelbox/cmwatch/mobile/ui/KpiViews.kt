@@ -36,7 +36,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.drawOutline
+import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
@@ -180,36 +182,54 @@ internal fun Kpi7(h: Kpi.Head, st: it.pixelbox.cmwatch.contract.State, now: Long
     // `joined`: sotto stanno le righe In cima (app-utilizzo-una-barra-03-11), attaccate: gli angoli in basso sono loro.
     val shape = if (joined) RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp) else V3.Shape
     Column(Modifier.testTag("kpi-7").fillMaxWidth().clip(shape).background(V3.S1).then(if (V3.day) Modifier.border(1.dp, V3.Line, shape) else Modifier.border(1.dp, LitEdge, shape))) {
-        Row(Modifier.fillMaxWidth().height(androidx.compose.foundation.layout.IntrinsicSize.Min)) {
+        // Voce 7, fedele all'originale (Tab pill; app-animazioni-fedeli-26-11): cambiando filtro il filo si allunga verso la casella
+        // nuova e poi richiama la coda. Due bordi, due molle: quello davanti 620 40, quello dietro 170 19. L'angolo smussato del
+        // tabellone resta dove il filo tocca il bordo. Il fondo della casella scelta cambia subito, come il colore della scheda
+        // nell'originale. Con le animazioni spente, al posto.
+        val edges = remember { androidx.compose.runtime.mutableStateMapOf<HomeBox, Pair<Float, Float>>() }
+        val edgeL = remember { androidx.compose.animation.core.Animatable(0f) }
+        val edgeR = remember { androidx.compose.animation.core.Animatable(0f) }
+        var prevFilter by remember { mutableStateOf(filter) }
+        var placed by remember { mutableStateOf(false) }
+        val ringOff = animationsOff()
+        val ringScope = androidx.compose.runtime.rememberCoroutineScope()
+        val boxOf = { f: Kpi.BoardFilter? -> when (f) { Kpi.BoardFilter.WAITING -> HomeBox.WAITING; Kpi.BoardFilter.BUSY -> HomeBox.BUSY; else -> null } }
+        val target = boxOf(filter)?.let { edges[it] }
+        androidx.compose.runtime.LaunchedEffect(filter, target) {
+            val from = boxOf(prevFilter)?.let { edges[it] }
+            prevFilter = filter
+            if (target == null) { placed = false; return@LaunchedEffect }
+            if (ringOff || !placed || from == null || from == target) {
+                edgeL.snapTo(target.first); edgeR.snapTo(target.second); placed = true; return@LaunchedEffect
+            }
+            val right = target.first > from.first
+            ringScope.launch { edgeL.animateTo(target.first, if (right) Molla.of(170f, 19f) else Molla.of(620f, 40f)) }
+            ringScope.launch { edgeR.animateTo(target.second, if (right) Molla.of(620f, 40f) else Molla.of(170f, 19f)) }
+        }
+        val ringColor = V3.Tx2
+        val ring = Modifier.drawWithContent {
+            drawContent()
+            if (filter == null || !placed || boxOf(filter) == null) return@drawWithContent
+            val sw = 2.dp.toPx()
+            val l = edgeL.value
+            val r = edgeR.value
+            val rad = (14.dp.toPx() - l).coerceAtLeast(0f)
+            val cr = androidx.compose.ui.geometry.CornerRadius((rad - sw / 2).coerceAtLeast(0f))
+            val rr = androidx.compose.ui.geometry.RoundRect(
+                left = l + sw / 2, top = sw / 2, right = (r - sw / 2).coerceAtLeast(l + sw / 2), bottom = size.height - sw / 2,
+                topLeftCornerRadius = cr, bottomLeftCornerRadius = if (joined) androidx.compose.ui.geometry.CornerRadius.Zero else cr,
+            )
+            drawPath(androidx.compose.ui.graphics.Path().apply { addRoundRect(rr) }, ringColor, style = androidx.compose.ui.graphics.drawscope.Stroke(sw))
+        }
+        Row(Modifier.fillMaxWidth().height(androidx.compose.foundation.layout.IntrinsicSize.Min).then(ring)) {
             val m = (((h.oldestWaitS ?: 0L) + 30) / 60)
             // app-tabellone-filtri-14-11 (Franz 14/11 14:22): «ferme» e «al lavoro» filtrano la lista delle sessioni sotto; la casella del
             // filtro acceso resta accesa (fondo e filo sul bordo), e a 0 non si tocca e non ha la freccia.
             // app-tabellone-filtro-25-11 (Franz 25/11 17:04): il filo ha la forma della casella, smussato dove lo è il tabellone; prima era
             // un rettangolo e il riquadro ne tagliava gli angoli.
             val firstShape = RoundedCornerShape(topStart = 14.dp, bottomStart = if (joined) 0.dp else 14.dp)
-            // Voce 7 di app-animazioni-otto-26-11 (Anello che si sposta): cambiando filtro il filo parte dalla casella di prima e arriva alla
-            // nuova con la molla di casa (circa 5 %: è posizione); fermo è il bordo di sempre. Con le animazioni spente, al posto.
-            val xs = remember { androidx.compose.runtime.mutableStateMapOf<HomeBox, Float>() }
-            val ringDx = remember { androidx.compose.animation.core.Animatable(0f) }
-            var prevFilter by remember { mutableStateOf(filter) }
-            val ringOff = animationsOff()
-            val boxOf = { f: Kpi.BoardFilter? -> when (f) { Kpi.BoardFilter.WAITING -> HomeBox.WAITING; Kpi.BoardFilter.BUSY -> HomeBox.BUSY; else -> null } }
-            androidx.compose.runtime.LaunchedEffect(filter) {
-                val from = boxOf(prevFilter)?.let { xs[it] }
-                val to = boxOf(filter)?.let { xs[it] }
-                prevFilter = filter
-                if (!ringOff && from != null && to != null && from != to) { ringDx.snapTo(from - to); ringDx.animateTo(0f, CmMotion.bounceFloat) } else ringDx.snapTo(0f)
-            }
-            val dx = ringDx.value
-            val lit = { on: Boolean, s: androidx.compose.ui.graphics.Shape ->
-                if (!on) Modifier
-                else if (dx == 0f) Modifier.background(V3.S2, s).border(2.dp, V3.Tx2, s)
-                else Modifier.background(V3.S2, s).drawBehind {
-                    val o = s.createOutline(size, layoutDirection, this)
-                    translate(left = dx) { drawOutline(o, V3.Tx2, style = androidx.compose.ui.graphics.drawscope.Stroke(2.dp.toPx())) }
-                }
-            }
-            val box = { b: HomeBox, tag: String, w: Float, can: Boolean, on: Boolean -> Modifier.weight(w).fillMaxHeight().onGloballyPositioned { c -> xs[b] = c.positionInParent().x }.then(if (V3.day && b == HomeBox.WAITING) Modifier.background(V3.WaitFill) else Modifier).then(lit(on, if (b == HomeBox.WAITING) firstShape else androidx.compose.ui.graphics.RectangleShape)).testTag(tag).then(if (can) Modifier.handCursor().clickable { onBox(b) } else Modifier) }
+            val lit = { on: Boolean, s: androidx.compose.ui.graphics.Shape -> if (!on) Modifier else Modifier.background(V3.S2, s) }
+            val box = { b: HomeBox, tag: String, w: Float, can: Boolean, on: Boolean -> Modifier.weight(w).fillMaxHeight().onGloballyPositioned { c -> val x = c.positionInParent().x; edges[b] = x to x + c.size.width }.then(if (V3.day && b == HomeBox.WAITING) Modifier.background(V3.WaitFill) else Modifier).then(lit(on, if (b == HomeBox.WAITING) firstShape else androidx.compose.ui.graphics.RectangleShape)).testTag(tag).then(if (can) Modifier.handCursor().clickable { onBox(b) } else Modifier) }
             Board(h.waiting.toString(), if (h.waiting > 0) pluralStringResource(R.plurals.kpi7_waiting, h.waiting, h.waiting, m) else stringResource(R.string.kpi7_none_waiting), if (h.waiting > 0) V3.Wait else V3.Tx, null, box(HomeBox.WAITING, "home-box-aspetta", 1.15f, h.waiting > 0, filter == Kpi.BoardFilter.WAITING), of = h.open.takeIf { it > 0 }, chevron = h.waiting > 0, on = filter == Kpi.BoardFilter.WAITING, roll = true)
             Box(Modifier.width(1.dp).fillMaxHeight().background(V3.Line))
             Board(h.busy.toString(), stringResource(R.string.kpi7_busy), V3.Tx, null, box(HomeBox.BUSY, "home-box-lavoro", 1f, h.busy > 0, filter == Kpi.BoardFilter.BUSY), of = h.open.takeIf { it > 0 }, chevron = h.busy > 0, on = filter == Kpi.BoardFilter.BUSY)

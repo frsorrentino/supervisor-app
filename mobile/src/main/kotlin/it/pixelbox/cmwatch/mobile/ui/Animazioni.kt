@@ -1,11 +1,26 @@
 package it.pixelbox.cmwatch.mobile.ui
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.unit.Dp
+import kotlin.math.roundToInt
+import kotlin.math.sqrt
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -50,9 +65,24 @@ import it.pixelbox.cmwatch.rules.Animazioni
 import kotlinx.coroutines.launch
 
 /**
- * Voce 1 di app-animazioni-otto-26-11 (Copia che risponde, Franz 26/11 11:50): al tocco la copia diventa una spunta verde, «Copiato»
- * per il tasto a parole, per [Animazioni.COPY_HOLD_MS]; poi torna. Lo scambio entra da 0,9 con la molla veloce e sfuma in 180 ms;
- * con le animazioni spente è secco. Ogni tocco riparte da capo.
+ * Le molle di designbookmark.com/motion (shared/motion.js: massa 1, a = -k(x - t) - c·v), per le animazioni fedeli
+ * (app-animazioni-fedeli-26-11): in Compose `spring(stiffness = k, dampingRatio = c / 2√k)`, la stessa equazione.
+ * Con le animazioni spente (e nelle immagini di prova) salta alla meta.
+ */
+internal object Molla {
+    fun of(k: Float, c: Float): FiniteAnimationSpec<Float> = spring(stiffness = k, dampingRatio = c / (2f * sqrt(k)))
+}
+
+@Composable
+private fun molla(target: Float, k: Float, c: Float, label: String): Float {
+    val off = animationsOff()
+    return animateFloatAsState(target, if (off) snap() else Molla.of(k, c), label = label).value
+}
+
+/**
+ * Copia fedele all'originale (Copy Button): al tocco l'icona copia si rimpicciolisce a metà e gira di -40°, la spunta entra da 0,4
+ * con un piccolo rimbalzo, la parola sale da «Copia» a «Copiato» e il tasto si allarga alla parola nuova; dopo
+ * [Animazioni.COPY_HOLD_MS] torna. Molle dell'originale: rullo 260 20, icone 420 18, larghezza 300 24. Ogni tocco riparte da capo.
  */
 @Composable
 private fun rememberCopied(): Pair<Boolean, () -> Unit> {
@@ -67,17 +97,23 @@ private fun rememberCopied(): Pair<Boolean, () -> Unit> {
     return on to { taps++ }
 }
 
+/** Le due icone sovrapposte: [i] è la molla 420 18, da 0 (copia) a 1 (spunta), libera fra -0,2 e 1,2 come nell'originale. */
 @Composable
-private fun <T> CopySwap(state: T, content: @Composable (T) -> Unit) {
-    val off = animationsOff()
-    AnimatedContent(
-        state,
-        transitionSpec = {
-            if (off) fadeIn(tween(0)) togetherWith fadeOut(tween(0))
-            else (fadeIn(tween(180, easing = CmMotion.easing)) + scaleIn(CmMotion.fast, initialScale = 0.9f)) togetherWith fadeOut(tween(120))
-        },
-        label = "copia",
-    ) { content(it) }
+private fun CopyIcons(i0: Float, tint: Color, size: Dp) {
+    val i = i0.coerceIn(-0.2f, 1.2f)
+    val ic = i.coerceIn(0f, 1f)
+    Box(Modifier.size(size), contentAlignment = Alignment.Center) {
+        Icon(
+            Icons.Rounded.ContentCopy, null, tint = tint,
+            modifier = Modifier.size(size).graphicsLayer {
+                alpha = (1f - i * 1.6f).coerceIn(0f, 1f); scaleX = 1f - 0.5f * ic; scaleY = 1f - 0.5f * ic; rotationZ = -40f * ic
+            },
+        )
+        Icon(
+            Icons.Rounded.Check, null, tint = V3.Good,
+            modifier = Modifier.size(size).graphicsLayer { alpha = (i * 1.6f - 0.4f).coerceIn(0f, 1f); scaleX = 0.4f + 0.6f * i; scaleY = 0.4f + 0.6f * i },
+        )
+    }
 }
 
 /** Il tasto Copia a icona, sotto una risposta o un messaggio. */
@@ -86,28 +122,47 @@ internal fun CopyIconAction(text: String) {
     val clip = LocalClipboardManager.current
     val (on, tap) = rememberCopied()
     val label = stringResource(if (on) R.string.copied_word else R.string.copy)
-    IconButton(onClick = { clip.setText(AnnotatedString(text)); tap() }, modifier = Modifier.size(36.dp).testTag("copia")) {
-        CopySwap(on) { done ->
-            Icon(if (done) Icons.Rounded.Check else Icons.Rounded.ContentCopy, label, tint = if (done) V3.Good else Cm.text2, modifier = Modifier.size(18.dp))
-        }
-    }
+    val i = molla(if (on) 1f else 0f, 420f, 18f, "copia-icone")
+    IconButton(
+        onClick = { clip.setText(AnnotatedString(text)); tap() },
+        modifier = Modifier.size(36.dp).testTag("copia").semantics { contentDescription = label },
+    ) { CopyIcons(i, Cm.text2, 18.dp) }
 }
 
-/** Il tasto Copia a parole, dentro un testo da mandare o un comando. */
+/** Il tasto Copia a parole, dentro un testo da mandare o un comando: icone 16 dp e la parola che sale, larga quanto serve. */
 @Composable
 internal fun CopyPill(copy: () -> String) {
     val clip = LocalClipboardManager.current
     val (on, tap) = rememberCopied()
+    val t = if (on) 1f else 0f
+    val r = molla(t, 260f, 20f, "copia-rullo")
+    val i = molla(t, 420f, 18f, "copia-icone")
+    val w = molla(t, 300f, 24f, "copia-larghezza")
     val style = TextStyle(fontFamily = V3.Display, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, lineHeight = 20.sp)
+    val label = stringResource(if (on) R.string.copied_word else R.string.copy)
     Row(
-        Modifier.clip(CircleShape).border(1.dp, if (on) V3.Good else V3.Line, CircleShape).handCursor()
-            .clickable { clip.setText(AnnotatedString(copy())); tap() }.padding(horizontal = 12.dp, vertical = 4.dp).testTag("copia"),
+        Modifier.clip(CircleShape).border(1.dp, V3.Line, CircleShape).handCursor()
+            .clickable { clip.setText(AnnotatedString(copy())); tap() }
+            .padding(start = 10.dp, end = 12.dp, top = 4.dp, bottom = 4.dp).testTag("copia").semantics { contentDescription = label },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        CopySwap(on) { done ->
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (done) Icon(Icons.Rounded.Check, null, tint = V3.Good, modifier = Modifier.size(16.dp).padding(end = 2.dp))
-                Text(stringResource(if (done) R.string.copied_word else R.string.copy), style = style, color = if (done) V3.Good else V3.Tx)
+        CopyIcons(i, V3.Tx, 16.dp)
+        androidx.compose.foundation.layout.Spacer(Modifier.width(6.dp))
+        Layout(
+            content = {
+                Text(stringResource(R.string.copy), style = style, color = V3.Tx, maxLines = 1, softWrap = false)
+                Text(stringResource(R.string.copied_word), style = style, color = V3.Good, maxLines = 1, softWrap = false)
+            },
+            modifier = Modifier.clipToBounds(),
+        ) { ms, cs ->
+            val a = ms[0].measure(cs.copy(minWidth = 0, maxWidth = androidx.compose.ui.unit.Constraints.Infinity))
+            val b = ms[1].measure(cs.copy(minWidth = 0, maxWidth = androidx.compose.ui.unit.Constraints.Infinity))
+            val h = a.height
+            val width = (a.width + (b.width - a.width) * w).roundToInt().coerceAtLeast(0)
+            layout(width, h) {
+                val dy = (-h * r).roundToInt()
+                a.placeRelative(0, dy)
+                b.placeRelative(0, h + dy)
             }
         }
     }
@@ -165,36 +220,104 @@ internal fun RollNumber(value: String, roll: Boolean, content: @Composable (Stri
 }
 
 /**
- * Voce 6 (Tieni premuto per la produzione): il tasto si riempie mentre il dito resta giù e l'ok parte solo quando è pieno, dopo
- * [Animazioni.HOLD_MS]; lasciato prima torna vuoto in 200 ms e non succede niente. Lineare perché è un tempo da leggere. Con le
- * animazioni spente il riempimento non si vede, ma il tempo da tenere resta.
+ * Voce 6, fedele all'originale (Hold Button; app-animazioni-fedeli-26-11). Il dito giù schiaccia il tasto a 0,96 (molla 520 20) e lo
+ * riempie da sinistra in [Animazioni.HOLD_MS], lineare; la scritta si inverte esattamente sotto il riempimento. Lasciato prima, il
+ * riempimento torna con la molla 260 14 e il tasto fa «no» con una scossa (molla 700 9, spinta 260·min(1, 2p + 0,3) dp/s). Pieno:
+ * il tasto diventa un cerchio verde (larghezza con la molla 320 20, pop +2,5 sulla scala), la scritta sfuma e si sfoca di 4 dp in
+ * 200 ms, la spunta compare dopo 120 ms e si disegna in 450 ms dopo 160 ms. L'ok parte a spunta disegnata; dopo 1,7 s il tasto torna
+ * (molla 256 20). Colori dell'app: rosso della produzione per il riempimento, scritta scura sopra. Con le animazioni spente niente
+ * movimento, ma il tempo da tenere resta.
  */
 @Composable
 internal fun HoldButton(label: String, onDone: () -> Unit, modifier: Modifier = Modifier) {
-    val fill = remember { androidx.compose.animation.core.Animatable(0f) }
     val off = animationsOff()
     val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val p = remember { androidx.compose.animation.core.Animatable(0f) }
+    val sc = remember { androidx.compose.animation.core.Animatable(1f) }
+    val shake = remember { androidx.compose.animation.core.Animatable(0f) }
+    val morph = remember { androidx.compose.animation.core.Animatable(0f) }
+    var done by remember { androidx.compose.runtime.mutableStateOf(false) }
+    val labelA = animateFloatAsState(if (done) 0f else 1f, if (off) snap() else tween(200), label = "tieni-scritta").value
+    val checkA = animateFloatAsState(if (done) 1f else 0f, if (off || !done) snap() else tween(100, delayMillis = 120), label = "tieni-spunta").value
+    val draw = animateFloatAsState(
+        if (done) 1f else 0f,
+        if (off || !done) snap() else tween(450, delayMillis = 160, easing = androidx.compose.animation.core.CubicBezierEasing(0.65f, 0f, 0.35f, 1f)),
+        label = "tieni-traccia",
+    ).value
     val prod = Cm.prod
+    val good = V3.Good
+    val ink = V3.Bg
+    val style = TextStyle(fontFamily = V3.Display, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+    val pad = 18.dp
     androidx.compose.foundation.layout.Box(
-        modifier.clip(CircleShape).background(V3.S3).border(1.dp, prod.copy(alpha = 0.6f), CircleShape)
-            .drawBehind { if (!off && fill.value > 0f) drawRect(prod.copy(alpha = 0.35f), size = size.copy(width = size.width * fill.value)) }
-            .pointerInput(Unit) {
+        modifier
+            .graphicsLayer { translationX = shake.value * density; scaleX = sc.value; scaleY = sc.value }
+            .clip(CircleShape)
+            .background(if (done) good else V3.S3)
+            .drawWithContent {
+                if (!done && !off) drawRect(prod, size = size.copy(width = size.width * p.value.coerceAtLeast(0f)))
+                drawContent()
+                if (checkA > 0f) {
+                    val u = 26.dp.toPx() / 24f
+                    val o = center - androidx.compose.ui.geometry.Offset(13.dp.toPx(), 13.dp.toPx())
+                    val path = androidx.compose.ui.graphics.Path().apply {
+                        moveTo(o.x + 5f * u, o.y + 12.5f * u); lineTo(o.x + 9.5f * u, o.y + 17f * u); lineTo(o.x + 19f * u, o.y + 7.5f * u)
+                    }
+                    val pm = androidx.compose.ui.graphics.PathMeasure().apply { setPath(path, false) }
+                    val part = androidx.compose.ui.graphics.Path()
+                    pm.getSegment(0f, pm.length * draw, part, true)
+                    drawPath(part, ink.copy(alpha = checkA), style = androidx.compose.ui.graphics.drawscope.Stroke(2.4f * u, cap = androidx.compose.ui.graphics.StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round))
+                }
+            }
+            .layout { m, c ->
+                val pl = m.measure(c)
+                val w = (pl.width + (pl.height - pl.width) * morph.value).roundToInt().coerceAtLeast(pl.height)
+                layout(w, pl.height) { pl.place((w - pl.width) / 2, 0) }
+            }
+            .pointerInput(off) {
                 detectTapGestures(onPress = {
+                    if (done) return@detectTapGestures
+                    scope.launch { if (!off) sc.animateTo(0.96f, Molla.of(520f, 20f)) }
                     val job = scope.launch {
                         if (off) kotlinx.coroutines.delay(Animazioni.HOLD_MS)
-                        else fill.animateTo(1f, tween(Animazioni.HOLD_MS.toInt(), easing = androidx.compose.animation.core.LinearEasing))
-                        fill.snapTo(0f)
+                        else p.animateTo(1f, tween(((1f - p.value.coerceIn(0f, 1f)) * Animazioni.HOLD_MS).toInt(), easing = androidx.compose.animation.core.LinearEasing))
+                        done = true
+                        if (!off) {
+                            launch { morph.animateTo(1f, Molla.of(320f, 20f)) }
+                            launch { sc.animateTo(1f, Molla.of(520f, 20f), initialVelocity = sc.velocity + 2.5f) }
+                        }
+                        kotlinx.coroutines.delay(if (off) 0L else 610L)
                         onDone()
+                        kotlinx.coroutines.delay(if (off) 0L else 1700L - 610L)
+                        done = false
+                        p.snapTo(0f)
+                        if (!off) morph.animateTo(0f, Molla.of(256f, 20f)) else morph.snapTo(0f)
                     }
-                    val released = tryAwaitRelease()
-                    if (job.isActive) { job.cancel(); scope.launch { fill.animateTo(0f, tween(200, easing = CmMotion.easing)) } }
-                    else if (!released) scope.launch { fill.snapTo(0f) }
+                    tryAwaitRelease()
+                    if (!done && job.isActive) {
+                        job.cancel()
+                        val kick = 260f * minOf(1f, p.value * 2f + 0.3f)
+                        scope.launch { if (!off) sc.animateTo(1f, Molla.of(520f, 20f)) else sc.snapTo(1f) }
+                        scope.launch { if (!off) p.animateTo(0f, Molla.of(260f, 14f)) else p.snapTo(0f) }
+                        if (!off) scope.launch { shake.animateTo(0f, Molla.of(700f, 9f), initialVelocity = shake.velocity + kick) }
+                    } else if (!done) scope.launch { sc.animateTo(1f, Molla.of(520f, 20f)) }
                 })
             }
-            .padding(horizontal = 18.dp, vertical = 10.dp)
+            .padding(horizontal = pad, vertical = 10.dp)
             .testTag("tieni-premuto"),
         contentAlignment = Alignment.Center,
-    ) { Text(label, style = TextStyle(fontFamily = V3.Display, fontWeight = FontWeight.SemiBold, fontSize = 15.sp), color = V3.Tx) }
+    ) {
+        androidx.compose.foundation.layout.Box(Modifier.graphicsLayer { alpha = labelA }.blur(((1f - labelA) * 4f).dp), contentAlignment = Alignment.Center) {
+            Text(label, style = style, color = V3.Tx, maxLines = 1)
+            Text(
+                label, style = style, color = ink, maxLines = 1,
+                modifier = Modifier.drawWithContent {
+                    val right = (p.value.coerceAtLeast(0f) * (size.width + 2 * pad.toPx()) - pad.toPx())
+                    if (!off && right > 0f) clipRect(right = right) { this@drawWithContent.drawContent() }
+                },
+            )
+        }
+    }
 }
 
 /**
