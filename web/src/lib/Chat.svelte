@@ -330,7 +330,7 @@
     </Blocco>{/if}
     {#if resultsRow}{@render resultsRow()}{/if}
   </div>
-  <div class="lines" class:dots={home} bind:this={list} data-chat-list data-at-end={atEnd}>
+  <div class="lines" class:dots={home} class:atend={atEnd} bind:this={list} data-chat-list data-at-end={atEnd}>
     {#if home}
       <MasterHome {st} master={s} {entries} onConversation={() => (conversation = true)} onStep={pick} onSendStep={onSend}
         {onAnswer} onSession={onPick} onSpeak={(x) => toggle(x, s.name)} {events} {sent} {read} {onRead} onPrompt={onPromptTo} {onCmd} />
@@ -477,6 +477,9 @@
      alle ultime voci restava in cima, con lo spazio vuoto sotto. `margin-top: auto` sulla prima voce, non `justify-content`, che
      toglierebbe lo scorrimento verso l'alto a una chat lunga. Lo scorrimento arrivato in cima o in fondo non passa alla pagina. */
   .lines { overscroll-behavior: contain; }
+  /* app-messaggio-master-effetto-27-11: in fondo l'ancoraggio dello scorrimento non serve (sopra non cambia niente) e spostava la lista di
+     tutta l'altezza della risposta appena inserita, un salto prima della sua corsa (arriva, molla.ts). Rileggendo più su resta acceso. */
+  .lines.atend { overflow-anchor: none; }
   .lines:not(.dots) > :global(:first-child) { margin-top: auto; }
   .qlimit { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 8px; padding: 16px; border-radius: 24px; border: 2px solid var(--gone); background: var(--high); max-width: 760px; }
   .qlimit p { margin: 0 0 4px; }
