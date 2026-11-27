@@ -151,10 +151,16 @@ fun MasterDock(
     val dockOff = animationsOff()
     var peek by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     var seenAt by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(hero?.at) }
+    // app-messaggio-master-effetto-27-11 (opzione E): quando arriva una risposta nuova l'ora scorre (RollTime) e la riga nuova entra in
+    // 150 ms; non nel primo secondo, quando i dati arrivano a pezzi (Franz 27/11 15:17), e con le animazioni spente cambiano e basta.
+    var roll by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(Unit) { kotlinx.coroutines.delay(StreamGate.OPENING_MS); roll = true }
+    val headA = androidx.compose.runtime.remember { androidx.compose.animation.core.Animatable(1f) }
     androidx.compose.runtime.LaunchedEffect(hero?.at, expanded) {
         val at = hero?.at
         val fresh = at != null && seenAt != null && at != seenAt
         seenAt = at
+        if (fresh && roll && !dockOff) { headA.snapTo(0f); headA.animateTo(1f, androidx.compose.animation.core.tween(150)) }
         if (fresh && !expanded) { peek = true; kotlinx.coroutines.delay(it.pixelbox.cmwatch.rules.Animazioni.DOCK_PEEK_MS); peek = false } else if (expanded) peek = false
     }
     val lines = if (peek) maxOf(2, headlineLines) else headlineLines
@@ -227,7 +233,7 @@ fun MasterDock(
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(stringResource(R.string.dock_master).lowercase().replaceFirstChar { c -> c.titlecase() }, style = V3.Name.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold), maxLines = 1)
-                    time?.let { Text(it, style = V3.Meter, maxLines = 1) }
+                    time?.let { RollTime(it, roll, V3.Meter) }
                     if (!expanded) ctx?.let { Text(it, style = V3.Meter, maxLines = 1) }
                     if (peek) Box(Modifier.size(8.dp).clip(androidx.compose.foundation.shape.CircleShape).background(V3.Wait).testTag("master-nuova"))
                 }
@@ -237,8 +243,8 @@ fun MasterDock(
                     Text(
                         t.replace(Regex("""\*\*|__|`"""), ""), style = V3.Small.copy(fontSize = 13.sp, lineHeight = 16.sp), maxLines = 2, overflow = TextOverflow.Ellipsis,
                     )
-                } ?: hero?.let { androidx.compose.animation.AnimatedContent(lines, transitionSpec = { islandSwap(dockOff) }, label = "isola") { n -> Text(linked(it.headline), style = V3.Small, maxLines = n, overflow = TextOverflow.Clip, modifier = Modifier.islandBlur(this)) } }
-                else hero?.let { androidx.compose.animation.AnimatedContent(lines, transitionSpec = { islandSwap(dockOff) }, label = "isola") { n -> Text(linked(it.headline), style = V3.Small, maxLines = n, overflow = TextOverflow.Clip, modifier = Modifier.islandBlur(this)) } }
+                } ?: hero?.let { androidx.compose.animation.AnimatedContent(lines, transitionSpec = { islandSwap(dockOff) }, label = "isola") { n -> Text(linked(it.headline), style = V3.Small, maxLines = n, overflow = TextOverflow.Clip, modifier = Modifier.islandBlur(this).graphicsLayer { alpha = headA.value }) } }
+                else hero?.let { androidx.compose.animation.AnimatedContent(lines, transitionSpec = { islandSwap(dockOff) }, label = "isola") { n -> Text(linked(it.headline), style = V3.Small, maxLines = n, overflow = TextOverflow.Clip, modifier = Modifier.islandBlur(this).graphicsLayer { alpha = headA.value }) } }
             }
             // Durante la lettura il ▶ diventa ■ e la ferma (Franz, 03/10 17:25), come sotto le risposte della chat.
             val spoken = hero?.let { h -> listOf(h.headline, h.body).filter { it.isNotBlank() }.joinToString("\n") }

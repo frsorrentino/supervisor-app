@@ -6,7 +6,7 @@ import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** app-messaggio-master-effetto-27-11 (opzione B): quali risposte arrivano e come si chiude una corsa. */
+/** app-messaggio-master-effetto-27-11 (opzione E, prima B): quali risposte arrivano e come si chiude una corsa. */
 class ArrivoRispostaTest {
     // La chat è ferma al suo posto e la sessione è stata vista lavorare dal turno cominciato a [from].
     private fun open(from: Long = 1_000) = StreamGate().apply { settle(); working(from) }
@@ -52,28 +52,32 @@ class ArrivoRispostaTest {
         assertTrue(g.claim("y", 1_500))
     }
 
-    // Finché la corsa non parte la risposta è nascosta; una risposta nuova chiude subito quella in corsa, tutta scoperta.
+    // Finché la corsa non parte la risposta è trasparente; una risposta nuova chiude subito quella in corsa, tutta intera.
     @Test fun aNewArrivalFinishesTheRunningOne() {
         val g = StreamGate()
         val a = Arrival("a")
         g.publish(a)
         assertTrue(a.running)
-        assertTrue(a.k.isInfinite())
+        assertEquals(0f, a.alpha, 0f)
+        assertEquals(Arrival.CHECK_FROM, a.check, 0f)
         val b = Arrival("b")
         g.publish(b)
         assertFalse(a.running)
-        assertEquals(0f, a.k, 0f)
+        assertEquals(1f, a.alpha, 0f)
         assertSame(b, g.current)
         assertTrue(b.running)
     }
 
-    @Test fun finishUncoversEverything() {
+    // Un dito, o la fine della corsa: tutto intero e fermo, lampo spento, spunta a grandezza piena.
+    @Test fun finishShowsEverything() {
         val a = Arrival("a")
-        a.k = 120f
-        a.body = 0f
+        a.alpha = .3f
+        a.flash = .7f
+        a.check = .85f
         a.finish()
-        assertEquals(0f, a.k, 0f)
-        assertEquals(1f, a.body, 0f)
+        assertEquals(1f, a.alpha, 0f)
+        assertEquals(0f, a.flash, 0f)
+        assertEquals(1f, a.check, 0f)
         assertFalse(a.running)
     }
 }

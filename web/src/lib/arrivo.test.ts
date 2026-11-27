@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { arrivalGate } from './arrivo'
+import { litOf, rgbOf } from './molla'
 
 // Franz 27/11 15:17: arriva con un'animazione solo quello che nasce a chat aperta e ferma (come ArrivoRispostaTest.kt).
 const open = (from = 1000) => { const g = arrivalGate(); g.settle(); g.working('busy', from); return g }
@@ -45,5 +46,19 @@ describe('arrivalGate', () => {
     g.working('busy', 2000)
     expect(g.claim('x', 999)).toBe(false)
     expect(g.claim('y', 1500)).toBe(true)
+  })
+})
+
+// app-messaggio-master-effetto-27-11, opzione E: il lampo sull'esito accende il fondo del piede verso il colore dell'esito.
+describe('lampo dell\'esito', () => {
+  it('legge i colori calcolati, anche quelli di color-mix', () => {
+    expect(rgbOf('rgb(21, 31, 23)')).toEqual([21, 31, 23])
+    expect(rgbOf('rgba(21, 31, 23, 0.5)')).toEqual([21, 31, 23])
+    expect(rgbOf('color(srgb 0.2 0.4 0.6)')!.map(Math.round)).toEqual([51, 102, 153])
+    expect(rgbOf('transparent')).toBeNull()
+  })
+  it('il fondo acceso è quello del mockup per un esito fatto', () => {
+    // fondo #151F17, esito #71D083 → #263F2A (il mockup: #263E2A)
+    expect(litOf([21, 31, 23], [113, 208, 131])).toBe('rgb(38, 63, 42)')
   })
 })

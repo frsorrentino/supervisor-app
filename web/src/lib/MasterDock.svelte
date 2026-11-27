@@ -2,7 +2,9 @@
   import { locale } from './lang'
   import type { Snippet } from 'svelte'
   import { untrack } from 'svelte'
-  import { isola } from './molla'
+  import { isola, ridotto } from './molla'
+  import { OPENING_MS } from './arrivo'
+  import RollTime from './RollTime.svelte'
   import { DOCK_PEEK_MS } from './animazioni'
   import type { Session } from './contract'
   import { hero as heroOf, type Entry } from './masterHome'
@@ -58,6 +60,14 @@
     })
   })
   $effect(() => () => clearTimeout(peekTimer))
+  // app-messaggio-master-effetto-27-11 (opzione E): quando arriva una risposta nuova l'ora scorre (RollTime) e la riga nuova entra in 150 ms;
+  // non nel primo secondo, quando i dati arrivano a pezzi (Franz 27/11 15:17), e con le animazioni ridotte cambiano e basta.
+  let roll = $state(false)
+  $effect(() => { const id = setTimeout(() => (roll = true), OPENING_MS); return () => clearTimeout(id) })
+  function nuova(node: HTMLElement, at: number | null | undefined) {
+    let last = at
+    return { update(a: number | null | undefined) { if (a !== last && a != null && last != null && roll && !ridotto()) node.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, easing: 'cubic-bezier(.3, 0, .2, 1)' }); last = a } }
+  }
   const hm = (at: number) => new Date(at * 1000).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
   // Aperta, il modello e il contesto stanno già nella riga sotto la linguetta: qui resta l'ora. Chiusa, l'ora e il contesto,
   // che conta per l'handoff: il modello cambia di rado, e con lui la riga non stava nella larghezza (Franz, 06/10 22:27).
@@ -125,11 +135,11 @@
   <StateGlyph kind={glyphOf(master)} ctx={master.context} size={18} square={!personal(master.account, master.account_kind)} label={attention ? master.state : label} />
   <span class="col">
     {#if expanded}
-      <span class="l1"><b class="mn">{t.summaryTitle}</b>{#if when}<span class="mono">{when}</span>{/if}</span>
-      {#if h}<span class="hl">{h.headline.replace(/\*\*|__|`/g, '')}</span>{/if}
+      <span class="l1"><b class="mn">{t.summaryTitle}</b>{#if when}<span class="mono"><RollTime value={when} {roll} /></span>{/if}</span>
+      {#if h}<span class="hl" use:nuova={h.at}>{h.headline.replace(/\*\*|__|`/g, '')}</span>{/if}
     {:else}
       <!-- Nella riga in basso la risposta vera dall'inizio, su tre righe che sfumano (app-master-riga-maniglie-04-11). -->
-      <span class="l1"><b class="mn">{t.summaryTitle}</b>{#if peek}<i class="nd" aria-hidden="true"></i>{/if}{#if h}<span class="hl" class:full={bar} class:peek use:isola={peek}>{(bar ? h.text : h.headline).replace(/\*\*|__|`/g, '')}</span>{/if}{#if when}<span class="mono">{when}</span>{/if}</span>
+      <span class="l1"><b class="mn">{t.summaryTitle}</b>{#if peek}<i class="nd" aria-hidden="true"></i>{/if}{#if h}<span class="hl" class:full={bar} class:peek use:isola={peek} use:nuova={h.at}>{(bar ? h.text : h.headline).replace(/\*\*|__|`/g, '')}</span>{/if}{#if when}<span class="mono"><RollTime value={when} {roll} /></span>{/if}</span>
     {/if}
   </span>
   {#if h && !bar}

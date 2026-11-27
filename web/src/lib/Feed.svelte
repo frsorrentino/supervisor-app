@@ -285,7 +285,7 @@
 {#snippet answer(e: TranscriptEntry)}
   {@const r = read(e)}
   {@const sp = spokenOf(e)}
-  <!-- app-messaggio-master-effetto-27-11 (opzione B): la risposta nata dopo l'apertura arriva con l'esito per primo (arriva, molla.ts). -->
+  <!-- app-messaggio-master-effetto-27-11 (opzione E): la risposta nata a chat aperta e ferma compare, sale con la lista e accende l'esito (arriva, molla.ts). -->
   <div class="ans" class:found={flash === e.id} data-entry={e.id} data-quote={r.text} data-quote-at={e.at ?? ''} use:arriva={{ on: liveAnswer(e.id, e.at) }}>
     {#if r.es.body.trim() || r.buttons.length || r.wl.ids.length || e.cut}
       <section class="z za">

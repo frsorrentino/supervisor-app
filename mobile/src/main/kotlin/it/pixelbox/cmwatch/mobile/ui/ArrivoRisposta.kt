@@ -10,14 +10,9 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.testTag
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
@@ -28,14 +23,12 @@ import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
 
 /*
- * app-messaggio-master-effetto-27-11 (Franz 27/11 13:28, opzione B «L'esito per primo»; strada b della master): la risposta che arriva a
- * chat aperta ha la sua misura dal primo fotogramma, quindi la lista non salta. In fondo alla chat la lista sale una volta sola con la
- * molla del pannello (CmMotion.panelFloat, 400 ms) e la stessa corsa, nello stesso fotogramma, scopre la risposta: risposta e riga dei
- * dati si disegnano spostate in alto di k con quello che sta sopra la linea k ritagliato, dove k è quanto manca alla fine. Così il testo
- * nuovo sta fermo al pixel, l'esito compare per primo dove c'era «sta pensando» e la risposta si apre verso l'alto; si sposta solo quello
- * già letto. Un dito a metà corsa scopre tutto e lascia la lista al dito; una risposta nuova chiude subito quella in corsa; più in alto non
- * si muove niente e resta «1 nuovo ↓». Animazioni ridotte: la chat si spegne in 70 ms, va in fondo, si riaccende in 150 ms, e corpo e
- * riga dei dati entrano 80 ms dopo l'esito, in 120 ms. Prende il posto del parola per parola (WordStream).
+ * app-messaggio-master-effetto-27-11, opzione E «Subito, due segnali» (Franz 27/11 15:48, mockup 04-subito.html; prima la B): la risposta
+ * che arriva a chat aperta e ferma compare intera in 120 ms e sale con la lista, una corsa sola con la molla del pannello (CmMotion.panelFloat,
+ * 400 ms) a pixel interi, senza scoperte. Poi due segnali: un lampo sull'esito, col fondo del piede che si accende e torna in 900 ms e la
+ * spunta che entra da 0,8 con la molla di casa (CmMotion.bounceFloat, 620 ms); e nel riquadro della master l'ora che scorre (RollNumber,
+ * MasterDock.kt). Un dito sulla lista mostra subito tutto; una risposta nuova chiude subito quella in corsa; più in alto niente corsa e
+ * resta «1 nuovo ↓». Animazioni ridotte: la chat si spegne in 70 ms, va in fondo e si riaccende in 150 ms; niente lampo.
  */
 
 /**
@@ -86,78 +79,76 @@ internal val LocalStreamGate = compositionLocalOf<StreamGate?> { null }
 
 /** Una risposta in arrivo. */
 internal class Arrival(val id: String) {
-    /** Quanto manca alla fine della corsa, in px: lo spostamento in su e la parte ritagliata. Infinito finché la corsa non parte: nascosta. */
-    var k by mutableFloatStateOf(Float.POSITIVE_INFINITY)
-    /** Finché arriva, ChatFollow aspetta. */
+    /** L'opacità di risposta e riga dei dati: 0 finché la corsa non parte, poi a 1 in 120 ms. */
+    var alpha by mutableFloatStateOf(0f)
+    /** Il lampo sull'esito: 1 acceso, 0 il fondo di sempre. */
+    var flash by mutableFloatStateOf(0f)
+    /** La scala della spunta dell'esito: entra da 0,8. */
+    var check by mutableFloatStateOf(CHECK_FROM)
+    /** Finché la lista corre, ChatFollow aspetta e un dito chiude tutto. */
     var running by mutableStateOf(true)
-    /** Animazioni ridotte: corpo e riga dei dati entrano dopo l'esito. */
-    var body by mutableFloatStateOf(1f)
-    /** Dove comincia la risposta, in coordinate della radice: la linea del ritaglio si conta da qui. */
-    var top by mutableFloatStateOf(Float.NaN)
     var job: Job? = null
-    /** Tutto scoperto e fermo: a fine corsa, sotto un dito, all'arrivo di un'altra risposta. */
-    fun finish() { job?.cancel(); k = 0f; body = 1f; running = false }
+    /** Tutto intero e fermo: a fine corsa, sotto un dito, all'arrivo di un'altra risposta. */
+    fun finish() { job?.cancel(); alpha = 1f; flash = 0f; check = 1f; running = false }
+
+    companion object {
+        const val CHECK_FROM = 0.8f
+        /** I tempi della E: dissolvenza, attesa prima dei segnali, lampo. */
+        const val FADE_MS = 120
+        const val SIGNAL_AFTER_MS = 150L
+        const val FLASH_MS = 900
+        /** La curva del mockup per dissolvenze e lampo, cubic-bezier(.3, 0, .2, 1). */
+        val Ease = androidx.compose.animation.core.CubicBezierEasing(.3f, 0f, .2f, 1f)
+    }
 }
 
-/**
- * Una parte della risposta che arriva (la scheda della risposta, [first], o la riga dei dati): disegnata spostata in su di k, con nascosto
- * quello che sta sopra la linea che dista k dall'alto della risposta. Le posizioni si leggono prima dello spostamento, così la linea resta
- * quella del layout; misure e disegno cambiano solo nel disegno, mai nel layout.
- */
+/** Una parte della risposta che arriva (la scheda, [first], o la riga dei dati): la sua opacità, senza toccare il layout. */
 @Composable
 internal fun Modifier.arrivalPart(a: Arrival?, first: Boolean): Modifier {
     if (a == null) return this
-    val mine = remember(a) { mutableFloatStateOf(Float.NaN) }
     // Per i test: la risposta che sta arrivando si riconosce finché la corsa non è finita.
-    return then(if (first && a.running) Modifier.testTag("risposta-in-arrivo") else Modifier)
-        .onGloballyPositioned { c -> val y = c.positionInRoot().y; mine.floatValue = y; if (first) a.top = y }
-        .graphicsLayer { val k = a.k; translationY = if (k.isInfinite()) 0f else -k }
-        .drawWithContent {
-            val k = a.k
-            if (k <= 0f) { drawContent(); return@drawWithContent }
-            val top = a.top
-            val me = mine.floatValue
-            if (k.isInfinite() || top.isNaN() || me.isNaN()) return@drawWithContent
-            val cut = top + k - me
-            if (cut >= size.height) return@drawWithContent
-            if (cut <= 0f) drawContent() else clipRect(top = cut) { this@drawWithContent.drawContent() }
-        }
+    return then(if (first && a.running) Modifier.testTag("risposta-in-arrivo") else Modifier).graphicsLayer { alpha = a.alpha }
 }
 
 /**
- * La corsa della risposta [a]. In fondo alla chat ([follow]) la lista sale una volta sola fino alla fine, con la molla del pannello e a
- * pixel interi, e k scende con lei nello stesso fotogramma. Più in alto niente corsa: la risposta compare al suo posto. Animazioni
- * ridotte ([reduced]): la chat ([chat], la sua opacità) si spegne, va in fondo, si riaccende; corpo e riga dei dati dopo.
+ * La corsa della risposta [a]. In fondo alla chat ([follow]) e a lista ferma la risposta compare in 120 ms e la lista sale una volta sola
+ * fino alla fine, con la molla del pannello e a pixel interi; 150 ms dopo il lampo sull'esito e la spunta. Più in alto, o con la lista che
+ * si muove, niente: la risposta c'è intera al suo posto. Animazioni ridotte ([reduced]): la chat ([chat], la sua opacità) si spegne, va in
+ * fondo e si riaccende; niente lampo.
  */
 internal suspend fun LazyListState.runArrival(a: Arrival, follow: Boolean, reduced: Boolean, chat: Animatable<Float, AnimationVector1D>) {
     try {
-        // La B parte solo a lista ferma (Franz 27/11 15:17): se la lista si muove, niente corsa e la risposta compare intera al suo posto.
-        // Aspettare vorrebbe dire tenerla nascosta, cioè uno spazio vuoto.
-        if (isScrollInProgress) return
-        // La risposta è già misurata e piazzata (la corsa parte dopo il suo primo layout), ancora nascosta.
+        // La corsa parte solo a lista ferma (Franz 27/11 15:17): se la lista si muove, la risposta compare intera al suo posto.
+        if (!follow || isScrollInProgress) return
+        // La risposta è già misurata e piazzata (la corsa parte dopo il suo primo layout), ancora trasparente.
         val info = layoutInfo
         val last = info.visibleItemsInfo.lastOrNull()?.takeIf { it.index == info.totalItemsCount - 1 }
         val over = if (last == null) 0 else last.offset + last.size - (info.viewportEndOffset - info.afterContentPadding)
-        if (!follow || over <= 0) return
         if (reduced) {
-            chat.animateTo(0f, tween(70))
-            scrollToEnd()
-            a.body = 0f
-            a.k = 0f
-            coroutineScope {
-                launch { delay(80); animate(0f, 1f, animationSpec = tween(120)) { v, _ -> a.body = v } }
-                chat.animateTo(1f, tween(150))
-            }
+            if (over > 0) {
+                chat.animateTo(0f, tween(70))
+                a.alpha = 1f
+                scrollToEnd()
+                chat.animateTo(1f, tween(150, easing = Arrival.Ease))
+            } else animate(0f, 1f, animationSpec = tween(Arrival.FADE_MS, easing = Arrival.Ease)) { v, _ -> a.alpha = v }
             return
         }
-        a.k = over.toFloat()
-        scroll {
-            var done = 0
-            animate(0f, over.toFloat(), animationSpec = CmMotion.panelFloat) { v, _ ->
-                val to = v.roundToInt().coerceIn(0, over)
-                if (to != done) { scrollBy((to - done).toFloat()); done = to }
-                a.k = (over - done).toFloat()
+        coroutineScope {
+            launch { animate(0f, 1f, animationSpec = tween(Arrival.FADE_MS, easing = Arrival.Ease)) { v, _ -> a.alpha = v } }
+            launch {
+                delay(Arrival.SIGNAL_AFTER_MS)
+                launch { animate(1f, 0f, animationSpec = tween(Arrival.FLASH_MS, easing = Arrival.Ease)) { v, _ -> a.flash = v } }
+                animate(Arrival.CHECK_FROM, 1f, animationSpec = CmMotion.bounceFloat) { v, _ -> a.check = v }
             }
+            if (over > 0) scroll {
+                var done = 0
+                animate(0f, over.toFloat(), animationSpec = CmMotion.panelFloat) { v, _ ->
+                    val to = v.roundToInt().coerceIn(0, over)
+                    if (to != done) { scrollBy((to - done).toFloat()); done = to }
+                }
+            }
+            // Finita la corsa la lista torna a seguire il fondo (ChatFollow); lampo e spunta finiscono da soli.
+            a.running = false
         }
     } finally {
         a.finish()

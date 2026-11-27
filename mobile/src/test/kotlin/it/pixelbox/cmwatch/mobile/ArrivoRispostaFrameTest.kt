@@ -28,8 +28,8 @@ import java.io.File
 import kotlin.math.abs
 
 /**
- * app-messaggio-master-effetto-27-11 (opzione B «L'esito per primo», strada b): la risposta che arriva con la chat in fondo. L'esito compare
- * dove c'era «sta pensando» e da lì non si muove di un pixel mentre la lista sale; la lista sale una volta sola, senza salti né ritorni.
+ * app-messaggio-master-effetto-27-11 (opzione E «Subito, due segnali», Franz 27/11 15:48): la risposta che arriva con la chat in fondo
+ * compare intera e sale con la lista, una corsa sola, senza salti né ritorni; l'esito sale con lei e si ferma in fondo.
  * Franz 27/11 15:17: aprendo la sessione di un compito già finito niente arriva con un'animazione, nemmeno se la conversazione arriva a
  * pezzi o lo stato è ancora quello di prima per qualche fotogramma: esito e testo si vedono interi dal primo fotogramma, fermi.
  * Paparazzi fa da motore dei fotogrammi, come in ChatReadingHoldTest; le posizioni sono quelle disegnate (con lo spostamento del layer).
@@ -67,11 +67,12 @@ class ArrivoRispostaFrameTest {
         at = t0 + 2_460, turn = TranscriptTurn(t0 + 2_400, t0 + 2_460, 10_769, 300),
     )
 
-    @Test fun theOutcomeStaysStillToThePixelWhileTheListRises() {
+    @Test fun theReplyRisesWithTheListInOneRun() {
         val sess = mutableStateOf(busy)
         val arrived = mutableStateOf(false)
         val esito = mutableListOf<Float>()
         val step = mutableListOf<Float>()
+        val arriving = mutableListOf<Boolean>()
         lateinit var view: ComposeView
         view = ComposeView(paparazzi.context).apply {
             setContent {
@@ -88,18 +89,16 @@ class ArrivoRispostaFrameTest {
                         val root = (view.getChildAt(0) as ViewRootForTest).semanticsOwner.unmergedRootSemanticsNode
                         esito += find(root) { n -> n.tag() == "chat-esito" }?.let { n -> n.positionInRoot.y + n.size.height } ?: Float.NaN
                         step += find(root) { n -> n.config.getOrNull(SemanticsProperties.Text)?.any { a -> a.text.contains("Passo 2 della verifica") } == true }?.positionInRoot?.y ?: Float.NaN
+                        arriving += find(root) { n -> n.tag() == "risposta-in-arrivo" } != null
                     }
                 }
             }
         }
         paparazzi.gif(view, end = 2_700, fps = 60)
 
-        // L'esito arriva al suo posto entro i primi fotogrammi e da lì non si muove più (al pixel), mentre la lista sale.
-        assertTrue("nessun esito misurato: $esito", esito.isNotEmpty() && !esito.last().isNaN())
-        val final = esito.last()
-        val first = esito.indexOfFirst { y -> !y.isNaN() && abs(y - final) <= 0.5f }
-        assertTrue("l'esito non arriva subito al suo posto: $esito", first in 0..5)
-        assertTrue("l'esito si muove dopo essere comparso: ${esito.drop(first)}", esito.drop(first).all { y -> abs(y - final) <= 0.5f })
+        // È un arrivo, e finisce: la risposta in corsa si riconosce nei primi fotogrammi e non più alla fine.
+        assertTrue("la risposta non arriva con la corsa: $arriving", arriving.take(5).any { it })
+        assertTrue("la corsa non finisce: $arriving", arriving.takeLast(10).none { it })
         // Il lavoro già letto sale e basta, una volta sola: mai giù, e sale davvero.
         val w = step.filter { y -> !y.isNaN() }
         assertTrue("il lavoro non è in vista: $step", w.size > 10)
@@ -109,6 +108,11 @@ class ArrivoRispostaFrameTest {
         // Una corsa, non un salto: la salita dura più fotogrammi e nessun passo ne fa più di metà (un salto in fondo farebbe tutto in uno).
         val moves = w.zipWithNext().map { (a, b) -> a - b }.filter { it > 0.5f }
         assertTrue("la lista salta invece di correre: $w", moves.size >= 5 && moves.max() < rise / 2)
+        // L'esito sale con la lista, mai giù, e alla fine sta fermo.
+        val e = esito.filter { y -> !y.isNaN() }
+        assertTrue("nessun esito misurato: $esito", e.size > 10)
+        assertTrue("l'esito torna giù: $e", e.zipWithNext().all { (a, b) -> b <= a + 0.5f })
+        assertTrue("l'esito non si ferma: ${e.takeLast(10)}", e.takeLast(10).all { y -> abs(y - e.last()) <= 0.5f })
     }
 
     // Franz 27/11 15:17: la sessione del compito appena finito, aperta con la risposta già arrivata.

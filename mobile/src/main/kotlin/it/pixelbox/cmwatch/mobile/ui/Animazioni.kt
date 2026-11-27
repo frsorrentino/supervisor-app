@@ -637,3 +637,36 @@ internal fun ProofRail(steps: it.pixelbox.cmwatch.contract.ProofSteps, bleed: an
         }
     }
 }
+
+/**
+ * app-messaggio-master-effetto-27-11, opzione E (Franz 27/11 15:48, mockup 04-subito.html): l'ora del riquadro della master che scorre
+ * quando arriva una risposta, da 04:05 a 04:08. Scorre solo la cifra che cambia: la vecchia sale via, la nuova entra da sotto, con la molla
+ * di casa (CmMotion.bounceFloat, 620 ms); il taglio è solo sopra e sotto. Senza [roll], con le animazioni spente o con un'altra lunghezza,
+ * l'ora cambia e basta.
+ */
+@Composable
+internal fun RollTime(value: String, roll: Boolean, style: TextStyle, modifier: Modifier = Modifier) {
+    val off = animationsOff()
+    var shown by remember { androidx.compose.runtime.mutableStateOf(value) }
+    var from by remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
+    val p = remember { androidx.compose.animation.core.Animatable(1f) }
+    LaunchedEffect(value) {
+        if (value == shown) return@LaunchedEffect
+        if (!roll || off || value.length != shown.length) { shown = value; from = null; return@LaunchedEffect }
+        from = shown
+        shown = value
+        p.snapTo(0f)
+        try { p.animateTo(1f, CmMotion.bounceFloat) } finally { from = null }
+    }
+    val old = from
+    if (old == null) { Text(shown, style = style, maxLines = 1, modifier = modifier); return }
+    Row(modifier) {
+        shown.forEachIndexed { i, ch ->
+            if (old.getOrNull(i) == ch) Text(ch.toString(), style = style, maxLines = 1)
+            else Box(Modifier.clipToBounds()) {
+                Text(old[i].toString(), style = style, maxLines = 1, modifier = Modifier.graphicsLayer { translationY = -p.value * size.height })
+                Text(ch.toString(), style = style, maxLines = 1, modifier = Modifier.graphicsLayer { translationY = (1f - p.value) * size.height })
+            }
+        }
+    }
+}

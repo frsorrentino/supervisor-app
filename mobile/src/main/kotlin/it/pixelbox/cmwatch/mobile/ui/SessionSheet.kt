@@ -446,8 +446,8 @@ fun SessionSheet(
             if (ChatFollow.chase(follow, below, n, list.isScrollInProgress || streamGate.current?.running == true, touching)) list.scrollToEnd()
         }
     }
-    // app-messaggio-master-effetto-27-11 (opzione B): la corsa della risposta che arriva (ArrivoRisposta.kt), in fondo alla chat; più in alto la
-    // risposta compare al suo posto. Un dito sulla lista la chiude subito e la lascia al dito.
+    // app-messaggio-master-effetto-27-11 (opzione E): la corsa della risposta che arriva (ArrivoRisposta.kt), in fondo alla chat; più in alto la
+    // risposta compare al suo posto. Un dito sulla lista mostra subito tutto e la lascia al dito.
     val chatAlpha = remember(s.id) { androidx.compose.animation.core.Animatable(1f) }
     val reducedMotion = animationsOff()
     val arriving = streamGate.current
@@ -2983,6 +2983,14 @@ private object F3 {
         it.pixelbox.cmwatch.rules.Kpi.OutcomeType.RUNNING -> V3.Busy.copy(alpha = .10f).compositeOver(paper)
         else -> V3.Tx.copy(alpha = .04f).compositeOver(paper)
     }
+    /** Il lampo dell'esito che arriva (opzione E): lo stesso colore del piede, acceso (26 % invece del 10 %, come nel mockup). */
+    fun flash(t: it.pixelbox.cmwatch.rules.Kpi.OutcomeType) = when (t) {
+        it.pixelbox.cmwatch.rules.Kpi.OutcomeType.DONE, it.pixelbox.cmwatch.rules.Kpi.OutcomeType.SHIPPED -> V3.Good.copy(alpha = if (V3.day) .20f else .26f).compositeOver(base)
+        it.pixelbox.cmwatch.rules.Kpi.OutcomeType.PROBLEM -> V3.Red.copy(alpha = .26f).compositeOver(paper)
+        it.pixelbox.cmwatch.rules.Kpi.OutcomeType.WAITING -> V3.Wait.copy(alpha = .26f).compositeOver(paper)
+        it.pixelbox.cmwatch.rules.Kpi.OutcomeType.RUNNING -> V3.Busy.copy(alpha = .26f).compositeOver(paper)
+        else -> V3.Tx.copy(alpha = .12f).compositeOver(paper)
+    }
     val label get() = androidx.compose.ui.text.TextStyle(fontFamily = V3.Mono, fontWeight = FontWeight.Medium, fontSize = 11.5.sp, lineHeight = 16.sp, letterSpacing = 1.4.sp, color = V3.Tx3)
 }
 
@@ -3039,7 +3047,7 @@ private fun TurnRowBody(
             listOfNotNull(stringResource(R.string.chat_auto_turn), (t.work.firstOrNull()?.entry?.at ?: t.answer?.at)?.let(::hhmm)).joinToString(" · "),
             style = androidx.compose.ui.text.TextStyle(fontFamily = V3.Sans, fontSize = 12.5.sp, lineHeight = 16.sp), color = V3.Tx3, modifier = Modifier.padding(horizontal = 6.dp).testTag("chat-avviso-automatico"),
         )
-        // app-messaggio-master-effetto-27-11: la risposta nata dopo l'apertura arriva con l'effetto B. Il turno la passa a scheda e riga dei
+        // app-messaggio-master-effetto-27-11: la risposta nata a chat aperta e ferma arriva con l'effetto E. Il turno la passa a scheda e riga dei
         // dati insieme, così nessuna delle due compare per un fotogramma al posto sbagliato; negli screenshot fermi niente arrivo.
         val gate = LocalStreamGate.current
         val stillShot = LocalStill.current
@@ -3128,13 +3136,17 @@ private fun EntryExtras(e: TranscriptEntry, r: ReadEntry, actions: SheetActions)
 
 /** La riga dell'esito: l'icona del tipo col suo colore, centrata sulla prima riga, e le parole della sessione. */
 @Composable
-private fun EsitoRow(line: String, type: it.pixelbox.cmwatch.rules.Kpi.OutcomeType, strong: Boolean) {
+private fun EsitoRow(line: String, type: it.pixelbox.cmwatch.rules.Kpi.OutcomeType, strong: Boolean, iconScale: (() -> Float)? = null) {
     val label = stringResource(R.string.outcome_label)
     val style = if (strong) MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold, fontSize = 16.5.sp, lineHeight = 24.sp) else MaterialTheme.typography.bodyLarge
     val lineDp = with(androidx.compose.ui.platform.LocalDensity.current) { (if (style.lineHeight.isSp) style.lineHeight else style.fontSize * 1.4f).toDp() }
     val icon = if (strong) 20f else 18f
     Row(Modifier.testTag("chat-esito"), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Icon(outcomeIcon(type), label, tint = outcomeTone(type), modifier = Modifier.padding(top = it.pixelbox.cmwatch.rules.ChatEsito.iconTop(lineDp.value, icon).dp).size(icon.dp))
+        Icon(
+            outcomeIcon(type), label, tint = outcomeTone(type),
+            modifier = Modifier.padding(top = it.pixelbox.cmwatch.rules.ChatEsito.iconTop(lineDp.value, icon).dp).size(icon.dp)
+                .then(if (iconScale == null) Modifier else Modifier.graphicsLayer { val k = iconScale(); scaleX = k; scaleY = k }),
+        )
         Text(linked(it.pixelbox.cmwatch.rules.ChatEsito.text(line, label), LocalTaskLinks.current), style = style, color = Cm.text)
     }
 }
@@ -3245,11 +3257,11 @@ private fun AnswerZones(e: TranscriptEntry, flashed: Boolean, actions: SheetActi
     val label = stringResource(R.string.outcome_label)
     val r = remember(e.text, label, actions.sessions) { readEntry(e.text.orEmpty(), label, actions.sessions) }
     val type = it.pixelbox.cmwatch.rules.Kpi.OutcomeType.of(e.outcomeType)
-    // app-messaggio-master-effetto-27-11 (opzione B): la risposta che arriva si scopre dal basso con la corsa della lista (ArrivoRisposta.kt).
-    // Corpo e piede in una scatola sola, spostata e ritagliata insieme; con le animazioni ridotte il corpo entra dopo l'esito.
+    // app-messaggio-master-effetto-27-11 (opzione E): la risposta che arriva compare intera in 120 ms e sale con la lista; poi il lampo
+    // sull'esito e la spunta (ArrivoRisposta.kt). Corpo e piede in una scatola sola, con la stessa opacità.
     Column(Modifier.fillMaxWidth().arrivalPart(arr, first = true)) {
     if (r.body.isNotBlank() || r.buttons.isNotEmpty() || r.waits.ids.isNotEmpty() || e.cut) Column(
-        Modifier.fillMaxWidth().graphicsLayer { alpha = arr?.body ?: 1f }.background(F3.paper).flashed(flashed).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp),
+        Modifier.fillMaxWidth().background(F3.paper).flashed(flashed).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         // Durante la lettura a voce il testo si mostra a paragrafi, quello letto in evidenza; il tocco su un paragrafo fa ripartire
         // la lettura da lì (Franz, 02/10 00:01: «come in orologio»).
@@ -3271,9 +3283,13 @@ private fun AnswerZones(e: TranscriptEntry, flashed: Boolean, actions: SheetActi
     }
     // I PROSSIMI nel turno solo nella master: in una sessione stanno sopra il campo (app-riall-3-doppioni-16-11); l'ESITO resta.
     if (r.outcome != null || r.tipo != null || (showSteps && r.steps.isNotEmpty())) Column(
-        Modifier.fillMaxWidth().background(F3.foot(type)).padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 14.dp), verticalArrangement = Arrangement.spacedBy(6.dp),
+        // app-messaggio-master-effetto-27-11 (opzione E): all'arrivo il fondo del piede si accende e torna (il lampo, letto solo nel disegno).
+        Modifier.fillMaxWidth().then(
+            if (arr == null) Modifier.background(F3.foot(type))
+            else { val base = F3.foot(type); val lit = F3.flash(type); Modifier.drawBehind { drawRect(androidx.compose.ui.graphics.lerp(base, lit, arr.flash)) } },
+        ).padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 14.dp), verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        r.outcome?.let { FootHead(label, true); EsitoRow(it, type, strong = true) }
+        r.outcome?.let { FootHead(label, true); EsitoRow(it, type, strong = true, iconScale = arr?.let { a -> { a.check } }) }
         r.tipo?.let { tipo ->
             FootHead(stringResource(R.string.chat_type_label), r.outcome == null)
             val tone = outcomeTone(type)
@@ -3308,7 +3324,7 @@ private fun AnswerTail(e: TranscriptEntry, actions: SheetActions, arr: Arrival? 
     val text = remember(e.text, label) { NextSteps.parse(it.pixelbox.cmwatch.rules.Answer.stripTipo(e.text.orEmpty(), label).text).text }
     val clip = LocalClipboardManager.current
     Row(
-        Modifier.fillMaxWidth().arrivalPart(arr, first = false).graphicsLayer { alpha = arr?.body ?: 1f }.padding(horizontal = 4.dp),
+        Modifier.fillMaxWidth().arrivalPart(arr, first = false).padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         CopyIconAction(text)

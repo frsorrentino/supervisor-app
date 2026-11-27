@@ -65,18 +65,28 @@ export function entra(node: HTMLElement, p: { on: boolean; me: boolean }) {
 }
 
 /**
- * app-messaggio-master-effetto-27-11 (Franz 27/11 13:28, opzione B «L'esito per primo», strada b della master), come ArrivoRisposta.kt:
- * la risposta che arriva ha la sua misura dal primo fotogramma, quindi la lista non salta. Se la chat era in fondo, la lista sale una volta
- * sola fino alla fine con la molla del pannello (400 40, senza rimbalzo, a pixel interi) e, nello stesso fotogramma, risposta e riga dei
- * dati si disegnano spostate in su di k con quello che sta sopra la linea k ritagliato, dove k è quanto manca alla fine: il testo nuovo sta
- * fermo, l'esito compare per primo dove c'era «sta pensando» e la risposta si apre verso l'alto. Un dito o la rotella a metà corsa
- * scoprono tutto e lasciano la lista lì; una risposta nuova chiude subito quella in corsa; più in alto niente movimento (resta «1 nuovo
- * ↓»). Moto ridotto: la chat si spegne in 70 ms, va in fondo, si riaccende in 150 ms; corpo e riga dei dati entrano 80 ms dopo, in 120 ms.
- * Prende il posto di `parole`.
+ * app-messaggio-master-effetto-27-11, opzione E «Subito, due segnali» (Franz 27/11 15:48, mockup 04-subito.html; prima la B), come
+ * ArrivoRisposta.kt: la risposta che arriva a chat aperta e ferma compare intera in 120 ms e sale con la lista, una corsa sola con la molla
+ * del pannello (400 40, senza rimbalzo, a pixel interi), senza scoperte. 150 ms dopo due segnali: il fondo del piede si accende e torna in
+ * 900 ms, e la spunta dell'esito entra da 0,8 con la molla di casa (620 ms). Un dito o la rotella mostrano subito tutto e lasciano la lista
+ * lì; una risposta nuova chiude subito quella in corsa; più in alto, o con la lista che si muove, niente (resta «1 nuovo ↓»). Moto ridotto:
+ * la chat si spegne in 70 ms, va in fondo e si riaccende in 150 ms; niente lampo.
  */
 let chiudiCorsa: (() => void) | null = null
 /** C'è una risposta in arrivo: la chat non fa il suo scorrimento morbido verso il fondo. */
 export const corsaInArrivo = (): boolean => chiudiCorsa != null
+const EASE = 'cubic-bezier(.3, 0, .2, 1)'
+/** Un colore calcolato come terna rgb, anche nella forma color(srgb …) che dà color-mix. */
+export function rgbOf(c: string): [number, number, number] | null {
+  let m = c.match(/rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/)
+  if (m) return [+m[1], +m[2], +m[3]]
+  m = c.match(/color\(srgb\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/)
+  if (m) return [+m[1] * 255, +m[2] * 255, +m[3] * 255]
+  return null
+}
+/** Il fondo acceso del lampo: il fondo del piede spinto verso il colore dell'esito (dal 10 al 26 % circa, come nel mockup). */
+export const litOf = (base: [number, number, number], tone: [number, number, number]): string =>
+  `rgb(${base.map((v, i) => Math.round(v + (tone[i] - v) * 0.18)).join(', ')})`
 export function arriva(node: HTMLElement, p: { on: boolean }) {
   if (!p.on) return
   chiudiCorsa?.()
@@ -86,47 +96,48 @@ export function arriva(node: HTMLElement, p: { on: boolean }) {
   const tail = node.closest('.it')?.querySelector<HTMLElement>(':scope > .tm') ?? null
   const parts = tail ? [node, tail] : [node]
   const s0 = list.scrollTop
-  const d = Math.round(list.scrollHeight - list.clientHeight - s0)
-  if (d <= 0) return
-  // Le parti si contano dall'alto della risposta: la linea del ritaglio è la stessa per tutte e due.
-  const top = node.getBoundingClientRect().top
-  const offs = parts.map((el) => el.getBoundingClientRect().top - top)
-  const paint = (k: number) => parts.forEach((el, i) => {
-    if (k <= 0) { el.style.transform = ''; el.style.clipPath = ''; el.style.visibility = ''; return }
-    const cut = Math.max(0, k - offs[i])
-    el.style.transform = `translateY(${-k}px)`
-    el.style.clipPath = `inset(${Math.min(cut, el.offsetHeight)}px 0 0 0)`
-  })
-  const finito = () => {
-    m?.stop()
-    paint(0)
+  const d = Math.max(0, Math.round(list.scrollHeight - list.clientHeight - s0))
+  const anims: Animation[] = []
+  let m: { vai: () => void; stop: () => void } | null = null
+  let t: ReturnType<typeof setTimeout> | undefined
+  const libera = () => {
     for (const ev of ['pointerdown', 'wheel', 'touchstart'] as const) list.removeEventListener(ev, finito)
     if (chiudiCorsa === finito) chiudiCorsa = null
   }
-  let m: { vai: () => void; stop: () => void } | null = null
+  // Tutto intero e fermo: opacità piena, lampo spento, spunta a grandezza piena.
+  const finito = () => { m?.stop(); clearTimeout(t); for (const a of anims) a.finish(); libera() }
   chiudiCorsa = finito
   for (const ev of ['pointerdown', 'wheel', 'touchstart'] as const) list.addEventListener(ev, finito, { passive: true })
   if (ridotto()) {
-    parts.forEach((el) => (el.style.visibility = 'hidden'))
-    list.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 70, fill: 'forwards' })
-    setTimeout(() => {
+    if (d <= 0) { anims.push(...parts.map((el) => el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 120, easing: EASE }))); libera(); return { destroy: finito } }
+    const out = list.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 70, fill: 'forwards' })
+    t = setTimeout(() => {
       list.scrollTop = list.scrollHeight - list.clientHeight
-      for (const a of list.getAnimations()) a.cancel()
-      finito()
-      list.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, easing: 'cubic-bezier(.3, 0, .2, 1)' })
-      for (const el of [node.querySelector<HTMLElement>('.za'), tail]) el?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 120, delay: 80, easing: 'cubic-bezier(.3, 0, .2, 1)', fill: 'backwards' })
+      out.cancel()
+      list.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, easing: EASE })
+      libera()
     }, 80)
     return { destroy: finito }
   }
+  anims.push(...parts.map((el) => el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 120, easing: EASE })))
+  const foot = node.querySelector<HTMLElement>('.zf')
+  const gl = node.querySelector<HTMLElement>('.zf .gl')
+  if (foot && gl) {
+    const now = getComputedStyle(foot).backgroundColor
+    const base = rgbOf(now), tone = rgbOf(getComputedStyle(gl).color)
+    if (base && tone) anims.push(foot.animate([{ backgroundColor: litOf(base, tone) }, { backgroundColor: now }], { duration: 900, delay: 150, easing: EASE }))
+    const bounce = getComputedStyle(document.documentElement).getPropertyValue('--spring-bounce').trim() || EASE
+    anims.push(gl.animate([{ transform: 'scale(.8)' }, { transform: 'scale(1)' }], { duration: 620, delay: 150, easing: bounce, fill: 'backwards' }))
+  }
+  if (d <= 0) { libera(); return { destroy: finito } }
   const S = molla(0, 400, 40)
   S.t = d
   let done = 0
-  paint(d)
   m = motore([S], () => {
     const to = Math.min(d, Math.max(0, Math.round(S.x)))
     if (to !== done) { list.scrollTop = s0 + to; done = to }
-    paint(d - done)
-    if (done >= d && ferma(S)) finito()
+    // Finita la corsa la chat torna a seguire il fondo; lampo e spunta finiscono da soli.
+    if (done >= d && ferma(S)) { m?.stop(); libera() }
   })
   m.vai()
   return { destroy: finito }
