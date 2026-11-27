@@ -70,7 +70,7 @@ internal fun LongText(
             ReadAlongText(annotated ?: AnnotatedString(text), before + word, style, color, Modifier.weight(1f))
         } else Text(
             annotated ?: AnnotatedString(text), Modifier.weight(1f), style = style, color = color, maxLines = maxLines, overflow = TextOverflow.Clip,
-            onTextLayout = { r -> if (!long && (r.lineCount > 1 || r.hasVisualOverflow)) long = true; onTextLayout?.invoke(r) },
+            onTextLayout = { r -> if (!long && it.pixelbox.cmwatch.rules.ReadRules.isLong(r.lineCount, r.hasVisualOverflow)) long = true; onTextLayout?.invoke(r) },
         )
         if (long) ReadButton(text, Modifier.padding(start = 8.dp))
     }
