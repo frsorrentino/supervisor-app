@@ -1190,8 +1190,6 @@ It starts at your last message to the master.</string>
     <!-- The closing panel of a session (08/10, variant A). -->
     <string name="splash_closing">%1$s is closing</string>
     <string name="splash_sent_at">You sent /exit at %1$s.</string>
-    <string name="splash_step_delivered">/exit delivered to the PC</string>
-    <string name="splash_step_confirmed">the PC confirms the session closed</string>
     <string name="splash_usually">usually a few seconds</string>
     <string name="splash_slow">Taking longer than usual</string>
     <string name="splash_closed">%1$s is closed</string>
@@ -1217,8 +1215,10 @@ It starts at your last message to the master.</string>
     <string name="close_what_save">• if it has decisions or work in progress it writes the handoff, then gets /exit\n• within 3 minutes it closes anyway\n• it goes to «Closed», where it can be reopened</string>
     <string name="close_inline_save">Writes the handoff if needed, then closes and goes to «Closed».</string>
     <string name="splash_save_sent_at">You asked to save and close at %1$s.</string>
-    <string name="splash_saving">Saving the state</string>
-    <string name="splash_exiting">Closing</string>
+    <string name="splash_step_save">Saving</string>
+    <string name="splash_step_exit">Exiting</string>
+    <string name="splash_step_sent">Sent</string>
+    <string name="splash_step_closed">Closed</string>
     <string name="splash_save_usually">usually under a minute, 3 at most</string>
     <string name="splash_handoff">Closed, with the handoff</string>
     <string name="splash_no_handoff">Closed, without a handoff: there was nothing to save</string>

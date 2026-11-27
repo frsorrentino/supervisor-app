@@ -53,6 +53,10 @@ abstract class CloseCardShots(scale: Float) {
     @Test fun refusedItalian() = page {
         CloseSplashOverlay(CloseSplash.Phase.Refused(s.name, "resta aperta: ha una domanda", armable = true), onHome = {}, onReopen = null, onArm = {})
     }
+    // Voce 3 del terzo giro (master, 27/11): «Salva e chiudi» coi nomi dei passi dentro i segmenti; salvataggio fatto, uscita in corso.
+    @Test fun closingSave() = page {
+        CloseSplashOverlay(CloseSplash.Phase.Closing(s.name, sentAt = st.ts - 20, delivered = true, slow = false, save = true, step = "exit"), onHome = {}, onReopen = null)
+    }
 }
 
 class CloseCardTest : CloseCardShots(1f) {

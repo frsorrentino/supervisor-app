@@ -9,8 +9,9 @@
   // la tappa passata si riempie di verde da sinistra (molla 260 24) e la spunta si disegna 120 ms dopo (140 20); il segmento che diventa
   // quello in corso si accende (il filo dell'originale, 160 22) e il suo nome fa il pop da 0,7 (500 14, spinta 6); in corso la rotella
   // (un giro in 0,8 s) e l'onda sul nome (50 ms per lettera). Moto ridotto: al posto.
-  // Voce 3 del terzo giro (passi della chiusura, opzione a): `names` false toglie i nomi dai segmenti, `caption` sostituisce la riga sotto.
-  let { steps, names = true, caption = null }: { steps: ProofSteps; names?: boolean; caption?: string | null } = $props()
+  // Voce 3 del terzo giro (passi della chiusura; master 27/11, dopo la segnalazione di Franz): gli stessi segmenti coi nomi dentro;
+  // `why` false toglie la riga sotto, quando il nome nel segmento dice già il passo in corso.
+  let { steps, why = true }: { steps: ProofSteps; why?: boolean } = $props()
   const l = $derived(line(steps))
   const say = $derived(!l ? '' : l.say === 'running' ? t.proofRunning(l.label) : l.say === 'failed' ? t.proofFailed(l.label) : l.say === 'todo' ? t.proofTodo(l.label) : t.proofAllDone)
 
@@ -64,17 +65,18 @@
       {@const lk = look(s)}
       <span class="seg {lk}" data-k={s.key}>
         {#if lk === 'failed'}<span class="mk">✕</span>
-        {:else if lk === 'done'}<svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" pathLength="1" /></svg>
+        {:else if lk === 'done'}<svg class="sb-ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" pathLength="1" /></svg>
         {:else if lk === 'now'}<svg class="sp" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 0 1 9 9" /></svg>{/if}
-        {#if names}<span class="lb">{#if lk === 'now'}{#each [...s.label] as ch, j}<span class="wv" style:animation-delay="{j * 50}ms">{ch}</span>{/each}{:else}{s.label}{/if}</span>{/if}
+        <span class="lb">{#if lk === 'now'}{#each [...s.label] as ch, j}<span class="wv" style:animation-delay="{j * 50}ms">{ch}</span>{/each}{:else}{s.label}{/if}</span>
       </span>
     {/each}
   </div>
-  {#if caption}<p class="why">{caption}</p>{:else if say}<p class="why" class:bad={l?.say === 'failed'}>{say}</p>{/if}
+  {#if why && say}<p class="why" class:bad={l?.say === 'failed'}>{say}</p>{/if}
 {/if}
 
 <style>
-  .sb { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 4px; margin-top: 8px; }
+  /* align-self: in una colonna che allinea a sinistra (la scheda della chiusura) la barra resta larga quanto la scheda, non tre caselle. */
+  .sb { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 4px; margin-top: 8px; align-self: stretch; }
   .seg { --f: 0; --l: 0%; --c: 0; --p: 1; min-width: 0; min-height: 34px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 7px 4px; border-radius: 6px; font-size: 13px; line-height: 18px; white-space: nowrap; overflow: hidden; color: var(--tx2);
     background: linear-gradient(90deg, color-mix(in srgb, var(--good) 16%, var(--s1)) calc(var(--f) * 100%), var(--s2) calc(var(--f) * 100%));
     border: 1px solid color-mix(in srgb, color-mix(in srgb, var(--good) 45%, transparent) calc(var(--f) * 100%), color-mix(in srgb, var(--busy) var(--l), var(--line))); }
@@ -82,8 +84,9 @@
   .seg.failed { background: color-mix(in srgb, var(--red) 16%, var(--s1)); border-color: color-mix(in srgb, var(--red) 45%, transparent); color: var(--red); }
   .seg.now { color: var(--busy); }
   .lb { display: inline-block; min-width: 0; overflow: hidden; transform: scale(var(--p)); }
-  .ck, .sp { flex: none; width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
-  .ck path { stroke-dasharray: 1; stroke-dashoffset: calc(1 - var(--c)); }
+  /* sb-ck e non ck: .ck è il tasto della chiusura, globale in v3.css, e faceva della spunta una pillola scura alta 48 px. */
+  .sb-ck, .sp { flex: none; width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+  .sb-ck path { stroke-dasharray: 1; stroke-dashoffset: calc(1 - var(--c)); }
   .sp { animation: sb-turn 0.8s linear infinite; }
   @keyframes sb-turn { to { transform: rotate(360deg); } }
   .wv { animation: sb-wave 1.6s cubic-bezier(0.42, 0, 0.58, 1) infinite; }

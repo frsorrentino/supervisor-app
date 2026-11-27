@@ -284,8 +284,11 @@ internal fun KTaskLine(title: String, state: String? = null, paused: Boolean = f
 @Composable
 internal fun KStepBar(
     steps: it.pixelbox.cmwatch.contract.ProofSteps,
-    /** Voce 3 del terzo giro (passi della chiusura, opzione a): senza nomi nei segmenti, e sotto [caption] al posto della riga della prova. */
-    names: Boolean = true, caption: String? = null,
+    /**
+     * Voce 3 del terzo giro (passi della chiusura; master 27/11, dopo la segnalazione di Franz): false toglie la riga sotto, quando il
+     * nome nel segmento dice già il passo in corso.
+     */
+    why: Boolean = true,
 ) {
     if (steps.items.isEmpty()) return
     val P = it.pixelbox.cmwatch.rules.PassiProva
@@ -341,7 +344,7 @@ internal fun KStepBar(
                 Box(
                     Modifier.weight(1f).clip(shape).background(bg)
                         .drawBehind { if (f > 0f && look != ProvaLook.FAILED) drawRect(green, size = androidx.compose.ui.geometry.Size(size.width * f, size.height)) }
-                        // Tutti i segmenti alti uguale, anche senza nome dentro (i passi della chiusura) e con le animazioni ferme.
+                        // Tutti i segmenti alti almeno 34, come nella web, anche con le animazioni ferme.
                         .border(1.dp, line, shape).heightIn(min = 34.dp).padding(vertical = 7.dp),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -369,7 +372,7 @@ internal fun KStepBar(
                                 pop()
                             }
                         } else androidx.compose.ui.text.AnnotatedString(st.label)
-                        if (names) Text(
+                        Text(
                             label, style = V3.Small.copy(fontSize = 13.sp, color = fg), maxLines = 1, softWrap = false, overflow = TextOverflow.Clip,
                             modifier = Modifier.graphicsLayer { scaleX = ps[i].value; scaleY = ps[i].value },
                         )
@@ -377,8 +380,7 @@ internal fun KStepBar(
                 }
             }
         }
-        if (caption != null) Text(caption, style = V3.Small.copy(color = V3.Tx2))
-        else it.pixelbox.cmwatch.rules.PassiProva.line(steps)?.let { l ->
+        if (why) it.pixelbox.cmwatch.rules.PassiProva.line(steps)?.let { l ->
             val text = when (l.say) {
                 it.pixelbox.cmwatch.rules.PassiProva.Say.RUNNING -> stringResource(R.string.proof_running, l.label)
                 it.pixelbox.cmwatch.rules.PassiProva.Say.FAILED -> stringResource(R.string.proof_failed, l.label)

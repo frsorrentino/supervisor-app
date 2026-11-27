@@ -1256,8 +1256,6 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <!-- Il pannello di chiusura di una sessione (Franz, 08/10 18:29, variante A). -->
     <string name="splash_closing">%1$s si sta chiudendo</string>
     <string name="splash_sent_at">Hai mandato /exit alle %1$s.</string>
-    <string name="splash_step_delivered">/exit consegnato al PC</string>
-    <string name="splash_step_confirmed">il PC conferma la sessione chiusa</string>
     <string name="splash_usually">di solito pochi secondi</string>
     <string name="splash_slow">Ci sta mettendo più del solito</string>
     <string name="splash_closed">%1$s è chiusa</string>
@@ -1286,8 +1284,10 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="close_what_save">• se ha decisioni o lavoro in corso scrive il passaggio di consegne, poi riceve /exit\n• entro 3 minuti si chiude comunque\n• va in «Chiuse», da dove si riapre</string>
     <string name="close_inline_save">Scrive il passaggio di consegne se serve, poi si chiude e va in «Chiuse».</string>
     <string name="splash_save_sent_at">Hai chiesto di salvare e chiudere alle %1$s.</string>
-    <string name="splash_saving">Salvo lo stato</string>
-    <string name="splash_exiting">Chiudo</string>
+    <string name="splash_step_save">Salvo</string>
+    <string name="splash_step_exit">Esco</string>
+    <string name="splash_step_sent">Inviata</string>
+    <string name="splash_step_closed">Chiusa</string>
     <string name="splash_save_usually">di solito meno di un minuto, al massimo 3</string>
     <string name="splash_handoff">Chiusa, con il passaggio di consegne</string>
     <string name="splash_no_handoff">Chiusa, senza passaggio di consegne: non c’era niente da salvare</string>

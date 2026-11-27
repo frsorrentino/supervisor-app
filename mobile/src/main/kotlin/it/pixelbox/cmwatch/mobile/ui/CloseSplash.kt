@@ -4,10 +4,7 @@ import it.pixelbox.cmwatch.contract.ProofStep
 import it.pixelbox.cmwatch.contract.ProofSteps
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
@@ -15,9 +12,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.PowerSettingsNew
-import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -30,7 +25,6 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.CloseSplash
@@ -70,16 +64,22 @@ fun CloseSplashOverlay(
                     CloseTitle(stringResource(R.string.splash_closing, phase.name))
                     // Contratto 1.155 (app-chiudi-salva-19-11): «Salva e chiudi» segue closing.mode, save e poi exit.
                     CloseLine(stringResource(if (phase.save) R.string.splash_save_sent_at else R.string.splash_sent_at, hm(phase.sentAt)))
-                    // Voce 3 del terzo giro (app-animazioni-terzo-c-26-11, opzione a della master): i passi della chiusura sulla barra a
-                    // segmenti dei passi della prova, col suo moto, senza nomi dentro; sotto, per intero, il passo in corso.
-                    val st = { k: String, s: String -> ProofStep(key = k, state = s) }
-                    val (bar, now) = if (phase.save) {
+                    // Voce 3 del terzo giro (app-animazioni-terzo-c-26-11): i passi della chiusura sulla barra a segmenti dei passi della
+                    // prova, col suo moto e coi nomi dentro; la riga sotto ripeteva il passo in corso e non c'è più (master, 27/11: senza
+                    // nomi i segmenti sembravano caselle per un codice).
+                    val end = stringResource(R.string.splash_step_closed)
+                    val bar = if (phase.save) {
                         val exiting = phase.step == "exit"
-                        listOf(st("save", if (exiting) "ok" else "run"), st("exit", if (exiting) "run" else "todo"), st("done", "todo")) to
-                            stringResource(if (exiting) R.string.splash_exiting else R.string.splash_saving)
-                    } else listOf(st("sent", if (phase.delivered) "ok" else "run"), st("done", if (phase.delivered) "run" else "todo")) to
-                        stringResource(if (phase.delivered) R.string.splash_step_confirmed else R.string.splash_step_delivered)
-                    KStepBar(ProofSteps(items = bar), names = false, caption = now)
+                        listOf(
+                            ProofStep("save", stringResource(R.string.splash_step_save), if (exiting) "ok" else "run"),
+                            ProofStep("exit", stringResource(R.string.splash_step_exit), if (exiting) "run" else "todo"),
+                            ProofStep("done", end, "todo"),
+                        )
+                    } else listOf(
+                        ProofStep("sent", stringResource(R.string.splash_step_sent), if (phase.delivered) "ok" else "run"),
+                        ProofStep("done", end, if (phase.delivered) "run" else "todo"),
+                    )
+                    KStepBar(ProofSteps(items = bar), why = false)
                     LinearProgressIndicator(Modifier.fillMaxWidth().padding(top = 10.dp), color = V3.Busy, trackColor = Cm.surfaceHigh)
                     if (phase.slow) {
                         Text(stringResource(R.string.splash_slow), style = MaterialTheme.typography.labelMedium, color = Cm.waiting)
@@ -114,11 +114,4 @@ fun CloseSplashOverlay(
             }
         }
     }
-}
-
-@Composable
-private fun SplashStep(done: Boolean, text: String, now: Boolean = false) = Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-    Icon(if (done) Icons.Rounded.Check else Icons.Rounded.RadioButtonUnchecked, null, tint = if (done || now) Cm.text else Cm.text2, modifier = Modifier.size(18.dp))
-    // Il passo in corso in grassetto, come nella web.
-    Text(text, style = MaterialTheme.typography.bodyMedium, color = if (done || now) Cm.text else Cm.text2, fontWeight = if (now) androidx.compose.ui.text.font.FontWeight.Medium else null)
 }

@@ -29,11 +29,12 @@
       <h3>{t.splashClosing(phase.name)}</h3>
       {#if phase.save}
         <p>{t.splashSaveSentAt(hm(phase.sentAt))}</p>
-        <!-- Voce 3 del terzo giro (app-animazioni-terzo-c-26-11, opzione a): i passi sulla barra della prova, senza nomi; sotto il passo in corso. -->
-        <StepBar steps={{ task: '', items: [{ key: 'save', label: '', state: phase.step === 'exit' ? 'ok' : 'run' }, { key: 'exit', label: '', state: phase.step === 'exit' ? 'run' : 'todo' }, { key: 'done', label: '', state: 'todo' }] }} names={false} caption={phase.step === 'exit' ? t.splashExiting : t.splashSaving} />
+        <!-- Voce 3 del terzo giro (app-animazioni-terzo-c-26-11): i passi sulla barra della prova coi nomi dentro, come i passi della prova;
+             la riga sotto ripeteva il passo in corso e non c'è più (master, 27/11: senza nomi i segmenti sembravano caselle per un codice). -->
+        <StepBar steps={{ task: '', items: [{ key: 'save', label: t.splashStepSave, state: phase.step === 'exit' ? 'ok' : 'run' }, { key: 'exit', label: t.splashStepExit, state: phase.step === 'exit' ? 'run' : 'todo' }, { key: 'done', label: t.splashStepClosed, state: 'todo' }] }} why={false} />
       {:else}
         <p>{t.splashSentAt(hm(phase.sentAt))}</p>
-        <StepBar steps={{ task: '', items: [{ key: 'sent', label: '', state: phase.delivered ? 'ok' : 'run' }, { key: 'done', label: '', state: phase.delivered ? 'run' : 'todo' }] }} names={false} caption={phase.delivered ? t.splashConfirmed : t.splashDelivered} />
+        <StepBar steps={{ task: '', items: [{ key: 'sent', label: t.splashStepSent, state: phase.delivered ? 'ok' : 'run' }, { key: 'done', label: t.splashStepClosed, state: phase.delivered ? 'run' : 'todo' }] }} why={false} />
       {/if}
       <div class="bar"><b class="run"></b></div>
       {#if phase.slow}
@@ -82,15 +83,10 @@
   .pw.no { color: var(--wait); }
   h3 { margin: 0; font: 600 21px/1.2 var(--display); }
   p { margin: 0; color: var(--text2); font-size: 14px; }
-  ul { list-style: none; margin: 6px 0 0; padding: 0; align-self: stretch; text-align: left; font-size: 14px; color: var(--text2); }
-  li { display: flex; gap: 10px; margin: 6px 0; }
-  li.done { color: var(--text); }
-  li.now { color: var(--text); font-weight: 500; }
   .ho { color: var(--text); }
   .ho.ok { color: var(--good); }
   .ho.no { color: var(--wait); }
   .file { align-self: stretch; font: 12.5px var(--mono); color: var(--text2); white-space: nowrap; overflow: hidden; direction: rtl; text-align: left; mask-image: linear-gradient(to right, transparent, #000 12%); }
-  li i { font-style: normal; width: 18px; text-align: center; }
   small { font-size: 12.5px; color: var(--text2); }
   small.slow { color: var(--wait); }
   .bar { align-self: stretch; height: 4px; border-radius: 2px; background: var(--high); overflow: hidden; margin-top: 8px; }
