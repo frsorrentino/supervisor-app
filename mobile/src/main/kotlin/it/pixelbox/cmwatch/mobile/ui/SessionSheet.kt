@@ -598,7 +598,10 @@ fun SessionSheet(
                 // 09/11 23:02): la conversazione vera arriva col dito ancora sulla pagina, l'ancora riparte e il primo fotogramma
                 // mostrava l'inizio («Carica i messaggi precedenti») prima dell'ultimo messaggio.
                 // Negli snapshot fermi gli effetti non girano e la chat non si ancora: lì si disegna com'è.
-                Modifier.fillMaxSize().then(if (still) Modifier else Modifier.graphicsLayer { if (!anchored && (chat.isNotEmpty() || !feed.isNullOrEmpty())) alpha = 0f }).nestedScroll(reading).pointerInput(Unit) {
+                Modifier.fillMaxSize().then(if (still) Modifier else Modifier.graphicsLayer { if (!anchored && (chat.isNotEmpty() || !feed.isNullOrEmpty())) alpha = 0f }).nestedScroll(reading)
+                    // Un tasto con il fuoco nella chat (tastiera del tablet o del Chromebook) conta come un tocco: il fuoco che scende fra le
+                    // voci le porta in vista anche mentre si rilegge (app-scroll-master-lavoro-27-11).
+                    .onPreviewKeyEvent { tapAt[0] = android.os.SystemClock.uptimeMillis(); false }.pointerInput(Unit) {
                     // Il dito sulla lista, osservato senza prenderlo: la lista resta sua al primo gesto.
                     awaitEachGesture {
                         val first = awaitFirstDown(requireUnconsumed = false, pass = androidx.compose.ui.input.pointer.PointerEventPass.Initial)
