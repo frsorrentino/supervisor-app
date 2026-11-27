@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { decodeState } from './contract'
-import { chunks, clean, excerpt, rankVoices, nextVoice, nextRate, preferredVoice, question, RATE_DEFAULT, RATE_MAX, RATE_MIN, RATES, rateFraction, rateLabel, rateOf, snapRate, startVoice, voicePosition, widestRateLabel } from './speechRules'
+import { chunks, clean, excerpt, rankVoices, nextVoice, nextRate, preferredVoice, question, RATE_DEFAULT, RATE_MAX, RATE_MIN, RATES, rateFraction, rateLabel, rateOf, readBlocks, readItems, itemOf, snapRate, startVoice, voicePosition, widestRateLabel, wordsBefore } from './speechRules'
 
 // Gli stessi casi di SpeechTextTest, SpeechRateTest, VoiceRulesTest e ReadingBarTest in Kotlin.
 const code = 'segue un blocco di codice'
@@ -89,5 +89,22 @@ describe('etichetta più larga della velocità', () => {
     expect(widestRateLabel('en-US')).toBe('0.55×')
     for (const r of RATES) expect(rateLabel(r, 'it-IT').length).toBeLessThanOrEqual(widestRateLabel('it-IT').length)
     expect(rateLabel(1, 'it-IT')).toBe('1×')
+  })
+})
+
+// app-web-parola-lettura-27-11: la web legge per paragrafi come il telefono; la parola detta si conta nei pezzi dello stesso paragrafo.
+describe('lettura per paragrafi', () => {
+  it('i paragrafi letti: senza consigli, codice annunciato, tabelle come schede', () => {
+    const b = readBlocks(['Ho finito il controllo.', '', '- primo punto', '- secondo punto', '', '```', 'npm test', '```', '', '| Nome | Stato |', '|---|---|', '| build | verde |'].join(String.fromCharCode(10)), 'Esito')
+    expect(b.map(x => x.kind)).toEqual(['para', 'bullet', 'bullet', 'code', 'para'])
+    expect(b[4].text).toContain('build')
+    const items = readItems(b, 'Codice')
+    expect(items.map(x => x.b)).toEqual([0, 1, 2, 3, 4])
+    expect(items[3].text).toBe('Codice.')
+  })
+  it('le parole dei pezzi prima, solo dello stesso paragrafo', () => {
+    const items = [{ b: 0, text: 'Uno due tre.' }, { b: 1, text: 'Quattro cinque.' }, { b: 1, text: 'Sei sette otto.' }, { b: 2, text: 'Nove.' }]
+    expect([0, 1, 2, 3].map(k => wordsBefore(items, k))).toEqual([0, 0, 2, 0])
+    expect([itemOf(items, 0), itemOf(items, 1), itemOf(items, 2), itemOf(items, 7)]).toEqual([0, 1, 3, 3])
   })
 })

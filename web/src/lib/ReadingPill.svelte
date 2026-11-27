@@ -61,7 +61,7 @@
     {/if}
     <!-- Voce 8 del terzo giro: lo scrubber dei pezzi letti, sotto (a capo nella pillola). -->
     <button class="stop" aria-label={t.stopReading} title={t.stopReading} onclick={stop}><svg viewBox="0 0 24 24" width="20" height="20"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor" /></svg></button>
-    {#if !rateOpen && speech.parts > 1}<ReadingScrub count={speech.parts} at={speech.part} onSeek={seek} />{/if}
+    {#if !rateOpen && speech.blocks > 1}<ReadingScrub count={speech.blocks} at={speech.block ?? 0} onSeek={seek} />{/if}
   </div>
 {/if}
 

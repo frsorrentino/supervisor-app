@@ -22,7 +22,9 @@
   import { stripSessionLinks, stripWaitLinks } from './sessionLinks'
   import SceltaCards from './SceltaCards.svelte'
   import { parseSteps } from './nextSteps'
-  import { speech, toggle } from './speech.svelte'
+  import { speakFrom, speech, toggle } from './speech.svelte'
+  import { readBlocks } from './speechRules'
+  import ReadAlong from './ReadAlong.svelte'
   import type { IconName } from './icons'
   import { t } from './t'
   import { canCopy, canShare, pageDoc, PAGE_SANDBOX, type FileAct } from './fileActions'
@@ -120,6 +122,8 @@
   }
 
   const hm = (at: number) => new Date(at * 1000).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
+  // Il testo che legge il ▶ sotto la scheda: senza il tipo e senza i consigli.
+  const spokenOf = (e: TranscriptEntry) => parseSteps(stripTipo(e.text ?? '', t.outcomeLabel).text).text
   // Contratto 1.126 (app-barra-conversazioni-05-11, SeparatorBar nell'app): motivo e ora, la data se non è oggi.
   function sepHead(e: TranscriptEntry): string | null {
     const r = sepReason(e)
@@ -269,10 +273,11 @@
 <!-- La risposta: il documento coi suoi titoli e, sotto, il piede con Esito, Tipo e Prossimi; fra i due cambia solo il fondo. -->
 {#snippet answer(e: TranscriptEntry)}
   {@const r = read(e)}
+  {@const sp = spokenOf(e)}
   <div class="ans" class:found={flash === e.id} data-entry={e.id} data-quote={r.text} data-quote-at={e.at ?? ''}>
     {#if r.es.body.trim() || r.buttons.length || r.wl.ids.length || e.cut}
       <section class="z za" use:parole={{ on: liveAnswer(e.id, e.at) }}>
-        {@render doc(r.es.body, true, bozzeOf(e))}
+        {#if speech.text === sp}{@render reading(sp)}{:else}{@render doc(r.es.body, true, bozzeOf(e))}{/if}
         {@render extras(e, r)}
       </section>
     {/if}
@@ -287,8 +292,22 @@
 {/snippet}
 
 <!-- Sotto la scheda: Copia e ▶ a sinistra, quanto è durato il turno e l'ora a destra. -->
+<!-- app-web-parola-lettura-27-11 (Franz 27/11 11:50): durante la lettura a voce la risposta va a paragrafi come le schede del telefono
+     (AnswerZones): quello letto in evidenza e dentro la parola detta con la pillola di Read along; il tocco su un paragrafo riparte da lì.
+     Con le voci che non mandano `boundary` resta il paragrafo. -->
+{#snippet reading(text: string)}
+  <div class="rd" data-testid="lettura-paragrafi">
+    {#each readBlocks(text, t.outcomeLabel) as b, i (i)}
+      {@const shown = b.text.replaceAll('`', '')}
+      <button class="rp {b.kind}" class:cur={i === speech.block} onclick={() => speakFrom(text, i, s.name)}>
+        {#if i === speech.block && speech.word != null}<ReadAlong text={shown} word={speech.word} />{:else}{shown}{/if}
+      </button>
+    {/each}
+  </div>
+{/snippet}
+
 {#snippet tail(e: TranscriptEntry)}
-  {@const text = parseSteps(stripTipo(e.text ?? '', t.outcomeLabel).text).text}
+  {@const text = spokenOf(e)}
   <div class="tm">{@render actions(text, null)}<span class="tmr">{[cost(e), e.at ? hm(e.at) : null].filter(Boolean).join(' · ')}</span></div>
 {/snippet}
 
@@ -559,6 +578,11 @@
   .z { background: var(--zbg); }
   .zw { --zbg: var(--fseam); padding: 18px; }
   .za { --zbg: var(--fpaper); padding: 20px 22px 18px; display: flex; flex-direction: column; gap: 10px; }
+  .rd { display: flex; flex-direction: column; gap: 6px; }
+  .rp { display: block; width: 100%; padding: 4px 6px; border: 0; border-radius: 8px; background: none; color: var(--tx2); font: inherit; font-size: 15.5px; line-height: 21px; text-align: left; white-space: pre-wrap; overflow-wrap: anywhere; cursor: pointer; }
+  .rp.cur { background: var(--s3); color: var(--tx); }
+  .rp.heading { font-weight: 600; }
+  .rp.code, .rp.text { font-family: var(--mono); font-size: 13px; line-height: 19px; }
   .zf { --zbg: color-mix(in srgb, var(--tx) 4%, var(--fpaper)); padding: 14px 22px 16px; display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 12px; align-items: baseline; }
   .zf.z-done, .zf.z-shipped { --zbg: var(--fok); }
   .zf.z-problem { --zbg: color-mix(in srgb, var(--gone) 10%, var(--fpaper)); }

@@ -1,5 +1,7 @@
 import type { Question } from './contract'
-import { parse as markdown } from './markdown'
+import { parse as markdown, spoken as spokenTables } from './markdown'
+import { answerBlocks, type AnswerBlock } from './answerText'
+import { wordCount } from './animazioni'
 import { outcomeForPhone } from './links'
 import { parseSteps } from './nextSteps'
 import { approves, optionText } from './questionRules'
@@ -133,3 +135,17 @@ export function rankVoices(names: string[]): string[] {
   }
   return [...names].sort((a, b) => score(a) - score(b))
 }
+
+// app-web-parola-lettura-27-11 (Franz 27/11 11:50, «ok anche web»): la web legge per paragrafi come il telefono (Speech.speakBlocks), così
+// la risposta letta mostra il paragrafo e la parola detta.
+/** I paragrafi che si leggono e si mostrano durante la lettura, come Speech.blocksOf: senza la riga dei consigli, «Watch:» come esito, le tabelle come schede. */
+export const readBlocks = (text: string, outcomeLabel = 'Esito'): AnswerBlock[] => answerBlocks(spokenTables(outcomeForPhone(parseSteps(text).text, outcomeLabel)))
+/** Quello che la voce dice di un paragrafo: il codice si annuncia, il resto pulito (come SpeechText.forBlock). */
+export const forBlock = (b: AnswerBlock, codeLabel: string): string => (b.kind === 'code' ? `${codeLabel}.` : clean(b.text, codeLabel))
+export type ReadItem = { b: number; text: string }
+/** I pezzi da leggere di fila, ognuno col suo paragrafo. */
+export const readItems = (blocks: AnswerBlock[], codeLabel: string): ReadItem[] => blocks.flatMap((bl, i) => chunks(forBlock(bl, codeLabel)).map(text => ({ b: i, text })))
+/** Le parole dei pezzi dello stesso paragrafo prima del pezzo `k`: la parola detta si conta da lì (come onRangeStart del telefono). */
+export const wordsBefore = (items: ReadItem[], k: number): number => items.slice(0, k).filter(x => x.b === items[k]?.b).reduce((n, x) => n + wordCount(x.text), 0)
+/** Il primo pezzo del paragrafo `block`, o dell'ultimo se non c'è. */
+export const itemOf = (items: ReadItem[], block: number): number => { const k = items.findIndex(x => x.b >= block); return k < 0 ? Math.max(0, items.length - 1) : k }

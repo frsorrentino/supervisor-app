@@ -1,16 +1,19 @@
-import { chunks, forPhone, nextVoice, rankVoices, rateOf, startVoice } from './speechRules'
+import { itemOf, nextVoice, rankVoices, rateOf, readBlocks, readItems, startVoice, wordsBefore, type ReadItem } from './speechRules'
+import { wordIndex } from './animazioni'
 import { t } from './t'
 import { lang, locale } from './lang'
 
 // La lettura a voce, una per volta (Speech.kt): ▶ legge, lo stesso tasto sullo stesso testo la ferma. Il testo si pulisce
 // e si legge a pezzi; velocità e voce si cambiano mentre legge e la lettura riparte dal pezzo che stava dicendo.
+// app-web-parola-lettura-27-11 (Franz 27/11 11:50): come sul telefono si legge per paragrafi (`block`, `blocks`) e, dove la voce manda
+// `boundary`, si sa la parola detta (`word`); senza, resta il paragrafo.
 const load = (k: string) => { try { return localStorage.getItem(k) } catch { return null } }
 const store = (k: string, v: string | null) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v) } catch { /* resta per la sessione */ } }
 
-export const speech = $state<{ text: string | null; source: string | null; paused: boolean; rate: number; voice: string | null; voices: string[]; part: number; parts: number }>({
-  part: 0, parts: 0, text: null, source: null, paused: false, rate: rateOf(Number(load('cm.rate') ?? NaN)), voice: load('cm.voice') || null, voices: [],
+export const speech = $state<{ text: string | null; source: string | null; paused: boolean; rate: number; voice: string | null; voices: string[]; block: number | null; blocks: number; word: number | null }>({
+  block: null, blocks: 0, word: null, text: null, source: null, paused: false, rate: rateOf(Number(load('cm.rate') ?? NaN)), voice: load('cm.voice') || null, voices: [],
 })
-let parts: string[] = []
+let items: ReadItem[] = []
 let at = 0
 let run = 0
 
@@ -30,15 +33,19 @@ function play(from: number) {
   at = from
   const next = () => {
     if (id !== run) return
-    if (at >= parts.length) { speech.text = null; speech.source = null; return }
-    speech.part = at
-    const u = new SpeechSynthesisUtterance(parts[at])
+    if (at >= items.length) { speech.text = null; speech.source = null; speech.block = null; speech.word = null; return }
+    const item = items[at]
+    if (speech.block !== item.b) { speech.block = item.b; speech.word = null }
+    const before = wordsBefore(items, at)
+    const u = new SpeechSynthesisUtterance(item.text)
     u.lang = locale
     u.rate = speech.rate
     // Senza una scelta la migliore italiana, non quella che sceglierebbe Chrome.
     const name = speech.voice ?? speech.voices[0]
     const v = speechSynthesis.getVoices().find(x => x.name === name)
     if (v) u.voice = v
+    // La parola detta: Chrome e Safari mandano `boundary` per le voci locali, non per tutte quelle di rete.
+    u.onboundary = e => { if (id === run && e.name === 'word') speech.word = wordIndex(item.text, e.charIndex, before, Number.MAX_SAFE_INTEGER) }
     u.onend = () => { if (id === run) { at++; next() } }
     u.onerror = e => { if (id === run && e.error !== 'interrupted' && e.error !== 'canceled') { speech.text = null; speech.source = null } }
     speechSynthesis.speak(u)
@@ -49,17 +56,26 @@ function play(from: number) {
 /** Legge `text` (grezzo, col markdown); se lo sta già leggendo si ferma, se è in pausa riprende. `source`: la sessione. */
 export function toggle(text: string, source: string | null = null) {
   if (speech.text === text) { if (speech.paused) resume(); else stop(); return }
-  parts = chunks(forPhone(text, t.codeLabel))
-  if (!parts.length) return
-  speech.parts = parts.length
+  start(text, source, 0)
+}
+function start(text: string, source: string | null, block: number) {
+  const blocks = readBlocks(text, t.outcomeLabel)
+  const list = readItems(blocks, t.codeLabel)
+  if (!list.length) return
+  items = list
+  speech.blocks = blocks.length
   speech.text = text
   speech.source = source
   speech.paused = false
-  play(0)
+  speech.block = null
+  speech.word = null
+  play(itemOf(items, block))
 }
-/** Voce 8 del terzo giro (scrubber della lettura): riparte dal pezzo `i` del testo che sta leggendo. */
-export function seek(i: number) { if (!speech.text || !parts.length) return; speech.paused = false; play(Math.max(0, Math.min(parts.length - 1, i))) }
-export function stop() { run++; speechSynthesis.cancel(); speech.text = null; speech.source = null; speech.paused = false }
+/** Il tocco su un paragrafo della risposta letta: la lettura riparte da lì (come speakFrom del telefono). */
+export function speakFrom(text: string, block: number, source: string | null = speech.source) { start(text, source, block) }
+/** Voce 8 del terzo giro (scrubber della lettura): riparte dal paragrafo `i` del testo che sta leggendo. */
+export function seek(i: number) { if (!speech.text || !items.length) return; speech.paused = false; play(itemOf(items, i)) }
+export function stop() { run++; speechSynthesis.cancel(); speech.text = null; speech.source = null; speech.paused = false; speech.block = null; speech.word = null }
 /**
  * Pausa (Franz, 07/10, barra approvata alle 22:06): come sul telefono si ferma la voce e si tiene il pezzo, circa una
  * frase; la ripresa riparte da lì. La pausa del browser non è affidabile ovunque.
