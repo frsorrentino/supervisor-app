@@ -99,6 +99,11 @@ internal class Arrival(val id: String) {
         const val FLASH_MS = 900
         /** La curva del mockup per dissolvenze e lampo, cubic-bezier(.3, 0, .2, 1). */
         val Ease = androidx.compose.animation.core.CubicBezierEasing(.3f, 0f, .2f, 1f)
+        /** La corsa: la molla del pannello (CmMotion.panelFloat), ferma a mezzo pixel, perché la lista scorre a pixel interi. */
+        val Run = androidx.compose.animation.core.spring(
+            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioNoBouncy,
+            stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow, visibilityThreshold = 0.5f,
+        )
     }
 }
 
@@ -142,7 +147,7 @@ internal suspend fun LazyListState.runArrival(a: Arrival, follow: Boolean, reduc
             }
             if (over > 0) scroll {
                 var done = 0
-                animate(0f, over.toFloat(), animationSpec = CmMotion.panelFloat) { v, _ ->
+                animate(0f, over.toFloat(), animationSpec = Arrival.Run) { v, _ ->
                     val to = v.roundToInt().coerceIn(0, over)
                     if (to != done) { scrollBy((to - done).toFloat()); done = to }
                 }
