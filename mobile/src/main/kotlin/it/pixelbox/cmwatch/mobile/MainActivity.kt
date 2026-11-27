@@ -298,7 +298,7 @@ class MainActivity : ComponentActivity() {
                         Box(androidx.compose.ui.Modifier.fillMaxSize()) {
                             androidx.compose.runtime.CompositionLocalProvider(it.pixelbox.cmwatch.mobile.ui.LocalReadingOverlay provides readingOverlay) {
                                 androidx.compose.runtime.CompositionLocalProvider(it.pixelbox.cmwatch.mobile.ui.LocalProvaCards provides provaCards, it.pixelbox.cmwatch.mobile.ui.LocalWaitCards provides waitCards) {
-                                    Main(s.demoMode, s.ttsMinChars, s.host, s.pairingJson, ::scan)
+                                    SpeechLocals { Main(s.demoMode, s.ttsMinChars, s.host, s.pairingJson, ::scan) }
                                 }
                             }
                             it.pixelbox.cmwatch.mobile.ui.ReadingOverlayHost(readingOverlay)
@@ -332,6 +332,23 @@ class MainActivity : ComponentActivity() {
             }
         }
         }
+    }
+
+    /**
+     * app-play-lettura-ovunque-27-11 (prova 1400, Franz 27/11: «nella card da cui sto rispondendo non c'è alcun tasto play»): la voce per
+     * tutte le pagine, anche quelle a tutto schermo che Main apre prima della sua impalcatura (Ti aspetta, Da provare, i box...). Prima stava
+     * solo nell'impalcatura, e lì il ▶ (ReadButton) senza voce non c'era. L'impalcatura la ridà uguale.
+     */
+    @Composable
+    private fun SpeechLocals(content: @Composable () -> Unit) {
+        val speaking by speech.speaking.collectAsStateWithLifecycle()
+        val block by speech.block.collectAsStateWithLifecycle()
+        val word by speech.word.collectAsStateWithLifecycle()
+        val rate by speech.rate.collectAsStateWithLifecycle()
+        androidx.compose.runtime.CompositionLocalProvider(
+            LocalSpeaking provides speaking, LocalSpeakingBlock provides block, LocalSpeakingWord provides word, LocalBlocksOf provides speech::blocksOf,
+            LocalSpeakText provides { t: String -> speech.toggle(t) }, LocalSpeechRate provides rate, LocalSetSpeechRate provides speech::setRateNow,
+        ) { content() }
     }
 
     /** L'app accoppiata, o in Demo: tre schede (restyling 30/09), scheda sessione, terminale, Lancia, impostazioni. */
