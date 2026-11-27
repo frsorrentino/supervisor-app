@@ -3,10 +3,9 @@ package it.pixelbox.cmwatch.mobile.ui
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.ViewRootForTest
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsNode
@@ -17,7 +16,6 @@ import app.cash.paparazzi.DeviceConfig
 import app.cash.paparazzi.Paparazzi
 import app.cash.paparazzi.SnapshotHandler
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -33,37 +31,37 @@ class LongTextPlayTest {
     )
 
     @Test fun thePlayShowsOnlyBeyondOneLine() {
-        var root: SemanticsNode? = null
-        lateinit var view: ComposeView
-        view = ComposeView(paparazzi.context).apply {
-            setContent {
-                CompositionLocalProvider(LocalSpeakText provides { _: String -> }) {
-                    CmPhoneTheme {
-                        Column(Modifier.width(328.dp)) {
-                            LongText("Una riga sola", Modifier.testTag("corto"))
-                            LongText(
-                                "Un testo che a questa larghezza va di sicuro oltre una riga, perché continua ancora per un bel pezzo prima di finire.",
-                                Modifier.testTag("lungo"),
-                            )
-                        }
+        // Si legge a ogni impaginazione: l'ultima vede anche il ▶, che compare dopo la prima misura del testo.
+        var shortPlay = true
+        var longPlay = false
+        var label: String? = null
+        paparazzi.snapshot {
+            val v = LocalView.current
+            CompositionLocalProvider(LocalSpeakText provides { _: String -> }) {
+                CmPhoneTheme {
+                    Column(
+                        Modifier.width(328.dp).onGloballyPositioned {
+                            val r = (v as ViewRootForTest).semanticsOwner.unmergedRootSemanticsNode
+                            val short = find(r) { n -> n.tag() == "corto" }
+                            val long = find(r) { n -> n.tag() == "lungo" }
+                            shortPlay = short == null || find(short) { n -> n.tag() == "leggi" } != null
+                            val play = long?.let { l -> find(l) { n -> n.tag() == "leggi" } }
+                            longPlay = play != null
+                            label = play?.let { p -> find(p) { n -> n.config.getOrNull(SemanticsProperties.ContentDescription) != null } }
+                                ?.config?.getOrNull(SemanticsProperties.ContentDescription)?.firstOrNull()
+                        },
+                    ) {
+                        LongText("Una riga sola", Modifier.testTag("corto"))
+                        LongText(
+                            "Un testo che a questa larghezza va di sicuro oltre una riga, perché continua ancora per un bel pezzo prima di finire.",
+                            Modifier.testTag("lungo"),
+                        )
                     }
-                }
-                LaunchedEffect(Unit) {
-                    repeat(6) { withFrameNanos {} }
-                    root = (view.getChildAt(0) as ViewRootForTest).semanticsOwner.unmergedRootSemanticsNode
                 }
             }
         }
-        paparazzi.gif(view, end = 1_000, fps = 60)
-
-        val r = root ?: error("nessun albero letto")
-        val short = find(r) { n -> n.tag() == "corto" } ?: error("manca il testo corto")
-        val long = find(r) { n -> n.tag() == "lungo" } ?: error("manca il testo lungo")
-        assertNull("una riga sola ha il ▶", find(short) { n -> n.tag() == "leggi" })
-        val play = find(long) { n -> n.tag() == "leggi" }
-        assertTrue("oltre una riga manca il ▶", play != null)
-        val label = find(play!!) { n -> n.config.getOrNull(SemanticsProperties.ContentDescription) != null }
-            ?.config?.getOrNull(SemanticsProperties.ContentDescription)?.firstOrNull()
+        assertTrue("una riga sola ha il ▶", !shortPlay)
+        assertTrue("oltre una riga manca il ▶", longPlay)
         assertEquals("Leggi ad alta voce", label)
     }
 
