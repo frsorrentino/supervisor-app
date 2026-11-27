@@ -130,9 +130,11 @@ internal fun StepProgress(names: List<String>, at: Int, modifier: Modifier = Mod
             },
             modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
         ) { ms, c ->
-            val placeables = ms.map { it.measure(Constraints()) }
             val w = c.maxWidth
             val inset = 14.dp.roundToPx()
+            // Ogni nome al più largo quanto lo spazio fra due pallini: non tocca il vicino, e un nome troppo lungo per il suo posto si vede.
+            val slot = if (n <= 1) w else (w - 2 * inset) / (n - 1)
+            val placeables = ms.map { it.measure(Constraints(maxWidth = slot.coerceAtLeast(0))) }
             layout(w, placeables.maxOf { it.height }) {
                 placeables.forEachIndexed { k, p ->
                     val x = if (n <= 1) w / 2 else inset + (w - 2 * inset) * k / (n - 1)

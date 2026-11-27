@@ -31,10 +31,10 @@ class AnimazioniTerzeTest {
 
     // Step progress nella chiusura: prima dell'attuale fatti, l'attuale non è fatto finché il lavoro non è finito.
     @Test fun stepProgressStates() {
-        val S = Animazioni.Step
-        assertEquals(listOf(S.DONE, S.CURRENT, S.TODO), (0..2).map { Animazioni.step(it, 1) })
-        assertEquals(listOf(S.DONE, S.CURRENT), (0..1).map { Animazioni.step(it, 1) })
-        assertEquals(listOf(S.DONE, S.DONE), (0..1).map { Animazioni.step(it, 1, finished = true) })
+        val done = Animazioni.Step.DONE; val current = Animazioni.Step.CURRENT; val todo = Animazioni.Step.TODO
+        assertEquals(listOf(done, current, todo), (0..2).map { Animazioni.step(it, 1) })
+        assertEquals(listOf(done, current), (0..1).map { Animazioni.step(it, 1) })
+        assertEquals(listOf(done, done), (0..1).map { Animazioni.step(it, 1, finished = true) })
         assertEquals(0f, Animazioni.stepLine(0, 3), 1e-6f)
         assertEquals(0.5f, Animazioni.stepLine(1, 3), 1e-6f)
         assertEquals(1f, Animazioni.stepLine(1, 2), 1e-6f)
