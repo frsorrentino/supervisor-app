@@ -230,12 +230,12 @@ internal fun Kpi7(h: Kpi.Head, st: it.pixelbox.cmwatch.contract.State, now: Long
             val firstShape = RoundedCornerShape(topStart = 14.dp, bottomStart = if (joined) 0.dp else 14.dp)
             val lit = { on: Boolean, s: androidx.compose.ui.graphics.Shape -> if (!on) Modifier else Modifier.background(V3.S2, s) }
             val box = { b: HomeBox, tag: String, w: Float, can: Boolean, on: Boolean -> Modifier.weight(w).fillMaxHeight().onGloballyPositioned { c -> val x = c.positionInParent().x; edges[b] = x to x + c.size.width }.then(if (V3.day && b == HomeBox.WAITING) Modifier.background(V3.WaitFill) else Modifier).then(lit(on, if (b == HomeBox.WAITING) firstShape else androidx.compose.ui.graphics.RectangleShape)).testTag(tag).then(if (can) Modifier.handCursor().clickable { onBox(b) } else Modifier) }
-            Board(h.waiting.toString(), if (h.waiting > 0) pluralStringResource(R.plurals.kpi7_waiting, h.waiting, h.waiting, m) else stringResource(R.string.kpi7_none_waiting), if (h.waiting > 0) V3.Wait else V3.Tx, null, box(HomeBox.WAITING, "home-box-aspetta", W_WAITING, h.waiting > 0, filter == Kpi.BoardFilter.WAITING), of = h.open.takeIf { it > 0 }, chevron = h.waiting > 0, on = filter == Kpi.BoardFilter.WAITING, roll = true)
+            Board(h.waiting.toString(), if (h.waiting > 0) pluralStringResource(R.plurals.kpi7_waiting, h.waiting, h.waiting, m) else stringResource(R.string.kpi7_none_waiting), if (h.waiting > 0) V3.Wait else V3.Tx, null, box(HomeBox.WAITING, "home-box-aspetta", W_FIRST, h.waiting > 0, filter == Kpi.BoardFilter.WAITING), of = h.open.takeIf { it > 0 }, chevron = h.waiting > 0, on = filter == Kpi.BoardFilter.WAITING, roll = true)
             Box(Modifier.width(1.dp).fillMaxHeight().background(V3.Line))
-            Board(h.busy.toString(), stringResource(R.string.kpi7_busy), V3.Tx, null, box(HomeBox.BUSY, "home-box-lavoro", W_BUSY, h.busy > 0, filter == Kpi.BoardFilter.BUSY), of = h.open.takeIf { it > 0 }, chevron = h.busy > 0, on = filter == Kpi.BoardFilter.BUSY)
+            Board(h.busy.toString(), stringResource(R.string.kpi7_busy), V3.Tx, null, box(HomeBox.BUSY, "home-box-lavoro", if (usage != null) W_MID_WEEK else W_MID, h.busy > 0, filter == Kpi.BoardFilter.BUSY), of = h.open.takeIf { it > 0 }, chevron = h.busy > 0, on = filter == Kpi.BoardFilter.BUSY)
             Box(Modifier.width(1.dp).fillMaxHeight().background(V3.Line))
             // Col dato dell'utilizzo il terzo blocco è lui (app-tabellone-utilizzo-a-13-11); gli esiti restano nelle voci della Home.
-            if (usage != null) UsageBoard(usage, Modifier.weight(W_THIRD).fillMaxHeight().then(if (usage.open) Modifier.background(V3.S2) else Modifier).testTag("home-box-utilizzo").handCursor().clickable(onClick = usage.onToggle))
+            if (usage != null) UsageBoard(usage, Modifier.weight(W_THIRD_WEEK).fillMaxHeight().then(if (usage.open) Modifier.background(V3.S2) else Modifier).testTag("home-box-utilizzo").handCursor().clickable(onClick = usage.onToggle))
             else Board(h.outcomes?.toString() ?: "–", if (h.outcomes == null) stringResource(R.string.kpi7_outcomes_unknown) else stringResource(R.string.kpi7_outcomes), V3.Tx, (h.red ?: 0).takeIf { it > 0 }?.let { pluralStringResource(R.plurals.kpi7_red, it, it) }, box(HomeBox.OUTCOMES, "home-box-esiti", W_THIRD, true, false))
         }
         // La barra fissa delle 5 ore non c'è più (app-utilizzo-una-barra-03-11): le finestre d'uso stanno nella riga Utilizzo, e una
@@ -441,12 +441,15 @@ internal fun UsageSlotRow(w: it.pixelbox.cmwatch.rules.UtilizzoRules.WeekSlot?, 
 internal data class UsageCell(val pct: Int, val tick: Float?, val tone: Color, val label: String, val open: Boolean, val reset: String? = null, val onToggle: () -> Unit)
 
 /**
- * Le larghezze del tabellone (app-casella-settimana-27-11): la terza casella un po' più larga, così a 360 dp «della settimana» e
- * «si azzera mer 23:30» stanno su una riga ciascuna e la casella non è più alta delle altre due.
+ * Le larghezze del tabellone (app-casella-settimana-27-11). Con la casella della settimana la terza è un po' più larga e quella in mezzo
+ * un po' più stretta, così a 360 dp «della settimana» e «si azzera mer 23:30» stanno su una riga ciascuna; la prima resta com'era, perché
+ * «nessuna sessione ferma» stia su due righe. Con gli esiti al terzo posto le larghezze di prima.
  */
-private const val W_WAITING = 1.1f
-private const val W_BUSY = 0.95f
-private const val W_THIRD = 1.25f
+private const val W_FIRST = 1.15f
+private const val W_MID = 1f
+private const val W_MID_WEEK = 0.92f
+private const val W_THIRD = 1.15f
+private const val W_THIRD_WEEK = 1.23f
 
 /**
  * L'utilizzo nel tabellone (variante B del mockup del 13/11): la percentuale grande come le altre cifre, sotto la finestra che dice; il
@@ -466,7 +469,7 @@ private fun UsageBoard(u: UsageCell, modifier: Modifier) {
             drawRect(u.tone, topLeft = androidx.compose.ui.geometry.Offset(0f, y), size = androidx.compose.ui.geometry.Size(size.width * (u.pct.coerceIn(0, 100) / 100f), h))
             // Il segno di adesso sporge un poco sopra la linea.
             u.tick?.let { t -> drawRect(tx, topLeft = androidx.compose.ui.geometry.Offset(size.width * (t.coerceIn(0f, 100f) / 100f) - 1.dp.toPx(), y - 3.dp.toPx()), size = androidx.compose.ui.geometry.Size(2.dp.toPx(), h + 3.dp.toPx())) }
-        }.padding(start = 14.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
+        }.padding(start = 14.dp, end = 6.dp, top = 12.dp, bottom = 12.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Row(verticalAlignment = Alignment.Top) {
