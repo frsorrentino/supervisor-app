@@ -75,3 +75,19 @@ internal fun LongText(
         if (long) ReadButton(text, Modifier.padding(start = 8.dp))
     }
 }
+
+/**
+ * app-play-voce-ovunque-27-11 (prova 1400, Franz 27/11: «nella card da cui sto rispondendo non c'è alcun tasto play»): la voce per tutta
+ * l'app, intorno a ogni pagina, anche quelle a tutto schermo che Main apre prima della sua impalcatura (Ti aspetta, Da provare, i box).
+ * Senza, il ▶ ([ReadButton]) non trova la voce e non si disegna.
+ */
+@Composable
+internal fun ProvideSpeech(
+    speaking: String?, block: Int?, word: Int?, rate: Float, blocksOf: (String) -> List<it.pixelbox.cmwatch.rules.AnswerText.Block>,
+    speak: (String) -> Unit, setRate: (Float) -> Unit, content: @Composable () -> Unit,
+) {
+    androidx.compose.runtime.CompositionLocalProvider(
+        LocalSpeaking provides speaking, LocalSpeakingBlock provides block, LocalSpeakingWord provides word, LocalBlocksOf provides blocksOf,
+        LocalSpeakText provides speak, LocalSpeechRate provides rate, LocalSetSpeechRate provides setRate, content = content,
+    )
+}

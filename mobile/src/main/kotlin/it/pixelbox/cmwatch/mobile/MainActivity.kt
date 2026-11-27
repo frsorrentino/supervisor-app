@@ -335,7 +335,7 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * app-play-lettura-ovunque-27-11 (prova 1400, Franz 27/11: «nella card da cui sto rispondendo non c'è alcun tasto play»): la voce per
+     * app-play-voce-ovunque-27-11 (prova 1400 di app-play-lettura-ovunque-27-11, Franz 27/11: «nella card da cui sto rispondendo non c'è alcun tasto play»): la voce per
      * tutte le pagine, anche quelle a tutto schermo che Main apre prima della sua impalcatura (Ti aspetta, Da provare, i box...). Prima stava
      * solo nell'impalcatura, e lì il ▶ (ReadButton) senza voce non c'era. L'impalcatura la ridà uguale.
      */
@@ -345,10 +345,7 @@ class MainActivity : ComponentActivity() {
         val block by speech.block.collectAsStateWithLifecycle()
         val word by speech.word.collectAsStateWithLifecycle()
         val rate by speech.rate.collectAsStateWithLifecycle()
-        androidx.compose.runtime.CompositionLocalProvider(
-            LocalSpeaking provides speaking, LocalSpeakingBlock provides block, LocalSpeakingWord provides word, LocalBlocksOf provides speech::blocksOf,
-            LocalSpeakText provides { t: String -> speech.toggle(t) }, LocalSpeechRate provides rate, LocalSetSpeechRate provides speech::setRateNow,
-        ) { content() }
+        ProvideSpeech(speaking, block, word, rate, speech::blocksOf, { t -> speech.toggle(t) }, speech::setRateNow, content)
     }
 
     /** L'app accoppiata, o in Demo: tre schede (restyling 30/09), scheda sessione, terminale, Lancia, impostazioni. */

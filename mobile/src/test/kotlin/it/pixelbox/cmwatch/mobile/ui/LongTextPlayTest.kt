@@ -52,6 +52,29 @@ class LongTextPlayTest {
         assertEquals("Leggi ad alta voce", label)
     }
 
+    // app-play-voce-ovunque-27-11 (prova 1400): con la voce data da ProvideSpeech, quella che avvolge tutta l'app, il ▶ c'è; senza voce no.
+    @Test fun theAppWideVoiceGivesThePlay() {
+        fun seen(withVoice: Boolean): Boolean {
+            var tagged = false
+            paparazzi.snapshot {
+                val v = LocalView.current
+                CmPhoneTheme {
+                    Column(
+                        Modifier.width(328.dp).onGloballyPositioned {
+                            tagged = find((v as ViewRootForTest).semanticsOwner.unmergedRootSemanticsNode) { n -> n.tag() == "leggi" } != null
+                        },
+                    ) {
+                        if (withVoice) ProvideSpeech(null, null, null, 1f, { t -> listOf(it.pixelbox.cmwatch.rules.AnswerText.Block(it.pixelbox.cmwatch.rules.AnswerText.Kind.PARA, t)) }, {}, {}) { ReadButton("Un testo da leggere") }
+                        else ReadButton("Un testo da leggere")
+                    }
+                }
+            }
+            return tagged
+        }
+        assertTrue("con la voce di tutta l'app manca il ▶", seen(withVoice = true))
+        assertTrue("senza voce il ▶ non deve esserci", !seen(withVoice = false))
+    }
+
     private fun SemanticsNode.tag(): String? = config.getOrNull(SemanticsProperties.TestTag)
 
     private fun find(n: SemanticsNode, p: (SemanticsNode) -> Boolean): SemanticsNode? =
