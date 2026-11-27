@@ -1824,7 +1824,8 @@ It starts at your last message to the master.</string>
     <string name="home_prima_interrupted">stopped</string>
     <string name="home_prima_done">done</string>
     <!-- La home per categorie (app-home-categorie-02-11). -->
-    <string name="cat_you">From the master</string>
+    <!-- app-bacheca-27-11 (Franz 27/11 17:09): Bacheca is «Board» in English, Per te is «For you». -->
+    <string name="cat_you">Board</string>
     <string name="cat_work">Work</string>
     <!-- app-home-sessioni-a-se-08-11: Lavori chiusa e la sua colonna della plancia. -->
     <string name="cat_sig_progress">%1$d in progress</string>
@@ -2150,7 +2151,7 @@ It starts at your last message to the master.</string>
     <string name="per_te_advice_approve">recommended: approve</string>
     <string name="per_te_advice_reject">recommended: don\'t approve</string>
     <string name="per_te_advice_option">recommended: %1$s</string>
-    <string name="per_te_also_master">also in From the master</string>
+    <string name="per_te_also_master">also on the Board</string>
     <string name="per_te_no_session">No session</string>
     <string name="per_te_group_open">open</string>
     <string name="per_te_group_this">this one</string>
@@ -2176,7 +2177,7 @@ It starts at your last message to the master.</string>
     <string name="conti_no_git">No git: commits and releases are not measured.</string>
     <string name="conti_ask">Ask for the draft</string>
     <string name="conti_ask_again">Ask for a new draft</string>
-    <string name="conti_asked">Draft asked of the master: it comes in From the master.</string>
+    <string name="conti_asked">Draft asked of the master: it arrives on the Board.</string>
     <string name="conti_ask_failed">The PC did not answer: try again.</string>
     <string name="pagella_since">Since %1$s, only rows with %2$d cases or more</string>
     <string name="pagella_kind_fix">fixes</string>

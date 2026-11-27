@@ -1865,7 +1865,8 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="home_prima_interrupted">interrotta</string>
     <string name="home_prima_done">fatta</string>
     <!-- La home per categorie (app-home-categorie-02-11). -->
-    <string name="cat_you">Dalla master</string>
+    <!-- app-bacheca-27-11 (Franz 27/11 16:53): la categoria «Dalla master» si chiama Bacheca; la chiave resta you. -->
+    <string name="cat_you">Bacheca</string>
     <string name="cat_work">Lavori</string>
     <!-- app-home-sessioni-a-se-08-11: Lavori chiusa e la sua colonna della plancia. -->
     <string name="cat_sig_progress">%1$d in corso</string>
@@ -2192,7 +2193,7 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="per_te_advice_approve">consigliata: approvare</string>
     <string name="per_te_advice_reject">consigliata: non approvare</string>
     <string name="per_te_advice_option">consigliata: %1$s</string>
-    <string name="per_te_also_master">anche in Dalla master</string>
+    <string name="per_te_also_master">anche in Bacheca</string>
     <string name="per_te_no_session">Senza sessione</string>
     <string name="per_te_group_open">apri</string>
     <string name="per_te_group_this">questa</string>
@@ -2220,7 +2221,7 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="conti_no_git">Senza git: commit e release non si misurano.</string>
     <string name="conti_ask">Chiedi la bozza</string>
     <string name="conti_ask_again">Chiedi una bozza nuova</string>
-    <string name="conti_asked">Bozza chiesta alla master: arriva in Dalla master.</string>
+    <string name="conti_asked">Bozza chiesta alla master: arriva in Bacheca.</string>
     <string name="conti_ask_failed">Il PC non ha risposto: riprova.</string>
     <string name="pagella_since">Dal %1$s, solo le righe da %2$d casi in su</string>
     <string name="pagella_kind_fix">correzioni</string>
