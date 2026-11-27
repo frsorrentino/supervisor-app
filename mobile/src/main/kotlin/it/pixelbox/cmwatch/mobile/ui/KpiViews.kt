@@ -221,7 +221,21 @@ internal fun Kpi7(h: Kpi.Head, st: it.pixelbox.cmwatch.contract.State, now: Long
             )
             drawPath(androidx.compose.ui.graphics.Path().apply { addRoundRect(rr) }, ringColor, style = androidx.compose.ui.graphics.drawscope.Stroke(sw))
         }
-        Row(Modifier.fillMaxWidth().height(androidx.compose.foundation.layout.IntrinsicSize.Min).then(ring)) {
+        // app-livello-riga-27-11 (Franz 27/11 21:33): la linea della settimana su tutta la riga delle tre caselle, da un bordo all'altro, sopra
+        // i loro fondi; riempimento e segno di adesso in proporzione alla larghezza intera. Il tabellone la taglia dentro il suo raggio.
+        val week = usage?.let { u ->
+            val tx = V3.Tx
+            val track = V3.Tx.copy(alpha = 0.14f)
+            Modifier.drawWithContent {
+                drawContent()
+                val h = 3.dp.toPx()
+                val y = size.height - h
+                drawRect(track, topLeft = androidx.compose.ui.geometry.Offset(0f, y), size = androidx.compose.ui.geometry.Size(size.width, h))
+                drawRect(u.tone, topLeft = androidx.compose.ui.geometry.Offset(0f, y), size = androidx.compose.ui.geometry.Size(size.width * (u.pct.coerceIn(0, 100) / 100f), h))
+                u.tick?.let { t -> drawRect(tx, topLeft = androidx.compose.ui.geometry.Offset(size.width * (t.coerceIn(0f, 100f) / 100f) - 1.dp.toPx(), y - 3.dp.toPx()), size = androidx.compose.ui.geometry.Size(2.dp.toPx(), h + 3.dp.toPx())) }
+            }
+        } ?: Modifier
+        Row(Modifier.fillMaxWidth().height(androidx.compose.foundation.layout.IntrinsicSize.Min).then(ring).then(week)) {
             val m = (((h.oldestWaitS ?: 0L) + 30) / 60)
             // app-tabellone-filtri-14-11 (Franz 14/11 14:22): «ferme» e «al lavoro» filtrano la lista delle sessioni sotto; la casella del
             // filtro acceso resta accesa (fondo e filo sul bordo), e a 0 non si tocca e non ha la freccia.
@@ -454,22 +468,13 @@ private const val W_THIRD_WEEK = 1.23f
 /**
  * L'utilizzo nel tabellone (variante B del mockup del 13/11): la percentuale grande come le altre cifre, sotto la finestra che dice; il
  * tocco apre e chiude i dettagli. app-casella-settimana-27-11 (Franz 27/11 16:41, scelta A): alta quanto le altre due caselle. Sotto la
- * percentuale la didascalia su due righe come nelle altre, «della settimana» e «si azzera mar 5:00»; la barra col segno di adesso è una
- * linea di 3 dp sul bordo basso, dentro il raggio del tabellone, e non aggiunge altezza.
+ * percentuale la didascalia su due righe come nelle altre, «della settimana» e «si azzera mar 5:00». La barra col segno di adesso la disegna
+ * la riga del tabellone su tutta la larghezza (app-livello-riga-27-11), e non aggiunge altezza.
  */
 @Composable
 private fun UsageBoard(u: UsageCell, modifier: Modifier) {
-    val tx = V3.Tx
-    val track = V3.Tx.copy(alpha = 0.14f)
     Column(
-        modifier.drawBehind {
-            val h = 3.dp.toPx()
-            val y = size.height - h
-            drawRect(track, topLeft = androidx.compose.ui.geometry.Offset(0f, y), size = androidx.compose.ui.geometry.Size(size.width, h))
-            drawRect(u.tone, topLeft = androidx.compose.ui.geometry.Offset(0f, y), size = androidx.compose.ui.geometry.Size(size.width * (u.pct.coerceIn(0, 100) / 100f), h))
-            // Il segno di adesso sporge un poco sopra la linea.
-            u.tick?.let { t -> drawRect(tx, topLeft = androidx.compose.ui.geometry.Offset(size.width * (t.coerceIn(0f, 100f) / 100f) - 1.dp.toPx(), y - 3.dp.toPx()), size = androidx.compose.ui.geometry.Size(2.dp.toPx(), h + 3.dp.toPx())) }
-        }.padding(start = 14.dp, end = 6.dp, top = 12.dp, bottom = 12.dp),
+        modifier.padding(start = 14.dp, end = 6.dp, top = 12.dp, bottom = 12.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Row(verticalAlignment = Alignment.Top) {
