@@ -3,6 +3,7 @@
   import { DAY } from './durations'
   import { popOnChange } from './motion'
   import { arriva, entra } from './molla'
+  import { arrivalGate, OPENING_MS } from './arrivo'
   import CopyButton from './CopyButton.svelte'
   import { parts as citeParts } from './citazione'
   import QuoteBlock from './QuoteBlock.svelte'
@@ -99,18 +100,28 @@
   let born: Set<string> | null = null
   // Voce 1 (app-animazioni-fedeli-26-11): scorre parola per parola solo la risposta arrivata dopo l'apertura, una volta sola.
   let bornAns: Set<string> | null = null
-  // app-apertura-master-scatti-26-11 (Franz 26/11 23:27): deve anche essere nata dopo l'apertura, perché all'apertura la lista può
-  // arrivare a pezzi e una risposta già scritta sembrerebbe nuova.
-  const openedAt = Date.now() / 1000
+  // app-apertura-master-scatti-26-11 (Franz 26/11 23:27): all'apertura la lista può arrivare a pezzi. Franz 27/11 15:17: arriva con
+  // un'animazione solo quello che nasce a chat aperta e ferma (arrivo.ts, come StreamGate sul telefono): finita l'apertura, e della
+  // sessione solo da un turno visto aperto; quello che compare prima si vede intero e fermo.
+  const gate = arrivalGate()
+  $effect(() => {
+    const id = setTimeout(() => { gate.settle(); gate.working(s.state, s.turn_started) }, OPENING_MS)
+    return () => clearTimeout(id)
+  })
+  $effect(() => { gate.working(s.state, s.turn_started) })
   function liveAnswer(id: string, at?: number | null): boolean {
-    if (!bornAns) bornAns = new Set(rows.flatMap((x) => (x.type === 'turn' && x.answer ? [x.answer.id] : [])))
-    if (bornAns.has(id) || (at != null && at < openedAt)) { bornAns.add(id); return false }
-    bornAns.add(id)
-    return true
+    if (!bornAns) { bornAns = new Set(rows.flatMap((x) => (x.type === 'turn' && x.answer ? [x.answer.id] : []))); gate.prime(bornAns) }
+    return gate.claim(id, at)
   }
+  // Deciso una volta per riga, al suo primo disegno: entra un messaggio mandato da qui, o quello della sessione quando la sessione lavora.
+  const rise = new Map<string, string>()
   function motion(r: Row): string {
     if (!born) born = new Set(rows.map(rowKey))
-    return born.has(rowKey(r)) ? '' : 'rise'
+    const k = rowKey(r)
+    if (born.has(k)) return ''
+    let m = rise.get(k)
+    if (m == null) { m = gate.settled && ((r.type === 'turn' && r.request?.type === 'mine') || gate.live) ? 'rise' : ''; rise.set(k, m) }
+    return m
   }
   onDestroy(() => saveSeen(s.name, latest(items)))
 

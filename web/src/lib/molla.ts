@@ -81,7 +81,8 @@ export function arriva(node: HTMLElement, p: { on: boolean }) {
   if (!p.on) return
   chiudiCorsa?.()
   const list = node.closest<HTMLElement>('[data-chat-list]')
-  if (!list || list.dataset.atEnd !== 'true') return
+  // La corsa parte solo a lista ferma (Franz 27/11 15:17): se la lista si muove, la risposta compare intera al suo posto.
+  if (!list || list.dataset.atEnd !== 'true' || list.dataset.moving === 'true') return
   const tail = node.closest('.it')?.querySelector<HTMLElement>(':scope > .tm') ?? null
   const parts = tail ? [node, tail] : [node]
   const s0 = list.scrollTop

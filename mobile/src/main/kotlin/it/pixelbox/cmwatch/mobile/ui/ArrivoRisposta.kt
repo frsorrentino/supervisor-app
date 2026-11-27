@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.platform.testTag
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.coroutineScope
@@ -38,21 +39,47 @@ import kotlin.math.roundToInt
  */
 
 /**
- * Chi decide quali risposte arrivano: solo quelle nate dopo l'apertura della chat, una volta sola. app-apertura-master-scatti-26-11
- * (Franz 26/11 23:27): non basta che la risposta manchi dalla prima lista, che all'apertura può arrivare a pezzi; deve anche essere
- * nata dopo l'apertura ([openedAt], secondi).
+ * Chi decide che cosa arriva con un'animazione: una volta sola, solo quello che nasce a chat aperta e ferma. app-apertura-master-scatti-26-11
+ * (Franz 26/11 23:27): all'apertura la conversazione può arrivare a pezzi, quindi non basta che la risposta manchi dalla prima lista.
+ * Franz 27/11 15:17 («l'animazione del testo quando un compito è terminato e si apre la sessione… solo quando si ferma nella posizione
+ * finale», «mantiene uno spazio che poi risulta essere quello dell'esito»): aprendo la sessione di un compito appena finito, la risposta già
+ * scritta passava per nuova, perché la sua ora (orologio del PC) si confrontava con l'apertura sull'orologio del telefono; partiva la corsa
+ * e, finché non la scopriva, la risposta restava nascosta col suo spazio vuoto. Ora una risposta arriva solo se: la chat è ferma al suo
+ * posto ([settle]: ancorata in fondo e finita l'apertura, [OPENING_MS]); da lì la sessione è stata vista lavorare ([working], con l'inizio
+ * del turno sull'orologio del PC); la risposta è nata da quel turno in poi (il suo `at`, sullo stesso orologio). Quello che compare prima, o
+ * senza `at`, è di prima: si vede intero e fermo. Lo stesso vale per le righe che entrano ([live]).
  */
-internal class StreamGate(private val openedAt: Long = System.currentTimeMillis() / 1000) {
+internal class StreamGate {
     private val known = mutableSetOf<String>()
     var primed = false
         private set
+    /** La chat è ferma al suo posto: ancorata in fondo e finita l'apertura. */
+    var settled = false
+        private set
+    /** L'inizio del primo turno visto aperto a chat ferma (turn_started, secondi del PC); null finché la sessione non lavora. */
+    var turnFrom: Long? = null
+        private set
+    /** Da qui può arrivare qualcosa della sessione con un'animazione: la chat è ferma e la sessione lavora. */
+    val live: Boolean get() = settled && turnFrom != null
     fun prime(ids: Collection<String>) { if (!primed) { known.addAll(ids); primed = true } }
-    fun claim(id: String, at: Long? = null): Boolean = primed && (at == null || at >= openedAt) && known.add(id)
+    fun settle() { settled = true }
+    /** La sessione lavora, col turno cominciato a [started]: conta solo a chat ferma. */
+    fun working(started: Long?) { if (settled && turnFrom == null && started != null) turnFrom = started }
+    fun claim(id: String, at: Long? = null): Boolean {
+        if (!primed || !known.add(id)) return false
+        val from = turnFrom ?: return false
+        return settled && at != null && at >= from
+    }
 
     /** La risposta che sta arrivando adesso: una sola, e una nuova chiude subito quella prima. */
     var current by mutableStateOf<Arrival?>(null)
         private set
     fun publish(a: Arrival) { if (current !== a) { current?.finish(); current = a } }
+
+    companion object {
+        /** L'apertura: la scheda vola al suo posto e la chat si ancora; fin qui niente arriva con un'animazione. */
+        const val OPENING_MS = 1_000L
+    }
 }
 
 internal val LocalStreamGate = compositionLocalOf<StreamGate?> { null }
@@ -81,7 +108,9 @@ internal class Arrival(val id: String) {
 internal fun Modifier.arrivalPart(a: Arrival?, first: Boolean): Modifier {
     if (a == null) return this
     val mine = remember(a) { mutableFloatStateOf(Float.NaN) }
-    return onGloballyPositioned { c -> val y = c.positionInRoot().y; mine.floatValue = y; if (first) a.top = y }
+    // Per i test: la risposta che sta arrivando si riconosce finché la corsa non è finita.
+    return then(if (first && a.running) Modifier.testTag("risposta-in-arrivo") else Modifier)
+        .onGloballyPositioned { c -> val y = c.positionInRoot().y; mine.floatValue = y; if (first) a.top = y }
         .graphicsLayer { val k = a.k; translationY = if (k.isInfinite()) 0f else -k }
         .drawWithContent {
             val k = a.k
@@ -102,6 +131,9 @@ internal fun Modifier.arrivalPart(a: Arrival?, first: Boolean): Modifier {
  */
 internal suspend fun LazyListState.runArrival(a: Arrival, follow: Boolean, reduced: Boolean, chat: Animatable<Float, AnimationVector1D>) {
     try {
+        // La B parte solo a lista ferma (Franz 27/11 15:17): se la lista si muove, niente corsa e la risposta compare intera al suo posto.
+        // Aspettare vorrebbe dire tenerla nascosta, cioè uno spazio vuoto.
+        if (isScrollInProgress) return
         // La risposta è già misurata e piazzata (la corsa parte dopo il suo primo layout), ancora nascosta.
         val info = layoutInfo
         val last = info.visibleItemsInfo.lastOrNull()?.takeIf { it.index == info.totalItemsCount - 1 }

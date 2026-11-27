@@ -358,7 +358,6 @@ fun SessionSheet(
     val seenAt = remember(s.name) { seenFrom?.invoke(s.name) ?: if (still) null else seenPrefs.getLong(s.name, -1L).takeIf { it >= 0L } }
     val latestAt by rememberUpdatedState(ChatNews.latest(groupedFeed.orEmpty()))
     DisposableEffect(s.name) { onDispose { if (!still) latestAt?.let { seenPrefs.edit().putLong(s.name, it).apply() } } }
-    val openedAt = remember(s.name) { android.os.SystemClock.uptimeMillis() }
     val cascaded = remember(s.name) { mutableSetOf<String>() }
     // Voce 1 (app-animazioni-fedeli-26-11): le risposte già presenti all'apertura non scorrono; scorre solo quella che arriva dopo.
     val streamGate = remember(s.name) { StreamGate() }
@@ -430,6 +429,16 @@ fun SessionSheet(
         androidx.compose.runtime.snapshotFlow { list.layoutInfo.totalItemsCount }.first { it > 0 }
         if (!anchored) { list.scrollToEnd(); anchored = true; follow = true }
     }
+    // Franz 27/11 15:17: niente arriva con un'animazione finché la chat non è ferma al suo posto (ancorata in fondo, finita l'apertura);
+    // poi arriva solo quello che nasce da un turno visto aperto a chat ferma (StreamGate).
+    var openingOver by remember(s.name) { mutableStateOf(false) }
+    LaunchedEffect(s.name) {
+        val t0 = androidx.compose.runtime.withFrameMillis { it }
+        while (androidx.compose.runtime.withFrameMillis { it } - t0 < StreamGate.OPENING_MS) Unit
+        openingOver = true
+    }
+    if (anchored && openingOver) streamGate.settle()
+    if (s.state == SessionState.BUSY || s.state == SessionState.AWAITING) streamGate.working(s.turnStarted)
     // Ogni testo nuovo o più lungo in fondo (risposta, riga dal vivo, domanda): giù fino alla fine dell'ultima voce.
     LaunchedEffect(list, anchored) {
         if (!anchored) return@LaunchedEffect
@@ -645,9 +654,12 @@ fun SessionSheet(
                     val newsFrom = ChatNews.firstNew(grouped, seenAt)?.let { i -> it.pixelbox.cmwatch.rules.ChatTurns.rowOf(rows, grouped[i]).takeIf { r -> r >= 0 } }
                     itemsIndexed(rows, key = { _, r -> it.pixelbox.cmwatch.rules.ChatTurns.key(r) }) { index, row ->
                         val k = it.pixelbox.cmwatch.rules.ChatTurns.key(row)
-                        val opening = android.os.SystemClock.uptimeMillis() - openedAt < 1_000
+                        // Franz 27/11 15:17: entra con un'animazione solo quello che arriva a chat ferma: un messaggio mandato da qui, o quello
+                        // della sessione quando la sessione lavora; quello che compare prima, anche a pezzi, è di prima.
+                        val request = (row as? it.pixelbox.cmwatch.rules.ChatTurns.Row.Turn)?.request
+                        val ready = streamGate.settled && (request is it.pixelbox.cmwatch.rules.ChatFeed.Item.Mine || streamGate.live)
                         Column(
-                            Modifier.fillMaxWidth().cascadeIn(ChatNews.rank(index, rows.size), opening, cascaded, k, me = (row as? it.pixelbox.cmwatch.rules.ChatTurns.Row.Turn)?.request != null)
+                            Modifier.fillMaxWidth().cascadeIn(ChatNews.rank(index, rows.size), ready, cascaded, k, me = request != null)
                                 .newsTint(newsFrom != null && index >= newsFrom, tinted, k),
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
@@ -1858,20 +1870,20 @@ private fun sizeLabel(b: Long): String = when {
  * tornando a schermo scorrendo resta ferma. Con le animazioni spente nessun movimento.
  */
 @Composable
-private fun Modifier.cascadeIn(rank: Int?, opening: Boolean, done: MutableSet<String>, key: String, me: Boolean = false): Modifier {
+private fun Modifier.cascadeIn(rank: Int?, ready: Boolean, done: MutableSet<String>, key: String, me: Boolean = false): Modifier {
     val off = animationsOff()
-    // All'apertura niente onda (app-sessione-apertura-06-11): la chat arriva col volo, sale solo quello che arriva dopo.
-    val first = remember(key) { rank != null && !off && !opening && done.add(key) }
+    // All'apertura niente onda (app-sessione-apertura-06-11): la chat arriva col volo, sale solo quello che arriva dopo, a chat ferma
+    // ([ready], Franz 27/11 15:17). Ogni riga vista una volta resta vista, anche quando la lista la ricompone tornandoci sopra.
+    val first = remember(key) { val fresh = done.add(key); fresh && rank != null && !off && ready }
     if (!first) return this
     val p = remember(key) { androidx.compose.animation.core.Animatable(0f) }
-    val wait = if (opening) (rank ?: 0) * ChatNews.STAGGER_MS else 0L
     LaunchedEffect(key) {
-        kotlinx.coroutines.delay(wait)
         // Voce 1, fedele all'originale (Streaming reply; app-animazioni-fedeli-26-11): la bolla nuova entra con la molla 300 22, sale
         // di 14 dp e l'opacità va da 0; quella di Franz anche con la scala da 0,92 (senza limite, così si vede il rimbalzo).
         p.animateTo(1f, Molla.of(300f, 22f))
     }
-    return graphicsLayer {
+    // Per i test: la riga entrata con l'animazione.
+    return testTag("riga-in-entrata").graphicsLayer {
         alpha = p.value.coerceIn(0f, 1f); translationY = (1f - p.value) * 14.dp.toPx()
         if (me) { val k = 0.92f + 0.08f * p.value; scaleX = k; scaleY = k }
     }
@@ -3762,7 +3774,7 @@ private fun MineJumpArrow(icon: androidx.compose.ui.graphics.vector.ImageVector,
  * parola nuova. Margine di 0,16 em ai lati, alta 1,3 em, angoli di 0,34 em. Con le animazioni spente, al posto.
  */
 @Composable
-private fun ReadAlongText(t: AnnotatedString, word: Int, style: androidx.compose.ui.text.TextStyle, color: androidx.compose.ui.graphics.Color, modifier: Modifier = Modifier) {
+internal fun ReadAlongText(t: AnnotatedString, word: Int, style: androidx.compose.ui.text.TextStyle, color: androidx.compose.ui.graphics.Color, modifier: Modifier = Modifier) {
     val ws = it.pixelbox.cmwatch.rules.Animazioni.words(t.text)
     val k = if (ws.isEmpty()) -1 else word.coerceIn(0, ws.lastIndex)
     val off = animationsOff()

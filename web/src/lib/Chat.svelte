@@ -295,18 +295,23 @@
     // della master che si chiude allunga la lista, la distanza dal fondo scende sotto 40, la testata riappare e si salta in fondo.
     let lastTop = el.scrollTop
     const gap = () => el.scrollHeight - el.scrollTop - el.clientHeight
+    // Franz 27/11 15:17: la lista che si muove (data-moving) non fa partire la corsa di una risposta (arriva, molla.ts).
+    let still: ReturnType<typeof setTimeout> | undefined
     const onScroll = () => {
+      el.dataset.moving = 'true'
+      clearTimeout(still)
+      still = setTimeout(() => { delete el.dataset.moving }, 150)
       const dir = el.scrollTop - lastTop
       lastTop = el.scrollTop
       if (dir < 0 && gap() > 2) atEnd = false
       else if (dir > 0 && !auto && gap() < 40) atEnd = true
     }
-    const onEnd = () => { lastTop = el.scrollTop; if (auto) { auto = false; if (gap() < 40) atEnd = true } }
+    const onEnd = () => { lastTop = el.scrollTop; clearTimeout(still); delete el.dataset.moving; if (auto) { auto = false; if (gap() < 40) atEnd = true } }
     const ro = new ResizeObserver(() => { if (atEnd && !home) el.scrollTop = endOf(el) })
     el.addEventListener('scroll', onScroll, { passive: true })
     el.addEventListener('scrollend', onEnd)
     ro.observe(el)
-    return () => { el.removeEventListener('scroll', onScroll); el.removeEventListener('scrollend', onEnd); ro.disconnect() }
+    return () => { clearTimeout(still); el.removeEventListener('scroll', onScroll); el.removeEventListener('scrollend', onEnd); ro.disconnect() }
   })
 </script>
 
