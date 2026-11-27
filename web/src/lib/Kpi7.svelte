@@ -121,7 +121,7 @@
   <button class="cell" class:on={filter === 'aspetta'} aria-pressed={filter === 'aspetta'} disabled={!h.waiting} data-testid="home-box-aspetta" onclick={() => onBox('aspetta')}><span class="ring" aria-hidden="true"></span><b class="n" class:wait={h.waiting > 0}><span class="roll" use:rollOnGesture={h.waiting}></span>{#if h.open}<small class="of">/{h.open}</small>{/if}</b><span class="l">{h.waiting ? t.kpi7Waiting(h.waiting, Math.max(1, Math.round((h.oldestWaitS ?? 0) / 60))) : t.kpi7NoneWaiting}</span>{#if h.waiting}<span class="ms chev" aria-hidden="true">chevron_right</span>{/if}</button>
   <button class="cell" class:on={filter === 'lavoro'} aria-pressed={filter === 'lavoro'} disabled={!h.busy} data-testid="home-box-lavoro" onclick={() => onBox('lavoro')}><span class="ring" aria-hidden="true"></span><b class="n">{h.busy}{#if h.open}<small class="of">/{h.open}</small>{/if}</b><span class="l">{t.kpi7Busy}</span>{#if h.busy}<span class="ms chev" aria-hidden="true">chevron_right</span>{/if}</button>
   {#if usage}
-    <button class="cell use" data-testid="home-box-utilizzo" aria-expanded={usage.open} onclick={onUsage}><b class="n" style:color={usage.tone === 'var(--tx2)' ? null : usage.tone}>{usage.pct}<sup>%</sup></b><span class="l">{usage.label}</span>{#if usage.reset}<span class="rs" data-testid="home-box-utilizzo-azzera">{usage.reset}</span>{/if}<span class="ms chev" aria-hidden="true">{usage.open ? 'expand_less' : 'expand_more'}</span>
+    <button class="cell use" data-testid="home-box-utilizzo" aria-expanded={usage.open} onclick={onUsage}><b class="n" style:color={usage.tone === 'var(--tx2)' ? null : usage.tone}>{usage.pct}<sup>%</sup></b><span class="l" class:one={!!usage.reset}>{usage.label}</span>{#if usage.reset}<span class="rs" data-testid="home-box-utilizzo-azzera">{usage.reset}</span>{/if}<span class="ms chev" aria-hidden="true">{usage.open ? 'expand_less' : 'expand_more'}</span>
       <span class="edge" style:color={usage.tone}><i style="width:{Math.min(100, usage.pct)}%"></i>{#if usage.tick != null}<u style="left:{usage.tick}%"></u>{/if}</span></button>
   {:else}
   <button class="cell" data-testid="home-box-esiti" onclick={() => onBox('esiti')}><b class="n">{h.outcomes ?? '–'}</b><span class="l">{#if h.outcomes == null}{t.kpi7OutcomesUnknown}{:else if h.red}{t.kpi7Outcomes}, <em>{t.kpi7Red(h.red)}</em>{:else}{t.kpi7Outcomes}{/if}</span><span class="ms chev" aria-hidden="true">chevron_right</span></button>
@@ -135,7 +135,7 @@
 <style>
   .slot { grid-column: 1 / -1; min-width: 0; }
   .slot:empty { display: none; }
-  .board { position: relative; flex: none; display: grid; grid-template-columns: 1.15fr 1fr 1.15fr; margin: 4px 0 2px; background: var(--s1); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  .board { position: relative; flex: none; display: grid; grid-template-columns: 1.1fr 0.95fr 1.25fr; margin: 4px 0 2px; background: var(--s1); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
   /* In alto, non al centro come fa un button: i tre numeri sulla stessa linea; l'etichetta ha sempre due righe (Franz 03/11 09:38,
      app-tabellone-numeri-03-11). */
   .cell { position: relative; display: flex; flex-direction: column; justify-content: flex-start; padding: 12px 12px 13px; border-left: 1px solid var(--line); text-align: left; color: var(--tx); cursor: pointer; min-width: 0; }
@@ -171,8 +171,13 @@
   .n sup { font-size: 22px; font-weight: 600; vertical-align: 14px; margin-left: 2px; color: var(--tx2); }
   .cell.use[aria-expanded='true'] { background: var(--s2); }
   /* app-quota-azzeramento-17-11: l'ora di azzeramento sotto la percentuale, piccola, sopra la barra. */
-  .rs { display: block; font-size: 12px; line-height: 1.25; color: var(--tx3); margin: 2px 0 6px; overflow-wrap: anywhere; }
-  .edge { position: absolute; left: 12px; right: 12px; bottom: 10px; height: 4px; border-radius: 2px; background: color-mix(in srgb, var(--tx) 14%, transparent); }
-  .edge i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 2px; background: currentColor; }
-  .edge u { position: absolute; top: -3px; bottom: -3px; width: 2px; border-radius: 1px; background: var(--tx); }
+  /* app-casella-settimana-27-11 (Franz 27/11 16:41, scelta A): la casella dell'utilizzo è alta quanto le altre due. La terza colonna è un
+     po' più larga, così a 360 px «della settimana» e «si azzera mer 23:30» stanno su una riga ciascuna; le due righe insieme occupano le
+     due della didascalia delle altre; la barra col segno di adesso è una linea di 3 px sul bordo basso, dentro il raggio del tabellone. */
+  .cell.use { padding-right: 10px; }
+  .l.one { min-height: 0; }
+  .rs { display: block; font-size: 12px; line-height: 1.25; color: var(--tx3); margin: 0; overflow-wrap: anywhere; }
+  .edge { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: color-mix(in srgb, var(--tx) 14%, transparent); }
+  .edge i { position: absolute; left: 0; top: 0; bottom: 0; background: currentColor; }
+  .edge u { position: absolute; top: -3px; bottom: 0; width: 2px; border-radius: 1px; background: var(--tx); }
 </style>

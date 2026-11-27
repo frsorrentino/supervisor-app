@@ -119,12 +119,14 @@ export function resetLine(at: number | null | undefined, now: number, stale: boo
   if (at == null) return null
   return at > now ? { kind: 'at', at } : { kind: 'passed' }
 }
-/** «gio 19/11 alle 3», «lun 17/11 alle 14:30»: i minuti solo se non sono zero. */
+/**
+ * «gio 3:00», «lun 14:30»: il giorno e l'ora coi minuti, senza data (app-casella-settimana-27-11, Franz 27/11 16:41: l'azzeramento cade
+ * sempre entro 7 giorni, e la data allungava il tabellone). Come UtilizzoRules.resetWhen nell'app.
+ */
 export function resetWhen(at: number, timeZone?: string): string {
-  const p = Object.fromEntries(new Intl.DateTimeFormat(locale, { timeZone, weekday: 'short', day: 'numeric', month: 'numeric', hour: 'numeric', minute: '2-digit', hourCycle: 'h23' })
+  const p = Object.fromEntries(new Intl.DateTimeFormat(locale, { timeZone, weekday: 'short', hour: 'numeric', minute: '2-digit', hourCycle: 'h23' })
     .formatToParts(new Date(at * 1000)).map(x => [x.type, x.value]))
-  const h = String(Number(p.hour))
-  return t.resetWhen(String(p.weekday).replace('.', ''), `${Number(p.day)}/${Number(p.month)}`, p.minute === '00' ? h : `${h}:${p.minute}`)
+  return t.resetWhen(String(p.weekday).replace('.', ''), `${Number(p.hour)}:${p.minute}`)
 }
 export function resetText(r: ResetLine, timeZone?: string): string {
   if (r.kind === 'at') return t.quotaResetOn(resetWhen(r.at, timeZone))

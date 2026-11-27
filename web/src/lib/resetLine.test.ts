@@ -7,13 +7,14 @@ const NOW = RESET - 40 * 3600
 const TZ = 'Europe/Rome'
 
 describe('la riga di azzeramento', () => {
-  it("l'ora come i titoli dei limiti, i minuti solo se ci sono", () => {
-    expect(resetWhen(RESET, TZ)).toBe('gio 19/11 alle 3')
-    expect(resetWhen(RESET + 30 * 60 - 3 * 86400, TZ)).toBe('lun 16/11 alle 3:30')
-    expect(resetWhen(RESET + 11 * 3600 + 5 * 60, TZ)).toBe('gio 19/11 alle 14:05')
+  // app-casella-settimana-27-11: giorno e ora coi minuti, senza data.
+  it("il giorno e l'ora coi minuti, senza data", () => {
+    expect(resetWhen(RESET, TZ)).toBe('gio 3:00')
+    expect(resetWhen(RESET + 30 * 60 - 3 * 86400, TZ)).toBe('lun 3:30')
+    expect(resetWhen(RESET + 11 * 3600 + 5 * 60, TZ)).toBe('gio 14:05')
   })
   it('ora futura: si azzera', () => {
-    expect(resetText(resetLine(RESET, NOW, false)!, TZ)).toBe('si azzera gio 19/11 alle 3')
+    expect(resetText(resetLine(RESET, NOW, false)!, TZ)).toBe('si azzera gio 3:00')
   })
   it("ora passata: lo dice invece dell'ora", () => {
     expect(resetText(resetLine(RESET, RESET + 60, false)!, TZ)).toBe('azzerata, aspetto la lettura nuova')

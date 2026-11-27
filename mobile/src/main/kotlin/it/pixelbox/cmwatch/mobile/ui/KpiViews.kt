@@ -230,13 +230,13 @@ internal fun Kpi7(h: Kpi.Head, st: it.pixelbox.cmwatch.contract.State, now: Long
             val firstShape = RoundedCornerShape(topStart = 14.dp, bottomStart = if (joined) 0.dp else 14.dp)
             val lit = { on: Boolean, s: androidx.compose.ui.graphics.Shape -> if (!on) Modifier else Modifier.background(V3.S2, s) }
             val box = { b: HomeBox, tag: String, w: Float, can: Boolean, on: Boolean -> Modifier.weight(w).fillMaxHeight().onGloballyPositioned { c -> val x = c.positionInParent().x; edges[b] = x to x + c.size.width }.then(if (V3.day && b == HomeBox.WAITING) Modifier.background(V3.WaitFill) else Modifier).then(lit(on, if (b == HomeBox.WAITING) firstShape else androidx.compose.ui.graphics.RectangleShape)).testTag(tag).then(if (can) Modifier.handCursor().clickable { onBox(b) } else Modifier) }
-            Board(h.waiting.toString(), if (h.waiting > 0) pluralStringResource(R.plurals.kpi7_waiting, h.waiting, h.waiting, m) else stringResource(R.string.kpi7_none_waiting), if (h.waiting > 0) V3.Wait else V3.Tx, null, box(HomeBox.WAITING, "home-box-aspetta", 1.15f, h.waiting > 0, filter == Kpi.BoardFilter.WAITING), of = h.open.takeIf { it > 0 }, chevron = h.waiting > 0, on = filter == Kpi.BoardFilter.WAITING, roll = true)
+            Board(h.waiting.toString(), if (h.waiting > 0) pluralStringResource(R.plurals.kpi7_waiting, h.waiting, h.waiting, m) else stringResource(R.string.kpi7_none_waiting), if (h.waiting > 0) V3.Wait else V3.Tx, null, box(HomeBox.WAITING, "home-box-aspetta", W_WAITING, h.waiting > 0, filter == Kpi.BoardFilter.WAITING), of = h.open.takeIf { it > 0 }, chevron = h.waiting > 0, on = filter == Kpi.BoardFilter.WAITING, roll = true)
             Box(Modifier.width(1.dp).fillMaxHeight().background(V3.Line))
-            Board(h.busy.toString(), stringResource(R.string.kpi7_busy), V3.Tx, null, box(HomeBox.BUSY, "home-box-lavoro", 1f, h.busy > 0, filter == Kpi.BoardFilter.BUSY), of = h.open.takeIf { it > 0 }, chevron = h.busy > 0, on = filter == Kpi.BoardFilter.BUSY)
+            Board(h.busy.toString(), stringResource(R.string.kpi7_busy), V3.Tx, null, box(HomeBox.BUSY, "home-box-lavoro", W_BUSY, h.busy > 0, filter == Kpi.BoardFilter.BUSY), of = h.open.takeIf { it > 0 }, chevron = h.busy > 0, on = filter == Kpi.BoardFilter.BUSY)
             Box(Modifier.width(1.dp).fillMaxHeight().background(V3.Line))
             // Col dato dell'utilizzo il terzo blocco è lui (app-tabellone-utilizzo-a-13-11); gli esiti restano nelle voci della Home.
-            if (usage != null) UsageBoard(usage, Modifier.weight(1.15f).fillMaxHeight().then(if (usage.open) Modifier.background(V3.S2) else Modifier).testTag("home-box-utilizzo").handCursor().clickable(onClick = usage.onToggle))
-            else Board(h.outcomes?.toString() ?: "–", if (h.outcomes == null) stringResource(R.string.kpi7_outcomes_unknown) else stringResource(R.string.kpi7_outcomes), V3.Tx, (h.red ?: 0).takeIf { it > 0 }?.let { pluralStringResource(R.plurals.kpi7_red, it, it) }, box(HomeBox.OUTCOMES, "home-box-esiti", 1.15f, true, false))
+            if (usage != null) UsageBoard(usage, Modifier.weight(W_THIRD).fillMaxHeight().then(if (usage.open) Modifier.background(V3.S2) else Modifier).testTag("home-box-utilizzo").handCursor().clickable(onClick = usage.onToggle))
+            else Board(h.outcomes?.toString() ?: "–", if (h.outcomes == null) stringResource(R.string.kpi7_outcomes_unknown) else stringResource(R.string.kpi7_outcomes), V3.Tx, (h.red ?: 0).takeIf { it > 0 }?.let { pluralStringResource(R.plurals.kpi7_red, it, it) }, box(HomeBox.OUTCOMES, "home-box-esiti", W_THIRD, true, false))
         }
         // La barra fissa delle 5 ore non c'è più (app-utilizzo-una-barra-03-11): le finestre d'uso stanno nella riga Utilizzo, e una
         // vicina al limite entra da sola nel tabellone.
@@ -441,28 +441,43 @@ internal fun UsageSlotRow(w: it.pixelbox.cmwatch.rules.UtilizzoRules.WeekSlot?, 
 internal data class UsageCell(val pct: Int, val tick: Float?, val tone: Color, val label: String, val open: Boolean, val reset: String? = null, val onToggle: () -> Unit)
 
 /**
- * L'utilizzo nel tabellone (variante B del mockup del 13/11): la percentuale grande come le altre cifre, sotto la finestra che dice,
- * e in basso la barra con la tacca del tempo passato; il tocco apre e chiude i dettagli.
+ * Le larghezze del tabellone (app-casella-settimana-27-11): la terza casella un po' più larga, così a 360 dp «della settimana» e
+ * «si azzera mer 23:30» stanno su una riga ciascuna e la casella non è più alta delle altre due.
+ */
+private const val W_WAITING = 1.1f
+private const val W_BUSY = 0.95f
+private const val W_THIRD = 1.25f
+
+/**
+ * L'utilizzo nel tabellone (variante B del mockup del 13/11): la percentuale grande come le altre cifre, sotto la finestra che dice; il
+ * tocco apre e chiude i dettagli. app-casella-settimana-27-11 (Franz 27/11 16:41, scelta A): alta quanto le altre due caselle. Sotto la
+ * percentuale la didascalia su due righe come nelle altre, «della settimana» e «si azzera mar 5:00»; la barra col segno di adesso è una
+ * linea di 3 dp sul bordo basso, dentro il raggio del tabellone, e non aggiunge altezza.
  */
 @Composable
 private fun UsageBoard(u: UsageCell, modifier: Modifier) {
-    Column(modifier.padding(start = 14.dp, end = 8.dp, top = 12.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    val tx = V3.Tx
+    val track = V3.Tx.copy(alpha = 0.14f)
+    Column(
+        modifier.drawBehind {
+            val h = 3.dp.toPx()
+            val y = size.height - h
+            drawRect(track, topLeft = androidx.compose.ui.geometry.Offset(0f, y), size = androidx.compose.ui.geometry.Size(size.width, h))
+            drawRect(u.tone, topLeft = androidx.compose.ui.geometry.Offset(0f, y), size = androidx.compose.ui.geometry.Size(size.width * (u.pct.coerceIn(0, 100) / 100f), h))
+            // Il segno di adesso sporge un poco sopra la linea.
+            u.tick?.let { t -> drawRect(tx, topLeft = androidx.compose.ui.geometry.Offset(size.width * (t.coerceIn(0f, 100f) / 100f) - 1.dp.toPx(), y - 3.dp.toPx()), size = androidx.compose.ui.geometry.Size(2.dp.toPx(), h + 3.dp.toPx())) }
+        }.padding(start = 14.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
         Row(verticalAlignment = Alignment.Top) {
             Text(u.pct.toString(), style = androidx.compose.ui.text.TextStyle(fontFamily = V3.Display, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, fontSize = 38.sp, lineHeight = 40.sp, fontFeatureSettings = CM_TNUM), color = if (u.tone == V3.Tx2) V3.Tx else u.tone, maxLines = 1)
             Text("%", style = androidx.compose.ui.text.TextStyle(fontFamily = V3.Display, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold, fontSize = 20.sp, lineHeight = 24.sp), color = V3.Tx2, modifier = Modifier.padding(start = 2.dp, top = 2.dp).weight(1f))
             androidx.compose.material3.Icon(if (u.open) androidx.compose.material.icons.Icons.Rounded.ExpandLess else androidx.compose.material.icons.Icons.Rounded.ExpandMore, null, tint = V3.Tx3, modifier = Modifier.size(18.dp))
         }
-        Text(u.label, style = V3.Small.copy(fontSize = 14.sp, lineHeight = 17.sp), minLines = 1, modifier = Modifier.weight(1f, fill = false))
-        // app-quota-azzeramento-17-11: sotto la percentuale l'ora in cui si azzera la finestra che mostra, piccola, sopra la barra.
-        u.reset?.let { Text(it, style = V3.Small.copy(fontSize = 12.sp, lineHeight = 15.sp, color = V3.Tx3), modifier = Modifier.testTag("home-box-utilizzo-azzera")) }
-        Spacer(Modifier.weight(1f))
-        val tx = V3.Tx
-        val track = V3.Tx.copy(alpha = 0.14f)
-        androidx.compose.foundation.Canvas(Modifier.fillMaxWidth().padding(end = 6.dp).height(10.dp)) {
-            val h = 4.dp.toPx(); val y = (size.height - h) / 2; val r = androidx.compose.ui.geometry.CornerRadius(h / 2)
-            drawRoundRect(track, topLeft = androidx.compose.ui.geometry.Offset(0f, y), size = androidx.compose.ui.geometry.Size(size.width, h), cornerRadius = r)
-            drawRoundRect(u.tone, topLeft = androidx.compose.ui.geometry.Offset(0f, y), size = androidx.compose.ui.geometry.Size(size.width * (u.pct.coerceIn(0, 100) / 100f), h), cornerRadius = r)
-            u.tick?.let { t -> drawRect(tx, topLeft = androidx.compose.ui.geometry.Offset(size.width * (t.coerceIn(0f, 100f) / 100f) - 1.dp.toPx(), 0f), size = androidx.compose.ui.geometry.Size(2.dp.toPx(), size.height)) }
+        // Le due righe della didascalia, senza spazio fra loro: insieme stanno nelle due righe delle altre caselle.
+        Column {
+            Text(u.label, style = V3.Small.copy(fontSize = 14.sp, lineHeight = 17.sp), minLines = if (u.reset == null) 2 else 1)
+            u.reset?.let { Text(it, style = V3.Small.copy(fontSize = 12.sp, lineHeight = 15.sp, color = V3.Tx3), modifier = Modifier.testTag("home-box-utilizzo-azzera")) }
         }
     }
 }

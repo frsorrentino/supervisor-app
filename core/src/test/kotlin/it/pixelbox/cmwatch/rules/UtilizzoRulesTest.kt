@@ -102,9 +102,10 @@ class UtilizzoRulesTest {
     private val ita = java.util.Locale.ITALIAN
 
     @Test fun resetHourIsLikeTheLimitTitles() {
-        assertEquals(UtilizzoRules.When("gio", "19/11", "3"), UtilizzoRules.resetWhen(reset, rome, ita))
-        assertEquals(UtilizzoRules.When("lun", "16/11", "3:30"), UtilizzoRules.resetWhen(reset + 30 * 60 - 3 * 86400, rome, ita))
-        assertEquals(UtilizzoRules.When("gio", "19/11", "14:05"), UtilizzoRules.resetWhen(reset + 11 * 3600 + 5 * 60, rome, ita))
+        // app-casella-settimana-27-11: giorno e ora coi minuti, senza data.
+        assertEquals(UtilizzoRules.When("gio", "3:00"), UtilizzoRules.resetWhen(reset, rome, ita))
+        assertEquals(UtilizzoRules.When("lun", "3:30"), UtilizzoRules.resetWhen(reset + 30 * 60 - 3 * 86400, rome, ita))
+        assertEquals(UtilizzoRules.When("gio", "14:05"), UtilizzoRules.resetWhen(reset + 11 * 3600 + 5 * 60, rome, ita))
     }
 
     @Test fun resetLineSaysWhyInsteadOfAnHourThatDoesNotHold() {

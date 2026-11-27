@@ -115,11 +115,14 @@ object UtilizzoRules {
     /** L'età dello stato quando è vecchio (oltre i 3 minuti di [it.pixelbox.cmwatch.contract.Freshness]), altrimenti null. */
     fun dataAge(state: it.pixelbox.cmwatch.contract.State, now: Long): Long? =
         if (it.pixelbox.cmwatch.contract.Freshness.of(state, now) is it.pixelbox.cmwatch.contract.Freshness.Stale) (now - state.publishedTs).coerceAtLeast(0) else null
-    /** «gio», «19/11», «3» o «14:05»: i minuti solo se non sono zero. Il giorno nella lingua data. */
-    data class When(val weekday: String, val dayMonth: String, val hour: String)
+    /**
+     * «gio» e «3:00» o «14:05»: il giorno nella lingua data e l'ora coi minuti, senza data (app-casella-settimana-27-11, Franz 27/11 16:41:
+     * l'azzeramento cade sempre entro 7 giorni, e la data allungava il tabellone).
+     */
+    data class When(val weekday: String, val time: String)
     fun resetWhen(at: Long, zone: java.time.ZoneId, locale: java.util.Locale): When {
         val t = java.time.Instant.ofEpochSecond(at).atZone(zone)
         val wd = t.dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, locale).removeSuffix(".")
-        return When(wd, "${t.dayOfMonth}/${t.monthValue}", if (t.minute == 0) "${t.hour}" else "${t.hour}:%02d".format(t.minute))
+        return When(wd, "${t.hour}:%02d".format(t.minute))
     }
 }
