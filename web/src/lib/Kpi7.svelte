@@ -115,15 +115,26 @@
       destroy() { m.stop() },
     }
   }
-  // app-livello-riga-27-11 (Franz 27/11 21:33, «il livello sulla riga… solo il pezzo interno al riquadro»): la linea della settimana va su
-  // tutta la riga, da un bordo all'altro del tabellone. Resta nella terza casella ma comincia dal bordo sinistro, alla distanza misurata;
-  // riempimento e segno di adesso stanno in proporzione alla larghezza intera.
-  function aTuttaRiga(node: HTMLElement) {
-    const set = () => node.style.setProperty('--usex', `${node.offsetLeft + node.clientLeft}px`)
+  // app-livello-riga-27-11 (Franz 27/11 23:06 e 23:18, «rendere simmetrica la linea verticale che la taglia perpendicolarmente»): la linea
+  // della settimana resta sotto la sola terza casella; il segno di adesso la taglia con lo stesso pezzo sopra e sotto (3 + 3 + 3 px). Sta
+  // fuori dal tabellone, che taglia quello che esce dal suo bordo: un segno accanto, messo sulla linea misurata, sopra tutto.
+  function sullaLinea(node: HTMLElement, tick: number) {
+    let t = tick
+    const set = () => {
+      const edge = node.previousElementSibling?.querySelector<HTMLElement>('.cell.use .edge')
+      const base = node.offsetParent as HTMLElement | null
+      if (!edge || !base) { node.style.display = 'none'; return }
+      const e = edge.getBoundingClientRect(), p = base.getBoundingClientRect()
+      node.style.display = ''
+      node.style.left = `${e.left - p.left + e.width * Math.min(100, Math.max(0, t)) / 100 - 1}px`
+      node.style.top = `${e.top - p.top - 3}px`
+    }
     set()
     const ro = new ResizeObserver(set)
-    ro.observe(node.parentElement ?? node)
-    return { destroy: () => ro.disconnect() }
+    const board = node.previousElementSibling
+    if (board) ro.observe(board)
+    addEventListener('resize', set)
+    return { update(v: number) { t = v; set() }, destroy() { ro.disconnect(); removeEventListener('resize', set) } }
   }
 </script>
 
@@ -131,8 +142,8 @@
   <button class="cell" class:on={filter === 'aspetta'} aria-pressed={filter === 'aspetta'} disabled={!h.waiting} data-testid="home-box-aspetta" onclick={() => onBox('aspetta')}><span class="ring" aria-hidden="true"></span><b class="n" class:wait={h.waiting > 0}><span class="roll" use:rollOnGesture={h.waiting}></span>{#if h.open}<small class="of">/{h.open}</small>{/if}</b><span class="l">{h.waiting ? t.kpi7Waiting(h.waiting, Math.max(1, Math.round((h.oldestWaitS ?? 0) / 60))) : t.kpi7NoneWaiting}</span>{#if h.waiting}<span class="ms chev" aria-hidden="true">chevron_right</span>{/if}</button>
   <button class="cell" class:on={filter === 'lavoro'} aria-pressed={filter === 'lavoro'} disabled={!h.busy} data-testid="home-box-lavoro" onclick={() => onBox('lavoro')}><span class="ring" aria-hidden="true"></span><b class="n">{h.busy}{#if h.open}<small class="of">/{h.open}</small>{/if}</b><span class="l">{t.kpi7Busy}</span>{#if h.busy}<span class="ms chev" aria-hidden="true">chevron_right</span>{/if}</button>
   {#if usage}
-    <button class="cell use" data-testid="home-box-utilizzo" aria-expanded={usage.open} onclick={onUsage} use:aTuttaRiga><b class="n" style:color={usage.tone === 'var(--tx2)' ? null : usage.tone}>{usage.pct}<sup>%</sup></b><span class="l" class:one={!!usage.reset}>{usage.label}</span>{#if usage.reset}<span class="rs" data-testid="home-box-utilizzo-azzera">{usage.reset}</span>{/if}<span class="ms chev" aria-hidden="true">{usage.open ? 'expand_less' : 'expand_more'}</span>
-      <span class="edge" style:color={usage.tone}><i style="width:{Math.min(100, usage.pct)}%"></i>{#if usage.tick != null}<u style="left:{usage.tick}%"></u>{/if}</span></button>
+    <button class="cell use" data-testid="home-box-utilizzo" aria-expanded={usage.open} onclick={onUsage}><b class="n" style:color={usage.tone === 'var(--tx2)' ? null : usage.tone}>{usage.pct}<sup>%</sup></b><span class="l" class:one={!!usage.reset}>{usage.label}</span>{#if usage.reset}<span class="rs" data-testid="home-box-utilizzo-azzera">{usage.reset}</span>{/if}<span class="ms chev" aria-hidden="true">{usage.open ? 'expand_less' : 'expand_more'}</span>
+      <span class="edge" style:color={usage.tone}><i style="width:{Math.min(100, usage.pct)}%"></i></span></button>
   {:else}
   <button class="cell" data-testid="home-box-esiti" onclick={() => onBox('esiti')}><b class="n">{h.outcomes ?? '–'}</b><span class="l">{#if h.outcomes == null}{t.kpi7OutcomesUnknown}{:else if h.red}{t.kpi7Outcomes}, <em>{t.kpi7Red(h.red)}</em>{:else}{t.kpi7Outcomes}{/if}</span><span class="ms chev" aria-hidden="true">chevron_right</span></button>
   {/if}
@@ -141,6 +152,7 @@
   {#if slot}<div class="slot">{@render slot()}</div>{/if}
   <span class="tr" aria-hidden="true"></span>
 </div>
+{#if usage && usage.tick != null}<i class="now" aria-hidden="true" use:sullaLinea={usage.tick}></i>{/if}
 
 <style>
   .slot { grid-column: 1 / -1; min-width: 0; }
@@ -189,7 +201,7 @@
   .cell.use { padding-right: 8px; }
   .l.one { min-height: 0; }
   .rs { display: block; font-size: 12px; line-height: 1.25; color: var(--tx3); margin: 0; overflow-wrap: anywhere; }
-  .edge { position: absolute; left: calc(-1 * var(--usex, 0px)); right: 0; bottom: 0; height: 3px; pointer-events: none; background: color-mix(in srgb, var(--tx) 14%, transparent); }
+  .edge { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: color-mix(in srgb, var(--tx) 14%, transparent); }
   .edge i { position: absolute; left: 0; top: 0; bottom: 0; background: currentColor; }
-  .edge u { position: absolute; top: -3px; bottom: 0; width: 2px; border-radius: 1px; background: var(--tx); }
+  .now { position: absolute; width: 2px; height: 9px; border-radius: 1px; background: var(--tx); pointer-events: none; z-index: 1; }
 </style>

@@ -82,6 +82,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.layout.onSizeChanged
@@ -778,7 +779,8 @@ fun SummaryList(
         val sessionsInBoard = parts == null && (sessionsLive || model.closed.isNotEmpty())
         if (parts == null) kpiState?.let { st ->
             item(key = "kpi-7") {
-                Box(moving().onGloballyPositioned { c -> boardBox = c }) {
+                // Sopra le voci che seguono: il segno di adesso della settimana esce dal bordo del tabellone (app-livello-riga-27-11).
+                Box(moving().zIndex(1f).onGloballyPositioned { c -> boardBox = c }) {
                     val boardClick: (HomeBox) -> Unit = { b ->
                         // I tre riquadri aprono la loro categoria (app-home-categorie-02-11): chiusa, si apre e resta aperta, come col tocco
                         // sulla testata (app-home-in-cima-02-11); poi la lista ci scorre. Esiti sta in Lavori: il suo riquadro apre Lavori e
