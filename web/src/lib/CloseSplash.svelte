@@ -1,7 +1,8 @@
 <script lang="ts">
   import { locale } from './lang'
   import { CLOSED_SHOW_MS, type Phase } from './closeSplash'
-  import StepBar from './StepBar.svelte'
+  import StepProgress from './StepProgress.svelte'
+  import { closeStep } from './animazioni'
   import { t } from './t'
   // Il pannello di chiusura sopra la pagina della sessione (CloseSplash.kt; Franz, 08/10 18:29, variante A): la pagina resta
   // sotto, velata. «Si sta chiudendo» con i passi veri; «è chiusa» con l'ora, «Riapri» e «Torna alla home», e dopo 3 s il
@@ -29,12 +30,12 @@
       <h3>{t.splashClosing(phase.name)}</h3>
       {#if phase.save}
         <p>{t.splashSaveSentAt(hm(phase.sentAt))}</p>
-        <!-- Voce 3 del terzo giro (app-animazioni-terzo-c-26-11): i passi sulla barra della prova coi nomi dentro, come i passi della prova;
-             la riga sotto ripeteva il passo in corso e non c'è più (master, 27/11: senza nomi i segmenti sembravano caselle per un codice). -->
-        <StepBar steps={{ task: '', items: [{ key: 'save', label: t.splashStepSave, state: phase.step === 'exit' ? 'ok' : 'run' }, { key: 'exit', label: t.splashStepExit, state: phase.step === 'exit' ? 'run' : 'todo' }, { key: 'done', label: t.splashStepClosed, state: 'todo' }] }} why={false} />
+        <!-- app-chiusura-step-progress-27-11 (Franz 27/11 12:00): i passi della chiusura sono lo Step progress dell'originale, coi nomi
+             sotto i pallini; «Chiusa» raggiunta resta attuale finché il PC non conferma. -->
+        <StepProgress names={[t.splashStepSave, t.splashStepExit, t.splashStepClosed]} at={closeStep(true, phase.step, phase.delivered)} />
       {:else}
         <p>{t.splashSentAt(hm(phase.sentAt))}</p>
-        <StepBar steps={{ task: '', items: [{ key: 'sent', label: t.splashStepSent, state: phase.delivered ? 'ok' : 'run' }, { key: 'done', label: t.splashStepClosed, state: phase.delivered ? 'run' : 'todo' }] }} why={false} />
+        <StepProgress names={[t.splashStepSent, t.splashStepClosed]} at={closeStep(false, null, phase.delivered)} />
       {/if}
       <div class="bar"><b class="run"></b></div>
       {#if phase.slow}

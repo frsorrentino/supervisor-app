@@ -9,9 +9,7 @@
   // la tappa passata si riempie di verde da sinistra (molla 260 24) e la spunta si disegna 120 ms dopo (140 20); il segmento che diventa
   // quello in corso si accende (il filo dell'originale, 160 22) e il suo nome fa il pop da 0,7 (500 14, spinta 6); in corso la rotella
   // (un giro in 0,8 s) e l'onda sul nome (50 ms per lettera). Moto ridotto: al posto.
-  // Voce 3 del terzo giro (passi della chiusura; master 27/11, dopo la segnalazione di Franz): gli stessi segmenti coi nomi dentro;
-  // `why` false toglie la riga sotto, quando il nome nel segmento dice già il passo in corso.
-  let { steps, why = true }: { steps: ProofSteps; why?: boolean } = $props()
+  let { steps }: { steps: ProofSteps } = $props()
   const l = $derived(line(steps))
   const say = $derived(!l ? '' : l.say === 'running' ? t.proofRunning(l.label) : l.say === 'failed' ? t.proofFailed(l.label) : l.say === 'todo' ? t.proofTodo(l.label) : t.proofAllDone)
 
@@ -71,7 +69,7 @@
       </span>
     {/each}
   </div>
-  {#if why && say}<p class="why" class:bad={l?.say === 'failed'}>{say}</p>{/if}
+  {#if say}<p class="why" class:bad={l?.say === 'failed'}>{say}</p>{/if}
 {/if}
 
 <style>

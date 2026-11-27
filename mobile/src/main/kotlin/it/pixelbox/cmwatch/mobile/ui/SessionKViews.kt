@@ -284,11 +284,6 @@ internal fun KTaskLine(title: String, state: String? = null, paused: Boolean = f
 @Composable
 internal fun KStepBar(
     steps: it.pixelbox.cmwatch.contract.ProofSteps,
-    /**
-     * Voce 3 del terzo giro (passi della chiusura; master 27/11, dopo la segnalazione di Franz): false toglie la riga sotto, quando il
-     * nome nel segmento dice già il passo in corso.
-     */
-    why: Boolean = true,
 ) {
     if (steps.items.isEmpty()) return
     val P = it.pixelbox.cmwatch.rules.PassiProva
@@ -380,7 +375,7 @@ internal fun KStepBar(
                 }
             }
         }
-        if (why) it.pixelbox.cmwatch.rules.PassiProva.line(steps)?.let { l ->
+        it.pixelbox.cmwatch.rules.PassiProva.line(steps)?.let { l ->
             val text = when (l.say) {
                 it.pixelbox.cmwatch.rules.PassiProva.Say.RUNNING -> stringResource(R.string.proof_running, l.label)
                 it.pixelbox.cmwatch.rules.PassiProva.Say.FAILED -> stringResource(R.string.proof_failed, l.label)

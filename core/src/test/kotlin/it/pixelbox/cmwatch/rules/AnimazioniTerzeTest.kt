@@ -28,4 +28,25 @@ class AnimazioniTerzeTest {
         // Il punto agganciato è l'inizio di quel paragrafo.
         for (n in 2..9) for (k in 0 until n) assertEquals(k, Animazioni.scrubNearest(Animazioni.scrubAt(k, n), n))
     }
+
+    // Step progress nella chiusura: prima dell'attuale fatti, l'attuale non è fatto finché il lavoro non è finito.
+    @Test fun stepProgressStates() {
+        val S = Animazioni.Step
+        assertEquals(listOf(S.DONE, S.CURRENT, S.TODO), (0..2).map { Animazioni.step(it, 1) })
+        assertEquals(listOf(S.DONE, S.CURRENT), (0..1).map { Animazioni.step(it, 1) })
+        assertEquals(listOf(S.DONE, S.DONE), (0..1).map { Animazioni.step(it, 1, finished = true) })
+        assertEquals(0f, Animazioni.stepLine(0, 3), 1e-6f)
+        assertEquals(0.5f, Animazioni.stepLine(1, 3), 1e-6f)
+        assertEquals(1f, Animazioni.stepLine(1, 2), 1e-6f)
+        assertEquals(0f, Animazioni.stepLine(0, 1), 1e-6f)
+    }
+
+    // I passi della chiusura: con «Salva e chiudi» Salvo poi Esco; senza, Inviata poi, consegnata, Chiusa.
+    @Test fun closingCurrentStep() {
+        assertEquals(0, Animazioni.closeStep(save = true, step = "save", delivered = true))
+        assertEquals(1, Animazioni.closeStep(save = true, step = "exit", delivered = true))
+        assertEquals(0, Animazioni.closeStep(save = true, step = null, delivered = false))
+        assertEquals(0, Animazioni.closeStep(save = false, step = null, delivered = false))
+        assertEquals(1, Animazioni.closeStep(save = false, step = null, delivered = true))
+    }
 }

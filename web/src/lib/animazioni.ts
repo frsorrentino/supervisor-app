@@ -63,3 +63,11 @@ export const newPill = (atBottom: boolean, unseen: number): boolean => !atBottom
 export const scrubAt = (block: number, blocks: number): number => (blocks <= 1 ? 0 : Math.min(blocks - 1, Math.max(0, block)) / blocks)
 export const scrubNearest = (f: number, blocks: number): number =>
   blocks <= 1 ? 0 : Math.min(blocks - 1, Math.max(0, Math.floor(Math.min(1, Math.max(0, f)) * blocks + 0.5)))
+
+// Step progress nella chiusura (app-chiusura-step-progress-27-11, Franz 27/11 12:00), come Animazioni.step, stepLine e closeStep: il passo
+// è fatto se viene prima dell'attuale, attuale se è lui; l'attuale è fatto solo a lavoro finito (scelta a della master: «Chiusa» raggiunta
+// aspetta la conferma del PC). La linea verde arriva al pallino dell'attuale.
+export type Step = 'done' | 'current' | 'todo'
+export const step = (k: number, at: number, finished = false): Step => (k < at || (finished && k === at) ? 'done' : k === at ? 'current' : 'todo')
+export const stepLine = (at: number, n: number): number => (n <= 1 ? 0 : Math.min(n - 1, Math.max(0, at)) / (n - 1))
+export const closeStep = (save: boolean, s: string | null, delivered: boolean): number => (save ? (s === 'exit' ? 1 : 0) : delivered ? 1 : 0)

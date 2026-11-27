@@ -104,4 +104,25 @@ object Animazioni {
      * segni della barra sono gli inizi dei paragrafi, il primo all'inizio della barra.
      */
     fun scrubNearest(f: Float, blocks: Int): Int = if (blocks <= 1) 0 else kotlin.math.floor(f.coerceIn(0f, 1f) * blocks + 0.5f).toInt().coerceIn(0, blocks - 1)
+
+    // ---- Step progress nella chiusura (app-chiusura-step-progress-27-11, Franz 27/11 12:00) ----
+
+    enum class Step { DONE, CURRENT, TODO }
+
+    /**
+     * Il passo [k] quando l'attuale è [at], come `go` di steps.js: fatto se viene prima, attuale se è lui, da fare dopo. L'attuale è
+     * fatto solo a lavoro finito ([finished]): nell'originale l'ultimo passo raggiunto è già fatto, nella chiusura «Chiusa» raggiunta
+     * aspetta la conferma del PC (scelta a della master, 27/11).
+     */
+    fun step(k: Int, at: Int, finished: Boolean = false): Step = when {
+        k < at || (finished && k == at) -> Step.DONE
+        k == at -> Step.CURRENT
+        else -> Step.TODO
+    }
+
+    /** Dove arriva la linea verde, da 0 a 1: al pallino del passo attuale. */
+    fun stepLine(at: Int, n: Int): Float = if (n <= 1) 0f else at.coerceIn(0, n - 1).toFloat() / (n - 1)
+
+    /** Il passo attuale della chiusura: con «Salva e chiudi» Salvo, Esco, Chiusa (closing save, poi exit); senza, Inviata e Chiusa. */
+    fun closeStep(save: Boolean, step: String?, delivered: Boolean): Int = if (save) (if (step == "exit") 1 else 0) else (if (delivered) 1 else 0)
 }

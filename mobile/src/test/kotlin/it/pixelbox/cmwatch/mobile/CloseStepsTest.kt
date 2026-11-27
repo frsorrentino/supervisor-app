@@ -24,9 +24,9 @@ import org.junit.Test
 import java.io.File
 
 /**
- * Voce 3 del terzo giro, dopo la segnalazione di Franz del 27/11 («miglioriamo il loader della chiusura sessione?»): senza nomi i passi
- * della chiusura erano caselle vuote. A 360 dp, anche col testo grande e in inglese, ogni segmento porta il suo nome intero su una riga,
- * la barra è larga quanto la scheda e il passo in corso non si ripete in una riga sotto.
+ * I passi della chiusura (segnalazione di Franz del 27/11, «miglioriamo il loader della chiusura sessione?»; dalle 12:00 lo Step progress,
+ * app-chiusura-step-progress-27-11). A 360 dp, anche col testo grande e in inglese, ogni passo ha il suo nome intero su una riga e dentro la
+ * scheda, i passi sono larghi quanto la scheda e il passo in corso non si ripete in una riga sotto.
  */
 abstract class CloseStepsCheck(locale: String, scale: Float, private val save: List<String>, private val plain: List<String>) {
     @get:Rule val paparazzi = Paparazzi(
@@ -43,7 +43,7 @@ abstract class CloseStepsCheck(locale: String, scale: Float, private val save: L
     @Test fun plainCloseNamesItsSteps() =
         check(CloseSplash.Phase.Closing("atlas-shop", ts - 3, delivered = true, slow = false), plain, running = plain[1])
 
-    private class Seen { var card: Rect? = null; var bar: Rect? = null; val texts = mutableListOf<Pair<String, TextLayoutResult?>>() }
+    private class Seen { var card: Rect? = null; var bar: Rect? = null; val texts = mutableListOf<Pair<String, TextLayoutResult?>>(); val boxes = mutableListOf<Pair<String, Rect>>() }
 
     private fun check(phase: CloseSplash.Phase, names: List<String>, running: String) {
         val seen = Seen()
@@ -55,12 +55,13 @@ abstract class CloseStepsCheck(locale: String, scale: Float, private val save: L
                     repeat(5) { withFrameNanos {} }
                     val root = (view.getChildAt(0) as ViewRootForTest).semanticsOwner.unmergedRootSemanticsNode
                     seen.card = find(root) { n -> n.config.getOrNull(SemanticsProperties.TestTag) == "close-card" }?.boundsInRoot
-                    seen.bar = find(root) { n -> n.config.getOrNull(SemanticsProperties.TestTag) == "passi-prova" }?.boundsInRoot
+                    seen.bar = find(root) { n -> n.config.getOrNull(SemanticsProperties.TestTag) == "passi-chiusura" }?.boundsInRoot
                     walk(root) { n ->
                         n.config.getOrNull(SemanticsProperties.Text)?.let { t ->
                             val out = mutableListOf<TextLayoutResult>()
                             n.config.getOrNull(SemanticsActions.GetTextLayoutResult)?.action?.invoke(out)
                             seen.texts += t.joinToString("") { it.text } to out.firstOrNull()
+                            seen.boxes += t.joinToString("") { it.text } to n.boundsInRoot
                         }
                     }
                 }
@@ -69,15 +70,17 @@ abstract class CloseStepsCheck(locale: String, scale: Float, private val save: L
         paparazzi.gif(view, end = 500, fps = 30)
 
         val card = requireNotNull(seen.card) { "nessuna scheda della chiusura" }
-        val bar = requireNotNull(seen.bar) { "nessuna barra dei passi" }
+        val bar = requireNotNull(seen.bar) { "nessun passo della chiusura" }
         // Il contenuto della scheda sta a 18 dp dai suoi bordi (CloseCardFrame): la barra ne prende tutta la larghezza.
         val inner = card.width - 2 * 18 * paparazzi.context.resources.displayMetrics.density
-        assertEquals("la barra dei passi non è larga quanto la scheda", inner, bar.width, 2f)
+        assertEquals("i passi non sono larghi quanto la scheda", inner, bar.width, 2f)
         for (name in names.distinct()) {
             val hit = seen.texts.filter { it.first == name }
             assertEquals("«$name» non sta una volta sola nella scheda (${seen.texts.map { it.first }})", 1, hit.size)
             val tl = hit.single().second
-            assertTrue("«$name» va a capo o non sta intero nel segmento", tl != null && tl.lineCount == 1 && !tl.didOverflowWidth)
+            assertTrue("«$name» va a capo o non sta intero", tl != null && tl.lineCount == 1 && !tl.didOverflowWidth)
+            val box = seen.boxes.first { it.first == name }.second
+            assertTrue("«$name» esce dalla scheda ($box fuori da $card)", box.left >= card.left - 0.5f && box.right <= card.right + 0.5f)
         }
         assertEquals("il passo in corso «$running» si ripete fuori dal segmento (${seen.texts.map { it.first }})", 1, seen.texts.count { it.first.contains(running) })
     }

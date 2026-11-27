@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { scrubAt, scrubNearest } from './animazioni'
+import { closeStep, scrubAt, scrubNearest, step, stepLine } from './animazioni'
 
 // Il terzo giro di animazioni dopo la prova 1391: la barra dei paragrafi. Gli stessi casi di AnimazioniTerzeTest in Kotlin.
 describe('animazioni terze', () => {
@@ -9,5 +9,14 @@ describe('animazioni terze', () => {
   it('al rilascio si aggancia al paragrafo che comincia più vicino', () => {
     expect([scrubNearest(0.1, 4), scrubNearest(0.2, 4), scrubNearest(0.125, 4), scrubNearest(0.6, 4), scrubNearest(1, 4), scrubNearest(-0.3, 4), scrubNearest(0.9, 1)]).toEqual([0, 1, 1, 2, 3, 0, 0])
     for (let n = 2; n <= 9; n++) for (let k = 0; k < n; k++) expect(scrubNearest(scrubAt(k, n), n)).toBe(k)
+  })
+  it("step progress: prima dell'attuale fatti, l'attuale non è fatto finché il lavoro non è finito", () => {
+    expect([0, 1, 2].map(k => step(k, 1))).toEqual(['done', 'current', 'todo'])
+    expect([0, 1].map(k => step(k, 1))).toEqual(['done', 'current'])
+    expect([0, 1].map(k => step(k, 1, true))).toEqual(['done', 'done'])
+    expect([stepLine(0, 3), stepLine(1, 3), stepLine(1, 2), stepLine(0, 1)]).toEqual([0, 0.5, 1, 0])
+  })
+  it('i passi della chiusura: Salvo poi Esco; senza salvare Inviata poi Chiusa', () => {
+    expect([closeStep(true, 'save', true), closeStep(true, 'exit', true), closeStep(true, null, false), closeStep(false, null, false), closeStep(false, null, true)]).toEqual([0, 1, 0, 0, 1])
   })
 })
