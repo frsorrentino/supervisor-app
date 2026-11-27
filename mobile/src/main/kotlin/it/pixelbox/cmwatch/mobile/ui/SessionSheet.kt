@@ -1,4 +1,4 @@
-@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class, androidx.compose.material3.ExperimentalMaterial3Api::class)
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class, androidx.compose.material3.ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 
 package it.pixelbox.cmwatch.mobile.ui
 
@@ -381,8 +381,33 @@ fun SessionSheet(
     var follow by remember(s.id) { mutableStateOf(true) }
     // app-apertura-master-scatti-26-11 (Franz 26/11 23:34): un dito sulla lista ferma subito l'inseguimento del fondo (ChatFollow).
     var touching by remember(s.id) { mutableStateOf(false) }
+    // app-scroll-master-lavoro-27-11: lo slancio dopo il dito (finisce quando la lista si ferma) e l'ultimo tocco senza trascinamento.
+    var flinging by remember(s.id) { mutableStateOf(false) }
+    val tapAt = remember(s.id) { longArrayOf(0L) }
     LaunchedEffect(list) {
-        androidx.compose.runtime.snapshotFlow { list.isScrollInProgress }.collect { moving -> if (!moving) follow = !list.canScrollForward }
+        androidx.compose.runtime.snapshotFlow { list.isScrollInProgress }.collect { moving -> if (!moving) { follow = !list.canScrollForward; flinging = false } }
+    }
+    // Il video di Franz del 27/11 04:16: con la master al lavoro la chat riletta scendeva da sola, animata, anche sotto il dito fermo;
+    // non da uno scorrimento nostro. Mentre si rilegge ogni «porta in vista» automatico sulla chat resta fermo (ChatFollow).
+    val baseSpec = androidx.compose.foundation.gestures.LocalBringIntoViewSpec.current
+    val debuggable = (androidx.compose.ui.platform.LocalContext.current.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
+    // Legata anche alla sessione: segue, dito e slancio sono stati suoi (remember(s.id)), e la lista resta la stessa.
+    val holdSpec = remember(list, baseSpec, s.id) {
+        object : androidx.compose.foundation.gestures.BringIntoViewSpec {
+            override fun calculateScrollDistance(offset: Float, size: Float, containerSize: Float): Float {
+                val d = baseSpec.calculateScrollDistance(offset, size, containerSize)
+                if (d == 0f) return 0f
+                val hold = ChatFollow.holdBringIntoView(follow, !list.canScrollForward, touching, flinging, android.os.SystemClock.uptimeMillis() - tapAt[0])
+                if (debuggable) android.util.Log.d("ChatScorre", "porta in vista ${d.toInt()} px ${if (hold) "fermato" else "passa"} (segue $follow, dito $touching, slancio $flinging)")
+                return if (hold) 0f else d
+            }
+        }
+    }
+    // Solo nelle build di debug: ogni spostamento della chat senza dito né slancio, per trovare chi la muove se il salto torna.
+    if (debuggable) LaunchedEffect(list, s.id) {
+        androidx.compose.runtime.snapshotFlow { list.firstVisibleItemIndex to list.firstVisibleItemScrollOffset }.collect { (i, o) ->
+            if (!touching && !flinging) android.util.Log.d("ChatScorre", "chat a $i/$o senza dito (segue $follow, in corso ${list.isScrollInProgress})")
+        }
     }
     // Il dito che risale la chat la stacca dal fondo subito, non quando lo scorrimento si ferma (Franz, 10/10 08:18: «lo
     // scorrimento verso l'alto risulta problematico»): un testo arrivato fra un gesto e l'altro la riportava giù.
@@ -568,7 +593,7 @@ fun SessionSheet(
             ) { waiting ->
             if (waiting) Box(Modifier.fillMaxSize().padding(vertical = 32.dp), contentAlignment = Alignment.TopCenter) {
                 CircularWavyProgressIndicator(color = Cm.actionIcon)
-            } else ZoomedText { LazyColumn(
+            } else ZoomedText { androidx.compose.runtime.CompositionLocalProvider(androidx.compose.foundation.gestures.LocalBringIntoViewSpec provides holdSpec) { LazyColumn(
                 // Finché la chat non è ancorata in fondo non si disegna (app-scorrimento-prima-sessione-09-11, telefono di Franz
                 // 09/11 23:02): la conversazione vera arriva col dito ancora sulla pagina, l'ancora riparte e il primo fotogramma
                 // mostrava l'inizio («Carica i messaggi precedenti») prima dell'ultimo messaggio.
@@ -576,11 +601,19 @@ fun SessionSheet(
                 Modifier.fillMaxSize().then(if (still) Modifier else Modifier.graphicsLayer { if (!anchored && (chat.isNotEmpty() || !feed.isNullOrEmpty())) alpha = 0f }).nestedScroll(reading).pointerInput(Unit) {
                     // Il dito sulla lista, osservato senza prenderlo: la lista resta sua al primo gesto.
                     awaitEachGesture {
-                        awaitFirstDown(requireUnconsumed = false, pass = androidx.compose.ui.input.pointer.PointerEventPass.Initial)
+                        val first = awaitFirstDown(requireUnconsumed = false, pass = androidx.compose.ui.input.pointer.PointerEventPass.Initial)
                         touching = true
-                        do { val e = awaitPointerEvent(androidx.compose.ui.input.pointer.PointerEventPass.Initial) } while (e.changes.any { c -> c.pressed })
+                        var far = 0f
+                        do {
+                            val e = awaitPointerEvent(androidx.compose.ui.input.pointer.PointerEventPass.Initial)
+                            e.changes.firstOrNull { c -> c.id == first.id }?.let { c -> far = maxOf(far, (c.position - first.position).getDistance()) }
+                        } while (e.changes.any { c -> c.pressed })
                         touching = false
-                        if (!list.isScrollInProgress) follow = ChatFollow.afterRelease(!list.canScrollForward)
+                        if (list.isScrollInProgress) flinging = true
+                        else {
+                            follow = ChatFollow.afterRelease(!list.canScrollForward)
+                            if (far < viewConfiguration.touchSlop) tapAt[0] = android.os.SystemClock.uptimeMillis()
+                        }
                     }
                 }, state = list,
                 // Con il controller in vista, in fondo lo spazio per leggere l'ultimo messaggio sopra di lui; con un box sopra il
@@ -683,7 +716,7 @@ fun SessionSheet(
                             }
                         }
                     }
-            } }
+            } } }
             }
             // «Torna all'ultimo messaggio» (Franz, 10/10 08:18: «avevamo deliberato un tasto per tornare in diretta, ma non l'ho
             // mai visto»): c'è mentre rileggi più su; il tocco scende in fondo e la chat torna a seguire.

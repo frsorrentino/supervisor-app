@@ -13,6 +13,19 @@ class ChatFollowTest {
 
     @Test fun neverDuringAScroll() = assertFalse(ChatFollow.chase(follow = true, below = true, items = 3, scrolling = true, touching = false))
 
+    // app-scroll-master-lavoro-27-11: la chat riletta non si sposta per portare in vista qualcosa.
+    @Test fun readingHoldsEveryBringIntoView() {
+        assertTrue("non segue il fondo", ChatFollow.holdBringIntoView(follow = false, atEnd = false, touching = false, flinging = false, sinceTapMs = 5_000))
+        assertTrue("segue ma non è in fondo", ChatFollow.holdBringIntoView(follow = true, atEnd = false, touching = false, flinging = false, sinceTapMs = 5_000))
+        assertTrue("dito giù anche in fondo", ChatFollow.holdBringIntoView(follow = true, atEnd = true, touching = true, flinging = false, sinceTapMs = 5_000))
+        assertTrue("slancio in corso", ChatFollow.holdBringIntoView(follow = true, atEnd = true, touching = false, flinging = true, sinceTapMs = 5_000))
+    }
+
+    @Test fun atTheEndOrRightAfterATapItPasses() {
+        assertFalse("in fondo, ferma", ChatFollow.holdBringIntoView(follow = true, atEnd = true, touching = false, flinging = false, sinceTapMs = 5_000))
+        assertFalse("un tasto toccato nella risposta", ChatFollow.holdBringIntoView(follow = false, atEnd = false, touching = false, flinging = false, sinceTapMs = 200))
+    }
+
     @Test fun releasedAboveTheBottomItStaysWhereTheFingerLeftIt() {
         assertFalse(ChatFollow.afterRelease(atEnd = false))
         assertTrue(ChatFollow.afterRelease(atEnd = true))
