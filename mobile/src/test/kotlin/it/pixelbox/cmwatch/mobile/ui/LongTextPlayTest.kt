@@ -54,7 +54,7 @@ class LongTextPlayTest {
                 }
             }
         }
-        paparazzi.gif(view, end = 400, fps = 30)
+        paparazzi.gif(view, end = 1_000, fps = 60)
 
         val r = root ?: error("nessun albero letto")
         val short = find(r) { n -> n.tag() == "corto" } ?: error("manca il testo corto")

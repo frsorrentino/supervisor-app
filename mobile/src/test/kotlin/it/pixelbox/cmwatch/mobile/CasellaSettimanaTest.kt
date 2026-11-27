@@ -55,7 +55,7 @@ class CasellaSettimanaTest {
                 }
             }
         }
-        paparazzi.gif(view, end = 300, fps = 30)
+        paparazzi.gif(view, end = 1_000, fps = 60)
         val r = root ?: error("nessun albero letto")
         return (boxes + "home-box-utilizzo-azzera").associateWith { t -> find(r) { n -> n.tag() == t } ?: error("manca $t") }
     }
