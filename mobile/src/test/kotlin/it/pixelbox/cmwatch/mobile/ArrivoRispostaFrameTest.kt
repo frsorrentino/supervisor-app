@@ -100,7 +100,11 @@ class ArrivoRispostaFrameTest {
         val w = step.filter { y -> !y.isNaN() }
         assertTrue("il lavoro non è in vista: $step", w.size > 10)
         assertTrue("la lista torna giù o salta: $w", w.zipWithNext().all { (a, b) -> b <= a + 0.5f })
-        assertTrue("la lista non sale: $w", w.first() - w.last() > 40f)
+        val rise = w.first() - w.last()
+        assertTrue("la lista non sale: $w", rise > 40f)
+        // Una corsa, non un salto: la salita dura più fotogrammi e nessun passo ne fa più di metà (un salto in fondo farebbe tutto in uno).
+        val moves = w.zipWithNext().map { (a, b) -> a - b }.filter { it > 0.5f }
+        assertTrue("la lista salta invece di correre: $w", moves.size >= 5 && moves.max() < rise / 2)
     }
 
     private fun find(n: SemanticsNode, p: (SemanticsNode) -> Boolean): SemanticsNode? =
