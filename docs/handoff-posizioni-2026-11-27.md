@@ -28,3 +28,31 @@ Gruppi:
       MasterMove, MasterLanding, HomeRow (+test), ui HomeRowUi.kt, MasterMoveKeyUi.kt, MasterFrame; restano molle MasterGestures.
       Home in riga → numeri sulle icone. Demo allineata.
 - [ ] 6 Tablet e largo, immagini 360/1280/1920, PROVA finale.
+
+## Avviso della master per il gruppo 1 (27/11 ~20:30)
+Franz (20:22) ha chiesto il Rubber dock di designbookmark «agli elementi dell'app»; la master gli chiede dove con una scheda
+(consiglio: la riga di icone, pillola elastica = due bordi L/R con molle diverse al posto di X/W 340/28; nome 300/26 e numeri come da piano).
+- Il gruppo 1 si fa come da piano, ma il calcolo di posizione e larghezza della pillola sta in UN PUNTO SOLO (un'unica funzione o classe,
+  telefono e web), così la pillola elastica si innesta senza rifare il resto.
+- NIENTE golden sul movimento della pillola finché Franz non sceglie; la scelta arriva come compito a parte (app-dock-elastico-27-11).
+- Codice originale e mockup: D:/cm-sessions/dalla-master/dock-elastico-2026-11-27/ (fonte-designbookmark/, riga-elastica.html).
+- Molle (k/c, massa 1; dampingRatio Compose = c/(2√k)): bordo davanti 640/38 (0,751), bordo dietro 150/16 (0,653); col dito 1100/56 (0,844)
+  e 320/26 (0,727); fermo, dir 0: 600/44 (0,898); salto icona 520/16 (0,351), spinta −3,2; card: larghezza 340/21 (0,569), altezza 230/21
+  (0,692), chiusura 420/30 (0,732). Pillola tirata: altezza = 40·clamp(1/√(larghezza/larghezza finale), 0,66, 1,1). Oltre i bordi:
+  elastico di dock.js (d=46, 0,55) e la riga che segue al 35%.
+
+## app-dock-elastico-27-11 approvato (Franz 27/11 20:46, scelta «Riga di icone»)
+- Il Rubber dock (pillola elastica a due bordi, trascinabile col dito, elastico ai bordi; con «riduci movimento» niente rimbalzo) sulla
+  riga di icone, telefono e web, molle --dock-* di tokens.css (dampingRatio = c/(2√k)), colori v3, testi veri. Va DOPO il gruppo 1, sulla
+  stessa pillola. Mockup dal vivo https://claude.ai/artifact/QEtxUiQUsiGTff1ywjM6sr; copia per win D:/cm-sessions/dalla-master/dock-elastico-2026-11-27/.
+  Test, golden, commit col compito, build e deploy verdi, prova con immagini a 360 e 1280.
+- Franz nello stesso messaggio: «io in realtà intendevo ottenere l'effetto di entrata elastica su tutti gli elementi della home quando si
+  avvia l'app» → è un'altra richiesta (entrata elastica della home all'avvio): segnalata alla master, da fare solo se la master la avvia.
+
+## Proposta del centro notifiche (dopo il gruppo 1, solo documenti; ok della master 27/11 ~21:30)
+- docs/proposte/2026-11-26-centro-notifiche/ (fonti.md c'è): proposta.md, mockup animati per voce, tutte.html autonomo, 00-tutte.png, 2-4 opzioni.
+- Tasti ACCANTO A OGNI MOCKUP (Franz 20:53): «Rivedi» e «Al rallentatore» subito sotto il titolo di ogni mockup, muovono solo quello;
+  niente barra di comandi in cima.
+- Un WebP animato per voce, come dock-elastico-2026-11-27/home-entrata.html: __frame(ms) disegna un istante, foto a 30 fps, montaggio in
+  loop (la home: 55 fotogrammi, 326 KB).
+- Nella scheda: prima l'HTML autonomo, poi i WebP e le immagini.
