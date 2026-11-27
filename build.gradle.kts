@@ -24,6 +24,12 @@ subprojects {
             override fun afterTest(testDescriptor: org.gradle.api.tasks.testing.TestDescriptor, result: org.gradle.api.tasks.testing.TestResult) {
                 val c = counts.computeIfAbsent(testDescriptor.className?.substringAfterLast('.') ?: "?") { IntArray(2) }
                 synchronized(c) { c[0]++; if (result.resultType == org.gradle.api.tasks.testing.TestResult.ResultType.SUCCESS) c[1]++ }
+                // Un test rosso col suo perché, leggibile senza token come le notice (27/11: i registri da win non si leggono).
+                if (result.resultType == org.gradle.api.tasks.testing.TestResult.ResultType.FAILURE) {
+                    val why = result.exception?.let { e -> "${e.javaClass.simpleName}: ${e.message ?: ""}" } ?: "?"
+                    val line = why.replace("%", "%25").replace("\r", "").replace("\n", " | ").take(600)
+                    println("::error title=Test rosso ($task) ${testDescriptor.className?.substringAfterLast('.')}.${testDescriptor.name}::$line")
+                }
             }
             override fun afterSuite(suite: org.gradle.api.tasks.testing.TestDescriptor, result: org.gradle.api.tasks.testing.TestResult) {
                 if (suite.parent != null) return
