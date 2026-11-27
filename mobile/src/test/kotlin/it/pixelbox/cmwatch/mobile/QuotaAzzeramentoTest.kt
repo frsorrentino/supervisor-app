@@ -34,7 +34,9 @@ import java.time.ZoneId
  * giorno). Notte e giorno. Le ore sono quelle vere della settimana del 17/11: la settimana personale si azzera gio 19/11 alle 3.
  */
 class QuotaAzzeramentoTest {
-    @get:Rule val paparazzi = Paparazzi(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenHeight = 2000), theme = "android:Theme.Material.NoActionBar")
+    // I golden con l'anello e i grafici della quota escono in due versioni a seconda della macchina della CI, diverse solo
+    // nell'antialiasing (0,03-0,05% dei pixel, 27/11): la tolleranza dello 0,1% le accetta tutte e due.
+    @get:Rule val paparazzi = Paparazzi(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenHeight = 2000), theme = "android:Theme.Material.NoActionBar", maxPercentDifference = 0.1)
     @After fun night() { V3.day = false }
 
     private val zone = ZoneId.of("Europe/Rome")

@@ -22,7 +22,9 @@ import org.junit.Test
  * «fermi 64 min») e la quota indietro sul tempo a ritmo lento.
  */
 class RhythmPanelTest {
-    @get:Rule val paparazzi = Paparazzi(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it"), theme = "android:Theme.Material.NoActionBar")
+    // I golden con l'anello e i grafici della quota escono in due versioni a seconda della macchina della CI, diverse solo
+    // nell'antialiasing (0,03-0,05% dei pixel, 27/11): la tolleranza dello 0,1% le accetta tutte e due.
+    @get:Rule val paparazzi = Paparazzi(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it"), theme = "android:Theme.Material.NoActionBar", maxPercentDifference = 0.1)
 
     private val reset = 1_793_050_800L
     private val start = reset - QuotaHistory.WINDOW_S

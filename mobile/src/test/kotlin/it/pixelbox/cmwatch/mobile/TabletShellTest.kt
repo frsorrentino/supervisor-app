@@ -33,7 +33,9 @@ import java.time.ZoneId
  * il carattere grande, e una finestra da 1000 dp senza ispettore. Solo i dati demo della fixture: il repo è pubblico.
  */
 class TabletShellTest {
-    @get:Rule val paparazzi = Paparazzi(deviceConfig = TABLET, theme = "android:Theme.Material.NoActionBar")
+    // I golden con l'anello e i grafici della quota escono in due versioni a seconda della macchina della CI, diverse solo
+    // nell'antialiasing (0,03-0,05% dei pixel, 27/11): la tolleranza dello 0,1% le accetta tutte e due.
+    @get:Rule val paparazzi = Paparazzi(deviceConfig = TABLET, theme = "android:Theme.Material.NoActionBar", maxPercentDifference = 0.1)
 
     private val base = ContractJson.decodeState(File("../contract/state-1-question.json").readText())
     private val ts = base.ts

@@ -23,7 +23,9 @@ import org.junit.Test
  * settimana intera dal rinnovo che arriva al 100% prima del rinnovo.
  */
 class WeekPanelTest {
-    @get:Rule val paparazzi = Paparazzi(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it"), theme = "android:Theme.Material.NoActionBar")
+    // I golden con l'anello e i grafici della quota escono in due versioni a seconda della macchina della CI, diverse solo
+    // nell'antialiasing (0,03-0,05% dei pixel, 27/11): la tolleranza dello 0,1% le accetta tutte e due.
+    @get:Rule val paparazzi = Paparazzi(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it"), theme = "android:Theme.Material.NoActionBar", maxPercentDifference = 0.1)
 
     private val start = 1_789_005_600L
     private val reset = start + Week7.WEEK_S

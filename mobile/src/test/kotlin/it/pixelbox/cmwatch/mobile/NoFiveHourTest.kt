@@ -30,7 +30,9 @@ import java.time.ZoneId
 
 /** quota-senza-cinque-ore: il dato five_hour sparisce per account. Tabellone, Utilizzo e pannello, un account solo e due con uno senza dato, notte e giorno B. */
 class NoFiveHourTest {
-    @get:Rule val paparazzi = Paparazzi(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it"), theme = "android:Theme.Material.NoActionBar")
+    // I golden con l'anello e i grafici della quota escono in due versioni a seconda della macchina della CI, diverse solo
+    // nell'antialiasing (0,03-0,05% dei pixel, 27/11): la tolleranza dello 0,1% le accetta tutte e due.
+    @get:Rule val paparazzi = Paparazzi(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it"), theme = "android:Theme.Material.NoActionBar", maxPercentDifference = 0.1)
 
     private val zone = ZoneId.of("Europe/Rome")
     private val base = ContractJson.decodeState(File("../contract/state-2-idle.json").readText())
