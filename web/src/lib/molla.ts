@@ -65,71 +65,70 @@ export function entra(node: HTMLElement, p: { on: boolean; me: boolean }) {
 }
 
 /**
- * Voce 1, fedele all'originale (Streaming reply; app-animazioni-fedeli-26-11), parole della risposta arrivata a chat aperta: ogni parola
- * parte 70 ms dopo la precedente (oltre 20 parole l'intervallo si accorcia e la risposta intera esce in 1,4 s, scelta b della master
- * del 26/11), sale di 6 px, l'opacità va da 0 e passa da sfocata (4 px) a nitida con la molla 340 26; la scheda cresce fino al fondo
- * dell'ultima parola (+ 16 px, il suo margine) con la molla 260 26, poi torna alla sua altezza. Moto ridotto: al posto.
+ * app-messaggio-master-effetto-27-11 (Franz 27/11 13:28, opzione B «L'esito per primo», strada b della master), come ArrivoRisposta.kt:
+ * la risposta che arriva ha la sua misura dal primo fotogramma, quindi la lista non salta. Se la chat era in fondo, la lista sale una volta
+ * sola fino alla fine con la molla del pannello (400 40, senza rimbalzo, a pixel interi) e, nello stesso fotogramma, risposta e riga dei
+ * dati si disegnano spostate in su di k con quello che sta sopra la linea k ritagliato, dove k è quanto manca alla fine: il testo nuovo sta
+ * fermo, l'esito compare per primo dove c'era «sta pensando» e la risposta si apre verso l'alto. Un dito o la rotella a metà corsa
+ * scoprono tutto e lasciano la lista lì; una risposta nuova chiude subito quella in corsa; più in alto niente movimento (resta «1 nuovo
+ * ↓»). Moto ridotto: la chat si spegne in 70 ms, va in fondo, si riaccende in 150 ms; corpo e riga dei dati entrano 80 ms dopo, in 120 ms.
+ * Prende il posto di `parole`.
  */
-export function parole(node: HTMLElement, p: { on: boolean }) {
-  if (!p.on || ridotto()) return
-  const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT)
-  const texts: Text[] = []
-  while (walker.nextNode()) texts.push(walker.currentNode as Text)
-  const words: { el: HTMLSpanElement; s: Molla; on: boolean }[] = []
-  for (const tn of texts) {
-    const parts = (tn.nodeValue ?? '').split(/(\s+)/)
-    if (!parts.some((x) => x.trim())) continue
-    const frag = document.createDocumentFragment()
-    for (const x of parts) {
-      if (!x) continue
-      if (!x.trim()) { frag.append(x); continue }
-      const el = document.createElement('span')
-      el.textContent = x
-      el.style.display = 'inline-block'
-      el.style.opacity = '0'
-      frag.append(el)
-      words.push({ el, s: molla(0, 340, 26), on: false })
-    }
-    tn.replaceWith(frag)
+let chiudiCorsa: (() => void) | null = null
+/** C'è una risposta in arrivo: la chat non fa il suo scorrimento morbido verso il fondo. */
+export const corsaInArrivo = (): boolean => chiudiCorsa != null
+export function arriva(node: HTMLElement, p: { on: boolean }) {
+  if (!p.on) return
+  chiudiCorsa?.()
+  const list = node.closest<HTMLElement>('[data-chat-list]')
+  if (!list || list.dataset.atEnd !== 'true') return
+  const tail = node.closest('.it')?.querySelector<HTMLElement>(':scope > .tm') ?? null
+  const parts = tail ? [node, tail] : [node]
+  const s0 = list.scrollTop
+  const d = Math.round(list.scrollHeight - list.clientHeight - s0)
+  if (d <= 0) return
+  // Le parti si contano dall'alto della risposta: la linea del ritaglio è la stessa per tutte e due.
+  const top = node.getBoundingClientRect().top
+  const offs = parts.map((el) => el.getBoundingClientRect().top - top)
+  const paint = (k: number) => parts.forEach((el, i) => {
+    if (k <= 0) { el.style.transform = ''; el.style.clipPath = ''; el.style.visibility = ''; return }
+    const cut = Math.max(0, k - offs[i])
+    el.style.transform = `translateY(${-k}px)`
+    el.style.clipPath = `inset(${Math.min(cut, el.offsetHeight)}px 0 0 0)`
+  })
+  const finito = () => {
+    m?.stop()
+    paint(0)
+    for (const ev of ['pointerdown', 'wheel', 'touchstart'] as const) list.removeEventListener(ev, finito)
+    if (chiudiCorsa === finito) chiudiCorsa = null
   }
-  if (!words.length) return
-  // app-apertura-master-scatti-26-11 (Franz 26/11 23:39, «la sezione esito tremola»): quello che sta sotto la risposta (il piede con
-  // l'Esito) resta nascosto mentre la scheda cresce e compare in 200 ms quando è ferma, invece di essere spinto giù a ogni riga.
-  const below: HTMLElement[] = []
-  for (let n = node.nextElementSibling; n; n = n.nextElementSibling) below.push(n as HTMLElement)
-  below.forEach((b) => { b.style.opacity = '0' })
-  const gap = words.length <= 20 ? 70 : 1400 / words.length
-  const H = molla(40, 260, 26)
-  const full = node.scrollHeight
-  node.style.overflow = 'hidden'
-  const top = () => node.getBoundingClientRect().top
-  const timers: number[] = []
-  let done = false
-  const render = () => {
-    node.style.height = done && ferma(H) ? '' : `${Math.max(0, H.x).toFixed(2)}px`
-    for (const w of words) {
-      if (!w.on) continue
-      const v = clamp(w.s.x, 0, 1.2)
-      w.el.style.opacity = clamp(v, 0, 1).toFixed(3)
-      w.el.style.transform = `translateY(${((1 - w.s.x) * 6).toFixed(2)}px)`
-      w.el.style.filter = v < 0.98 ? `blur(${((1 - clamp(v, 0, 1)) * 4).toFixed(2)}px)` : 'none'
-    }
-    if (done && ferma(H)) {
-      node.style.overflow = ''
-      below.forEach((b) => { if (b.style.opacity === '0') { b.style.transition = 'opacity 200ms ease'; b.style.opacity = '' } })
-    }
+  let m: { vai: () => void; stop: () => void } | null = null
+  chiudiCorsa = finito
+  for (const ev of ['pointerdown', 'wheel', 'touchstart'] as const) list.addEventListener(ev, finito, { passive: true })
+  if (ridotto()) {
+    parts.forEach((el) => (el.style.visibility = 'hidden'))
+    list.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 70, fill: 'forwards' })
+    setTimeout(() => {
+      list.scrollTop = list.scrollHeight - list.clientHeight
+      for (const a of list.getAnimations()) a.cancel()
+      finito()
+      list.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, easing: 'cubic-bezier(.3, 0, .2, 1)' })
+      for (const el of [node.querySelector<HTMLElement>('.za'), tail]) el?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 120, delay: 80, easing: 'cubic-bezier(.3, 0, .2, 1)', fill: 'backwards' })
+    }, 80)
+    return { destroy: finito }
   }
-  const m = motore([H, ...words.map((w) => w.s)], render)
-  words.forEach((w, i) => timers.push(window.setTimeout(() => {
-    w.on = true; w.s.t = 1
-    const r = w.el.getBoundingClientRect()
-    H.t = Math.min(full, r.bottom - top() + 16)
-    m.vai()
-  }, i * gap)))
-  timers.push(window.setTimeout(() => { done = true; H.t = node.scrollHeight; m.vai() }, words.length * gap + 1000))
-  render()
+  const S = molla(0, 400, 40)
+  S.t = d
+  let done = 0
+  paint(d)
+  m = motore([S], () => {
+    const to = Math.min(d, Math.max(0, Math.round(S.x)))
+    if (to !== done) { list.scrollTop = s0 + to; done = to }
+    paint(d - done)
+    if (done >= d && ferma(S)) finito()
+  })
   m.vai()
-  return { destroy: () => { timers.forEach(clearTimeout); m.stop(); below.forEach((b) => { b.style.opacity = '' }) } }
+  return { destroy: finito }
 }
 
 /**

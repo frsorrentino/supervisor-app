@@ -2,7 +2,7 @@
   import ProvaCards from './ProvaCards.svelte'
   import { DAY } from './durations'
   import { popOnChange } from './motion'
-  import { entra, parole } from './molla'
+  import { arriva, entra } from './molla'
   import CopyButton from './CopyButton.svelte'
   import { parts as citeParts } from './citazione'
   import QuoteBlock from './QuoteBlock.svelte'
@@ -274,9 +274,10 @@
 {#snippet answer(e: TranscriptEntry)}
   {@const r = read(e)}
   {@const sp = spokenOf(e)}
-  <div class="ans" class:found={flash === e.id} data-entry={e.id} data-quote={r.text} data-quote-at={e.at ?? ''}>
+  <!-- app-messaggio-master-effetto-27-11 (opzione B): la risposta nata dopo l'apertura arriva con l'esito per primo (arriva, molla.ts). -->
+  <div class="ans" class:found={flash === e.id} data-entry={e.id} data-quote={r.text} data-quote-at={e.at ?? ''} use:arriva={{ on: liveAnswer(e.id, e.at) }}>
     {#if r.es.body.trim() || r.buttons.length || r.wl.ids.length || e.cut}
-      <section class="z za" use:parole={{ on: liveAnswer(e.id, e.at) }}>
+      <section class="z za">
         {#if speech.text === sp}{@render reading(sp)}{:else}{@render doc(r.es.body, true, bozzeOf(e))}{/if}
         {@render extras(e, r)}
       </section>

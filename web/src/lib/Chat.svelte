@@ -1,6 +1,6 @@
 <script lang="ts">
   import DropZone from './DropZone.svelte'
-  import { volaFile } from './molla'
+  import { corsaInArrivo, volaFile } from './molla'
   import { untrack } from 'svelte'
   import { newPill } from './animazioni'
   import type { Session, State } from './contract'
@@ -263,9 +263,13 @@
     if (!atEnd) return
     // Già in fondo non c'è scorrimento e quindi nemmeno `scrollend`: il segno «scorrimento nostro» non deve restare acceso.
     if (el.scrollHeight - el.scrollTop - el.clientHeight < 2) return
-    auto = true
-    setTimeout(() => { auto = false }, 1000)
-    el.scrollTo({ top: endOf(el), behavior: 'smooth' })
+    // app-messaggio-master-effetto-27-11: una risposta che arriva fa lei la sua corsa (arriva, molla.ts); deciso dopo che è montata.
+    queueMicrotask(() => {
+      if (corsaInArrivo()) return
+      auto = true
+      setTimeout(() => { auto = false }, 1000)
+      el.scrollTo({ top: endOf(el), behavior: 'smooth' })
+    })
   })
   // Voce 1 di app-animazioni-seconde-26-11 (Messaggio che entra): mentre leggi più in alto, i messaggi arrivati si contano e il tasto
   // per tornare in fondo diventa la pillola «N nuovi ↓»; in fondo il conto riparte da zero.
@@ -326,7 +330,7 @@
     </Blocco>{/if}
     {#if resultsRow}{@render resultsRow()}{/if}
   </div>
-  <div class="lines" class:dots={home} bind:this={list}>
+  <div class="lines" class:dots={home} bind:this={list} data-chat-list data-at-end={atEnd}>
     {#if home}
       <MasterHome {st} master={s} {entries} onConversation={() => (conversation = true)} onStep={pick} onSendStep={onSend}
         {onAnswer} onSession={onPick} onSpeak={(x) => toggle(x, s.name)} {events} {sent} {read} {onRead} onPrompt={onPromptTo} {onCmd} />

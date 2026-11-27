@@ -434,9 +434,21 @@ fun SessionSheet(
     LaunchedEffect(list, anchored) {
         if (!anchored) return@LaunchedEffect
         androidx.compose.runtime.snapshotFlow { list.layoutInfo.totalItemsCount to list.canScrollForward }.collect { (n, below) ->
-            if (ChatFollow.chase(follow, below, n, list.isScrollInProgress, touching)) list.scrollToEnd()
+            if (ChatFollow.chase(follow, below, n, list.isScrollInProgress || streamGate.current?.running == true, touching)) list.scrollToEnd()
         }
     }
+    // app-messaggio-master-effetto-27-11 (opzione B): la corsa della risposta che arriva (ArrivoRisposta.kt), in fondo alla chat; più in alto la
+    // risposta compare al suo posto. Un dito sulla lista la chiude subito e la lascia al dito.
+    val chatAlpha = remember(s.id) { androidx.compose.animation.core.Animatable(1f) }
+    val reducedMotion = animationsOff()
+    val arriving = streamGate.current
+    LaunchedEffect(arriving) {
+        val a = arriving ?: return@LaunchedEffect
+        if (!a.running) return@LaunchedEffect
+        a.job = coroutineContext[kotlinx.coroutines.Job]
+        list.runArrival(a, follow && !touching, reducedMotion, chatAlpha)
+    }
+    LaunchedEffect(touching) { if (touching) streamGate.current?.takeIf { it.running }?.finish() }
     // Da Cerca: si caricano le pagine più vecchie finché la voce non c'è (al massimo 8), poi la chat la porta in vista con un lampo
     // giallo e smette di seguire la fine (app-cerca-pagina-03-11).
     var flash by remember(s.id) { mutableStateOf<String?>(null) }
@@ -598,7 +610,7 @@ fun SessionSheet(
                 // 09/11 23:02): la conversazione vera arriva col dito ancora sulla pagina, l'ancora riparte e il primo fotogramma
                 // mostrava l'inizio («Carica i messaggi precedenti») prima dell'ultimo messaggio.
                 // Negli snapshot fermi gli effetti non girano e la chat non si ancora: lì si disegna com'è.
-                Modifier.fillMaxSize().then(if (still) Modifier else Modifier.graphicsLayer { if (!anchored && (chat.isNotEmpty() || !feed.isNullOrEmpty())) alpha = 0f }).nestedScroll(reading)
+                Modifier.fillMaxSize().then(if (still) Modifier else Modifier.graphicsLayer { alpha = if (!anchored && (chat.isNotEmpty() || !feed.isNullOrEmpty())) 0f else chatAlpha.value }).nestedScroll(reading)
                     // Un tasto con il fuoco nella chat (tastiera del tablet o del Chromebook) conta come un tocco: il fuoco che scende fra le
                     // voci le porta in vista anche mentre si rilegge (app-scroll-master-lavoro-27-11).
                     .onPreviewKeyEvent { tapAt[0] = android.os.SystemClock.uptimeMillis(); false }.pointerInput(Unit) {
@@ -2851,18 +2863,18 @@ private fun RichText(text: String, tasks: TaskLinks, tone: androidx.compose.ui.g
     val body = MaterialTheme.typography.bodyLarge
     val lead = if (big) body.copy(fontSize = 17.sp, lineHeight = 25.sp) else body
     val one = parts.singleOrNull() as? it.pixelbox.cmwatch.rules.Answer.Rich.P
-    if (one != null) { StreamText(linked(one.text, tasks), style = lead, color = tone); return }
+    if (one != null) { Text(linked(one.text, tasks), style = lead, color = tone); return }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         parts.forEachIndexed { i, p ->
             when (p) {
-                is it.pixelbox.cmwatch.rules.Answer.Rich.P -> StreamText(linked(p.text, tasks), style = if (i == 0) lead else body, color = tone)
+                is it.pixelbox.cmwatch.rules.Answer.Rich.P -> Text(linked(p.text, tasks), style = if (i == 0) lead else body, color = tone)
                 is it.pixelbox.cmwatch.rules.Answer.Rich.Li -> Row(Modifier.padding(start = (p.depth * 18).dp)) {
                     val number = p.mark != "•"
                     Text(
                         p.mark, style = if (number) body.copy(fontFamily = V3.Display, fontWeight = FontWeight.SemiBold) else body,
                         color = if (number) V3.Tx2 else V3.Tx3, modifier = Modifier.width(22.dp),
                     )
-                    StreamText(linked(p.text, tasks), style = body, color = tone, modifier = Modifier.weight(1f))
+                    Text(linked(p.text, tasks), style = body, color = tone, modifier = Modifier.weight(1f))
                 }
                 is it.pixelbox.cmwatch.rules.Answer.Rich.Code -> CommandCard(p.text)
                 is it.pixelbox.cmwatch.rules.Answer.Rich.Quote -> QuoteCard(p.text, tasks)
@@ -3015,13 +3027,19 @@ private fun TurnRowBody(
             listOfNotNull(stringResource(R.string.chat_auto_turn), (t.work.firstOrNull()?.entry?.at ?: t.answer?.at)?.let(::hhmm)).joinToString(" · "),
             style = androidx.compose.ui.text.TextStyle(fontFamily = V3.Sans, fontSize = 12.5.sp, lineHeight = 16.sp), color = V3.Tx3, modifier = Modifier.padding(horizontal = 6.dp).testTag("chat-avviso-automatico"),
         )
+        // app-messaggio-master-effetto-27-11: la risposta nata dopo l'apertura arriva con l'effetto B. Il turno la passa a scheda e riga dei
+        // dati insieme, così nessuna delle due compare per un fotogramma al posto sbagliato; negli screenshot fermi niente arrivo.
+        val gate = LocalStreamGate.current
+        val stillShot = LocalStill.current
+        val arr = remember(t.answer?.id) { t.answer?.let { a -> if (!stillShot && gate?.claim(a.id, a.at) == true) Arrival(a.id) else null } }
+        androidx.compose.runtime.SideEffect { if (arr != null && arr.running) gate?.publish(arr) }
         if (t.work.isNotEmpty() || t.answer != null) V3Theme {
             val shape = RoundedCornerShape(22.dp)
             Column(Modifier.fillMaxWidth().testTag("chat-scheda").clip(shape).then(if (V3.day) Modifier.border(1.dp, V3.Line, shape) else Modifier)) {
                 if (t.work.isNotEmpty()) WorkZone(t, flash, focus, actions)
-                t.answer?.let { AnswerZones(it, flash == it.id, actions, onStep, showSteps) }
+                t.answer?.let { AnswerZones(it, flash == it.id, actions, onStep, showSteps, arr) }
             }
-            t.answer?.let { AnswerTail(it, actions) }
+            t.answer?.let { AnswerTail(it, actions, arr) }
         }
     }
 }
@@ -3211,17 +3229,16 @@ private fun DocBody(text: String, index: Boolean, tone: androidx.compose.ui.grap
 
 /** La risposta: il documento coi suoi titoli e, sotto, il piede con Esito, Tipo e Prossimi; fra i due cambia solo il fondo. */
 @Composable
-private fun AnswerZones(e: TranscriptEntry, flashed: Boolean, actions: SheetActions, onStep: (String) -> Unit, showSteps: Boolean = true) {
+private fun AnswerZones(e: TranscriptEntry, flashed: Boolean, actions: SheetActions, onStep: (String) -> Unit, showSteps: Boolean = true, arr: Arrival? = null) {
     val label = stringResource(R.string.outcome_label)
     val r = remember(e.text, label, actions.sessions) { readEntry(e.text.orEmpty(), label, actions.sessions) }
     val type = it.pixelbox.cmwatch.rules.Kpi.OutcomeType.of(e.outcomeType)
-    // Voce 1 (app-animazioni-fedeli-26-11): una risposta arrivata a chat aperta scorre parola per parola (WordStream.kt).
-    val gate = LocalStreamGate.current
-    val off = animationsOff()
-    val ws = remember(e.id) { if (!off && gate?.claim(e.id, e.at) == true) WordStream(WordStream.count(r.body)) else null }
+    // app-messaggio-master-effetto-27-11 (opzione B): la risposta che arriva si scopre dal basso con la corsa della lista (ArrivoRisposta.kt).
+    // Corpo e piede in una scatola sola, spostata e ritagliata insieme; con le animazioni ridotte il corpo entra dopo l'esito.
+    Column(Modifier.fillMaxWidth().arrivalPart(arr, first = true)) {
     if (r.body.isNotBlank() || r.buttons.isNotEmpty() || r.waits.ids.isNotEmpty() || e.cut) Column(
-        Modifier.fillMaxWidth().streamBox(ws).background(F3.paper).flashed(flashed).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) { androidx.compose.runtime.CompositionLocalProvider(LocalWordStream provides ws) {
+        Modifier.fillMaxWidth().graphicsLayer { alpha = arr?.body ?: 1f }.background(F3.paper).flashed(flashed).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
         // Durante la lettura a voce il testo si mostra a paragrafi, quello letto in evidenza; il tocco su un paragrafo fa ripartire
         // la lettura da lì (Franz, 02/10 00:01: «come in orologio»).
         if (LocalSpeaking.current == r.text) {
@@ -3239,13 +3256,10 @@ private fun AnswerZones(e: TranscriptEntry, flashed: Boolean, actions: SheetActi
             }
         } else Quotable(r.waits.text, e.at) { SelectionContainer { DocBody(r.body, index = true, tone = Cm.text) } }
         EntryExtras(e, r, actions)
-    } }
+    }
     // I PROSSIMI nel turno solo nella master: in una sessione stanno sopra il campo (app-riall-3-doppioni-16-11); l'ESITO resta.
-    // app-apertura-master-scatti-26-11 (Franz 26/11 23:39, «la sezione esito tremola»): mentre la risposta scorre e la scheda cresce
-    // riga per riga, il piede con l'Esito verrebbe spinto giù a ogni riga; entra in 200 ms solo quando la scheda è ferma.
-    val footA by androidx.compose.animation.core.animateFloatAsState(if (ws == null || ws.settled) 1f else 0f, androidx.compose.animation.core.tween(200), label = "piede")
     if (r.outcome != null || r.tipo != null || (showSteps && r.steps.isNotEmpty())) Column(
-        Modifier.fillMaxWidth().graphicsLayer { alpha = footA }.background(F3.foot(type)).padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 14.dp), verticalArrangement = Arrangement.spacedBy(6.dp),
+        Modifier.fillMaxWidth().background(F3.foot(type)).padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 14.dp), verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         r.outcome?.let { FootHead(label, true); EsitoRow(it, type, strong = true) }
         r.tipo?.let { tipo ->
@@ -3268,6 +3282,7 @@ private fun AnswerZones(e: TranscriptEntry, flashed: Boolean, actions: SheetActi
             }
         }
     }
+    }
 }
 
 /** L'etichetta di una riga del piede. */
@@ -3276,11 +3291,14 @@ private fun FootHead(text: String, first: Boolean) = Text(text.uppercase(), styl
 
 /** Sotto la scheda: Copia e ▶ a sinistra, quanto è durato il turno e l'ora a destra. */
 @Composable
-private fun AnswerTail(e: TranscriptEntry, actions: SheetActions) {
+private fun AnswerTail(e: TranscriptEntry, actions: SheetActions, arr: Arrival? = null) {
     val label = stringResource(R.string.outcome_label)
     val text = remember(e.text, label) { NextSteps.parse(it.pixelbox.cmwatch.rules.Answer.stripTipo(e.text.orEmpty(), label).text).text }
     val clip = LocalClipboardManager.current
-    Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+    Row(
+        Modifier.fillMaxWidth().arrivalPart(arr, first = false).graphicsLayer { alpha = arr?.body ?: 1f }.padding(horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
         CopyIconAction(text)
         val reading = LocalSpeaking.current == text
         if (reading) RatePill()
