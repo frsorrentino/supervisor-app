@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_CATS, EDGE, FOLDING, REV, catFor, catKeys, catOf, catOrder, dragCats, flat, fromTop, reorder, decode, encode, moveCat, moveSection, settle, toTop, toggle, top, type Cat, type HomeKey } from './homeCats'
+import { BOARD_MAX, DEFAULT_CATS, EDGE, FOLDING, REV, board, catFor, catKeys, catOf, catOrder, dragCats, flat, fromTop, reorder, decode, encode, moveCat, moveSection, settle, toTop, toggle, top, type Cat, type HomeKey } from './homeCats'
 import { pinned } from './homeOrder'
 
 // La home per categorie (compito app-home-categorie-02-11); gli stessi casi in HomeCatsTest.kt.
@@ -95,7 +95,8 @@ describe('homeCats', () => {
     expect(saved).not.toContain('lavori')
     expect(top(saved)).toEqual(['lavori'])
     expect(decode(saved)[1].sections).toEqual(['notte', 'esiti', 'rendiconti'])
-    // Le sessioni stanno a sé, sotto il tabellone: non ci salgono più (app-home-sessioni-a-se-08-11).
+    // Le sessioni stanno a sé e non si salvano in cima (app-home-sessioni-a-se-08-11): sul tabellone le mette board()
+    // (app-posizioni-sistema-27-11).
     expect(top(['top:sessions', 'rev:6'])).toEqual([])
     expect(toTop(DEFAULT_CATS, [], 'sessions' as HomeKey)).toEqual({ top: [], cats: DEFAULT_CATS })
     expect(saved.length <= 16 && saved.every(k => k.length <= 32)).toBe(true)
@@ -221,7 +222,8 @@ describe('app-sezioni-accorpate-03-11: Tocca a te riprende una volta il suo ordi
     expect(d.find(c => c.id === 'you')!.sections).toEqual(['decisioni', 'prove', 'seguiti', 'suggestions', 'monitors'])
     expect(d.flatMap(c => c.sections)).not.toContain('da_guardare')
     expect(d.map(c => c.open)).toEqual([false, false, false])
-    // Le sessioni non stanno più sul tabellone: sono a sé, sotto (app-home-sessioni-a-se-08-11).
+    // Un `top:sessions` di prima non conta: le sessioni stanno a sé (app-home-sessioni-a-se-08-11), prima voce del tabellone per
+    // conto loro (app-posizioni-sistema-27-11).
     expect(top(old)).toEqual([])
     expect(top(['top:da_guardare', 'rev:3'])).toEqual([])
   })
@@ -279,5 +281,28 @@ describe('app-home-voci-chiuse-10-11: la home parte chiusa', () => {
     const saved = JSON.parse(encode(opened, null)!) as string[]
     expect(saved).toContain('rev:8')
     expect(decode(saved).map(c => [c.id, c.open])).toEqual([['you', true], ['work', false], ['tools', false]])
+  })
+})
+
+// app-posizioni-sistema-27-11 (Franz 27/11 21:27): Sessioni è la prima voce del tabellone, come una messa a mano; gli stessi casi in
+// HomeCatsTest.kt.
+describe('app-posizioni-sistema-27-11: Sessioni nel tabellone', () => {
+  it('sessioni_tabellone: prima Sessioni, poi le voci di Franz nel loro ordine', () => {
+    expect(board(['suggestions', 'esiti'] as HomeKey[], true)).toEqual(['sessions', 'suggestions', 'esiti'])
+    expect(board([] as HomeKey[], true)).toEqual(['sessions'])
+  })
+  it('sessioni_tabellone: senza niente da mostrare non c\'è, e non si raddoppia', () => {
+    expect(board(['suggestions'] as HomeKey[], false)).toEqual(['suggestions'])
+    expect(board(['sessions', 'esiti'] as HomeKey[], true)).toEqual(['sessions', 'esiti'])
+  })
+  it('sessioni_tabellone: non si salva in cima e Franz ne mette ancora quattro sue', () => {
+    let t: HomeKey[] = [], c = DEFAULT_CATS
+    for (const k of ['suggestions', 'esiti', 'lavori', 'prove'] as HomeKey[]) { const r = toTop(c, t, k); t = r.top; c = r.cats }
+    expect(t).toHaveLength(BOARD_MAX)
+    expect(board(t, true)).toEqual(['sessions', ...t])
+    const saved = JSON.parse(encode(c, null, t)!) as string[]
+    expect(saved.filter(k => k.startsWith('top:'))).toEqual(t.map(k => `top:${k}`))
+    expect(saved).not.toContain('top:sessions')
+    expect(top(saved)).toEqual(t)
   })
 })

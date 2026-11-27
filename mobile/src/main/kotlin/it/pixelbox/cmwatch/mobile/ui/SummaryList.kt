@@ -626,6 +626,9 @@ fun SummaryList(
             if (gaveUp != null) return@awaitEachGesture
             haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
             dragY = down.position.y; dragGhostShift = top - down.position.y; dragOrder = if (key.startsWith("cat:")) it.pixelbox.cmwatch.rules.HomeCats.catKeys(catsNow) else shownOrder; dragKey = key
+            // Presa una voce del tabellone si chiude anche la lista di Sessioni, che ci sta in cima (app-posizioni-sistema-27-11).
+            // Sessioni non si chiude mentre si trascina una voce del tabellone: chiudendosi farebbe salire la voce sotto il dito, che finirebbe
+            // oltre il bordo e la toglierebbe da In cima (app-posizioni-sistema-27-11).
             if (key in upNow) { shutTop(upNow); offEdge = edgeTop() }
             var commit = false
             try {
@@ -752,6 +755,8 @@ fun SummaryList(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         if (parts == null && update?.phase?.release != null) item(key = "update-card") { Box(moving()) { UpdateCard(update, now, onInstallUpdate, onDismissUpdate) } }
+        // La spunta sopra il tabellone, come nella web (app-posizioni-sistema-27-11): sotto staccava Sessioni, che al tabellone si attacca.
+        if (allDone && parts == null) item(key = "all-done") { Box(moving().fillMaxWidth().padding(vertical = 4.dp), contentAlignment = Alignment.Center) { AllDoneCheck() } }
         // Contratto 1.83: dopo 120 s la domanda torna al terminale, quindi sta sopra a tutto il resto.
         if (parts == null) elicitations.forEach { e -> item(key = "elicit-${e.id}") { Box(moving()) { ElicitationCard(e, now, onElicit) } } }
         // Niente barra «N ti aspetta(no)» in cima (app-per-te-ti-aspetta-05-11, Franz 05/11 13:48, scelta A, come la web): chi
@@ -766,14 +771,18 @@ fun SummaryList(
         val boardHead = if (parts == null) kpiState?.let { st -> it.pixelbox.cmwatch.rules.Kpi.head(st, kpiPage, now, java.time.ZoneId.systemDefault()) } else null
         val bf = boardHead?.let { h -> it.pixelbox.cmwatch.rules.Kpi.boardShown(f.boardFilter, h) }
         var slotContent: @Composable () -> Unit = {}
+        // app-posizioni-sistema-27-11 (Franz 27/11 21:27): Sessioni sta nel tabellone come una voce messa a mano, la prima sotto i tre
+        // numeri, quando ha qualcosa da mostrare; senza sessioni la sua riga è Chiuse, che resta raggiungibile. Non si salva in `top:` e
+        // non conta fra le quattro voci di Franz.
+        val sessionsLive = model.rows.isNotEmpty() || justClosed != null
+        val sessionsInBoard = parts == null && (sessionsLive || model.closed.isNotEmpty())
         if (parts == null) kpiState?.let { st ->
             item(key = "kpi-7") {
                 Box(moving().onGloballyPositioned { c -> boardBox = c }) {
                     val boardClick: (HomeBox) -> Unit = { b ->
                         // I tre riquadri aprono la loro categoria (app-home-categorie-02-11): chiusa, si apre e resta aperta, come col tocco
-                        // sulla testata (app-home-in-cima-02-11); poi la lista ci scorre.
-                        // I primi due riquadri contano le sessioni, che stanno a sé sotto il tabellone (app-home-sessioni-a-se-08-11): ci
-                        // scorrono. Esiti sta in Lavori: il suo riquadro apre Lavori e la sottosezione Esiti.
+                        // sulla testata (app-home-in-cima-02-11); poi la lista ci scorre. Esiti sta in Lavori: il suo riquadro apre Lavori e
+                        // la sottosezione Esiti.
                         if (b == HomeBox.OUTCOMES) {
                             if (!esitiOpen) { esitiOpen = true; save("esiti", true) }
                             if (catsNow.any { c -> c.id == "work" && !c.open }) setCats(it.pixelbox.cmwatch.rules.HomeCats.toggle(catsNow, "work"))
@@ -782,8 +791,9 @@ fun SummaryList(
                             // Le due caselle filtrano la lista sul posto (app-tabellone-filtri-14-11); il secondo tocco toglie il filtro e non scorre.
                             val next = it.pixelbox.cmwatch.rules.Kpi.boardTap(bf, if (b == HomeBox.WAITING) it.pixelbox.cmwatch.rules.Kpi.BoardFilter.WAITING else it.pixelbox.cmwatch.rules.Kpi.BoardFilter.BUSY, h)
                             f.boardFilter = next
-                            // Sessioni si apre da sola col filtro (app-tabellone-filtro-25-11): lo fa l'effetto su `f.boardFilter`.
-                            if (next != null) catFocus = "sec-sessions"
+                            // Sessioni si apre da sola col filtro (app-tabellone-filtro-25-11): lo fa l'effetto su `f.boardFilter`. Sta nel
+                            // tabellone, subito sotto le caselle (app-posizioni-sistema-27-11, Franz 27/11 21:27): la lista filtrata è già in
+                            // vista e la home non ci scorre più, che portava le caselle fuori dallo schermo.
                         }
                     }
                     val kh = it.pixelbox.cmwatch.rules.Kpi.head(st, kpiPage, now, java.time.ZoneId.systemDefault())
@@ -801,7 +811,7 @@ fun SummaryList(
                             }?.let { l -> resetText(l) },
                         ) { usageOpen = !usageOpen; save("usage", usageOpen) }
                     }
-                    Kpi7(kh, st, now, boardClick, onQuota, joined = up.any { k -> k != pin }, usage = cell, filter = bf, slot = { slotContent() })
+                    Kpi7(kh, st, now, boardClick, onQuota, joined = sessionsInBoard || up.any { k -> k != pin }, usage = cell, filter = bf, slot = { slotContent() })
                     val held = dragKey
                     // Sul tabellone si rilascia una sezione che non c'è ancora; con quattro voci lo dice, e il rilascio non cambia niente.
                     if (held != null && catFor(held) != null && held !in up && !(weekAlarm && held == "usage")) SlotDrop(overSlot(held, dragY) && boardTakes(held), full = !boardTakes(held))
@@ -847,7 +857,6 @@ fun SummaryList(
             )
             }
         }
-        if (allDone && parts == null) item(key = "all-done") { Box(moving().fillMaxWidth().padding(vertical = 4.dp), contentAlignment = Alignment.Center) { AllDoneCheck() } }
         // Ti aspettano si fonde con Sessioni (Franz 02/11 21:41, app-home-nomi-02-11): le sessioni ferme su una domanda stanno in
         // cima alla lista di Sessioni, con la loro card ambra; la riga Sessioni si accende quando ce n'è una.
         // Franz 02/11 23:57: «aspettano te sia un sottoinsieme di sessioni»: un gruppo in cima a Sessioni con le sole sessioni che
@@ -879,13 +888,16 @@ fun SummaryList(
         val liveBelow = live?.let { o -> o.drop(o.indexOf(edge) + 1) }
         // Le righe In cima nel tabellone (app-utilizzo-una-barra-03-11): ognuna si attacca a quella sopra, tranne dopo una voce aperta che
         // mette il suo corpo fra le righe (Sessioni, Esiti, Lavori); lì il pezzo si chiude con gli angoli e il seguente riparte.
-        val boardKeys = liveTop.filter { k -> k != listSkip }
-        val bodyBelow: (String) -> Boolean = { k -> (k == "sessions" && sessionsOpen) || (k == "esiti" && esitiOpen) || (k == "lavori" && lavoriOpen) }
-        val boardAbove: (String) -> Boolean = { k -> boardKeys.indexOf(k).let { i -> i == 0 || (i > 0 && !bodyBelow(boardKeys[i - 1])) } }
+        // app-posizioni-sistema-27-11 (Franz 27/11 21:27): la prima riga è Sessioni, poi le voci che Franz ci mette (HomeCats.board).
+        // Sotto Sessioni c'è un corpo anche chiusa, finché si vede la scheda di quella appena chiusa.
+        val boardKeys = it.pixelbox.cmwatch.rules.HomeCats.board(liveTop.filter { k -> k != listSkip }, sessionsInBoard)
+        val bodyBelow: (String) -> Boolean = { k -> (k == "sessions" && sessionsLive && (sessionsOpen || justClosed != null)) || (k == "esiti" && esitiOpen) || (k == "lavori" && lavoriOpen) }
+        // Senza il tabellone (lo stato non c'è ancora) la prima riga non ha niente a cui attaccarsi.
+        val boardAbove: (String) -> Boolean = { k -> boardKeys.indexOf(k).let { i -> (i == 0 && kpiState != null) || (i > 0 && !bodyBelow(boardKeys[i - 1])) } }
         val boardBelow: (String) -> Boolean = { k -> boardKeys.indexOf(k).let { i -> i >= 0 && i < boardKeys.size - 1 && !bodyBelow(k) } }
         val renderSessions: () -> Unit = {
         val moving = movingIn("sessions")
-        if (restRows.isNotEmpty() || justClosed != null || waitRows.isNotEmpty()) {
+        if (sessionsLive) {
             dragPresent += "sessions"
             item(key = "sec-sessions") {
                 val n = { g: Summary.Group -> restRows.count { it.group == g } }
@@ -896,15 +908,12 @@ fun SummaryList(
                 val toggle = { sessionsOpen = !sessionsOpen; save("sessions", sessionsOpen); f.sessionsByFilter = false }
                 // Il sottotitolo In cima: i nomi, prima chi aspetta Franz, poi «+N» come Suggerimenti (master 03/11 10:20, app-in-cima-uguali-03-11).
                 val boardNames = (waitRows + restRows).map { r -> r.session.name }.filter { x -> x != it.pixelbox.cmwatch.rules.ContextActions.MASTER }.distinct()
-                // In cima ha la scheda delle altre voci del tabellone (Franz 03/11 08:25, app-in-cima-uguali-03-11).
-                if ("sessions" in liveTop) BoardCard(moving(), boardAbove("sessions"), boardBelow("sessions")) { SlotRow(sectionDrag("sessions"), stringResource(R.string.home_sec_sessions), androidx.compose.material.icons.Icons.Outlined.PlayCircle, model.open.toString(), line.ifEmpty { null }, "home-sez-sessioni", sessionsOpen, dot = if (waitRows.isNotEmpty()) V3.Wait else null, names = boardNames, onToggle = toggle) }
-                // Il titolo «Sessioni» (app-titolo-sessioni-24-11, Franz 24/11 09:41): la stessa testata di «Dalla master», che apre e chiude
-                // la lista; chiusa, il riassunto accanto, in ambra se qualcuna ti aspetta. Non si sposta.
-                else if (parts == null) Box(moving()) {
-                    CatLabel("sessions", amber = !sessionsOpen && waitN > 0, divider = true, bits = if (sessionsOpen) null else it.pixelbox.cmwatch.rules.OneLine.parts(line).map { p -> CatBit(p) }) { if (!it.pixelbox.cmwatch.rules.Leave.settling(System.currentTimeMillis())) toggle() }
+                // app-posizioni-sistema-27-11 (Franz 27/11 21:27): nella home la testata è la prima riga del tabellone, la stessa scheda delle
+                // voci che Franz ci mette (app-in-cima-uguali-03-11), con la freccia che apre e chiude la lista; non si prende (niente zona
+                // di trascinamento). Nella colonna della plancia la testata della colonna la dice già (bozza 19).
+                if (parts == null) BoardCard(moving(), boardAbove("sessions"), boardBelow("sessions")) {
+                    SlotRow(Modifier, stringResource(R.string.home_sec_sessions), androidx.compose.material.icons.Icons.Outlined.PlayCircle, model.open.toString(), line.ifEmpty { null }, "home-sez-sessioni", sessionsOpen, dot = if (waitRows.isNotEmpty()) V3.Wait else null, names = boardNames) { if (!it.pixelbox.cmwatch.rules.Leave.settling(System.currentTimeMillis())) toggle() }
                 }
-                // Un livello solo (app-sessioni-compatte-06-11, bozze 6 e 19): la lista sta sotto il tabellone o sotto la testata della
-                // colonna, senza la riga «Sessioni N».
             }
             val listOpen = parts != null || sessionsOpen
             // La pillola del filtro acceso dal tabellone, con la × che lo toglie.
@@ -1101,7 +1110,8 @@ fun SummaryList(
             val moving = movingIn("closed")
             closedGroup?.let { g ->
                 dragPresent += "closed"
-                item(key = "sec-closed") { Box(moving()) { V3Section(sectionDrag("closed"), stringResource(R.string.cat_closed), androidx.compose.material.icons.Icons.Outlined.Inventory2, g.closed.size.toString(), tag = "home-sez-chiuse", nav = true, onToggle = onClosed) } }
+                // Dentro Sessioni, ferma come lei: non si prende (app-posizioni-sistema-27-11).
+                item(key = "sec-closed") { Box(moving()) { V3Section(Modifier, stringResource(R.string.cat_closed), androidx.compose.material.icons.Icons.Outlined.Inventory2, g.closed.size.toString(), tag = "home-sez-chiuse", nav = true, onToggle = onClosed) } }
             }
         }
         // L'ordine scelto da Franz (Impostazioni › Riordina la home); tabellone e «Ti aspettano» restano fissi qui sopra.
@@ -1150,8 +1160,19 @@ fun SummaryList(
             if (k == listSkip) return
             when (k) {
                 "prima_raccolta", "seguiti", "prove", "decisioni", "da_guardare", "monitors", "rendiconti", "pagella" -> renderNew(k)
-                // Chiuse sta sotto le sessioni, in fondo (scelta 2, Franz 02/11 17:43); Plugin e skill dentro Sistema.
-                "sessions" -> { renderSessions(); if (listSkip != "closed" && (parts != null || sessionsOpen || "sessions" in up || (restRows.isEmpty() && justClosed == null && waitRows.isEmpty()))) renderClosed() }
+                // Chiuse sta sotto le sessioni, in fondo (scelta 2, Franz 02/11 17:43): sotto la lista aperta di Sessioni; senza sessioni è
+                // lei la riga di Sessioni nel tabellone, così resta raggiungibile (app-posizioni-sistema-27-11). Plugin e skill dentro Sistema.
+                "sessions" -> {
+                    renderSessions()
+                    if (listSkip != "closed" && (parts != null || (sessionsLive && sessionsOpen))) renderClosed()
+                    else if (parts == null && !sessionsLive) closedGroup?.let { g ->
+                        item(key = "sec-closed") {
+                            BoardCard(movingIn("closed")(), boardAbove("sessions"), boardBelow("sessions")) {
+                                SlotRow(Modifier, stringResource(R.string.cat_closed), androidx.compose.material.icons.Icons.Outlined.Inventory2, g.closed.size.toString(), tag = "home-sez-chiuse", nav = true, onToggle = onClosed)
+                            }
+                        }
+                    }
+                }
                 "suggestions" -> renderSuggestions()
                 "notte" -> renderNotte()
                 "lavori" -> renderLavori()
@@ -1203,13 +1224,12 @@ fun SummaryList(
         }
         if (parts != null) return@LazyColumn
         // La fascia «In cima» con la sua etichetta non c'è più: le voci sono righe del tabellone (app-utilizzo-una-barra-03-11).
-        liveTop.forEach(::renderBoard)
+        // Le sessioni a sé (app-home-sessioni-a-se-08-11) non stanno più fra il tabellone e le categorie: sono la sua prima riga, con
+        // Chiuse, poi le voci di Franz (app-posizioni-sistema-27-11, Franz 27/11 21:27).
+        boardKeys.forEach(::renderBoard)
         // Il bordo non si vede più (app-tabellone-quattro-02-11): serve solo alle voci del tabellone per uscirne verso la loro categoria.
         if (dragKey != null && dragKey in up) dragPresent += edge
         item(key = "top-edge") { Box(Modifier.animateItem()) { TopEdge(false, false, sectionDrag(edge)) } }
-        // Le sessioni a sé (app-home-sessioni-a-se-08-11, scelta A di Franz 08/11 18:35): sempre aperte, senza testata di categoria,
-        // sotto il tabellone e sopra le categorie, con Chiuse; non si spostano.
-        renderKey("sessions")
         shownCats.forEachIndexed { ci, c ->
             val catZone = sectionDrag("cat:${c.id}")
             if (c.open) item(key = "cat-${c.id}") { Box(movingIn("cat:${c.id}")()) { if (catHas[c.id] == true) CatLabel(c.id, catZone.catMoveActions(catName(c.id), ci, shownCats.size, ::moveCatTo), amber = c.id == "you" && catBits(c.id).second, divider = true) { if (!it.pixelbox.cmwatch.rules.Leave.settling(System.currentTimeMillis())) setCats(it.pixelbox.cmwatch.rules.HomeCats.toggle(catsNow, c.id)) } } }

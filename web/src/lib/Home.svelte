@@ -70,7 +70,7 @@
   import SiteAvatar from './SiteAvatar.svelte'
   import { favicons, ringOf } from './favicons.svelte'
   import CatIcon from './CatIcon.svelte'
-  import { BOARD_MAX, DEFAULT_CATS, EDGE, FOLDING, catFor, catKeys, catOrder, toTop as toBoard, fromTop as offBoard, decode as decodeCats, dragCats, encode as encodeCats, flat as flatCats, settle, toggle as toggleCat, top as topOf, type Cat, type CatId, type HomeKey } from './homeCats'
+  import { BOARD_MAX, DEFAULT_CATS, EDGE, FOLDING, board as boardKeys, catFor, catKeys, catOrder, toTop as toBoard, fromTop as offBoard, decode as decodeCats, dragCats, encode as encodeCats, flat as flatCats, settle, toggle as toggleCat, top as topOf, type Cat, type CatId, type HomeKey } from './homeCats'
   import { DEFAULT_ORDER, dragTarget, normalize as normalizeOrder, orderArg, overSlot, pinnable, pinned, release, slotKey, type HomeSection } from './homeOrder'
   import { monthName, pagellaRows } from './conti'
   import { dataAge, elapsedPct, H5_S, paceText, resetLine, resetText, usageAlarm, W7_S, weekSlot } from './utilizzo'
@@ -210,7 +210,8 @@
   const edgeAt = (o: string[]) => Math.max(0, o.indexOf(EDGE))
   // Una sezione si disegna nella home intera, nella colonna della sua categoria e nella fascia della cima della plancia.
   const shows = (c: CatId) => !part || part === c || part === 'top'
-  // Le sessioni stanno a sé (app-home-sessioni-a-se-08-11): nella home sotto il tabellone, nella plancia nella colonna loro.
+  // Le sessioni stanno a sé (app-home-sessioni-a-se-08-11): nella home la prima voce del tabellone (app-posizioni-sistema-27-11), nella
+  // plancia nella colonna loro.
   const showsSessions = !part || part === 'sessions'
   // Il nome di transizione di ogni sezione e scheda (app-home-riposiziona-animata-04-11): vale solo durante i cambi della vista
   // larga (`html.reflow`, v3.css), così ognuna scivola dal posto e dalla misura di prima al nuovo, riconoscibile.
@@ -301,9 +302,11 @@
     }
     dragRaf = requestAnimationFrame(dragFrame)
   }
+  // app-posizioni-sistema-27-11 (Franz 27/11 21:27): Sessioni, con la sua Chiuse, sta ferma in cima al tabellone: non si prende.
+  const fixedKey = (k: string) => k === 'sessions' || k === 'closed'
   function secDown(k: string, e: PointerEvent) {
     if (!onHomeOrder || part || e.button !== 0) return
-    if (weekAlarm && k === 'usage') return
+    if ((weekAlarm && k === 'usage') || fixedKey(k)) return
     const key = k as HomeSection; dragStartY = dragY = e.clientY; dragEl = e.currentTarget as HTMLElement
     addEventListener('pointermove', secMove); addEventListener('pointerup', secEnd); addEventListener('pointercancel', secCancel)
     if (e.pointerType === 'mouse') { dragArmed = key; return }
@@ -438,18 +441,15 @@
   // I tre riquadri aprono la loro categoria (app-home-categorie-02-11): chiusa, si apre e resta aperta, come col tocco sulla
   // testata (app-home-in-cima-02-11); poi la pagina ci scorre.
   function openCat(b: import('./HomeBox.svelte').Box) {
-    // I primi due riquadri contano le sessioni, che stanno a sé sotto il tabellone (app-home-sessioni-a-se-08-11): ci scorrono.
-    // Esiti sta in Lavori: il suo riquadro apre Lavori e la sottosezione Esiti.
-    const sessions = b === 'aspetta' || b === 'lavoro'
-    // app-tabellone-filtri-14-11: le due caselle filtrano la lista sul posto; il secondo tocco toglie il filtro e non scorre.
-    if (b === 'aspetta' || b === 'lavoro') {
-      boardFilter.on = boardTap(bf, b, kh)
-      if (!boardFilter.on) return
-    }
+    // app-tabellone-filtri-14-11: le prime due caselle filtrano la lista delle sessioni sul posto; il secondo tocco toglie il filtro.
+    // Le sessioni stanno nel tabellone, subito sotto le caselle (app-posizioni-sistema-27-11, Franz 27/11 21:27): la lista filtrata è
+    // già in vista e la pagina non ci scorre più, che portava le caselle fuori dallo schermo.
+    if (b === 'aspetta' || b === 'lavoro') { boardFilter.on = boardTap(bf, b, kh); return }
+    // Esiti sta in Lavori: il suo riquadro apre Lavori e la sottosezione Esiti, poi la pagina ci scorre.
     const id: CatId = cats.some(c => c.id === 'out') ? 'out' : 'work'
-    if (!sessions && !open.esiti) toggleSec('esiti')
-    if (!sessions && cats.some(c => c.id === id && !c.open)) setCats(toggleCat(cats, id))
-    requestAnimationFrame(() => document.querySelector(sessions ? '[data-testid="home-sessioni"]' : `[data-testid="cat-${id}"]`)?.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'start' }))
+    if (!open.esiti) toggleSec('esiti')
+    if (cats.some(c => c.id === id && !c.open)) setCats(toggleCat(cats, id))
+    requestAnimationFrame(() => document.querySelector(`[data-testid="cat-${id}"]`)?.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'start' }))
   }
   const slotTone = (w: { pct: number; stale: boolean; alarm: boolean }) => (w.stale ? 'var(--tx3)' : w.pct >= 90 ? 'var(--red)' : w.pct >= 75 || w.alarm ? 'var(--wait)' : 'var(--tx2)')
   const lowerFirst = (x: string | null) => (x ? x[0].toLowerCase() + x.slice(1) : x)
@@ -604,6 +604,11 @@
   const restGroups = $derived(groups.filter(([g]) => g !== 'waiting'))
   // Una sola chiave per voce: quando una riga cambia gruppo scivola al posto nuovo invece di sparire e ricomparire.
   const restFlat = $derived(restGroups.flatMap(([g, rows]) => rows.map(r => [r, g] as const)))
+  // app-posizioni-sistema-27-11 (Franz 27/11 21:27): Sessioni sta nel tabellone come una voce messa a mano, la prima sotto i tre
+  // numeri, quando ha qualcosa da mostrare; senza sessioni la sua riga è Chiuse, che resta raggiungibile. Non si salva in `top:` e
+  // non conta fra le quattro voci di Franz.
+  const sessionsAny = $derived(!!(restGroups.length || justClosed || waitRows.length))
+  const sessionsInBoard = $derived(!part && (sessionsAny || model.closed.length > 0))
   // Il filtro del tabellone (app-tabellone-filtri-14-11): le righe a schermo sono quelle che la casella accesa conta; i conti e le
   // altre regole guardano ancora tutta la lista. Un filtro rimasto senza sessioni cade da solo.
   const bf = $derived(boardShown(boardFilter.on, kh))
@@ -864,7 +869,7 @@
     <div class="sec static" data-testid={testid}><span class="ic">{#if icon.startsWith('svg:')}<CatIcon name={icon.slice(4)} />{:else}<span class="ms" aria-hidden="true">{icon}</span>{/if}</span><span class="st">{title}</span>{#if count}<small>{count}</small>{/if}</div>
   {:else}
     <!-- L'unica struttura delle voci della home (Franz 31/10 17:04). -->
-    <button class="sec" class:hot={o.hot} class:compact={key === listSkip} class:draggable={!!onHomeOrder && !part} data-sec-head={key} aria-expanded={o.nav ? undefined : (o.isOpen ?? !!open[key])} data-testid={testid} onclick={() => { if (dragJustEnded) return; if (o.onclick) o.onclick(); else toggleSec(key) }} onpointerdown={(e) => secDown(key, e)} oncontextmenu={(e) => { if (onHomeOrder) e.preventDefault() }}>
+    <button class="sec" class:hot={o.hot} class:compact={key === listSkip} class:draggable={!!onHomeOrder && !part && !fixedKey(key)} data-sec-head={key} aria-expanded={o.nav ? undefined : (o.isOpen ?? !!open[key])} data-testid={testid} onclick={() => { if (dragJustEnded) return; if (o.onclick) o.onclick(); else toggleSec(key) }} onpointerdown={(e) => secDown(key, e)} oncontextmenu={(e) => { if (onHomeOrder) e.preventDefault() }}>
       <span class="ic">{#if icon.startsWith('svg:')}<CatIcon name={icon.slice(4)} />{:else}<span class="ms" aria-hidden="true">{icon}</span>{/if}</span><span class="st">{title}</span>{#if count}<small>{count}</small>{/if}
       <span class="sp"></span>{#if o.dot}<b class="sysdot" style:background={o.dot}></b>{/if}{#if right}<span class="rt"><OneLine parts={oneLineParts(right).map(text => ({ text }))} /></span>{/if}<span class="ms tog" class:up={!o.nav && (o.isOpen ?? open[key])}>{o.nav ? 'chevron_right' : 'expand_more'}</span>
     </button>
@@ -878,14 +883,19 @@
 {#snippet secPagella()}{#if pagN && newBody && shows('tools')}{@render sec('pagella', t.pagellaTitle, 'svg:chart', String(pagN), 'home-pagella')}{@render nuovaBody('pagella' as HomeSection)}{/if}{/snippet}
 {#snippet slotBox()}
  {@const live = dragOrder ?? order}
+ {@const rows = boardKeys(live.slice(0, edgeAt(live)).filter(k => k !== listSkip && !(usageCell && k === 'usage')), sessionsInBoard)}
  <!-- Le voci In cima dentro il tabellone, sotto i tre numeri, al massimo quattro (app-utilizzo-una-barra-03-11): la fascia separata non c'è più. -->
  <!-- app-tabellone-utilizzo-a-13-11 (Franz 13/11 15:41 e 15:46): sotto i tre blocchi niente riga degli esiti, che restano nelle voci
       della Home al loro posto; qui si aprono solo i dettagli dell'utilizzo. -->
  {#if usageCell}
    {#if open.usage && usage}<div class="hsec onboard inboard" bind:this={usageEl}><div class="fold" in:fold out:fold={{ ms: 150 }}><div class="foldin"><div class="card wrows">{@render (usageBlock ?? usage)()}</div></div></div></div>{/if}
  {/if}
+ <!-- app-posizioni-sistema-27-11 (Franz 27/11 21:27): Sessioni è la prima voce del tabellone, come una messa a mano (boardKeys in
+      homeCats): la riga con la freccia, aperta la lista e sotto Chiuse; senza sessioni resta la riga di Chiuse. Non si prende e niente le
+      va sopra; resta aperta anche mentre si trascina una voce del tabellone, perché chiudendosi farebbe salire la voce oltre il bordo, fuori da In cima. Poi l'allarme e le voci di Franz. -->
+ {#if rows[0] === 'sessions'}<div class="hsec inboard" data-testid="home-sessioni" data-vt={vt('sessions')} style:--vt={vt('sessions')}>{@render secSessions()}{#if open.sessions || !sessionsAny}{@render secClosed()}{/if}</div>{/if}
  {#if pin && !(usageCell && pin === 'usage')}<div class="hsec inslot" data-testid="slot-in-alto">{@render secOf(pin)}</div>{/if}
- {#each live.slice(0, edgeAt(live)).filter(k => k !== listSkip && !(usageCell && k === 'usage')) as k (k)}
+ {#each rows.filter(k => k !== 'sessions') as k (k)}
    <div class="hsec onboard inboard" class:held={k === dragKey}>{@render secOf(k)}</div>
  {/each}
 {/snippet}
@@ -928,13 +938,13 @@
 {/if}
 {/snippet}
 {#snippet secSessions()}
-{#if showsSessions && (restGroups.length || justClosed || waitRows.length)}
+{#if showsSessions && sessionsAny}
   <!-- Lo stesso numero di «N aperte» in testata: le sessioni vive, senza la master (app-home-nomi-02-11, punto 6). -->
   {@const waitN = waitRows.filter(r => r.session.name !== 'master').length}
-  <!-- Un livello solo (app-sessioni-compatte-06-11, bozza 6): nella home la lista sta subito sotto il tabellone, senza la riga
-       «Sessioni N»; sul tabellone e nelle colonne della plancia la testata resta. -->
-  <!-- Nella colonna Sessioni della plancia niente riga «Sessioni N»: la testata della colonna la dice già (bozza 19). -->
-  {#if part !== 'work' && up.includes('sessions')}{@render sec('sessions', part ? t.deskSessions : t.homeSessions, 'play_circle', String(model.open), 'home-sez-sessioni', [waitN ? t.homeSessionsWaiting(waitN) : '', ...sessionsLine.split(' · ')].filter(Boolean).slice(0, 2).join(' · ') || null, { dot: waitRows.length ? 'var(--wait)' : null })}{/if}
+  <!-- app-posizioni-sistema-27-11 (Franz 27/11 21:27): nella home la testata è la riga di Sessioni nel tabellone, la stessa delle voci
+       che Franz ci mette, con la freccia che apre e chiude la lista. Nella colonna Sessioni della plancia niente riga «Sessioni N»: la
+       testata della colonna la dice già (bozza 19). -->
+  {#if !part}{@render sec('sessions', t.homeSessions, 'play_circle', String(model.open), 'home-sez-sessioni', [waitN ? t.homeSessionsWaiting(waitN) : '', ...sessionsLine.split(' · ')].filter(Boolean).slice(0, 2).join(' · ') || null, { dot: waitRows.length ? 'var(--wait)' : null })}{/if}
   {#if justClosed}
     <div class="card just" style:view-transition-name="page-fly">
       <div class="jrow"><Badge s={justClosed.s} size={24} /><span class="jcol"><b>{justClosed.s.name}</b><small>{justClosed.line}</small></span></div>
@@ -951,19 +961,6 @@
     </div>
     {#if finished.length && !bf}<div class="after"><button class="tonal mini" onclick={askCloseFinished}>{t.closeFinished(finished.length)}</button></div>{/if}
   </div></div>{/if}
-{/if}
-{/snippet}
-{#snippet sessHead()}
-{#if showsSessions && (restGroups.length || justClosed || waitRows.length)}
-  {@const waitN = waitRows.filter(r => r.session.name !== 'master').length}
-  {#if open.sessions}<button class="catlabel cathead sess" aria-expanded="true" data-testid="home-sessioni-testata" onclick={() => toggleSec('sessions')}><span>{t.homeSessions}</span><span class="ms arr up" aria-hidden="true">expand_more</span></button>
-  {:else}
-    <button class="catlabel cathead shut sess" class:amber={waitN > 0} aria-expanded="false" data-testid="home-sessioni-testata" onclick={() => toggleSec('sessions')}>
-      <span>{t.homeSessions}</span>
-      <span class="catsig"><OneLine parts={[waitN ? t.homeSessionsWaiting(waitN) : '', ...sessionsLine.split(' · ')].filter(Boolean).slice(0, 2).map(text => ({ text }))} /></span>
-      <span class="ms arr" aria-hidden="true">expand_more</span>
-    </button>
-  {/if}
 {/if}
 {/snippet}
 {#snippet secNotte()}
@@ -1174,12 +1171,8 @@
   <!-- Con delle voci In cima, il filo le separa dalle categorie anche quando la prima è chiusa (Franz 03/11 10:3x, app-in-cima-uguali-03-11). -->
   <div class="topedge" data-sec-head={EDGE}></div>
   {#if topDrag}<div class="offdrop" class:hot={offHot} style:top="{Math.max(0, edgeY)}px" data-testid={offHot ? 'cima-togli-acceso' : 'cima-togli'}>{t.homeOffTop}</div>{/if}
-  <!-- Le sessioni a sé (app-home-sessioni-a-se-08-11, scelta A di Franz 08/11 18:35): sempre aperte, senza testata di categoria,
-       sotto il tabellone e sopra le categorie, con Chiuse; non si spostano. -->
-  <!-- Il titolo «Sessioni» (app-titolo-sessioni-24-11, Franz 24/11 09:41): la stessa testata di «Dalla master», che apre e chiude la
-       lista; chiusa, il riassunto accanto, in ambra se qualcuna ti aspetta. Sul tabellone la testata è la sua riga. Non si sposta. -->
-  {#if !up.includes('sessions')}{@render sessHead()}{/if}
-  <div class="hsec" data-testid="home-sessioni" data-vt={vt('sessions')} style:--vt={vt('sessions')}>{@render secSessions()}{#if open.sessions || up.includes('sessions') || !(showsSessions && (restGroups.length || justClosed || waitRows.length))}{@render secClosed()}{/if}</div>
+  <!-- Le sessioni a sé (app-home-sessioni-a-se-08-11) non stanno più qui fra il tabellone e le categorie: sono la prima voce del
+       tabellone, con Chiuse (slotBox, app-posizioni-sistema-27-11, Franz 27/11 21:27). -->
   {#each shownCats as c (c.id)}
     <div class="hcat" class:held={catHeld === c.id} data-testid="cat-{c.id}">
       {#if c.open}<button class="catlabel cathead" class:amber={c.id === 'you' && catSignal(c.id).amber} aria-expanded="true" data-counter={c.id} onpointerdown={(e) => catDown(c.id, e)} onclick={() => setCats(toggleCat(cats, c.id))}><span>{#if c.id === 'you' && catSignal(c.id).amber}<span class="catic">{#if CATS_ICON[c.id].startsWith('svg:')}<CatIcon name={CATS_ICON[c.id].slice(4)} />{:else}<span class="ms" aria-hidden="true">{CATS_ICON[c.id]}</span>{/if}</span>{/if}{t.catName[c.id]}</span><span class="ms arr up" aria-hidden="true">expand_more</span></button>
@@ -1930,7 +1923,6 @@
   .catlabel .arr { font-size: 20px; letter-spacing: 0; rotate: 180deg; }
   .hcat:has(.hsec > *) .catlabel, .catlabel.shut { display: flex; }
   .catlabel.shut { gap: 12px; padding-bottom: 6px; }
-  .catlabel.sess { display: flex; }
   .catlabel.shut .arr { rotate: 0deg; color: var(--tx3); }
   .catlabel .catsig { letter-spacing: 0; text-transform: none; font-size: 13.5px; color: var(--tx3); }
   .catlabel.shut.amber .catsig { color: var(--wait); }

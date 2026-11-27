@@ -107,7 +107,8 @@ class HomeCatsTest {
         assertEquals("top:lavori", saved[0]); assertTrue("lavori" !in saved)
         assertEquals(listOf("lavori"), HomeCats.top(saved))
         assertEquals(listOf("notte", "esiti", "rendiconti"), HomeCats.decode(saved)[1].sections)
-        // Le sessioni stanno a sé, sotto il tabellone: non ci salgono più (app-home-sessioni-a-se-08-11).
+        // Le sessioni stanno a sé e non si salvano in cima (app-home-sessioni-a-se-08-11): sul tabellone le mette board()
+        // (app-posizioni-sistema-27-11).
         assertEquals(emptyList<String>(), HomeCats.top(listOf("top:sessions", "rev:6")))
         assertEquals(emptyList<String>() to cats, HomeCats.toTop(cats, emptyList(), "sessions"))
         assertTrue(saved.size <= 16 && saved.all { it.length <= 32 })
@@ -234,7 +235,8 @@ class HomeCatsTest {
         assertEquals(listOf("decisioni", "prove", "seguiti", "suggestions", "monitors"), d.single { it.id == "you" }.sections)
         assertTrue(d.none { "da_guardare" in it.sections })
         assertEquals(listOf(false, false, false), d.map { it.open })
-        // Le sessioni non stanno più sul tabellone: sono a sé, sotto (app-home-sessioni-a-se-08-11).
+        // Un `top:sessions` di prima non conta: le sessioni stanno a sé (app-home-sessioni-a-se-08-11), prima voce del tabellone per
+        // conto loro (app-posizioni-sistema-27-11).
         assertEquals(emptyList<String>(), HomeCats.top(old))
         assertEquals(emptyList<String>(), HomeCats.top(listOf("top:da_guardare", "rev:3")))
     }
@@ -308,5 +310,28 @@ class HomeCatsTest {
         val saved = HomeCats.encode(HomeCats.toggle(HomeCats.DEFAULT, "you"), null)!!
         assertTrue("rev:8" in saved)
         assertEquals(listOf("you" to true, "work" to false, "tools" to false), HomeCats.decode(saved).map { it.id to it.open })
+    }
+
+    // app-posizioni-sistema-27-11 (Franz 27/11 21:27): Sessioni è la prima voce del tabellone, come una messa a mano; gli stessi casi in
+    // homeCats.test.ts.
+    @Test fun sessioni_tabellone_primaSessioniPoiLeVociDiFranz() {
+        assertEquals(listOf("sessions", "suggestions", "esiti"), HomeCats.board(listOf("suggestions", "esiti"), true))
+        assertEquals(listOf("sessions"), HomeCats.board(emptyList(), true))
+    }
+
+    @Test fun sessioni_tabellone_senzaNienteDaMostrareNonCeENonSiRaddoppia() {
+        assertEquals(listOf("suggestions"), HomeCats.board(listOf("suggestions"), false))
+        assertEquals(listOf("sessions", "esiti"), HomeCats.board(listOf("sessions", "esiti"), true))
+    }
+
+    @Test fun sessioni_tabellone_nonSiSalvaInCimaEFranzNeMetteAncoraQuattroSue() {
+        var t = emptyList<String>(); var c = HomeCats.DEFAULT
+        listOf("suggestions", "esiti", "lavori", "prove").forEach { k -> HomeCats.toTop(c, t, k).let { (a, b) -> t = a; c = b } }
+        assertEquals(HomeCats.BOARD_MAX, t.size)
+        assertEquals(listOf("sessions") + t, HomeCats.board(t, true))
+        val saved = HomeCats.encode(c, null, t)!!
+        assertEquals(t.map { k -> "top:$k" }, saved.filter { k -> k.startsWith("top:") })
+        assertTrue("top:sessions" !in saved)
+        assertEquals(t, HomeCats.top(saved))
     }
 }

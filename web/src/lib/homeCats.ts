@@ -17,8 +17,9 @@ export const DEFAULT_CATS: Cat[] = [
   { id: 'you', open: false, sections: ['decisioni', 'prove', 'seguiti', 'suggestions', 'monitors'] },
   // Lavori (app-home-sessioni-a-se-08-11, scelta A di Franz 08/11 18:35): la Notte, In corso, Esiti e Rendiconti, una categoria che
   // si chiude e si sposta come le altre, chiusa di partenza col riassunto «N in corso · N esiti». Le sessioni non sono più qui:
-  // stanno a sé, sempre aperte, sotto il tabellone, così tenerle in vista non porta più In corso ed Esiti sopra Dalla master. Prima
-  // (app-home-tre-categorie-06-11) Sessioni portava sotto di sé queste quattro voci. `out` resta solo come colonna della plancia.
+  // stanno a sé, la prima voce del tabellone (app-posizioni-sistema-27-11, Franz 27/11 21:27; dall'08/11 stavano sotto), così tenerle
+  // in vista non porta più In corso ed Esiti sopra Dalla master. Prima (app-home-tre-categorie-06-11) Sessioni portava sotto di sé
+  // queste quattro voci. `out` resta solo come colonna della plancia.
   { id: 'work', open: false, sections: ['notte', 'lavori', 'esiti', 'rendiconti'] },
   { id: 'tools', open: false, sections: ['usage', 'system', 'pagella'] },
 ]
@@ -143,6 +144,14 @@ export function top(saved: string[] | null | undefined): HomeKey[] {
   const pin = pinned(saved)
   return (list.length ? list : pin && catOf(pin) ? [pin as HomeKey] : []).slice(0, BOARD_MAX)
 }
+
+/**
+ * Le voci del tabellone dall'alto (app-posizioni-sistema-27-11, Franz 27/11 21:27): Sessioni sta nel tabellone come una voce messa a
+ * mano, la prima sotto i tre numeri, quando ha qualcosa da mostrare; poi le voci di Franz nel loro ordine. Sessioni non si salva in
+ * `top:` e non conta fra le BOARD_MAX: Franz ne mette ancora quattro sue. HomeCats.board nell'app.
+ */
+export const board = <K extends string>(up: readonly K[], hasSessions: boolean): (K | 'sessions')[] =>
+  [...(hasSessions ? ['sessions' as const] : []), ...up.filter(k => k !== 'sessions')]
 
 /** L'ordine mostrato e trascinato: la cima, il bordo, le sezioni delle categorie. */
 export const flat = (up: HomeKey[], cats: Cat[]): string[] => [...up, EDGE, ...cats.flatMap(c => c.sections)]
