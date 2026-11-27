@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { decodeState } from './contract'
-import { chunks, clean, excerpt, rankVoices, nextVoice, nextRate, preferredVoice, question, RATE_DEFAULT, RATE_MAX, RATE_MIN, rateFraction, rateOf, snapRate, startVoice, voicePosition } from './speechRules'
+import { chunks, clean, excerpt, rankVoices, nextVoice, nextRate, preferredVoice, question, RATE_DEFAULT, RATE_MAX, RATE_MIN, RATES, rateFraction, rateLabel, rateOf, snapRate, startVoice, voicePosition, widestRateLabel } from './speechRules'
 
 // Gli stessi casi di SpeechTextTest, SpeechRateTest, VoiceRulesTest e ReadingBarTest in Kotlin.
 const code = 'segue un blocco di codice'
@@ -76,5 +76,18 @@ describe('voci migliori', () => {
   it('prima la Google predefinita, poi le Google locali, quelle di rete, le altre, eSpeak in fondo', () => {
     expect(rankVoices(['eSpeak Italian', 'Android Speech Services by Google it-it-x-itd-network', 'Microsoft Elsa', 'Android Speech Services by Google it-it-x-itd-local', 'Android Speech Services by Google it-IT-language']))
       .toEqual(['Android Speech Services by Google it-IT-language', 'Android Speech Services by Google it-it-x-itd-local', 'Android Speech Services by Google it-it-x-itd-network', 'Microsoft Elsa', 'eSpeak Italian'])
+  })
+})
+
+// Prova 1391 (Franz, 27/11 11:38): la pillola del valore riserva lo spazio dell'etichetta più larga, così trascinando non cambia larghezza.
+describe('etichetta più larga della velocità', () => {
+  it('tutti i passi da 0,5 a 2, la più lunga ha due decimali', () => {
+    expect(RATES).toHaveLength(31)
+    expect(RATES[0]).toBe(RATE_MIN)
+    expect(RATES[RATES.length - 1]).toBe(RATE_MAX)
+    expect(widestRateLabel('it-IT')).toBe('0,55×')
+    expect(widestRateLabel('en-US')).toBe('0.55×')
+    for (const r of RATES) expect(rateLabel(r, 'it-IT').length).toBeLessThanOrEqual(widestRateLabel('it-IT').length)
+    expect(rateLabel(1, 'it-IT')).toBe('1×')
   })
 })

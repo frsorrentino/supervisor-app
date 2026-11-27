@@ -318,11 +318,22 @@ fun ReadingPill(
     }
 }
 
-/** Il valore della velocità mentre lo slider è aperto, su fondo pieno: il tocco richiude lo slider. */
+/**
+ * Il valore della velocità mentre lo slider è aperto, su fondo pieno: il tocco richiude lo slider. Largo sempre quanto l'etichetta
+ * più larga fra 0,5× e 2× e con le cifre tabulari: trascinando la seconda cifra va e viene, ma la pillola, e con lei lo slider
+ * accanto, non cambia larghezza (Franz, 27/11 11:38, prova 1391).
+ */
 @Composable
-private fun RateValue(rate: Float, onClick: () -> Unit) {
+internal fun RateValue(rate: Float, onClick: () -> Unit) {
+    val style = MaterialTheme.typography.titleSmall.copy(fontFeatureSettings = CM_TNUM, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+    val all = it.pixelbox.cmwatch.rules.SpeechRate.ALL.map { rateLabel(it) }
+    val measurer = androidx.compose.ui.text.rememberTextMeasurer()
+    val widest = remember(all, style, measurer) { all.maxOf { l -> measurer.measure(l, style, maxLines = 1).size.width } }
     Surface(onClick = onClick, color = MaterialTheme.colorScheme.primary, shape = CircleShape, modifier = Modifier.handCursor()) {
-        Text(rateLabel(rate), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp))
+        Text(
+            rateLabel(rate), style = style, color = MaterialTheme.colorScheme.onPrimary, maxLines = 1,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp).width(with(androidx.compose.ui.platform.LocalDensity.current) { widest.toDp() }),
+        )
     }
 }
 
@@ -434,7 +445,7 @@ fun RateSlider(
             }
             if (lifted) {
                 val lift = with(dens) { 70.dp.roundToPx() }
-                val labelStyle = MaterialTheme.typography.labelMedium.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                val labelStyle = MaterialTheme.typography.labelMedium.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, fontFeatureSettings = CM_TNUM)
                 JellyPopup(lift, maxWidth + 80.dp, 110.dp) {
                     tick
                     drawJelly(sim, androidx.compose.ui.geometry.Offset(sim.X.x + 40.dp.toPx(), 70.dp.toPx()), fillColor, Cm.onPrimary, label, measurer, labelStyle, withDrop = true)

@@ -93,4 +93,15 @@ object Animazioni {
 
     /** 1, Messaggio che entra: la pillola dei nuovi solo se chi legge non è in fondo e ci sono messaggi nuovi. */
     fun newPill(atBottom: Boolean, unseen: Int): Boolean = !atBottom && unseen > 0
+
+    // ---- Terzo giro, voce 8 dopo la prova 1391 (Franz 27/11: lo scorrimento sulla barra dei paragrafi andava a scatti) ----
+
+    /** La barra dei paragrafi: il punto sta all'inizio del paragrafo che la voce legge, in frazione della barra (0 per il primo). */
+    fun scrubAt(block: Int, blocks: Int): Float = if (blocks <= 1) 0f else block.coerceIn(0, blocks - 1).toFloat() / blocks
+
+    /**
+     * Al rilascio il punto, che durante il trascinamento segue il dito uno a uno, si aggancia al paragrafo che comincia più vicino: i
+     * segni della barra sono gli inizi dei paragrafi, il primo all'inizio della barra.
+     */
+    fun scrubNearest(f: Float, blocks: Int): Int = if (blocks <= 1) 0 else kotlin.math.floor(f.coerceIn(0f, 1f) * blocks + 0.5f).toInt().coerceIn(0, blocks - 1)
 }

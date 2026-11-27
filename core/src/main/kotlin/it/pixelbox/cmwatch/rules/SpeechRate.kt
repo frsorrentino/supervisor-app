@@ -38,6 +38,9 @@ object SpeechRate {
     /** La velocità dopo `v` nel giro del tocco: la prima più alta, o la prima del giro dopo l'ultima. */
     fun next(v: Float): Float = CYCLE.firstOrNull { it > v + 0.001f } ?: CYCLE.first()
 
+    /** Tutti i valori dello slider, da 0,5 a 2 a passi di 0,05: la pillola del valore riserva lo spazio del più largo (prova 1391). */
+    val ALL: List<Float> = (0..((MAX - MIN) / STEP).roundToInt()).map { snap(MIN + it * STEP) }
+
     /** Dove sta `v` sulla corsa dello slider, da 0 a 1: per il segno di 1×. */
     fun fraction(v: Float): Float = (v - MIN) / (MAX - MIN)
 }

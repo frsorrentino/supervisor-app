@@ -3227,12 +3227,15 @@ private fun AnswerZones(e: TranscriptEntry, flashed: Boolean, actions: SheetActi
         if (LocalSpeaking.current == r.text) {
             val blocks = LocalBlocksOf.current(r.text)
             val cur = LocalSpeakingBlock.current
+            val word = LocalSpeakingWord.current
             blocks.forEachIndexed { i, b ->
-                Text(
-                    linked(b.text), style = MaterialTheme.typography.bodyLarge, color = if (i == cur) Cm.text else Cm.text2,
-                    modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.small).background(if (i == cur) V3.S3 else androidx.compose.ui.graphics.Color.Transparent)
-                        .handCursor().clickable { actions.speakFrom(r.text, i) }.padding(horizontal = 6.dp, vertical = 4.dp),
-                )
+                // Prova 1391 (Franz, 27/11 11:39, scelta a della master): anche nella scheda di risposta il paragrafo letto segue la voce
+                // parola per parola, con la pillola di Read along del fumetto (ReadAlongText, stesse molle; animazioni spente: al posto).
+                val shownText = linked(b.text)
+                val paraMod = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.small).background(if (i == cur) V3.S3 else androidx.compose.ui.graphics.Color.Transparent)
+                    .handCursor().clickable { actions.speakFrom(r.text, i) }.padding(horizontal = 6.dp, vertical = 4.dp)
+                if (i == cur && word != null) ReadAlongText(shownText, word, MaterialTheme.typography.bodyLarge, Cm.text2, paraMod)
+                else Text(shownText, style = MaterialTheme.typography.bodyLarge, color = if (i == cur) Cm.text else Cm.text2, modifier = paraMod)
             }
         } else Quotable(r.waits.text, e.at) { SelectionContainer { DocBody(r.body, index = true, tone = Cm.text) } }
         EntryExtras(e, r, actions)

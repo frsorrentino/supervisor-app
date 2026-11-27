@@ -1,6 +1,6 @@
 <script lang="ts">
   import { locale } from './lang'
-  import { excerpt, nextRate } from './speechRules'
+  import { excerpt, nextRate, rateLabel, widestRateLabel } from './speechRules'
   import { cycleVoice, pause, resume, seek, setRate, speech, stop } from './speech.svelte'
   import ReadingScrub from './ReadingScrub.svelte'
   import RateSlider from './RateSlider.svelte'
@@ -11,7 +11,7 @@
   // il campo della sessione che legge, se è in vista; altrimenti nel primo posto.
   let { onOpen, slots, here }: { onOpen?: (source: string) => void; slots: (string | null)[]; here: string | null } = $props()
   const mineHere = $derived(speech.source != null && slots.includes(speech.source) ? speech.source === here : slots[0] === here)
-  const rate = $derived(`${speech.rate.toLocaleString(locale, { maximumFractionDigits: 2 })}×`)
+  const rate = $derived(rateLabel(speech.rate, locale))
   // La velocità aperta nella barra (Franz, 07/10, approvata alle 22:06): senza tocchi per 3 s torna pillola.
   let rateOpen = $state(false)
   let draft = $state(1)
@@ -28,13 +28,16 @@
   // frase, quindi riparte dal pezzo che sta dicendo.
   let live: ReturnType<typeof setTimeout> | undefined
   function liveRate(v: number) { clearTimeout(live); live = setTimeout(() => { if (v !== speech.rate) setRate(v) }, 300) }
-  const draftLabel = $derived(`${draft.toLocaleString(locale, { maximumFractionDigits: 2 })}×`)
+  const draftLabel = $derived(rateLabel(draft, locale))
+  // Prova 1391 (Franz, 27/11 11:38): la pillola del valore tiene nascosta, nella stessa cella, l'etichetta più larga; con le cifre
+  // tabulari trascinando cambia il numero ma non la larghezza, e lo slider accanto resta fermo.
+  const widest = widestRateLabel(locale)
 </script>
 
 {#if speech.text && mineHere}
   <div class="pill" class:open={rateOpen} role="region" aria-label={t.readingNow}>
     {#if rateOpen}
-      <button class="chip val" aria-label={t.rateChange(draftLabel)} onclick={() => (rateOpen = false)}>{draftLabel}</button>
+      <button class="chip val" aria-label={t.rateChange(draftLabel)} onclick={() => (rateOpen = false)}><span class="vw" aria-hidden="true">{widest}</span><span>{draftLabel}</span></button>
       <RateSlider value={speech.rate} onInput={(v) => { draft = v; touch(); liveRate(v) }} onDone={(v) => { clearTimeout(live); if (v !== speech.rate) setRate(v); touch() }} />
     {:else}
       <span class="bars" class:still={speech.paused} aria-hidden="true"><i></i><i></i><i></i></span>
@@ -78,7 +81,9 @@
   .chip { flex: none; min-width: 40px; height: 34px; padding: 0 10px; border-radius: 17px; background: var(--surface); color: var(--text); font-weight: 500; font-size: 14px; display: grid; place-items: center; }
   .stop { flex: none; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; color: var(--icon); }
   .pill.open { padding-left: 8px; }
-  .val { background: var(--primary); color: var(--on-primary); font-weight: 600; min-width: 64px; }
+  .val { background: var(--primary); color: var(--on-primary); font-weight: 600; min-width: 64px; font-variant-numeric: tabular-nums; }
+  .val > span { grid-area: 1 / 1; }
+  .val .vw { visibility: hidden; }
   .pp { flex: none; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; color: var(--icon); background: var(--s3); }
   .pp.play { background: var(--primary); color: var(--on-primary); }
   .pp:hover { filter: brightness(1.15); }

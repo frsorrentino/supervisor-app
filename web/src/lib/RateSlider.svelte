@@ -2,7 +2,7 @@
   import { locale } from './lang'
   import { molla, motore, ridotto, clamp } from './molla'
   import { neck, rubber } from './jelly'
-  import { RATE_MAX, RATE_MIN, RATE_STEP, rateFraction, snapRate } from './speechRules'
+  import { RATE_MAX, RATE_MIN, RATE_STEP, rateFraction, rateLabel, snapRate } from './speechRules'
   import { t } from './t'
   // Lo slider della velocità (SpeechRate.kt, approvato da Franz il 07/10 alle 22:06): da 0,5× a 2× a passi di 0,05; `onDone` al
   // rilascio, così la voce riparte una volta sola. Lo usano la barra di lettura e le Impostazioni.
@@ -13,7 +13,7 @@
   // quando il valore la passa. L'input vero resta sotto, trasparente, per tastiera e lettori di schermo. Moto ridotto: pollice e
   // goccia senza rimbalzo.
   let { value, onInput = () => {}, onDone }: { value: number; onInput?: (v: number) => void; onDone: (v: number) => void } = $props()
-  const label = (r: number) => `${r.toLocaleString(locale, { maximumFractionDigits: 2 })}×`
+  const label = (r: number) => rateLabel(r, locale)
   let draft = $state(0)
   $effect(() => { draft = value })
   const R = 12, D = 18, RISE = -38
@@ -101,7 +101,7 @@
   input { position: absolute; inset: 0; width: 100%; height: 36px; margin: 0; opacity: 0; cursor: pointer; }
   .track { fill: var(--s3); }
   .fill, .neck, .drop, .thumb { fill: var(--icon); }
-  .lbl { fill: var(--bg); font: 700 12px var(--sans, sans-serif); }
+  .lbl { fill: var(--bg); font: 700 12px var(--sans, sans-serif); font-variant-numeric: tabular-nums; }
   .mk { fill: var(--s3); transition: fill .2s ease; }
   .mk.major { fill: var(--tx3); }
   .mk.on { fill: var(--tx2); }

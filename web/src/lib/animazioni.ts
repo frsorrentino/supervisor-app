@@ -57,3 +57,9 @@ export const stackEdges = (items: number): number => Math.min(2, Math.max(0, ite
 export const ghost = (steps: string[], typed: string): string | null => (typed.length ? null : steps.find(x => x.trim())?.trim() ?? null)
 /** 1, Messaggio che entra: la pillola dei nuovi solo se chi legge non è in fondo e c'è qualcosa di nuovo. */
 export const newPill = (atBottom: boolean, unseen: number): boolean => !atBottom && unseen > 0
+
+// Terzo giro, voce 8 dopo la prova 1391 (Franz 27/11): il punto della barra dei paragrafi sta all'inizio del paragrafo che la voce legge;
+// durante il trascinamento segue il dito, al rilascio si aggancia al paragrafo che comincia più vicino. Come Animazioni.scrubAt e scrubNearest.
+export const scrubAt = (block: number, blocks: number): number => (blocks <= 1 ? 0 : Math.min(blocks - 1, Math.max(0, block)) / blocks)
+export const scrubNearest = (f: number, blocks: number): number =>
+  blocks <= 1 ? 0 : Math.min(blocks - 1, Math.max(0, Math.floor(Math.min(1, Math.max(0, f)) * blocks + 0.5)))

@@ -92,6 +92,15 @@ export const startVoice = (saved: string | null, names: string[]): string | null
 // a 0,75×; tenuta premuta apre lo slider.
 export const RATE_CYCLE = [0.75, 1, 1.25, 1.5, 1.75, 2]
 export const nextRate = (v: number) => RATE_CYCLE.find(r => r > v + 0.001) ?? RATE_CYCLE[0]
+/** Tutte le velocità dello slider, da 0,5 a 2 a passi di 0,05 (come SpeechRate.ALL). */
+export const RATES: number[] = Array.from({ length: Math.round((RATE_MAX - RATE_MIN) / RATE_STEP) + 1 }, (_, i) => snapRate(RATE_MIN + i * RATE_STEP))
+/** «1,35×» con la virgola della lingua. */
+export const rateLabel = (r: number, loc: string): string => `${r.toLocaleString(loc, { maximumFractionDigits: 2 })}×`
+/**
+ * Prova 1391 (Franz, 27/11 11:38): l'etichetta più lunga dello slider; con le cifre tabulari è anche la più larga. La pillola del
+ * valore ne riserva lo spazio e, trascinando, non cambia larghezza.
+ */
+export const widestRateLabel = (loc: string): string => RATES.map(r => rateLabel(r, loc)).reduce((a, b) => (b.length > a.length ? b : a))
 /** Dove sta `v` sulla corsa dello slider, da 0 a 1: per il segno di 1×. */
 export const rateFraction = (v: number) => (v - RATE_MIN) / (RATE_MAX - RATE_MIN)
 
