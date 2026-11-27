@@ -150,7 +150,8 @@ private fun SourceBlock(src: TiAspetta.Source, onJump: (TiAspetta.Source) -> Uni
         }
         Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
             Box(Modifier.width(3.dp).fillMaxHeight().background(V3.Tx3))
-            Text(text, style = V3.Body.copy(color = V3.Tx2), modifier = Modifier.padding(start = 12.dp, top = 2.dp, bottom = 2.dp).testTag("ti-aspetta-pezzo"))
+            // app-play-lettura-ovunque-27-11: oltre una riga il ▶ accanto; si legge il pezzo, la frase della domanda resta accesa.
+            LongText(src.text, Modifier.weight(1f).padding(start = 12.dp, top = 2.dp, bottom = 2.dp).testTag("ti-aspetta-pezzo"), style = V3.Body.copy(color = V3.Tx2), annotated = text)
         }
         if (src.entry != null) Box(
             Modifier.clip(CircleShape).background(V3.S3).handCursor().clickable { onJump(src) }.padding(horizontal = 14.dp, vertical = 8.dp).testTag("ti-aspetta-salto"),
@@ -241,8 +242,9 @@ fun WaitCardBody(
                 modifier = Modifier.border(1.dp, V3.Wait.copy(alpha = 0.55f), androidx.compose.foundation.shape.RoundedCornerShape(6.dp)).padding(horizontal = 6.dp, vertical = 1.dp),
             )
         }
-        item.title?.takeIf { t -> t.isNotBlank() && t != item.text }?.let { t -> Text(t, style = V3.Name.copy(fontSize = 18.sp)) }
-        Text(item.text, style = V3.Body.copy(color = V3.Tx))
+        // app-play-lettura-ovunque-27-11: il ▶ accanto a ogni testo della carta che va oltre una riga (titolo, domanda, consiglio, campi).
+        item.title?.takeIf { t -> t.isNotBlank() && t != item.text }?.let { t -> LongText(t, style = V3.Name.copy(fontSize = 18.sp)) }
+        LongText(item.text, style = V3.Body.copy(color = V3.Tx))
         AdviceLine(item.advice, "ti-aspetta-consiglio")
         item.card?.let { c ->
             listOfNotNull(
@@ -251,7 +253,7 @@ fun WaitCardBody(
             ).filter { (_, v) -> v.isNotBlank() && v != item.text }.forEach { (k, v) ->
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(stringResource(k), style = V3.Small.copy(color = V3.Tx3), modifier = Modifier.width(96.dp))
-                    Text(v, style = V3.Small.copy(color = V3.Tx), modifier = Modifier.weight(1f))
+                    LongText(v, Modifier.weight(1f), style = V3.Small.copy(color = V3.Tx))
                 }
             }
         }
@@ -321,7 +323,8 @@ fun WaitCardBody(
                 it.pixelbox.cmwatch.rules.Scelta.State.CLOSED -> stringResource(R.string.scelta_closed)
                 it.pixelbox.cmwatch.rules.Scelta.State.SILENCE -> stringResource(R.string.scelta_done_silence)
             }
-            Text(listOfNotNull(said, o.reason).joinToString(": "), style = V3.Small)
+            // app-play-lettura-ovunque-27-11: com'è finita e il motivo, col ▶ se va oltre una riga.
+            LongText(listOfNotNull(said, o.reason).joinToString(": "), style = V3.Small)
         }
     }
 }
@@ -470,8 +473,9 @@ fun TiAspettaColumn(content: @Composable () -> Unit) {
 @Composable
 internal fun AdviceLine(advice: it.pixelbox.cmwatch.contract.WaitAdvice?, tag: String) {
     val a = TiAspetta.adviceOf(advice) ?: return
-    Text(
+    // app-play-lettura-ovunque-27-11: oltre una riga il ▶ accanto, come agli altri testi della carta.
+    LongText(
         TiAspetta.adviceLine(a, stringResource(R.string.ti_aspetta_advice), stringResource(R.string.ti_aspetta_advice_yes), stringResource(R.string.ti_aspetta_advice_no)),
-        style = V3.Body.copy(fontSize = 15.sp, color = V3.Wait), modifier = Modifier.testTag(tag),
+        Modifier.testTag(tag), style = V3.Body.copy(fontSize = 15.sp, color = V3.Wait),
     )
 }

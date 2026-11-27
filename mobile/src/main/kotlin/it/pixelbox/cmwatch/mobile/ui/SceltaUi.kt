@@ -293,7 +293,9 @@ fun SceltaAperta(item: WaitItem, rows: List<Pair<Int, String>>, onSend: (Int, St
     }
     Column(Modifier.fillMaxWidth().testTag("scelta-aperta"), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(item.title?.takeIf { it.isNotBlank() } ?: item.text, style = V3.Section.copy(fontSize = 22.sp, lineHeight = 26.sp))
+            // app-play-lettura-ovunque-27-11: il ▶ accanto a ogni testo della scheda che va oltre una riga (testata, testo, descrizione,
+            // consiglio, esito, campi, nome e riga di ogni opzione, giri di prima).
+            LongText(item.title?.takeIf { it.isNotBlank() } ?: item.text, style = V3.Section.copy(fontSize = 22.sp, lineHeight = 26.sp))
             val said = outcomeText(out)
             if (said != null) {
                 val tone = when (out.state) { Scelta.State.CHOSEN, Scelta.State.APPROVED -> V3.Good; Scelta.State.REDO -> V3.Wait; else -> V3.Tx2 }
@@ -301,21 +303,21 @@ fun SceltaAperta(item: WaitItem, rows: List<Pair<Int, String>>, onSend: (Int, St
                     if (tone == V3.Good) Icon(Icons.Rounded.Check, null, tint = tone, modifier = Modifier.size(18.dp))
                     Text(said, style = V3.Name.copy(fontSize = 16.sp, color = tone))
                 }
-                out.reason?.let { Text(it, style = V3.Body.copy(color = V3.Tx)) }
+                out.reason?.let { LongText(it, style = V3.Body.copy(color = V3.Tx)) }
             } else if (rounds.isNotEmpty() || item.card?.deploy == true) FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (rounds.isNotEmpty()) Text(stringResource(R.string.scelta_round, rounds.size + 1), style = V3.Name.copy(fontSize = 16.sp, color = V3.Tx2))
                 if (item.card?.deploy == true) Text(stringResource(R.string.scelta_production), style = V3.Name.copy(fontSize = 16.sp, color = V3.Wait))
             }
         }
         val title = item.title?.takeIf { it.isNotBlank() } ?: item.text
-        if (item.text.isNotBlank() && item.text != title) Text(item.text, style = V3.Body.copy(fontSize = 17.sp, lineHeight = 24.sp))
+        if (item.text.isNotBlank() && item.text != title) LongText(item.text, style = V3.Body.copy(fontSize = 17.sp, lineHeight = 24.sp))
         AdviceLine(item.advice, "scelta-consiglio")
-        item.description?.takeIf { it.isNotBlank() && it != item.text }?.let { Text(it, style = V3.Body.copy(color = V3.Tx2, lineHeight = 23.sp)) }
+        item.description?.takeIf { it.isNotBlank() && it != item.text }?.let { LongText(it, style = V3.Body.copy(color = V3.Tx2, lineHeight = 23.sp)) }
         if (rows.isNotEmpty()) Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
             rows.forEach { (k, v) ->
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(stringResource(k), style = V3.Small.copy(color = V3.Tx3), modifier = Modifier.width(96.dp))
-                    Text(v, style = V3.Small.copy(color = V3.Tx), modifier = Modifier.weight(1f))
+                    LongText(v, Modifier.weight(1f), style = V3.Small.copy(color = V3.Tx))
                 }
             }
         }
@@ -345,7 +347,8 @@ fun SceltaAperta(item: WaitItem, rows: List<Pair<Int, String>>, onSend: (Int, St
         }
         @Composable fun nameOf(o: Scelta.Opt, dim: Boolean, modifier: Modifier = Modifier) {
             FlowRow(modifier, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                if (o.name.isNotEmpty()) Text(o.name, style = V3.Name.copy(color = if (dim) V3.Tx2 else V3.Tx))
+                // Larga quanto il nome (IntrinsicSize.Max), così «Consigliata» gli resta accanto; un nome oltre la riga ha il ▶.
+                if (o.name.isNotEmpty()) LongText(o.name, Modifier.width(IntrinsicSize.Max), style = V3.Name.copy(color = if (dim) V3.Tx2 else V3.Tx))
                 if (o.recommended) Text(stringResource(R.string.ti_aspetta_recommended), style = V3.Body.copy(fontSize = 14.sp, color = V3.Wait))
             }
         }
@@ -362,7 +365,7 @@ fun SceltaAperta(item: WaitItem, rows: List<Pair<Int, String>>, onSend: (Int, St
                             Text(o.letter, style = TextStyle(fontFamily = V3.Display, fontWeight = FontWeight.Bold, fontSize = 20.sp, lineHeight = 22.sp, color = V3.Tx2), modifier = Modifier.width(18.dp))
                             nameOf(o, dim, Modifier.weight(1f))
                         }
-                        o.line?.let { Text(it, style = V3.Body.copy(fontSize = 15.sp, color = V3.Tx2), modifier = Modifier.padding(start = 28.dp, top = 4.dp)) }
+                        o.line?.let { LongText(it, Modifier.padding(start = 28.dp, top = 4.dp), style = V3.Body.copy(fontSize = 15.sp, color = V3.Tx2)) }
                         o.docs.forEach { f -> WaitDoc(f, Modifier.padding(start = 28.dp)) }
                         Spacer(Modifier.weight(1f).heightIn(min = 14.dp))
                         button(o, Modifier.fillMaxWidth())
@@ -390,7 +393,7 @@ fun SceltaAperta(item: WaitItem, rows: List<Pair<Int, String>>, onSend: (Int, St
                             nameOf(o, dim, Modifier.weight(1f))
                             button(o)
                         }
-                        o.line?.let { Text(it, style = V3.Body.copy(fontSize = 15.sp, color = V3.Tx2), modifier = Modifier.padding(start = 36.dp, top = 2.dp)) }
+                        o.line?.let { LongText(it, Modifier.padding(start = 36.dp, top = 2.dp), style = V3.Body.copy(fontSize = 15.sp, color = V3.Tx2)) }
                         o.docs.forEach { f -> WaitDoc(f, Modifier.padding(start = 36.dp)) }
                     }
                 }
@@ -449,8 +452,9 @@ fun SceltaAperta(item: WaitItem, rows: List<Pair<Int, String>>, onSend: (Int, St
                         Text(sceltaWhen(r.answeredAt ?: r.at), style = V3.Meter)
                     }
                     val why = stringResource(when (r.state) { "redo" -> R.string.scelta_round_redo; "replaced" -> R.string.scelta_round_replaced; "silence" -> R.string.silence_label; else -> R.string.scelta_round_closed })
-                    Text(buildAnnotatedString { withStyle(SpanStyle(color = V3.Tx2)) { append(why) }; r.reason?.let { append(": "); append(it) } }, style = V3.Body.copy(fontSize = 15.sp))
-                    (r.description ?: r.text).takeIf { it.isNotBlank() }?.let { Text(it, style = V3.Small) }
+                    val whyLine = why + (r.reason?.let { ": $it" } ?: "")
+                    LongText(whyLine, style = V3.Body.copy(fontSize = 15.sp), annotated = buildAnnotatedString { withStyle(SpanStyle(color = V3.Tx2)) { append(why) }; r.reason?.let { append(": "); append(it) } })
+                    (r.description ?: r.text).takeIf { it.isNotBlank() }?.let { LongText(it, style = V3.Small) }
                     val shown = r.options.filter { it.images.isNotEmpty() }
                     if (shown.isNotEmpty()) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         shown.forEach { o -> WaitImage(o.images[0], Modifier.width(96.dp), letter = o.letter, small = true, onOpen = { enlarge(r.options, o.images[0], roundName) }) }

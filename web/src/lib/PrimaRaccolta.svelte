@@ -33,14 +33,16 @@
     {@const q = question(page)}
     {#if q}
       <!-- Contratto 1.139: una riga, sotto la riga piccola, poi «Non ora» e «Scansiona». -->
-      <div class="c" data-testid="prima-domanda"><p>{q.text}</p>{#if q.note?.trim()}<p class="m s">{q.note}</p>{/if}<div class="ac"><span class="sp"></span><button class="out" class:done={busy === 'consentlater'} disabled={!!busy} onclick={() => touch('consent', 'later')}>{#if busy === 'consentlater'}✓ {/if}{q.later}</button><button class="tonal" class:done={busy === 'consentsi'} disabled={!!busy} onclick={() => touch('consent', 'si')}>{#if busy === 'consentsi'}✓ {/if}{q.yes}</button></div></div>
+      <!-- app-play-lettura-ovunque-27-11: la domanda col ▶ accanto, se va oltre una riga; la riga piccola sotto resta com'è. -->
+      <div class="c" data-testid="prima-domanda"><div class="lw"><LongText text={q.text} /></div>{#if q.note?.trim()}<p class="m s">{q.note}</p>{/if}<div class="ac"><span class="sp"></span><button class="out" class:done={busy === 'consentlater'} disabled={!!busy} onclick={() => touch('consent', 'later')}>{#if busy === 'consentlater'}✓ {/if}{q.later}</button><button class="tonal" class:done={busy === 'consentsi'} disabled={!!busy} onclick={() => touch('consent', 'si')}>{#if busy === 'consentsi'}✓ {/if}{q.yes}</button></div></div>
     {:else if askConsent(page)}
       <div class="c"><LongText text={page.ask_text} /><div class="ac"><span class="sp"></span><button class="out" class:done={busy === 'consentno'} disabled={!!busy} onclick={() => touch('consent', 'no')}>{#if busy === 'consentno'}✓ {/if}{t.primaNo}</button><button class="tonal" class:done={busy === 'consentsi'} disabled={!!busy} onclick={() => touch('consent', 'si')}>{#if busy === 'consentsi'}✓ {/if}{t.primaYes}</button></div></div>
     {/if}
     <!-- Le sezioni come righe (app-richiede-te-righe-02-11): il tocco apre il testo intero e «Vai». -->
     <ItemList rows={page.sections.map(prima)} testid="prima" name={(r) => t.primaSections[r.key] ?? r.key}>{#snippet card(r)}{@const s = page?.sections.find(x => x.key === r.key)}{#if s}
       <div class="in" data-testid={`prima-${s.key}`}>
-        {#if emptySection(s)}{#if s.why}<p class="m">{s.why}</p>{/if}{#if s.when}<p class="m">{s.when}</p>{/if}{:else}<LongText text={s.text} />{/if}
+        <!-- app-play-lettura-ovunque-27-11: anche perché è vuota e quando si riempie, col ▶ accanto se vanno oltre una riga. -->
+        {#if emptySection(s)}{#if s.why}<div class="lw m"><LongText text={s.why} /></div>{/if}{#if s.when}<div class="lw m"><LongText text={s.when} /></div>{/if}{:else}<LongText text={s.text} />{/if}
         {#if screen(s.dove)}<div class="ac"><span class="sp"></span><button class="text" onclick={() => onScreen(screen(s.dove)!)}>{t.featuresGo}</button></div>{/if}
       </div>{/if}{/snippet}</ItemList>
     {#if firstRoundOffer(page)}
@@ -58,7 +60,7 @@
   .pr { padding: 0 12px 24px; max-width: 720px; display: flex; flex-direction: column; gap: 10px; }
   .c { background: var(--low); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 6px; }
   .c b { font-weight: 600; }
-  p { font-size: 14px; overflow-wrap: anywhere; }
+  p, .lw { font-size: 14px; overflow-wrap: anywhere; }
   .m { color: var(--text2); }
   .s { font-size: 13px; }
   .ac { display: flex; align-items: center; gap: 8px; } .sp { flex: 1; }

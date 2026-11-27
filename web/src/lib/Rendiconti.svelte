@@ -3,6 +3,7 @@
   import { monthName } from './conti'
   import { locale } from './lang'
   import { t } from './t'
+  import LongText from './LongText.svelte'
   // app-rendiconti-2-02-11 (contratto 1.103): il mese coi clienti; il tocco su un cliente legge il suo dettaglio (lavori, commit,
   // release misurati) e sotto c'è l'unico tasto pieno, «Chiedi la bozza», che passa la richiesta alla master (`conti_azione`).
   let { page, failed = false, onLoad, onAsk }: {
@@ -38,13 +39,14 @@
         <span class="ms ar" aria-hidden="true">{d ? 'expand_less' : 'expand_more'}</span>
       </button>
       {#if d}
+        <!-- app-play-lettura-ovunque-27-11: il misurato, ogni lavoro e la nota col ▶ accanto, se vanno oltre una riga. -->
         <div class="det">
-          <p class="meas">{t.contiMeasured(d.measured.tasks, d.measured.commits, d.measured.releases)}</p>
-          {#if d.tasks.length}<ul>{#each d.tasks as x (x.task)}<li><span>{x.title}</span><small>{day(x.at)}</small></li>{/each}</ul>{/if}
+          <div class="meas"><LongText text={t.contiMeasured(d.measured.tasks, d.measured.commits, d.measured.releases)} /></div>
+          {#if d.tasks.length}<ul>{#each d.tasks as x (x.task)}<li><div class="lit"><LongText text={x.title} /></div><small>{day(x.at)}</small></li>{/each}</ul>{/if}
           {#if d.releases.length}<p class="dim">{t.contiReleases(d.releases.map(r => r.tag).join(', '))}</p>{/if}
           {#if d.git === false}<p class="dim">{t.contiNoGit}</p>{/if}
           <button class="filled" disabled={asking} data-testid="rendiconti-bozza" onclick={() => ask(c.project)}>{c.draft_at ? t.contiAskAgain : t.contiAsk}</button>
-          {#if note}<p class="note" role="status">{note}</p>{/if}
+          {#if note}<div class="note" role="status"><LongText text={note} /></div>{/if}
         </div>
       {/if}
     {/each}
@@ -65,6 +67,7 @@
   ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
   li { display: flex; gap: 10px; justify-content: space-between; font-size: 14px; color: var(--tx2); }
   li small { color: var(--tx3); flex: none; }
+  .lit { flex: 1; min-width: 0; }
   .filled { align-self: flex-start; padding: 9px 16px; border-radius: 999px; background: var(--tx); color: var(--bg); font: 600 14.5px var(--display); }
   .filled:disabled { opacity: .5; }
   .dim { color: var(--tx2); font-size: 14px; padding: 0 14px; }

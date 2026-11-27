@@ -6,6 +6,7 @@
   import ItemList from './ItemList.svelte'
   import { split, suggestion } from './itemRows'
   import { later } from './undo.svelte'
+  import LongText from './LongText.svelte'
 
   // «Suggerimenti della master» (Franz 24/10 19:46, scheda A del mockup docs/mockup/2026-10-24-suggerimenti-home; contratto
   // 1.84): la stessa struttura delle altre schede, al massimo tre voci, ognuna col suo simbolo, «Accetta» tonale, «Parliamone»,
@@ -33,8 +34,9 @@
 <!-- Le voci come righe (app-richiede-te-righe-02-11): pallino ambra, la prima frase, a destra il tipo, sotto il resto; il tocco
      apre il testo intero coi tasti: «Altre risposte» (da cui si rifiuta) e «Accetta» tonale. -->
 <ItemList rows={rows.map(suggestion)} testid="suggerimento">{#snippet card(r)}{@const s = rows.find(x => x.id === r.key)}{#if s}
-  <span class="txt">
-    {#if split(s.text)[1]}<span class="body">{split(s.text)[1]}</span>{/if}
+  <!-- app-play-lettura-ovunque-27-11: il resto del testo, nella voce aperta, col ▶ accanto se va oltre una riga. -->
+  <div class="txt">
+    {#if split(s.text)[1]}<div class="body"><LongText text={split(s.text)[1]} /></div>{/if}
     <span class="btns">
       <!-- Contratto 1.132: la voce di un monitoraggio porta il link della sua scheda, che la web apre dentro l'app (app-monitoraggi-09-11). -->
       {#if s.link}<a class="text" href={s.link} data-testid="suggerimento-grafico">{t.sugOpenChart}</a>{/if}
@@ -47,7 +49,7 @@
       {:else}<button class="text" aria-expanded="false" onclick={() => (more = new Set([...more, s.id]))}>{t.sugMore}</button>{/if}
       {#each options(s) as o (o)}<button class="tonal" onclick={() => answer(s, 'choose', o)}>{o}</button>{:else}<button class="tonal" onclick={() => answer(s, 'accept')}>{t.sugAccept}</button>{/each}
     </span>
-  </span>{/if}{/snippet}</ItemList>
+  </div>{/if}{/snippet}</ItemList>
 
 <style>
   .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; overflow-wrap: anywhere; }

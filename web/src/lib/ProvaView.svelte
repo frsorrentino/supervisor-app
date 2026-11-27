@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { ProvaRead } from './provaLinks'
   import { t } from './t'
+  import LongText from './LongText.svelte'
   // La scheda di una prova (app-prova-link-10-11, contratto 1.134): si apre da «prova #N» in un messaggio o da `#/prova/<n>`. Il numero e il
   // compito; lo stato con le parole della persona o il motivo e l'ora; dove, cosa fare e cosa vedere. Ancora da provare, il tasto porta a
   // Verifica. `read` null: sta arrivando; un relay di prima del contratto 1.134 lo dice in una riga. Come ProvaPage in Kotlin.
@@ -21,9 +22,10 @@
     {:else if read.kind === 'unsupported'}<p class="note" data-testid="prova-non-supportata">{t.provaUnsupported}</p>
     {:else if read.kind === 'refused'}<p class="err" data-testid="prova-rifiutata">{read.message}</p>
     {:else}{@const q = read.prova}
-      <div class="state s-{q.state}" data-testid="prova-stato-{q.state}"><p class="lb"><i></i>{word(q.state)}</p>{#if q.text}<p>{q.text}</p>{/if}{#if q.at}<small>{t.provaAt(dm(q.at))}</small>{/if}</div>
-      {#if q.title}<p class="title">{q.title}</p>{/if}
-      {#each [[t.provaWhere, q.dove], [t.provaDo, q.fai], [t.provaExpected, q.atteso]] as [label, value]}{#if value}<div class="f"><small>{label}</small><p>{value}</p></div>{/if}{/each}
+      <!-- app-play-lettura-ovunque-27-11: lo stato, il titolo, dove, cosa fare e cosa vedere col ▶ accanto se vanno oltre una riga. -->
+      <div class="state s-{q.state}" data-testid="prova-stato-{q.state}"><p class="lb"><i></i>{word(q.state)}</p>{#if q.text}<LongText text={q.text} />{/if}{#if q.at}<small>{t.provaAt(dm(q.at))}</small>{/if}</div>
+      {#if q.title}<div class="title"><LongText text={q.title} /></div>{/if}
+      {#each [[t.provaWhere, q.dove], [t.provaDo, q.fai], [t.provaExpected, q.atteso]] as [label, value]}{#if value}<div class="f"><small>{label}</small><div class="fv"><LongText text={value} /></div></div>{/if}{/each}
     {/if}
   </div>
   {#if p?.state === 'todo'}<footer><button class="btn main" data-testid="prova-verifica" onclick={onVerify}>{t.provaOpenVerify}</button></footer>{/if}
@@ -47,7 +49,7 @@
   .s-ko .lb, .s-red .lb { color: var(--red); }
   .title { font-size: 15.5px; line-height: 21px; color: var(--tx2); }
   .f small { display: block; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--tx3); }
-  .f p { font-size: 15.5px; line-height: 21px; }
+  .f .fv { font-size: 15.5px; line-height: 21px; }
   .wait { display: flex; align-items: center; gap: 10px; color: var(--tx2); }
   .spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--tx3); border-top-color: var(--tx2); animation: pvspin .9s linear infinite; }
   @keyframes pvspin { to { transform: rotate(360deg); } }

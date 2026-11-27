@@ -1883,7 +1883,8 @@
   function service(r: ForYouRow) {
     switch (r.kind) {
       case 'context': if (r.session) handoff(r.session); break
-      case 'night_report': if (r.detail) toggle(r.detail); if (r.key) read = new Set([...read, r.key]); break
+      // app-play-lettura-ovunque-27-11: «Ascolta» è diventato il ▶ della riga (ReadButton in Home), che legge da sé; qui la riga letta.
+      case 'night_report': if (r.key) read = new Set([...read, r.key]); break
       case 'night': nightDlg?.showModal(); break
       case 'next_step':
         read = new Set([...read, nextKey(r.title, r.detail ?? '')])

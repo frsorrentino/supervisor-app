@@ -4,6 +4,7 @@
   import { t } from './t'
   import HoldButton from './HoldButton.svelte'
   import { needsHold } from './animazioni'
+  import ReadButton from './ReadButton.svelte'
   // Franz 24/10 09:25: la finestra di conferma di un ok: titolo corto, la domanda una volta sola con il tasto ▶, le opzioni
   // con quella scelta evidenziata, la nota facoltativa, poi Annulla e la conferma.
   let { a, choice = null, onSpeak = null, onCancel, onConfirm }: {
@@ -17,7 +18,8 @@
 <h3 class="ah">{choice ? t.chooseShort(choice) : a.deploy ? t.approveProdTitle : t.approveShort}</h3>
 <div class="aq">
   <p>{question}</p>
-  {#if onSpeak}<button class="play" aria-label={t.listen} title={t.listen} onclick={() => onSpeak?.(question)}><svg viewBox="0 0 24 24" width="20" height="20"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor" /></svg></button>{/if}
+  <!-- app-play-lettura-ovunque-27-11: il ▶ di tutta l'app, «Leggi ad alta voce» e ■ mentre legge; c'è quando chi apre la finestra legge. -->
+  {#if onSpeak}<ReadButton text={question} />{/if}
 </div>
 {#if opts.length}<div class="aopts">{#each opts as o (o)}<span class:on={o === choice}>{o}</span>{/each}</div>{/if}
 <label class="alab">{t.approveNote}<input bind:value={note} placeholder="ok" /></label>
@@ -31,7 +33,6 @@
   .ah { margin: 0; font-size: 20px; font-weight: 600; }
   .aq { display: flex; align-items: flex-start; gap: 8px; margin-top: 10px; }
   .aq p { flex: 1; margin: 0; font-size: 15px; line-height: 1.45; color: var(--text); overflow-wrap: anywhere; }
-  .play { flex: none; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: var(--icon); background: var(--high); }
   .aopts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
   .aopts span { white-space: nowrap; padding: 6px 12px; border-radius: 999px; background: var(--high); color: var(--text2); font-size: 14px; font-weight: 500; }
   .aopts span.on { background: var(--primary); color: var(--on-primary); }

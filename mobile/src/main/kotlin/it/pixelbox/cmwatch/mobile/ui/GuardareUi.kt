@@ -235,7 +235,8 @@ private fun VersionRow(i: ResultItem, a: GuardareActions) {
 private fun NoteLine(text: String, pos: Double?) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Icon(Icons.Outlined.Edit, null, tint = V3.Tx2, modifier = Modifier.size(18.dp).padding(top = 2.dp))
-        Text(pos?.let { stringResource(R.string.watch_your_note_at, Guardare.pos(it), text) } ?: stringResource(R.string.watch_your_note, text), style = V3.Small)
+        // app-play-lettura-ovunque-27-11: la nota col ▶ accanto se va oltre una riga; l'icona resta fuori.
+        LongText(pos?.let { stringResource(R.string.watch_your_note_at, Guardare.pos(it), text) } ?: stringResource(R.string.watch_your_note, text), Modifier.weight(1f), style = V3.Small)
     }
 }
 
@@ -384,10 +385,11 @@ fun ResultViewer(i: ResultItem, a: GuardareActions, onBack: () -> Unit) {
         }
         i.changed?.trim()?.takeIf { it.isNotEmpty() }?.let { c ->
             val label = stringResource(R.string.watch_changed)
-            Text(androidx.compose.ui.text.buildAnnotatedString {
+            // app-play-lettura-ovunque-27-11: «Cosa è cambiato:» e il testo sono una frase sola, si leggono insieme col ▶ oltre una riga.
+            LongText("$label $c", style = V3.Body, annotated = androidx.compose.ui.text.buildAnnotatedString {
                 withStyle(androidx.compose.ui.text.SpanStyle(fontWeight = androidx.compose.ui.text.font.FontWeight.Medium)) { append(label) }
                 append(" "); append(c)
-            }, style = V3.Body)
+            })
         }
         i.caption?.trim()?.takeIf { it.isNotEmpty() && it != i.title }?.let { LongText(it, style = V3.Small) }
         if (i.replaced == true) Text(stringResource(R.string.watch_replaced), style = V3.Small.copy(color = V3.Wait))

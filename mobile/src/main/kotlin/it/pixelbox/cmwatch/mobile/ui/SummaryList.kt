@@ -1517,16 +1517,16 @@ private fun SummaryCard(
         val toolLine = s.tool?.takeIf { r.group == Summary.Group.WORKING && !open }
         val chips = todo?.takeIf { perTe < 0 && compact && (it.first > 0 || it.second > 0) }
         val bodyText: @Composable (Boolean) -> Unit = { full ->
-            Text(
-                if (old == null) androidx.compose.ui.text.AnnotatedString(body) else androidx.compose.ui.text.buildAnnotatedString {
-                    append(body); append("  ")
-                    withStyle(androidx.compose.ui.text.SpanStyle(color = Cm.briefWarn, fontStyle = androidx.compose.ui.text.font.FontStyle.Normal, fontFamily = V3.Mono, fontSize = 11.sp)) { append(stringResource(R.string.stale_ago, old)) }
-                },
-                style = (if (waiting || full) V3.Body else V3.Small).copy(fontStyle = if (old != null) androidx.compose.ui.text.font.FontStyle.Italic else androidx.compose.ui.text.font.FontStyle.Normal),
-                color = if (waiting || full) V3.Tx else if (old != null) V3.Tx2.copy(alpha = 0.75f) else V3.Tx2,
-                maxLines = if (full) Int.MAX_VALUE else 1, softWrap = full, overflow = androidx.compose.ui.text.style.TextOverflow.Clip,
-                modifier = if (full) Modifier else Modifier.fadeEnd(),
-            )
+            val bodyShown = if (old == null) androidx.compose.ui.text.AnnotatedString(body) else androidx.compose.ui.text.buildAnnotatedString {
+                append(body); append("  ")
+                withStyle(androidx.compose.ui.text.SpanStyle(color = Cm.briefWarn, fontStyle = androidx.compose.ui.text.font.FontStyle.Normal, fontFamily = V3.Mono, fontSize = 11.sp)) { append(stringResource(R.string.stale_ago, old)) }
+            }
+            val bodyStyle = (if (waiting || full) V3.Body else V3.Small).copy(fontStyle = if (old != null) androidx.compose.ui.text.font.FontStyle.Italic else androidx.compose.ui.text.font.FontStyle.Normal)
+            val bodyInk = if (waiting || full) V3.Tx else if (old != null) V3.Tx2.copy(alpha = 0.75f) else V3.Tx2
+            // app-play-lettura-ovunque-27-11: aperta, il testo intero col ▶ oltre una riga (si legge il testo, non quanto è vecchio);
+            // chiusa resta la riga d'anteprima, che apre la scheda.
+            if (full) LongText(body, style = bodyStyle, color = bodyInk, annotated = bodyShown)
+            else Text(bodyShown, style = bodyStyle, color = bodyInk, maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.fadeEnd())
         }
         if (chips != null) Row(Modifier.fillMaxWidth().fadeEnd(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             // Le richieste della sessione in testa alla riga: la scheda chiusa resta della sua misura (app-sessioni-compatte-06-11).
@@ -1695,11 +1695,12 @@ private fun SummaryCard(
                 if (hasNow) KSection(stringResource(R.string.k_now), "k-adesso", nowAt?.let { hhmmOf(it) }) {
                     task?.let { c -> KTaskLine(c.short ?: c.task, stringResource(if (c.paused != null) R.string.k_task_paused else R.string.k_task_running), paused = c.paused != null) }
                     val goal = SessionsText.goalLine(s, stringResource(R.string.goal))
-                    if (task == null) goal?.let { g -> KTaskLine(g) } else goal?.let { g -> Text(g, style = V3.Small, maxLines = 2, modifier = Modifier.padding(top = 2.dp)) }
-                    detail.doing?.let { d -> Text(d, style = V3.Meter.copy(color = V3.Tx2), modifier = Modifier.padding(top = 6.dp).testTag("scheda-sta-facendo")) }
+                    // app-play-lettura-ovunque-27-11: obiettivo, cosa sta facendo, il testo e l'ultimo messaggio, ognuno col ▶ oltre una riga.
+                    if (task == null) goal?.let { g -> KTaskLine(g) } else goal?.let { g -> LongText(g, Modifier.padding(top = 2.dp), style = V3.Small, maxLines = 2) }
+                    detail.doing?.let { d -> LongText(d, Modifier.padding(top = 6.dp).testTag("scheda-sta-facendo"), style = V3.Meter.copy(color = V3.Tx2)) }
                     if (body.isNotBlank() && !waiting) Box(Modifier.padding(top = 6.dp)) { bodyText(true) }
                     detail.said?.let { said ->
-                        Text(it.pixelbox.cmwatch.rules.Markdown.parse(said).text.trim(), style = V3.Body.copy(color = V3.Tx2), modifier = Modifier.padding(top = 6.dp).testTag("scheda-ultimo-messaggio"))
+                        LongText(it.pixelbox.cmwatch.rules.Markdown.parse(said).text.trim(), Modifier.padding(top = 6.dp).testTag("scheda-ultimo-messaggio"), style = V3.Body.copy(color = V3.Tx2))
                     }
                     if (pv != null && pvHere) KStepBar(pv)
                     // Oltre la soglia il consiglio del contesto, col suo tasto tonale (i suggerimenti della sessione).
@@ -1711,7 +1712,7 @@ private fun SummaryCard(
                 }
                 val waitsHere = waiting || r.approvals.isNotEmpty() || works.isNotEmpty() || okStep0 != null
                 if (next != null || waitsHere || (perTe < 0 && stepList.size > 1)) KSection(stringResource(R.string.k_your_turn), "k-prossimo", you = true) {
-                    next?.let { n -> Text(n, style = V3.Body) }
+                    next?.let { n -> LongText(n, style = V3.Body) }
                     stepsBlock(next?.trim())
                     if (open && perTe < 0 && sessionTodo != null && todo != null && (todo.first > 0 || todo.second > 0)) Box(Modifier.padding(top = 4.dp)) {
                         androidx.compose.runtime.CompositionLocalProvider(LocalSubCard provides true) { sessionTodo(s.name) }
@@ -1945,7 +1946,10 @@ private fun OutsideRow(row: MasterHome.Row, category: OutsideSessions.Category, 
         body?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Cm.text2, maxLines = 2, overflow = TextOverflow.Clip) }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(stringResource(categoryLabel(category)), style = MonoSmall.copy(color = Cm.text2), maxLines = 1, modifier = Modifier.weight(1f))
-            MiniButton(stringResource(action), filled = false) { onAction(row) }
+            // app-play-lettura-ovunque-27-11: «Ascolta» del resoconto della notte è il ▶ della lettura; il tocco resta quello della
+            // riga, che legge il resoconto e lo segna letto.
+            if (row.kind == MasterHome.Kind.NIGHT_REPORT) ReadButton(row.detail.orEmpty()) { onAction(row) }
+            else MiniButton(stringResource(action), filled = false) { onAction(row) }
         }
     }
 }
@@ -2268,8 +2272,9 @@ private fun ServiceLine(row: MasterHome.Row, onAction: () -> Unit) {
         Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Icon(Icons.Rounded.WarningAmber, null, tint = Cm.briefWarn, modifier = Modifier.size(22.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                Text(title, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium), color = Cm.text)
-                detail?.let { Text(it, style = MonoSmall.copy(color = Cm.text2)) }
+                // app-play-lettura-ovunque-27-11: titolo e dettaglio del suggerimento, ognuno col ▶ oltre una riga.
+                LongText(title, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium), color = Cm.text)
+                detail?.let { LongText(it, style = MonoSmall.copy(color = Cm.text2)) }
             }
         }
         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) { MiniButton(stringResource(action), filled = false, onClick = onAction) }
@@ -2542,14 +2547,14 @@ internal fun ApproveDialog(a: it.pixelbox.cmwatch.contract.Approval, choice: Str
     // la nota facoltativa, poi Annulla e la conferma.
     val question = listOfNotNull(a.title.takeIf { it.isNotBlank() }, a.what?.takeIf { it.isNotBlank() }, a.where?.takeIf { it.isNotBlank() }?.let { stringResource(R.string.approve_where, it) }).joinToString(". ")
     val opts = it.pixelbox.cmwatch.rules.Approvals.choices(a)
-    val speak = LocalSpeakText.current
     AlertDialog(
         onDismissRequest = onDismiss, containerColor = Cm.surface,
         title = { Text(if (choice != null) stringResource(R.string.choose_short, choice) else if (a.deploy) stringResource(R.string.approve_prod_title) else stringResource(R.string.approve_short), style = MaterialTheme.typography.titleLarge) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                if (speak != null) Speakable(question, speak = true, onSpeak = speak)
-                else Text(question, style = MaterialTheme.typography.bodyLarge, color = Cm.text)
+                // app-play-lettura-ovunque-27-11: il ▶ è il ReadButton di tutta l'app (prima quello di Speakable), accanto alla domanda
+                // quando va oltre una riga; i link restano.
+                LongText(question, style = MaterialTheme.typography.bodyLarge, color = Cm.text, annotated = linked(question))
                 OkInfo(a)
                 if (opts.isNotEmpty()) {
                     @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
@@ -2626,16 +2631,17 @@ private fun CloseFinishedDialog(p: it.pixelbox.cmwatch.rules.CloseFinished.Previ
                     !done -> Text(stringResource(R.string.close_finished_loading), color = Cm.text2)
                     p == null -> Text(stringResource(R.string.close_finished_no_preview), color = Cm.text2)
                     else -> {
-                        Text(stringResource(R.string.close_finished_sub), color = Cm.text2, style = MaterialTheme.typography.bodyMedium)
+                        // app-play-lettura-ovunque-27-11: le righe che possono andare oltre una riga hanno il ▶ (questa, esito, prossimo, file).
+                        LongText(stringResource(R.string.close_finished_sub), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
                         p.sessions.forEach { x ->
                             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                 Text(x.name, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold), color = if (x.closable) Cm.text else Cm.text2)
                                 val small = MaterialTheme.typography.bodySmall
                                 if (!x.closable) Text(stringResource(when (x.blockedBy) { "busy" -> R.string.close_blocked_busy; "question" -> R.string.close_blocked_question; "background" -> R.string.close_blocked_background; "attached" -> R.string.close_blocked_attached; "gone" -> R.string.close_blocked_gone; else -> R.string.close_blocked_other }), style = small, color = Cm.text2)
                                 else {
-                                    x.save?.outcome?.let { Text(stringResource(R.string.close_saves_outcome, it), style = small, color = Cm.text2) }
-                                    x.save?.next?.let { Text(stringResource(R.string.close_saves_next, it), style = small, color = Cm.text2) }
-                                    x.save?.dirtyN?.takeIf { it > 0 }?.let { n -> Text(stringResource(R.string.close_dirty, n, x.save?.dirty.orEmpty().take(3).joinToString(", ")), style = small, color = Cm.briefWarn) }
+                                    x.save?.outcome?.let { LongText(stringResource(R.string.close_saves_outcome, it), style = small, color = Cm.text2) }
+                                    x.save?.next?.let { LongText(stringResource(R.string.close_saves_next, it), style = small, color = Cm.text2) }
+                                    x.save?.dirtyN?.takeIf { it > 0 }?.let { n -> LongText(stringResource(R.string.close_dirty, n, x.save?.dirty.orEmpty().take(3).joinToString(", ")), style = small, color = Cm.briefWarn) }
                                     if (x.save?.sessionId != null) Text(stringResource(R.string.close_resumable), style = small, color = Cm.idle)
                                 }
                             }

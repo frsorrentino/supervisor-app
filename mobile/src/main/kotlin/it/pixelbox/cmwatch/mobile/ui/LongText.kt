@@ -19,34 +19,59 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import it.pixelbox.cmwatch.mobile.R
+import it.pixelbox.cmwatch.rules.Animazioni
 
 /**
- * Un testo delle pagine nuove (Da decidere, Da provare, Da seguire, Prima raccolta, Risultati): oltre due righe ha accanto il
- * tasto ▶ della lettura vocale, ■ mentre legge (Franz 03/11 15:22, app-tasto-play-03-11; LongText.svelte sul web). Diventato
- * lungo resta lungo finché il testo non cambia, così il tasto non va e viene col margine che prende.
+ * app-play-lettura-ovunque-27-11 (Franz 27/11 13:29): il ▶ della lettura, uno solo in tutta l'app, quello della chat: tondo da 36 dp, la
+ * stessa icona, «Leggi ad alta voce», ■ mentre legge. Una lettura alla volta (la voce ferma quella di prima); la pillola con velocità e
+ * barra dei paragrafi è quella di sempre, in fondo allo schermo. [onClick]: il tocco di chi chiama, quando fa di più che leggere (il
+ * resoconto della notte legge e segna letto); senza, legge [text] con [LocalSpeakText], e senza la voce il tasto non c'è.
+ */
+@Composable
+internal fun ReadButton(text: String, modifier: Modifier = Modifier, onClick: (() -> Unit)? = null) {
+    val speak = LocalSpeakText.current
+    val tap: () -> Unit = onClick ?: speak?.let { s -> { s(text) } } ?: return
+    val reading = LocalSpeaking.current == text
+    FilledTonalIconButton(onClick = tap, modifier = modifier.size(36.dp).testTag("leggi")) {
+        Icon(
+            if (reading) Icons.Rounded.Stop else Icons.Rounded.PlayArrow, stringResource(if (reading) R.string.stop_reading else R.string.read_aloud),
+            tint = Cm.actionIcon, modifier = Modifier.size(20.dp),
+        )
+    }
+}
+
+/**
+ * Un testo con accanto il ▶ ([ReadButton]) quando supera una riga, o è tagliato ed è più lungo di quello che mostra
+ * (app-play-lettura-ovunque-27-11, Franz 27/11: ovunque, solo oltre una riga, accanto a ogni testo lungo anche nelle carte; prima oltre due
+ * righe nelle pagine nuove, app-tasto-play-03-11). Mentre legge, le parole dette si accendono ([ReadAlongText]). Diventato lungo resta lungo
+ * finché il testo non cambia, così il tasto non va e viene col margine che prende. [annotated]: lo stesso testo con segni o link, disegnato
+ * al posto di [text] (che resta il testo letto).
  */
 @Composable
 internal fun LongText(
     text: String, modifier: Modifier = Modifier, style: TextStyle = TextStyle.Default, color: Color = Color.Unspecified,
-    maxLines: Int = Int.MAX_VALUE, onTextLayout: ((TextLayoutResult) -> Unit)? = null,
+    maxLines: Int = Int.MAX_VALUE, onTextLayout: ((TextLayoutResult) -> Unit)? = null, annotated: AnnotatedString? = null,
 ) {
     var long by remember(text) { mutableStateOf(false) }
-    val speak = LocalSpeakText.current
+    val reading = LocalSpeaking.current == text
+    val word = LocalSpeakingWord.current
+    val block = LocalSpeakingBlock.current
+    val blocksOf = LocalBlocksOf.current
     Row(modifier, verticalAlignment = Alignment.Top) {
-        Text(
-            text, Modifier.weight(1f), style = style, color = color, maxLines = maxLines, overflow = TextOverflow.Clip,
-            onTextLayout = { r -> if (!long && r.lineCount > 2) long = true; onTextLayout?.invoke(r) },
+        if (reading && word != null && block != null) {
+            // La parola detta nel testo intero: le parole dei paragrafi letti prima più quella del paragrafo di adesso.
+            val before = remember(text, block) { blocksOf(text).take(block).sumOf { b -> Animazioni.wordCount(b.text) } }
+            ReadAlongText(annotated ?: AnnotatedString(text), before + word, style, color, Modifier.weight(1f))
+        } else Text(
+            annotated ?: AnnotatedString(text), Modifier.weight(1f), style = style, color = color, maxLines = maxLines, overflow = TextOverflow.Clip,
+            onTextLayout = { r -> if (!long && (r.lineCount > 1 || r.hasVisualOverflow)) long = true; onTextLayout?.invoke(r) },
         )
-        if (long && speak != null) {
-            val reading = LocalSpeaking.current == text
-            FilledTonalIconButton(onClick = { speak(text) }, modifier = Modifier.padding(start = 8.dp).size(40.dp).testTag("leggi")) {
-                Icon(if (reading) Icons.Rounded.Stop else Icons.Rounded.PlayArrow, stringResource(if (reading) R.string.stop_reading else R.string.read_aloud))
-            }
-        }
+        if (long) ReadButton(text, Modifier.padding(start = 8.dp))
     }
 }

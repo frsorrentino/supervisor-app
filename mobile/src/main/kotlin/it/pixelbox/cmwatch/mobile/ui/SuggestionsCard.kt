@@ -81,7 +81,8 @@ internal fun SuggestionsCard(v: Suggestions.Visible, onAnswer: (Suggestion, Stri
     ItemList(shown.map { ItemRows.suggestion(it) }, "suggerimento", right = { r -> itemRight(r) { k -> stringResource(sugKindLabel(k)) } }) { r ->
         val s = shown.firstOrNull { it.id == r.key } ?: return@ItemList
         Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            ItemRows.split(s.text).second?.let { Text(it, style = V3.Body) }
+            // app-play-lettura-ovunque-27-11: aperta, il resto del testo col ▶ accanto se va oltre una riga.
+            ItemRows.split(s.text).second?.let { LongText(it, style = V3.Body) }
             FlowRow(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 // Contratto 1.132: la voce di un monitoraggio porta il link della sua scheda, che l'app apre dentro (app-monitoraggi-09-11).
                 s.link?.let { l -> val uri = androidx.compose.ui.platform.LocalUriHandler.current; SugText(stringResource(R.string.sug_open_chart)) { uri.openUri(l) } }

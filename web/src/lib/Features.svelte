@@ -4,6 +4,7 @@
   import { t } from './t'
   import FeatureDemo, { DEMO_KEYS } from './FeatureDemo.svelte'
   import ImageViewer from './ImageViewer.svelte'
+  import LongText from './LongText.svelte'
   // «Cosa sa fare» (Franz 01/11 20:39), porta di FeaturesScreen.kt. Ogni voce apre la sua pagina (22:05: tornare alla home non spiegava niente):
   // cosa fa e quando serve, come si usa, e «Portami lì» se ha un posto suo.
   let { onRoute }: { onRoute: (route: string) => void } = $props()
@@ -18,10 +19,11 @@
   <div class="fx page" data-testid="funzione-{opened.key}">
     <button class="back" onclick={() => (opened = null)} aria-label={t.back}><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" /></svg><span>{t.featuresTitle}</span></button>
     <h2>{tx(opened.name)}{#if opened.state === 'coming'} <small>{t.featuresComing}</small>{/if}</h2>
-    <p class="about">{tx(opened.what)} {tx(opened.when)}</p>
+    <!-- app-play-lettura-ovunque-27-11: cosa fa e come si usa col ▶ accanto, se vanno oltre una riga. -->
+    <div class="about"><LongText text={`${tx(opened.what)} ${tx(opened.when)}`} /></div>
     {#if DEMO_KEYS.includes(opened.key)}<h4>{t.featuresTry}</h4><FeatureDemo key={opened.key} />{/if}
     {#if opened.image}<h4>{t.featuresLook}</h4><button class="zoom" aria-label={t.imageOpenFull} onclick={() => (zoomed = { src: `/feature-images/${opened!.image}`, name: tx(opened!.name) })}><img class="look" src="/feature-images/{opened.image}" alt={tx(opened.name)} loading="lazy" /></button>{/if}
-    {#if tx(opened.how)}<h4>{t.featuresHow}</h4><p class="how">{tx(opened.how)}</p>{/if}
+    {#if tx(opened.how)}<h4>{t.featuresHow}</h4><div class="how"><LongText text={tx(opened.how)} /></div>{/if}
     {#if tx(opened.where)}<p class="wh">{tx(opened.where)}</p>{/if}
     {#if canGo(opened)}<button class="go" onclick={() => onRoute(opened!.route!)}>{t.featuresGo}</button>{/if}
   </div>

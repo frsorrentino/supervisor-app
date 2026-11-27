@@ -63,7 +63,8 @@ fun QueueScreen(
                     QueueHead(s, item.askedAt, now, onSession)
                     Column(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(stringResource(R.string.queue_stop_head), style = MaterialTheme.typography.labelLarge, color = Cm.text2)
-                        Text(item.text, style = MaterialTheme.typography.bodyLarge, color = Cm.text)
+                        // app-play-lettura-ovunque-27-11: il motivo della ferma col ▶ accanto se va oltre una riga.
+                        LongText(item.text, style = MaterialTheme.typography.bodyLarge, color = Cm.text)
                         // Contratto 1.80: la scadenza di un needs-you e il tasto «Fatto», che chiude la richiesta dal telefono.
                         item.expiresAt?.let { Text(expiryText(it, now), style = MaterialTheme.typography.labelLarge, color = Cm.text2) }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

@@ -178,7 +178,9 @@ internal fun AgendaRowCard(
         FoldIn(open && items.isNotEmpty()) { Column(Modifier.padding(end = 10.dp, top = 10.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             androidx.compose.material3.HorizontalDivider(color = Cm.line)
             val detail = row.detail?.trim()?.takeIf { it.isNotEmpty() }
-            Text(detail ?: stringResource(R.string.agenda_no_detail), style = MaterialTheme.typography.bodyMedium, color = if (detail != null) Cm.text else Cm.text2)
+            // app-play-lettura-ovunque-27-11: aperta, il dettaglio col ▶ accanto se va oltre una riga.
+            if (detail != null) LongText(detail, style = MaterialTheme.typography.bodyMedium, color = Cm.text)
+            else Text(stringResource(R.string.agenda_no_detail), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
             // I tasti (Franz, 10/10 10:36, variante A + C): una barra di icone con l'etichetta sotto, uguali, «Fallo» pieno, per le
             // azioni più usate; «Altro» apre qui sotto l'elenco delle altre, come nella C. Senza «Fallo» (scheda non aperta) la
             // barra comincia da quello che c'è.

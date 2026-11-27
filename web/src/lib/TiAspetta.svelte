@@ -2,6 +2,7 @@
   import type { Snippet } from 'svelte'
   import { age, marks, type Kind, type Page, type Source } from './tiAspetta'
   import { t } from './t'
+  import LongText from './LongText.svelte'
   // La scheda «Ti aspetta» (app-scheda-ti-aspetta-07-11, mockup approvato da Franz il 07/11 alle 21:04): la testata con la sessione
   // e da quanto aspetta; la carta coi tasti (`card`, quella di Decidi, Scegli, Verifica o Rispondi); «Da dove viene» col pezzo di
   // trascrizione, la frase della domanda accesa e «Apri nella trascrizione»; le altre che aspettano. `wide`: la carta e «Da dove
@@ -35,7 +36,8 @@
           <p class="lbl">{t.tiAspettaSource}</p>
           <div class="box">
             <small>{src.at ? t.tiAspettaReplyAt(src.session, hm(src.at)) : src.session}</small>
-            <blockquote data-testid="ti-aspetta-pezzo">{#each marks(src.text, src.ask) as s}{#if s.on}<mark>{s.text}</mark>{:else}{s.text}{/if}{/each}</blockquote>
+            <!-- app-play-lettura-ovunque-27-11: il pezzo col ▶ accanto se va oltre una riga; la frase accesa resta, si legge il testo intero. -->
+            <blockquote data-testid="ti-aspetta-pezzo"><LongText text={src.text}>{#snippet body()}{#each marks(src.text, src.ask) as s}{#if s.on}<mark>{s.text}</mark>{:else}{s.text}{/if}{/each}{/snippet}</LongText></blockquote>
             {#if src.entry}<button class="jump" data-testid="ti-aspetta-salto" onclick={() => onJump(src)}>{t.tiAspettaJump}</button>{/if}
           </div>
         </div>

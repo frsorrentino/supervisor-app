@@ -125,7 +125,8 @@ internal fun SystemCard(s: SystemStatus, ops: List<String>?, onAction: ((CmdOp, 
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Box(Modifier.size(8.dp).clip(CircleShape).background(systemTone(a.level)))
-                V3Split(Modifier.weight(1f), gap = 10.dp, text = { Text(a.text, style = MaterialTheme.typography.bodyMedium, color = Cm.text) }) { if (op != null && mode != 1) Surface(
+                // app-play-lettura-ovunque-27-11: il consiglio col ▶ accanto se va oltre una riga, prima del suo tasto.
+                V3Split(Modifier.weight(1f), gap = 10.dp, text = { LongText(a.text, style = MaterialTheme.typography.bodyMedium, color = Cm.text) }) { if (op != null && mode != 1) Surface(
                     onClick = { if (a.id !in sent) ask = a.id }, shape = CircleShape, color = Cm.surfaceHigh,
                     contentColor = if (a.id in sent) Cm.text2 else Cm.text,
                 ) { Text(a.action!!.label, style = MaterialTheme.typography.labelLarge, maxLines = 1, softWrap = false, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) } }

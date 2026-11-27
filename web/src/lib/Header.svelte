@@ -10,6 +10,7 @@
   import SessionsMenu from './SessionsMenu.svelte'
   import PermGlyph from './PermGlyph.svelte'
   import Icon from './Icon.svelte'
+  import LongText from './LongText.svelte'
   import { counts, inMenu, menuLine, MINUS, pill as changesOf } from './diff'
   import { canChange, choices as permChoices, glyph, needsConfirm } from './permissionModes'
   import { adviceOf, adviceSteps, ctxBand, handoffPrompt, tokens } from './masterService'
@@ -300,7 +301,9 @@
   </div>
   <!-- Contratto 1.72: nella riga delle pillole quando ci sta (chInline), altrimenti in una riga sua sotto. -->
   {#if changes && !changesMenu && !chInline}<div class="chrow">{@render changesPill(changes)}</div>{/if}
-  {#each notes as n}<div class="note">{n}</div>{/each}
+  <!-- app-play-lettura-ovunque-27-11: le note sotto la testata (obiettivo, priorità, finestra) sono testo che va a capo, non un'anteprima
+       che si apre: l'obiettivo lungo ha il ▶ accanto. -->
+  {#each notes as n}<div class="note"><LongText text={n} /></div>{/each}
 </header>
 
 {#snippet changesPill(c: NonNullable<typeof changes>)}

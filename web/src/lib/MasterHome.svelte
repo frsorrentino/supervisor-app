@@ -10,13 +10,16 @@
   import { fiveHourLive } from './utilizzo'
   import Options from './Options.svelte'
   import NightAgendaPicker from './NightAgendaPicker.svelte'
+  import LongText from './LongText.svelte'
+  import ReadButton from './ReadButton.svelte'
 
   // La casa della master (casa A, MasterHome.kt): l'ultimo esito in grande con i consigli, «Per te» con chi ti aspetta,
   // chi ha finito e chi lavora, la quota in due barre. Con una domanda aperta «Per te» va in testa.
-  let { st, master, entries, events, sent, read, onRead, onConversation, onStep, onSendStep, onAnswer, onSession, onSpeak, onPrompt, onCmd }: {
+  // `onSpeak` non serve più (app-play-lettura-ovunque-27-11): i ▶ sono ReadButton, con la master come fonte; resta per chi lo passa.
+  let { st, master, entries, events, sent, read, onRead, onConversation, onStep, onSendStep, onAnswer, onSession, onPrompt, onCmd }: {
     st: State; master: Session; entries: Entry[]; events: Event[]; sent: Scheduled[]; read: Set<string>; onRead: (key: string) => void
     onConversation: () => void; onStep: (text: string) => void; onSendStep: (text: string) => void
-    onAnswer: (session: string, n: number) => void; onSession: (name: string) => void; onSpeak: (text: string) => void
+    onAnswer: (session: string, n: number) => void; onSession: (name: string) => void; onSpeak?: (text: string) => void
     onPrompt: (session: string, text: string) => void; onCmd: (op: CmdOp, arg?: string, text?: string) => void
   } = $props()
 
@@ -61,7 +64,8 @@
     allSheet?.close()
     switch (r.kind) {
       case 'context': { const s = st.sessions.find(x => x.name === r.session); const p = s ? handoffPrompt(st, s, t.ctxHandoffPrompt) : null; if (r.session && p) onPrompt(r.session, p); break }
-      case 'night_report': if (r.detail) onSpeak(r.detail); if (r.key) onRead(r.key); break
+      // app-play-lettura-ovunque-27-11: la lettura la fa il ▶ della riga (ReadButton); qui resta la riga letta.
+      case 'night_report': if (r.key) onRead(r.key); break
       case 'night': nightDir = st.projects[0]?.path ?? ''; nightText = ''; nightSheet?.showModal(); break
       case 'next_step':
         onRead(nextKey(r.title, r.detail ?? ''))
@@ -90,11 +94,8 @@
       {#if h.body}<p class="hbody">{strip(h.body)}</p>{/if}
     {/if}
     <div class="acts">
-      {#if h}
-        <button class="round" aria-label={t.listen} onclick={(e) => { e.stopPropagation(); onSpeak(`${h.headline}. ${h.body}`) }}>
-          <svg viewBox="0 0 24 24" width="22" height="22"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" /></svg>
-        </button>
-      {/if}
+      <!-- app-play-lettura-ovunque-27-11: il ▶ di tutta l'app, «Leggi ad alta voce»; legge lo stesso testo, con la master come fonte. -->
+      {#if h}<ReadButton text={`${h.headline}. ${h.body}`} source={master.name} />{/if}
       <button class="pill" onclick={(e) => { e.stopPropagation(); onConversation() }}>
         {t.openConversation}
         <svg viewBox="0 0 24 24" width="20" height="20"><path d="M10 7l5 5-5 5" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
@@ -131,7 +132,8 @@
     </button>
     {#if open}
       <div class="abody">
-        {#if body}<p>{body}</p>{/if}
+        <!-- app-play-lettura-ovunque-27-11: aperta, la riga mostra il testo intero col ▶ accanto, se va oltre una riga. -->
+        {#if body}<div class="abt"><LongText text={body} /></div>{/if}
         {#if q}<Options {q} onAnswer={(n) => onAnswer(i.session, n)} />{/if}
         {#if !q && p.steps.length}
           <div class="chips">{#each p.steps as step}<button class="chip" onclick={() => onSendStep(step)}>{step}</button>{/each}</div>
@@ -146,7 +148,9 @@
   {@const x = serviceText(r)}
   <div class="svc">
     <span><span class="stitle">{x.title}</span>{#if x.detail}<span class="sdet">{x.detail}</span>{/if}</span>
-    <button class="tonal" onclick={() => act(r)}>{x.action}</button>
+    <!-- app-play-lettura-ovunque-27-11: «Ascolta» del resoconto della notte è il ▶ di tutta l'app; act, nella cattura, segna la riga letta. -->
+    {#if r.kind === 'night_report' && r.detail}<span class="rdk" role="presentation" onclickcapture={() => act(r)}><ReadButton text={r.detail} source={master.name} /></span>
+    {:else}<button class="tonal" onclick={() => act(r)}>{x.action}</button>{/if}
   </div>
 {/snippet}
 
@@ -217,10 +221,10 @@
   h2 { font-size: 17px; font-weight: 600; line-height: 1.4; }
   .hbody { color: var(--text2); font-size: 14px; white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 4; line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
   .acts { display: flex; gap: 10px; align-items: center; padding-top: 4px; }
-  .round, .pill, .tonal { background: var(--high); color: var(--text); }
-  .round { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; color: var(--icon); }
+  .pill, .tonal { background: var(--high); color: var(--text); }
   .pill { flex: 1; height: 44px; border-radius: 22px; display: flex; align-items: center; justify-content: center; gap: 4px; font-weight: 500; font-size: 14px; }
-  .round:hover, .pill:hover, .tonal:hover { filter: brightness(1.15); }
+  .pill:hover, .tonal:hover { filter: brightness(1.15); }
+  .rdk { flex: none; display: flex; }
   hr { border: 0; height: 1px; background: var(--line); margin: 2px 0; }
   .step { text-align: left; color: var(--icon); font-size: 15.5px; padding: 4px 0; border-radius: 8px; }
   .step.unblock { display: flex; align-items: center; gap: 8px; }
@@ -238,7 +242,7 @@
   .aname b { font-weight: 600; }
   .aline { font-size: 14px; color: var(--text2); }
   .abody { padding: 0 8px 12px 40px; display: flex; flex-direction: column; gap: 8px; }
-  .abody p { font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .abody .abt { font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; }
   .chip { border: 1px solid color-mix(in srgb, var(--t) 50%, transparent); border-radius: 999px; padding: 8px 14px; font-size: 14px; }
   .chip:hover { filter: brightness(1.15); }

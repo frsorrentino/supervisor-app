@@ -269,11 +269,14 @@ internal fun KSection(label: String, tag: String, note: String? = null, you: Boo
     }
 }
 
-/** Il compito di una sezione: il nome a sinistra, lo stato a destra (in corso in blu, in pausa in ambra). */
+/**
+ * Il compito di una sezione: il nome a sinistra, lo stato a destra (in corso in blu, in pausa in ambra). Senza compito ci sta
+ * l'obiettivo: oltre una riga il ▶ accanto (app-play-lettura-ovunque-27-11), come a ogni testo lungo della scheda.
+ */
 @Composable
 internal fun KTaskLine(title: String, state: String? = null, paused: Boolean = false) =
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(title, style = V3.Name.copy(fontSize = 17.sp), modifier = Modifier.weight(1f))
+        LongText(title, Modifier.weight(1f), style = V3.Name.copy(fontSize = 17.sp))
         state?.let { Text(it, style = V3.Small.copy(color = if (paused) V3.Wait else V3.Busy), maxLines = 1) }
     }
 

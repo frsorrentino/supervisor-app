@@ -62,7 +62,8 @@
 {#snippet body(g: DecisionGroup, head: boolean)}
   {@const cardOf = cardText(g)}
       <!-- Contratto 1.104 (Franz 02/11 08:04): la card si legge senza ricordare niente; mai lo stesso testo due volte. -->
-      {#each cardOf.head as h, n (n)}{#if head}{#if n === 0}<b>{h}</b>{:else}<div class="lw m"><LongText text={h} /></div>{/if}{:else if h !== g.title.trim()}<div class="lw m"><LongText text={h} /></div>{/if}{/each}
+      <!-- app-play-lettura-ovunque-27-11: anche la prima riga, in grassetto, ha il ▶ accanto se va oltre una riga. -->
+      {#each cardOf.head as h, n (n)}{#if head}{#if n === 0}<div class="hb"><LongText text={h} /></div>{:else}<div class="lw m"><LongText text={h} /></div>{/if}{:else if h !== g.title.trim()}<div class="lw m"><LongText text={h} /></div>{/if}{/each}
       <!-- Nella riga aperta dove e quanto sblocca stanno già sulla riga. -->
       {#if head}<span class="pos" class:pc={g.where === 'pc'}>{g.where === 'pc' ? t.decisionsAtPc : t.decisionsHere}{g.weight > 1 ? ` · ${t.decisionsUnblocks(g.weight)}` : ''}</span>{/if}
       {#each g.items as i, n (n)}
@@ -104,7 +105,7 @@
   .cm { padding: 0 12px 24px; max-width: 720px; display: flex; flex-direction: column; gap: 10px; }
   .c { background: var(--low); border-radius: 20px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
   .in { display: flex; flex-direction: column; gap: 8px; }
-  .c b { font-weight: 600; } .i { font-size: 14px; }
+  .c b, .hb { font-weight: 600; } .i { font-size: 14px; }
   p, .lw { font-size: 14px; } .m { color: var(--text2); }
   .pos { font: 12.5px var(--mono); color: var(--text2); } .pc { color: var(--wait); }
   hr { border: 0; border-top: 1px solid var(--line); width: 100%; margin: 0; }

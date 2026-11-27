@@ -22,7 +22,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.LockOpen
-import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -201,7 +200,8 @@ internal fun AttentionRow(
             )
         }
         if (open) Column(Modifier.padding(start = 40.dp, end = 8.dp, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (body.isNotBlank()) Text(body, style = MaterialTheme.typography.bodyMedium, color = Cm.text)
+            // app-play-lettura-ovunque-27-11: aperta, il testo intero col ▶ accanto se va oltre una riga (chiusa resta l'anteprima).
+            if (body.isNotBlank()) LongText(body, style = MaterialTheme.typography.bodyMedium, color = Cm.text)
             details.forEach { Text(it, style = MaterialTheme.typography.bodySmall, color = Cm.text2, maxLines = 1, overflow = TextOverflow.Clip) }
             // Le stesse opzioni della chat (consulenza del 02/10): colori, etichette e pressione lunga per il rischio alto.
             if (waiting && question != null) {
@@ -243,7 +243,9 @@ internal fun ForYouRow(row: MasterHome.Row, onAction: (MasterHome.Row) -> Unit) 
             Text(title, style = MaterialTheme.typography.bodyLarge, color = Cm.text)
             detail?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Cm.text2, maxLines = 2, overflow = TextOverflow.Clip) }
         }
-        FilledTonalButton(onClick = { onAction(row) }) { Text(stringResource(action)) }
+        // app-play-lettura-ovunque-27-11: «Ascolta» del resoconto della notte è il ▶ della lettura; il tocco resta quello della riga.
+        if (row.kind == MasterHome.Kind.NIGHT_REPORT) ReadButton(row.detail.orEmpty()) { onAction(row) }
+        else FilledTonalButton(onClick = { onAction(row) }) { Text(stringResource(action)) }
     }
 }
 
@@ -378,9 +380,9 @@ fun HeroCard(hero: MasterHome.Hero?, master: Session, onSpeak: () -> Unit, onCon
         }
         // Variante 3 dei mockup (Franz, 02/10 21:56): ▶ tondo per ascoltare, la pillola larga per la conversazione.
         Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            if (hero != null) FilledTonalIconButton(onClick = onSpeak, modifier = Modifier.size(44.dp)) {
-                androidx.compose.material3.Icon(Icons.Rounded.PlayArrow, stringResource(R.string.fy_btn_listen), tint = Cm.actionIcon)
-            }
+            // app-play-lettura-ovunque-27-11: il ▶ di ReadButton (36 dp, «Leggi ad alta voce», ■ mentre legge titolo e corpo); il tocco
+            // resta onSpeak di chi chiama.
+            if (hero != null) ReadButton(listOf(hero.headline, hero.body).filter { it.isNotBlank() }.joinToString("\n"), onClick = onSpeak)
             FilledTonalButton(onClick = onConversation, modifier = Modifier.weight(1f).height(44.dp)) {
                 Text(stringResource(R.string.fy_open_conversation))
                 androidx.compose.material3.Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = Cm.actionIcon, modifier = Modifier.size(20.dp))

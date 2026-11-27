@@ -88,7 +88,8 @@ private fun FeaturePage(f: Features.Feature, italian: Boolean, demo: FeatureDemo
             if (f.state == Features.COMING) Text(stringResource(R.string.features_coming), style = MonoSmall, color = Cm.waiting, maxLines = 1, modifier = Modifier.padding(end = 8.dp))
         }
         Column(Modifier.padding(horizontal = 4.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Text(f.what.of(italian) + " " + f.`when`.of(italian), style = MaterialTheme.typography.bodyLarge, color = Cm.text)
+            // app-play-lettura-ovunque-27-11: cosa fa e quando, poi come si usa, ognuno col ▶ accanto se va oltre una riga.
+            LongText(f.what.of(italian) + " " + f.`when`.of(italian), style = MaterialTheme.typography.bodyLarge, color = Cm.text)
             if (demo != null && f.key in Features.DEMO_KEYS) Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(stringResource(R.string.features_try).uppercase(), style = MonoSmall.copy(fontWeight = FontWeight.Medium), color = Cm.text2)
                 FeatureDemoBox(f.key, demo)
@@ -107,7 +108,7 @@ private fun FeaturePage(f: Features.Feature, italian: Boolean, demo: FeatureDemo
             f.how.of(italian).takeIf { it.isNotEmpty() }?.let { how ->
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(stringResource(R.string.features_how).uppercase(), style = MonoSmall.copy(fontWeight = FontWeight.Medium), color = Cm.text2)
-                    Text(how, style = MaterialTheme.typography.bodyMedium, color = Cm.text)
+                    LongText(how, style = MaterialTheme.typography.bodyMedium, color = Cm.text)
                 }
             }
             f.where.of(italian).takeIf { it.isNotEmpty() }?.let { Text(it, style = MonoSmall) }

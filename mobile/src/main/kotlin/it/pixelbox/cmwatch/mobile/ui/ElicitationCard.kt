@@ -61,7 +61,8 @@ internal fun ElicitationCard(e: Elicitation, now: Long, onAnswer: (Elicitation, 
                 Text(stringResource(R.string.elicit_meta, e.session, "%d:%02d".format(left / 60, left % 60)), style = MonoSmall)
             }
         }
-        Text(e.message, style = MaterialTheme.typography.bodyLarge, color = Cm.text)
+        // app-play-lettura-ovunque-27-11: la richiesta del server col ▶ accanto se va oltre una riga.
+        LongText(e.message, style = MaterialTheme.typography.bodyLarge, color = Cm.text)
         if (e.mode == "url") {
             val uri = androidx.compose.ui.platform.LocalUriHandler.current
             e.url?.let { u -> Text(u, style = MonoSmall.copy(color = Cm.text2)) }

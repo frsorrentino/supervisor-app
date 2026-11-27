@@ -252,9 +252,10 @@ fun MasterDock(
             if (reading) RatePill()
             val speakSrc = androidx.compose.runtime.remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
             if (spoken != null) FilledTonalIconButton(onClick = { onSpeak(spoken) }, modifier = Modifier.size(44.dp).pressScale(speakSrc), shape = rememberMorphShape(speakSrc), colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = MasterKey), interactionSource = speakSrc) {
+                // app-play-lettura-ovunque-27-11: la stessa icona e le stesse parole del ▶ di tutta l'app («Leggi ad alta voce»).
                 Icon(
                     if (reading) Icons.Rounded.Stop else Icons.Rounded.PlayArrow,
-                    stringResource(if (reading) R.string.stop_reading else R.string.dock_listen), tint = Cm.text,
+                    stringResource(if (reading) R.string.stop_reading else R.string.read_aloud), tint = Cm.text,
                 )
             }
             places?.let { keys ->

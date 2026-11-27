@@ -65,7 +65,8 @@ fun ProvaPage(n: Long, read: ProvaLinks.Read?, wide: Boolean, onBack: () -> Unit
                 is ProvaLinks.Read.Refused -> Text(read.message, style = V3.Body.copy(color = V3.Red), modifier = Modifier.testTag("prova-rifiutata"))
                 is ProvaLinks.Read.Found -> {
                     ProvaState(read.prova)
-                    read.prova.title?.takeIf { it.isNotBlank() }?.let { Text(it, style = V3.Body.copy(color = V3.Tx2)) }
+                    // app-play-lettura-ovunque-27-11: titolo, dove, cosa fare e cosa vedere col ▶ accanto se vanno oltre una riga.
+                    read.prova.title?.takeIf { it.isNotBlank() }?.let { LongText(it, style = V3.Body.copy(color = V3.Tx2)) }
                     ProvaField(stringResource(R.string.prova_where), read.prova.dove)
                     ProvaField(stringResource(R.string.prova_do), read.prova.fai)
                     ProvaField(stringResource(R.string.prova_expected), read.prova.atteso)
@@ -92,7 +93,8 @@ private fun ProvaState(p: ProvaOne) {
             Box(Modifier.size(9.dp).clip(CircleShape).background(tone))
             Text(stringResource(word).uppercase(), style = V3.Name.copy(fontSize = 15.sp, letterSpacing = 0.6.sp, color = tone))
         }
-        p.text?.takeIf { it.isNotBlank() }?.let { Text(it, style = V3.Body) }
+        // app-play-lettura-ovunque-27-11: le parole della persona o il motivo, col ▶ se vanno oltre una riga.
+        p.text?.takeIf { it.isNotBlank() }?.let { LongText(it, style = V3.Body) }
         if (p.at > 0) Text(stringResource(R.string.prova_at, DM.format(Instant.ofEpochSecond(p.at).atZone(ZoneId.systemDefault()))), style = V3.Small)
     }
 }
@@ -103,6 +105,7 @@ private fun ProvaField(label: String, value: String?) {
     if (value.isNullOrBlank()) return
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(label.uppercase(), style = V3.Small.copy(fontSize = 12.sp, letterSpacing = 1.2.sp, color = V3.Tx3))
-        Text(value, style = V3.Body)
+        // app-play-lettura-ovunque-27-11: si legge il valore, il nome sopra resta fuori.
+        LongText(value, style = V3.Body)
     }
 }

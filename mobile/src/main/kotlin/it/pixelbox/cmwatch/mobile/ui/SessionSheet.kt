@@ -2580,12 +2580,17 @@ private fun SheetHeader(
         // Contratto 1.72: «4 file · +8 −2» nella riga delle pillole quando ci sta (MeterPills), altrimenti in una riga sua sotto.
         // Anche su una sessione chiusa: la cartella c'è ancora e la vista funziona.
         changes?.takeIf { !changesMenu && !changesInline }?.let { c -> ChangesPill(c, onChanges, Modifier.padding(start = if (lead != null) 16.dp else 12.dp, top = 6.dp)) }
+        val goalNote = SessionsText.goalLine(s, stringResource(R.string.goal)).takeIf { notesInHeader }
         val notes = listOfNotNull(
-            SessionsText.goalLine(s, stringResource(R.string.goal)).takeIf { notesInHeader },
+            goalNote,
             SessionsText.priority(s, stringResource(R.string.low_priority), stringResource(R.string.low_priority_offered)).takeIf { notesInHeader },
             SessionsText.window(s, stringResource(R.string.no_window)),
         )
-        notes.forEach { Text(it, style = MaterialTheme.typography.labelMedium, color = Cm.briefLabel, modifier = Modifier.padding(horizontal = 16.dp)) }
+        // app-play-lettura-ovunque-27-11: l'obiettivo (la prima nota, se c'è) va a capo e non si apre al tocco: oltre una riga ha il ▶.
+        notes.forEachIndexed { i, n ->
+            if (i == 0 && goalNote != null) LongText(n, Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.labelMedium, color = Cm.briefLabel)
+            else Text(n, style = MaterialTheme.typography.labelMedium, color = Cm.briefLabel, modifier = Modifier.padding(horizontal = 16.dp))
+        }
         // Senza note sotto le pillole lo stesso margine di sopra, così stanno al centro della barra (Franz, 10/10 14:32: «riduci barra»).
         Spacer(Modifier.height(if (notes.isEmpty() && (changes == null || changesMenu || changesInline)) 2.dp else 8.dp))
         HorizontalDivider(color = Cm.line)

@@ -174,7 +174,8 @@ fun MonitorPage(m: MonitorCard, wide: Boolean, onBack: () -> Unit, onStop: () ->
                         if (a.hit) withStyle(androidx.compose.ui.text.SpanStyle(color = hit)) { append(a.text) } else append(a.text)
                     }
                 }
-                Text(text, style = V3.Body.copy(color = V3.Tx2), modifier = Modifier.weight(1f))
+                // app-play-lettura-ovunque-27-11: la riga degli avvisi col ▶ accanto se va oltre una riga, prima di «Modifica».
+                LongText(text.text, Modifier.weight(1f), style = V3.Body.copy(color = V3.Tx2), annotated = text)
                 Text(
                     stringResource(R.string.monitor_edit), style = V3.Name.copy(fontSize = 15.sp),
                     modifier = Modifier.padding(start = 12.dp).handCursor().clickable(onClick = onEditAlerts).testTag("monitor-avvisi"),
@@ -226,7 +227,8 @@ private fun StateBox(m: MonitorCard) {
             Box(Modifier.size(9.dp).clip(CircleShape).background(dotOf(m)))
             Text(stringResource(if (Monitors.look(m)) R.string.monitor_state_look else R.string.monitor_state_ok).uppercase(), style = V3.Name.copy(fontSize = 15.sp, letterSpacing = 0.6.sp, color = dotOf(m)))
         }
-        Text(m.verdict ?: listOfNotNull(Monitors.valueText(m), m.delta).joinToString(" · "), style = V3.Body)
+        // app-play-lettura-ovunque-27-11: la frase della master col ▶ accanto se va oltre una riga; il tocco sul riquadro apre la pagina.
+        LongText(m.verdict ?: listOfNotNull(Monitors.valueText(m), m.delta).joinToString(" · "), style = V3.Body)
         if (page != null) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(stringResource(R.string.monitor_open_page), style = V3.Name.copy(fontSize = 15.sp, textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline))
             Icon(Icons.AutoMirrored.Rounded.OpenInNew, null, tint = V3.Tx2, modifier = Modifier.size(16.dp))

@@ -3,6 +3,7 @@
   import { initial, problem, ready, type Problem, type Values } from './elicit'
   import { t } from './t'
   import { untrack } from 'svelte'
+  import LongText from './LongText.svelte'
 
   // Contratto 1.83 (lavoro mcp-elicitation-lavoro-24-10, approvato da Franz), come ElicitationCard.kt: un server MCP chiede
   // qualcosa a metà di uno strumento. In cima alla home, perché dopo `expires_at` (120 s) la domanda torna al terminale: il
@@ -25,7 +26,8 @@
     <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="var(--wait)" d="M20.5 11H19V7a2 2 0 0 0-2-2h-4V3.5a2.5 2.5 0 0 0-5 0V5H4a2 2 0 0 0-2 2v3.8h1.5a2.7 2.7 0 0 1 0 5.4H2V20a2 2 0 0 0 2 2h3.8v-1.5a2.7 2.7 0 0 1 5.4 0V22H17a2 2 0 0 0 2-2v-4h1.5a2.5 2.5 0 0 0 0-5z" /></svg>
     <span class="col"><b>{e.server}</b><small class="mono">{t.elicitMeta(e.session, clock)}</small></span>
   </div>
-  <p class="q">{e.message}</p>
+  <!-- app-play-lettura-ovunque-27-11: la domanda del server col ▶ accanto, se va oltre una riga. -->
+  <div class="q"><LongText text={e.message} /></div>
   {#if e.mode === 'url'}
     {#if e.url}<small class="mono link">{e.url}</small>{/if}
     <p class="note">{t.elicitLinkNote}</p>

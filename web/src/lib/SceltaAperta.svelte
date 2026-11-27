@@ -5,6 +5,7 @@
   import LimitRing from './LimitRing.svelte'
   import Icon from './Icon.svelte'
   import ImageViewer from './ImageViewer.svelte'
+  import LongText from './LongText.svelte'
   import { imageRatios, media } from './mediaCache.svelte'
   import { choiceOf, frameRatio, outcomeOf, REDO_MAX, redoReady, roundsOf, sizeText, waitFileKey, type Round } from './scelta'
   import { locale } from './lang'
@@ -67,23 +68,25 @@
 </script>
 
 <article class="sc" class:c2={n === 2} class:c3={n === 3} class:c4={n >= 4} data-testid="scelta-aperta" style:--n={n} style:--cols={n >= 4 ? 2 : Math.max(1, n)} style:--ar={ar}>
+  <!-- app-play-lettura-ovunque-27-11: ogni testo della scheda (titolo, esito, domanda, consiglio, descrizione, righe, nomi e righe delle
+       opzioni, giri) col ▶ accanto se va oltre una riga. Il titolo resta un'intestazione: un div con role, perché il ▶ è un tasto. -->
   <header>
-    <h2 class="ttl">{item.title || item.text}</h2>
+    <div class="ttl" role="heading" aria-level="2"><LongText text={item.title || item.text} /></div>
     {#if out.state !== 'open'}
       <p class="st {out.state}" data-testid="scelta-esito">
         {#if out.state === 'chosen' || out.state === 'approved'}<svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M4.5 10.5 8.5 14.5 15.5 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" /></svg>{/if}
         <span>{out.state === 'chosen' ? t.sceltaChosen(out.letter, out.name) : out.state === 'approved' ? t.sceltaApproved : out.state === 'redo' ? t.sceltaRedo : out.state === 'silence' ? t.sceltaDone.silence : t.sceltaClosed}</span>
       </p>
-      {#if out.reason}<p class="why">{out.reason}</p>{/if}
+      {#if out.reason}<div class="why"><LongText text={out.reason} /></div>{/if}
     {:else if rounds.length || item.card?.deploy}
       <p class="st">{#if rounds.length}<span>{t.sceltaRoundNow(rounds.length + 1)}</span>{/if}{#if item.card?.deploy}<span class="prod">{t.sceltaProduction}</span>{/if}</p>
     {/if}
   </header>
-  {#if item.text && item.text !== (item.title || item.text)}<p class="q">{item.text}</p>{/if}
+  {#if item.text && item.text !== (item.title || item.text)}<div class="q"><LongText text={item.text} /></div>{/if}
   <!-- Contratto 1.149: il consiglio di chi chiede, con la motivazione; l'opzione consigliata ha già il suo segno. -->
-  {#if adviceOf(item.advice)}<p class="adv" data-testid="scelta-consiglio">{adviceLine(adviceOf(item.advice)!, t.tiAspettaAdvice, t.tiAspettaAdviceYes, t.tiAspettaAdviceNo)}</p>{/if}
-  {#if item.description && item.description !== item.text}<p class="desc">{item.description}</p>{/if}
-  {#if rows.length}<dl>{#each rows as [k, v]}<dt>{k}</dt><dd>{v}</dd>{/each}</dl>{/if}
+  {#if adviceOf(item.advice)}<div class="adv" data-testid="scelta-consiglio"><LongText text={adviceLine(adviceOf(item.advice)!, t.tiAspettaAdvice, t.tiAspettaAdviceYes, t.tiAspettaAdviceNo)} /></div>{/if}
+  {#if item.description && item.description !== item.text}<div class="desc"><LongText text={item.description} /></div>{/if}
+  {#if rows.length}<dl>{#each rows as [k, v]}<dt>{k}</dt><dd><LongText text={v} /></dd>{/each}</dl>{/if}
 
   <div class="opts" class:nopics={!hasPics}>
     {#each c.options as o (o.n)}
@@ -101,13 +104,13 @@
         {/if}
         <div class="row" data-testid="scelta-opzione-{o.letter}">
           <span class="lt" aria-hidden="true">{o.letter}</span>
-          <p class="nm">{#if o.name}<b>{o.name}</b>{/if}{#if o.recommended}<span class="rec">{t.tiAspettaRecommended}</span>{/if}</p>
+          <div class="nm">{#if o.name}<div class="nmb"><LongText text={o.name} /></div>{/if}{#if o.recommended}<span class="rec">{t.tiAspettaRecommended}</span>{/if}</div>
           {#if o.action != null}
             <button class="go" class:filled={o.recommended && writing == null} class:done={sent === o.action} disabled={sent != null} aria-label={t.sceltaPickAria(o.letter, o.name)} data-testid="scelta-scegli-{o.letter}" onclick={() => tap(o.action!)}>{t.sceltaPick(o.letter)}</button>
           {:else if chosen}
             <span class="got"><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M4.5 10.5 8.5 14.5 15.5 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" /></svg>{t.sceltaPicked}</span>
           {/if}
-          {#if o.line}<p class="ln">{o.line}</p>{/if}
+          {#if o.line}<div class="ln"><LongText text={o.line} /></div>{/if}
           {#if o.docs.length}
             <div class="docs">{#each o.docs as f (f.path)}<button class="doc" onclick={() => onFile(f, 'open')}><Icon name={docIcon(f)} size={18} /><span class="dn">{f.name}</span>{#if f.size != null}<span class="ds">{sizeText(f.size)}</span>{/if}</button>{/each}</div>
           {/if}
@@ -144,8 +147,9 @@
         {@const shots = shotsOf(r.options, t.sceltaRound(r.n))}
         <div class="rd" data-testid="scelta-giro-{r.n}">
           <p class="rh"><b>{t.sceltaRound(r.n)}</b><small>{when(r.answeredAt ?? r.at)}</small></p>
-          <p class="rw"><span>{roundWhy(r)}</span>{#if r.reason}{': '}{r.reason}{/if}</p>
-          {#if r.description || r.text}<p class="rt">{r.description || r.text}</p>{/if}
+          <!-- Il motivo si legge senza l'etichetta del giro, che resta scritta davanti. -->
+          <div class="rw"><LongText text={r.reason || roundWhy(r)}>{#snippet body()}<span>{roundWhy(r)}</span>{#if r.reason}{': '}{r.reason}{/if}{/snippet}</LongText></div>
+          {#if r.description || r.text}<div class="rt"><LongText text={r.description || r.text} /></div>{/if}
           {#if r.options.some(o => o.images.length)}
             <div class="rth">{#each r.options as o (o.n)}{#if o.images.length}<div class="rf" style:--ar={frameRatio([imageRatios[waitFileKey(o.images[0])]])}><AttesaImmagine small file={o.images[0]} letter={o.letter} label={[t.sceltaRound(r.n), o.letter, o.name].filter(Boolean).join(', ')} onAsk={ask} onOpen={() => enlarge(shots, waitFileKey(o.images[0]))} /></div>{/if}{/each}</div>
           {/if}
@@ -184,14 +188,14 @@
   .nopics .o:first-child .row { border-top: 0; padding-top: 0; }
   .row .lt { font: 700 20px/24px var(--display); color: var(--tx2); align-self: start; padding-top: 10px; }
   .nm { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; min-height: 44px; align-content: center; }
-  .nm b { font: 600 17px/22px var(--display); overflow-wrap: anywhere; }
+  .nm .nmb { font: 600 17px/22px var(--display); overflow-wrap: anywhere; }
   .rec { font: 500 14px/20px var(--sans); color: var(--wait); }
   .ln { grid-column: 2 / -1; font-size: 15px; line-height: 21px; color: var(--tx2); overflow-wrap: anywhere; padding-bottom: 2px; }
   .docs { grid-column: 2 / -1; display: flex; flex-direction: column; }
   .doc { display: flex; align-items: center; gap: 8px; min-height: 40px; text-align: left; color: var(--tx); touch-action: manipulation; }
   .doc .dn { min-width: 0; overflow-wrap: anywhere; font-size: 15px; text-decoration: underline; text-decoration-color: var(--tx3); text-underline-offset: 3px; }
   .doc .ds { flex: none; font: 12.5px var(--mono); color: var(--tx2); }
-  .dim .row .nm b, .dim .row .lt { color: var(--tx2); }
+  .dim .row .nm .nmb, .dim .row .lt { color: var(--tx2); }
   .got { display: inline-flex; align-items: center; gap: 6px; font: 600 15px var(--display); color: var(--good); }
   .more { position: absolute; right: 6px; bottom: 6px; min-width: 32px; height: 28px; padding: 0 8px; border-radius: 8px; background: color-mix(in srgb, var(--s1) 90%, transparent); color: var(--tx); font: 600 13px var(--display); touch-action: manipulation; }
   .pics.none { display: none; }

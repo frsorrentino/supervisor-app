@@ -4,6 +4,7 @@
   import { since } from './durations'
   import { shortModel } from './header'
   import { t } from './t'
+  import LongText from './LongText.svelte'
 
   // I dettagli della sessione accanto alle colonne (TabletInspector): la sessione (progetto, account, aperta da, turno),
   // tre numeri (contesto, prompt e commit di oggi), l'obiettivo e la cronologia di oggi (contratto 1.29).
@@ -27,12 +28,13 @@
     <div class="stat"><b>{i.prompts ?? '–'}</b><span>{t.tabletInspPrompts.toUpperCase()}</span></div>
     <div class="stat"><b>{i.commits ?? '–'}</b><span>{t.tabletInspCommits.toUpperCase()}</span></div>
   </div>
-  {#if s.goal?.text}<span class="lab">{t.goal.toUpperCase()}</span><p class="goal">{s.goal.text}</p>{/if}
+  <!-- app-play-lettura-ovunque-27-11: l'obiettivo e ogni voce di oggi col ▶ accanto, se vanno oltre una riga. -->
+  {#if s.goal?.text}<span class="lab">{t.goal.toUpperCase()}</span><div class="goal"><LongText text={s.goal.text} /></div>{/if}
   <div class="gh"><span>{t.tabletInspToday.toUpperCase()}</span><i></i></div>
   {#if i.today.length}
     {#each i.today as e}
       {@const tone = toneOf(e.kind, e.ok)}
-      <div class="ev"><span class="at">{hm(e.at)}</span><span class="kind" style="color:{tone};border-color:{tone}">{(t.tabletKind[e.kind] ?? e.kind).toUpperCase()}</span><span class="tx">{e.kind === 'commit' && e.ref ? `${e.ref} ${e.text}` : e.text}</span></div>
+      <div class="ev"><span class="at">{hm(e.at)}</span><span class="kind" style="color:{tone};border-color:{tone}">{(t.tabletKind[e.kind] ?? e.kind).toUpperCase()}</span><div class="tx"><LongText text={e.kind === 'commit' && e.ref ? `${e.ref} ${e.text}` : e.text} /></div></div>
     {/each}
   {:else}
     <p class="dim">{loading ? t.tabletInspTodayLoading : t.tabletInspTodayNone}</p>
@@ -54,6 +56,6 @@
   .ev { display: flex; gap: 10px; align-items: flex-start; }
   .at { font: 12.5px var(--mono); color: var(--text2); padding-top: 2px; }
   .kind { font: 11px var(--mono); letter-spacing: .06em; border: 1px solid; border-radius: 5px; padding: 2px 6px; white-space: nowrap; margin-top: 2px; }
-  .tx { flex: 1; font-size: 14px; }
+  .tx { flex: 1; min-width: 0; font-size: 14px; }
   .dim { font-size: 12.5px; color: var(--text2); }
 </style>

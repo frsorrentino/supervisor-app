@@ -13,6 +13,7 @@
   import StateGlyph from './StateGlyph.svelte'
   import { glyphOf } from './rail'
   import { personal } from './badge'
+  import { speech } from './speech.svelte'
   // La master nella home (MasterDock.kt): ridotta è la barra agganciata in fondo, «MASTER · ora · modello · contesto» e il
   // titolo dell'ultimo esito, ▶ per ascoltarlo e ▲ per espanderla; espansa la stessa barra sta in cima con ▼ e la riduce.
   // `screen`: la master a tutto schermo sul telefono (Franz, 08/10 18:15), una testata sola: ⌄ a sinistra, angoli dritti, a
@@ -143,8 +144,12 @@
     {/if}
   </span>
   {#if h && !bar}
-    <button class="ib" aria-label={t.dockListen} onclick={(e) => { e.stopPropagation(); onSpeak([h.headline, h.body].filter(Boolean).join('\n')) }}>
-      <svg viewBox="0 0 24 24" width="22" height="22"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" /></svg>
+    {@const said = [h.headline, h.body].filter(Boolean).join('\n')}
+    {@const reading = speech.text === said && !speech.paused}
+    <!-- app-play-lettura-ovunque-27-11: la misura della barra e onSpeak restano; icona e parole sono quelle del ▶ di tutta l'app, ■ mentre legge. -->
+    <button class="ib" aria-label={reading ? t.stopReading : t.readAloud} title={reading ? t.stopReading : t.readAloud} onclick={(e) => { e.stopPropagation(); onSpeak(said) }}>
+      {#if reading}<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="1.5" fill="currentColor" /></svg>
+      {:else}<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" /></svg>{/if}
     </button>
   {/if}
   {#if places?.length}

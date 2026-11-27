@@ -19,6 +19,7 @@
   import { fold as foldIn, gather } from './motion'
   import { t } from './t'
   import Icon from './Icon.svelte'
+  import LongText from './LongText.svelte'
 
   let { onWait = null, st, agenda = null, events = [], now, timeZone = null, header = 'bar', part = 'all', today = null, onBack = () => {}, onApprove = () => {}, onAgendaEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, onAddNight = () => {}, onRemoveNight = () => {}, onNight = () => {}, onSession = () => {}, donePages = {}, onLoadDay = () => {}, onSpeak = null, suggestions, kpi = null }: {
     /** app-riall-3-doppioni-16-11: con la lista unica, la voce di un ok (`wid`) si apre in «Ti aspetta» invece di approvare qui. */
@@ -209,8 +210,9 @@
       {#if st.night.running}<p class="running">{t.nightRunning(st.night.running)}</p>{/if}
       {#if !st.night.items}<p class="muted">{t.nightUpdatePc}</p>{/if}
       {#each st.night.items ?? [] as job (job.id)}
+        <!-- app-play-lettura-ovunque-27-11: il prompt del lavoro col ▶ accanto, prima di «Rimuovi», se va oltre una riga. -->
         <div class="job">
-          <span class="jcol"><b>{job.name}</b><span>{job.prompt}</span>{#if job.started}<span class="started">{t.nightStarted}</span>{/if}</span>
+          <div class="jcol"><b>{job.name}</b><div class="jp"><LongText text={job.prompt} /></div>{#if job.started}<span class="started">{t.nightStarted}</span>{/if}</div>
           <button class="link" disabled={job.started != null} onclick={() => onRemoveNight(job.id)}>{t.nightRemove}</button>
         </div>
       {/each}
@@ -231,13 +233,15 @@
       </button>
       {#if shown}<div class="fb" in:foldIn out:foldIn={{ ms: 150 }}><div class="foldin">
         {#each d.rows as x (x.task)}
+          <!-- app-play-lettura-ovunque-27-11: titolo e prova col ▶ accanto, se vanno oltre una riga; la riga della prova resta coi suoi link. -->
+          {@const proofText = x.outcome === 'superseded' ? proofFallback(x) : x.proof ?? proofFallback(x)}
           <div class="done">
             {#if x.outcome === 'failed'}<svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="var(--gone)" stroke-width="2.4" stroke-linecap="round" /></svg>
             {:else if x.silence != null}<svg class="silico" viewBox="0 0 24 24" width="18" height="18" aria-label={t.silenceLabel}><circle cx="12" cy="12" r="8.5" fill="none" stroke="var(--busy)" stroke-width="2" /><path d="M12 7.5V12l3 2" fill="none" stroke="var(--busy)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
             {:else if x.outcome === 'cancelled' || x.outcome === 'superseded'}<svg viewBox="0 0 24 24" width="18" height="18"><path d="M5 12h14" fill="none" stroke="var(--text2)" stroke-width="2.4" stroke-linecap="round" /></svg>
             {:else}<svg viewBox="0 0 24 24" width="18" height="18"><path d="M5 12l5 5 9-10" fill="none" stroke="var(--good)" stroke-width="2.4" stroke-linecap="round" /></svg>{/if}
             <span class="tm">{hhmm(x.at)}</span>
-            <span class="t"><b>{x.title}</b><small>{#if x.session}<button class="who" onclick={() => onSession(x.session!)}>{x.session}</button> · {/if}{#if x.silence != null}<span class="siltag" data-testid="chiuso-silenzio">{t.silenceLabel}</span> · {/if}{#if x.outcome === 'superseded'}<span class="proof plain">{proofFallback(x)}</span>{:else if x.url}<a class="proof" href={x.url} target="_blank" rel="noopener">{x.proof ?? proofFallback(x)}</a>{:else}<span class="proof" class:plain={!x.proof}>{x.proof ?? proofFallback(x)}</span>{/if}</small></span>
+            <div class="t"><div class="dt"><LongText text={x.title} /></div><div class="ds"><LongText text={proofText}>{#snippet body()}{#if x.session}<button class="who" onclick={() => onSession(x.session!)}>{x.session}</button> · {/if}{#if x.silence != null}<span class="siltag" data-testid="chiuso-silenzio">{t.silenceLabel}</span> · {/if}{#if x.outcome === 'superseded'}<span class="proof plain">{proofFallback(x)}</span>{:else if x.url}<a class="proof" href={x.url} target="_blank" rel="noopener">{x.proof ?? proofFallback(x)}</a>{:else}<span class="proof" class:plain={!x.proof}>{x.proof ?? proofFallback(x)}</span>{/if}{/snippet}</LongText></div></div>
           </div>
         {/each}
       </div></div>{/if}
@@ -270,7 +274,7 @@
   .expl { margin: 0 6px 6px; color: var(--text2); font-size: 14px; line-height: 1.4; } .expl.bright { color: var(--text); } .expl.quota { margin-top: 14px; color: var(--tx2); border-top: 1px solid var(--line); padding-top: 10px; }
   .row, .card, .done { background: var(--low); border-radius: 14px; }
   .row { display: flex; align-items: center; gap: 12px; padding: 12px 12px 12px 16px; }
-  .row .t, .done .t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; } .row b { font-weight: 600; font-size: 15px; } .row small, .done small { color: var(--text2); font-size: 12.5px; }
+  .row .t, .done .t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; } .row b { font-weight: 600; font-size: 15px; } .row small, .done .ds { color: var(--text2); font-size: 12.5px; }
   .mark { width: 18px; height: 18px; flex: none; border: 2px solid var(--text2); border-radius: 5px; } .mark.personal { border-radius: 50%; } .mark.desk { border-radius: 3px; transform: rotate(45deg) scale(.8); }
   .filled { background: var(--primary); color: var(--on-primary); border-radius: 999px; padding: 9px 16px; font-weight: 500; font-size: 14px; white-space: nowrap; }
   .tonal { background: var(--high); border-radius: 999px; padding: 8px 14px; font-weight: 500; font-size: 14px; white-space: nowrap; }
@@ -299,12 +303,12 @@
   .track i.now { width: 2px; top: -4px; height: 16px; border-radius: 0; background: var(--text); }
   .card.night { gap: 8px; } .trow { display: flex; align-items: center; gap: 12px; } .tcol { flex: 1; } .big { font-size: 15.5px; }
   .running { color: var(--busy); font-size: 14px; margin: 0; } .muted { color: var(--text2); font-size: 14px; margin: 0; }
-  .job { display: flex; align-items: center; gap: 10px; } .jcol { flex: 1; display: flex; flex-direction: column; gap: 2px; font-size: 14px; } .jcol > span:not(:first-child) { color: var(--text2); font-size: 12.5px; } .jcol b { font-weight: 600; } .started { color: var(--busy); }
+  .job { display: flex; align-items: center; gap: 10px; } .jcol { flex: 1; display: flex; flex-direction: column; gap: 2px; font-size: 14px; } .jcol > span:not(:first-child), .jcol > .jp { color: var(--text2); font-size: 12.5px; } .jcol b { font-weight: 600; } .started { color: var(--busy); }
   .link { color: var(--icon); padding: 8px 12px; border-radius: 16px; font-weight: 500; font-size: 14px; }
   .day { display: flex; align-items: center; gap: 8px; width: 100%; margin: 10px 0 2px; padding: 0 6px; font: 600 12.5px/1.6 var(--mono); letter-spacing: .12em; color: var(--text2); text-align: left; } .day:disabled { color: var(--text2); }
   /* Area di tocco allargata dentro il margine sopra, senza cambiare l'aspetto (app-bug-notte-03-11); 48 dp pieni chiederebbero spaziature nuove. */
   .day { position: relative; } .day::after { content: ''; position: absolute; inset: -10px 0 -2px; }
-  .done { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border-radius: 18px; } .done .tm { font: 12.5px/1.5 var(--mono); color: var(--text2); } .done b { font-weight: 600; font-size: 14px; }
+  .done { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border-radius: 18px; } .done .tm { font: 12.5px/1.5 var(--mono); color: var(--text2); } .done .dt { font-weight: 600; font-size: 14px; }
   /* app-silenzio-assenso-23-11: chiuso per silenzio assenso, in blu; mai il verde dell'ok di Franz. */
   .siltag { color: var(--busy); border: 1px solid color-mix(in srgb, var(--busy) 45%, transparent); border-radius: 6px; padding: 0 5px; white-space: nowrap; }
   .done .who { color: var(--text2); font-size: 12.5px; padding: 0; } .proof { color: var(--icon); } .proof.plain { color: var(--text2); }

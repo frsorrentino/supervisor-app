@@ -10,6 +10,7 @@
   import { fold as foldIn } from './motion'
   import { since } from './durations'
   import Icon from './Icon.svelte'
+  import LongText from './LongText.svelte'
   import { t } from './t'
   // Le pagine dietro i tre box in alto della home (compito app-box-cliccabili-29-10, mockup approvato da Franz il 29/10
   // alle 18:57), porta di HomeBoxScreen.kt: il numero spiegato in una frase, sotto le righe che lo fanno.
@@ -115,17 +116,18 @@
       {#if published.length}
         <div class="card">
           {#each published as p, i (i)}
+            <!-- app-play-lettura-ovunque-27-11: il testo della pubblicazione col ▶ accanto, se va oltre una riga. -->
             <div class="row pub">
               <span class="ic g"><Icon name="upload" size={16} /></span>
-              <span class="bd">
+              <div class="bd">
                 <span class="hd"><b>{t.dashPubKind[p.kind] ?? p.kind} · {p.name}</b><span>{hm(p.at)}</span></span>
-                <span class="tx">{p.text}</span>
+                <div class="tx"><LongText text={p.text} /></div>
                 <span class="acts">
                   {#if p.url}<a class="tonal mini" href={p.url} target="_blank" rel="noopener">{t.pubOpen}</a>{/if}
                   {#if p.kind === 'release' && onProve}<button class="tonal mini" onclick={onProve}>{t.pubProve}</button>{/if}
                   {#if p.kind === 'deploy' && /0\.2\.(\d+)/.test(p.text) && Number(/0\.2\.(\d+)/.exec(p.text)![1]) > running}<button class="tonal mini" onclick={() => location.reload()}>{t.pubReload}</button>{/if}
                 </span>
-              </span>
+              </div>
             </div>
           {/each}
         </div>

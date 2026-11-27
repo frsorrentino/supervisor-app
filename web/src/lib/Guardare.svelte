@@ -126,7 +126,8 @@
   </section>
 {/snippet}
 {#snippet noteLine(n: { text: string; pos_s?: number | null })}
-  <p class="note"><CatIcon name="pencil" size={18} />{n.pos_s != null ? t.watchYourNoteAt(pos(n.pos_s), n.text) : t.watchYourNote(n.text)}</p>
+  <!-- app-play-lettura-ovunque-27-11: la matita resta fuori, la nota ha il ▶ accanto se va oltre una riga. -->
+  <div class="note"><CatIcon name="pencil" size={18} /><div class="nt"><LongText text={n.pos_s != null ? t.watchYourNoteAt(pos(n.pos_s), n.text) : t.watchYourNote(n.text)} /></div></div>
 {/snippet}
 
 {#if current}
@@ -158,7 +159,8 @@
       </div>
     {/if}
     <p class="vline"><b>{t.watchVersionOf(r.version, r.versions)}</b><span class="mono">{[hm(r.at), l.seconds != null ? t.watchSeconds(l.seconds) : null].filter(Boolean).join(' · ')}</span></p>
-    {#if r.changed?.trim()}<p class="changed"><b>{t.watchChanged}</b> {r.changed}</p>{/if}
+    <!-- app-play-lettura-ovunque-27-11: cosa è cambiato col ▶ accanto se va oltre una riga; l'etichetta resta scritta, si legge il testo. -->
+    {#if r.changed?.trim()}<div class="changed"><LongText text={r.changed}>{#snippet body()}<b>{t.watchChanged}</b> {r.changed}{/snippet}</LongText></div>{/if}
     {#if r.caption?.trim() && r.caption !== r.title}<div class="sub"><LongText text={r.caption} /></div>{/if}
     {#if r.replaced}<p class="sub warn">{t.watchReplaced}</p>{/if}
     <span class="acts">
@@ -239,6 +241,7 @@
   .grp { background: var(--s1); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 6px; }
   .grp h3 { margin: 0; font-size: 17px; color: var(--tx); border-bottom: 1px solid var(--line, rgba(255,255,255,.08)); padding-bottom: 6px; }
   .note { display: flex; gap: 8px; color: var(--tx2); font-size: 14px; margin: 0 0 4px; }
+  .note .nt { flex: 1; min-width: 0; }
   .note .ms { font-size: 18px; }
   .viewer { display: flex; flex-direction: column; gap: 10px; padding: 8px 16px 24px; }
   /* «Apri il file» e «Riprova» sono pillole, non barre a tutta larghezza (app-bug-notte-03-11). */

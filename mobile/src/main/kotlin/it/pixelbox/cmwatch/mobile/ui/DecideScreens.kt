@@ -112,7 +112,8 @@ fun PrimaRaccoltaBody(page: PrimaRaccoltaPage?, onTouch: (String, String?) -> Un
         val q = PrimaRaccolta.question(page)
         // Contratto 1.139: una riga, sotto la riga piccola, poi «Non ora» e «Scansiona».
         if (q != null) DecideCard {
-            Text(q.text, style = MaterialTheme.typography.bodyMedium, color = Cm.text, modifier = Modifier.testTag("prima-domanda"))
+            // app-play-lettura-ovunque-27-11: la domanda col ▶ accanto se va oltre una riga.
+            LongText(q.text, Modifier.testTag("prima-domanda"), style = MaterialTheme.typography.bodyMedium, color = Cm.text)
             q.note?.takeIf { it.isNotBlank() }?.let { Text(it, style = V3.Small) }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.align(Alignment.End)) {
                 var tapped by remember(page.status, page.done) { mutableStateOf<String?>(null) }
@@ -133,8 +134,9 @@ fun PrimaRaccoltaBody(page: PrimaRaccoltaPage?, onTouch: (String, String?) -> Un
             page.sections.firstOrNull { it.key == r.key }?.let { s ->
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     if (PrimaRaccolta.empty(s)) {
-                        s.why?.takeIf { it.isNotBlank() }?.let { Text(it, style = V3.Small) }
-                        s.whenFills?.takeIf { it.isNotBlank() }?.let { Text(it, style = V3.Small) }
+                        // app-play-lettura-ovunque-27-11: perché è vuota e quando si riempie, ognuna col suo ▶ oltre una riga.
+                        s.why?.takeIf { it.isNotBlank() }?.let { LongText(it, style = V3.Small) }
+                        s.whenFills?.takeIf { it.isNotBlank() }?.let { LongText(it, style = V3.Small) }
                     } else LongText(s.text.orEmpty(), style = V3.Body)
                     BancoProva.screen(s.dove)?.let { d -> TextButton(onClick = { onScreen(d) }, modifier = Modifier.align(Alignment.End)) { Text(stringResource(R.string.features_go)) } }
                 }
@@ -214,7 +216,8 @@ fun DaProvareBody(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onOk:
                 val pk = picked[id]
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     LongText(p.fai, style = V3.Body)
-                    Text(stringResource(R.string.prove_expected, p.atteso), style = V3.Small)
+                    // app-play-lettura-ovunque-27-11: «Atteso: …» è una stringa sola, si legge intera.
+                    LongText(stringResource(R.string.prove_expected, p.atteso), style = V3.Small)
                     // Le immagini di cosa guardare, dalla richiesta della prova (app-scheda-scelta-12-11, punto 5).
                     p.wid?.let { w -> ProvaFiles(w) }
                     if (BancoProva.unknownNoteInCard(b)) Text(stringResource(R.string.prove_build_unknown), style = MaterialTheme.typography.bodySmall, color = Cm.text2, modifier = Modifier.testTag("prova-versione-ignota"))
@@ -492,9 +495,10 @@ internal fun OkInfo(a: Approval) {
         OkInformato.Undo.UNDECLARED -> none
     } + (l.undoHow?.let { " · $it" } ?: "")
     Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.testTag("ok-informato")) {
+        // app-play-lettura-ovunque-27-11: si legge il valore, col ▶ se va oltre una riga; il nome a sinistra resta fuori.
         @Composable fun row(k: String, v: String, muted: Boolean) = Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(k, style = MaterialTheme.typography.bodySmall, color = Cm.text2, modifier = Modifier.width(92.dp))
-            Text(v, style = MaterialTheme.typography.bodySmall, color = if (muted) Cm.text2 else Cm.text)
+            LongText(v, Modifier.weight(1f), style = MaterialTheme.typography.bodySmall, color = if (muted) Cm.text2 else Cm.text)
         }
         row(stringResource(R.string.ok_untested), l.untested ?: none, l.untested == null)
         row(stringResource(R.string.ok_undo), undo, l.undo == OkInformato.Undo.UNDECLARED)
@@ -537,7 +541,8 @@ internal fun BgNoteRow(s: Session) {
     if (!it.pixelbox.cmwatch.rules.BgSession.warns(s)) return
     Row(Modifier.fillMaxWidth().testTag("bg-avviso"), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Icon(Icons.Rounded.WarningAmber, null, tint = Cm.waiting, modifier = Modifier.padding(top = 3.dp).size(18.dp))
-        Text(stringResource(R.string.bg_logout_warning), style = MaterialTheme.typography.bodyMedium, color = Cm.text2, modifier = Modifier.weight(1f))
+        // app-play-lettura-ovunque-27-11: l'avviso col ▶ accanto se va oltre una riga, l'icona resta fuori.
+        LongText(stringResource(R.string.bg_logout_warning), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
     }
 }
 
@@ -549,7 +554,8 @@ internal fun HeadsUpNoteRow(s: Session, now: Long) {
     Row(Modifier.fillMaxWidth().testTag("heads-up"), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Icon(Icons.Outlined.Info, null, tint = V3.Tx3, modifier = Modifier.padding(top = 3.dp).size(18.dp))
         Column(Modifier.weight(1f)) {
-            Text(n.text, style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
+            // app-play-lettura-ovunque-27-11: la nota col ▶ accanto se va oltre una riga.
+            LongText(n.text, style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
             Text(stringResource(R.string.queue_age, Durations.since(n.seenAt, now)), style = MonoSmall)
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 TextButton(onClick = { a.propose(s.name, prompt) }) { Text(stringResource(R.string.heads_up_propose)) }

@@ -26,7 +26,6 @@ import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.SmartToy
-import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material.icons.rounded.Today
 import androidx.compose.material.icons.rounded.Weekend
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -211,16 +210,11 @@ private fun AgendaDeepenSheet(r: AgendaRow, onDismiss: () -> Unit, onAsk: () -> 
                 verticalAlignment = Alignment.Top,
             ) {
                 Text(detail, style = MaterialTheme.typography.bodyLarge, color = Cm.text, modifier = Modifier.weight(1f))
-                // ▶ legge titolo e dettaglio; mentre legge diventa ■, come accanto ai messaggi della chat.
+                // ▶ legge titolo e dettaglio; mentre legge diventa ■, come accanto ai messaggi della chat. app-play-lettura-ovunque-27-11:
+                // è il ▶ di ReadButton (tondo tonale da 36 dp); il tocco resta onSpeak di chi apre il foglio.
                 onSpeak?.let { speak ->
                     val text = r.title.trim() + ".\n" + detail
-                    val reading = LocalSpeaking.current == text
-                    androidx.compose.material3.IconButton(onClick = { speak(text) }) {
-                        Icon(
-                            if (reading) Icons.Rounded.Stop else Icons.Rounded.PlayArrow,
-                            stringResource(if (reading) R.string.stop_reading else R.string.read_aloud), tint = Cm.actionIcon,
-                        )
-                    }
+                    ReadButton(text, Modifier.padding(start = 8.dp, end = 8.dp)) { speak(text) }
                 }
             } else Text(stringResource(R.string.agenda_no_detail), style = MaterialTheme.typography.bodyLarge, color = Cm.text2)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End), verticalAlignment = Alignment.CenterVertically) {

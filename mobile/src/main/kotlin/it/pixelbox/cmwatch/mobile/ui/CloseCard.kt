@@ -178,7 +178,8 @@ internal fun CloseRefusedBody(name: String, why: String, onArm: ((String) -> Uni
         )
     } else {
         if (inCard) CloseLine(stringResource(R.string.splash_refused, name), V3.Wait) else CloseTitle(stringResource(R.string.splash_refused, name))
-        Text(why, style = MaterialTheme.typography.bodyMedium, color = if (inCard) V3.Tx2 else V3.Tx)
+        // app-play-lettura-ovunque-27-11: il motivo del PC col ▶ accanto se va oltre una riga.
+        LongText(why, style = MaterialTheme.typography.bodyMedium, color = if (inCard) V3.Tx2 else V3.Tx)
         if (onArm != null) Column(Modifier.fillMaxWidth().padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             CloseKey(stringResource(R.string.close_after), CloseKeyKind.MAIN, { onArm("after") }, Modifier.fillMaxWidth())
             CloseKeyPair(

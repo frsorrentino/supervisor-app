@@ -206,7 +206,8 @@ private fun NeedRow(n: NightPage.Need, first: Boolean, onAnswer: (String, Int) -
         V3Split(Modifier.weight(1f), gap = 14.dp, text = {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(n.session, style = MaterialTheme.typography.titleMedium, color = Cm.text)
-                Text(readableSlash(n.text), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
+                // app-play-lettura-ovunque-27-11: cosa serve col ▶ accanto se va oltre una riga, prima dei tasti.
+                LongText(readableSlash(n.text), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
             }
         }) {
             when (n.kind) {
@@ -319,8 +320,9 @@ private fun ProjectRow(p: NightPage.Project) {
                 Box(Modifier.weight(1f).height(8.dp).clip(RoundedCornerShape(3.dp)).background(when (st) { "done" -> Cm.briefGood; "doing" -> Cm.actionIcon; else -> Cm.surfaceHigh }))
             }
         }
-        if (p.waiting.isNotEmpty()) Text(stringResource(R.string.night_waiting, p.waiting.map { w -> readableSlashWaiting(w) }.joinToString(" · ")), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
-        p.next?.let { Text(stringResource(R.string.night_next, it), style = MaterialTheme.typography.bodyMedium, color = Cm.text2) }
+        // app-play-lettura-ovunque-27-11: chi aspetta e il prossimo passo, ognuno col ▶ se va oltre una riga.
+        if (p.waiting.isNotEmpty()) LongText(stringResource(R.string.night_waiting, p.waiting.map { w -> readableSlashWaiting(w) }.joinToString(" · ")), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
+        p.next?.let { LongText(stringResource(R.string.night_next, it), style = MaterialTheme.typography.bodyMedium, color = Cm.text2) }
     }
 }
 

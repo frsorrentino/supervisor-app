@@ -46,6 +46,8 @@
   import SceltaCards from './SceltaCards.svelte'
   import type { WaitCardsHost } from './scelta'
   import HeadsUpNote from './HeadsUpNote.svelte'
+  import LongText from './LongText.svelte'
+  import ReadButton from './ReadButton.svelte'
   import { groups as deskGroups } from './tablet'
   import { summary as outcomeSummary } from './outcome'
   import { blockingOf, parseSteps } from './nextSteps'
@@ -971,7 +973,9 @@
   {#each nightGroup.rows as r, i (`n-${i}`)}
     {#if r.kind !== 'night'}
       {@const x = serviceText(r)}
-      <div class="card wrows"><div class="wrow"><span class="wic"><span class="ms">bedtime</span></span><span class="otext"><b>{x.title}</b>{#if x.detail}<small>{x.detail}</small>{/if}</span><button class="tonal mini" onclick={() => onService(r)}>{x.action}</button></div></div>
+      <!-- app-play-lettura-ovunque-27-11: «Ascolta» del resoconto della notte è il ▶ di tutta l'app; legge lo stesso testo e la riga, come
+           prima, si segna letta (onService, nella cattura: il ▶ ferma la propagazione). -->
+      <div class="card wrows"><div class="wrow"><span class="wic"><span class="ms">bedtime</span></span><span class="otext"><b>{x.title}</b>{#if x.detail}<small>{x.detail}</small>{/if}</span>{#if r.kind === 'night_report' && r.detail}<span class="rdk" role="presentation" onclickcapture={() => onService(r)}><ReadButton text={r.detail} /></span>{:else}<button class="tonal mini" onclick={() => onService(r)}>{x.action}</button>{/if}</div></div>
     {:else if tonightCard.items.length}
       {@render tonight(r)}
     {:else}
@@ -1096,7 +1100,8 @@
             <i class="oline"></i>
             <div class="ok">
               <b class="sysdot" style:background={SYS_TONE[a.level]}></b>
-              <span class="okt">{a.text}</span>
+              <!-- app-play-lettura-ovunque-27-11: il consiglio col ▶ accanto, prima del suo tasto; piegato a due righe come prima. -->
+              <div class="okl"><LongText text={a.text} clamp={2} /></div>
               {#if act && sysAsk !== a.id}<button class="tonal mini" in:pass disabled={sysSent.has(a.id)} onclick={() => (sysAsk = a.id)}>{act.label}</button>{/if}
             </div>
             {#if act && sysAsk === a.id}
@@ -1215,12 +1220,13 @@
   <h2 class="sh">{t.closedCat(model.closed.length)}</h2>
   {#each model.closed as c (c.name)}
     <!-- Contratto 1.84 (B4): lo stato salvato alla chiusura, e «Riprendi» quando c'è l'id della conversazione. -->
+    <!-- app-play-lettura-ovunque-27-11: esito e prossimo salvati col ▶ accanto, se vanno oltre una riga. -->
     <div class="crow"><Badge s={c} size={24} />
-      <span class="ccol"><b>{c.name}</b>
-        {#if c.closed?.outcome}<small>{t.closeSavesOutcome(c.closed.outcome)}</small>{/if}
-        {#if c.closed?.next}<small>{t.closeSavesNext(c.closed.next)}</small>{/if}
+      <div class="ccol"><b>{c.name}</b>
+        {#if c.closed?.outcome}<div class="cs"><LongText text={t.closeSavesOutcome(c.closed.outcome)} /></div>{/if}
+        {#if c.closed?.next}<div class="cs"><LongText text={t.closeSavesNext(c.closed.next)} /></div>{/if}
         {#if c.closed?.dirty_n}<small class="warn">{t.closeDirty(c.closed.dirty_n, (c.closed.dirty ?? []).slice(0, 3).join(', '))}</small>{/if}
-      </span>
+      </div>
       {#if onReopen}<button class="obtn" onclick={() => { closedDlg?.close(); onReopen(c.name) }}>{c.closed?.session_id ? t.resumeSaved : t.reopen}</button>{/if}</div>
   {/each}
 </dialog>
@@ -1368,7 +1374,8 @@
             {@const x = serviceText(r)}
             <div class="ok">
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--wait)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d={CAT_ICON.fix} /></svg>
-              <span class="okt col"><b>{x.title}</b>{#if x.detail}<small class="mono2">{x.detail}</small>{/if}</span>
+              <!-- app-play-lettura-ovunque-27-11: il dettaglio del suggerimento col ▶ accanto, se va oltre una riga. -->
+              <div class="okt col"><b>{x.title}</b>{#if x.detail}<div class="mono2"><LongText text={x.detail} /></div>{/if}</div>
               <button class="tonal mini" onclick={(e) => { e.stopPropagation(); onService(r) }}>{x.action}</button>
             </div>
           {/each}
@@ -1415,7 +1422,8 @@
           </div></div>
         </div>
       {:else if closeRefused?.name === s.name}
-        <div class="ckbox" role="status"><span class="refused"><b>{t.splashRefused(s.name)}</b> · {closeRefused.why}</span>
+        <!-- app-play-lettura-ovunque-27-11: il perché del rifiuto col ▶ accanto, se va oltre una riga; si legge il perché. -->
+        <div class="ckbox" role="status"><div class="refused"><LongText text={closeRefused.why}>{#snippet body()}<b>{t.splashRefused(s.name)}</b> · {closeRefused?.why}{/snippet}</LongText></div>
           <div class="ck-keys">
             {#if closeRefused.armable && onCloseArm}
               <button class="ck main" onclick={(e) => { e.stopPropagation(); onCloseArm(s.name, 'after') }}>{t.closeAfter}</button>
@@ -1488,11 +1496,15 @@
           <!-- Ora solo se ha qualcosa da dire: una sessione che aspetta senza compito ha tutto in «Tocca a te». -->
           {#if kt || s.goal?.text || dt.doing || (x.body && group !== 'waiting') || dt.said || pvHere}
           <section class="kg ksec now" data-testid="k-adesso"><h4>{t.kNow}{#if nowAt}<small class="kat mono2">{hhmm(nowAt)}</small>{/if}</h4>
-            {#if kt}<div class="ktk"><b>{kt.short ?? kt.task}</b><span class:paused={!!kt.paused}>{kt.paused ? t.kTaskPaused : t.kTaskRunning}</span></div>{#if s.goal?.text}<small class="kgoal">{t.goal}: {s.goal.text}</small>{/if}
-            {:else if s.goal?.text}<div class="ktk"><b>{s.goal.text}</b></div>{/if}
-            {#if dt.doing}<p class="kline mono2" data-testid="scheda-sta-facendo">{dt.doing}</p>{/if}
-            {#if x.body && group !== 'waiting'}{@const old = staleHours(r, now)}<p class="kline" class:stale={old != null}>{x.body}{#if old != null} <span class="ago">{t.staleAgo(old)}</span>{/if}</p>{/if}
-            {#if dt.said}<p class="kline" data-testid="scheda-ultimo-messaggio">{dt.said.replace(/\*\*|__|`/g, '')}</p>{/if}
+            <!-- app-play-lettura-ovunque-27-11: obiettivo, cosa sta facendo, ultima riga, ultimo messaggio, prossimo e la domanda di «Tocca a
+                 te» col ▶ accanto, se vanno oltre una riga. «Obiettivo:» resta scritto, si legge l'obiettivo. -->
+            {#if kt}<div class="ktk"><b>{kt.short ?? kt.task}</b><span class:paused={!!kt.paused}>{kt.paused ? t.kTaskPaused : t.kTaskRunning}</span></div>{#if s.goal?.text}<div class="kgoal"><LongText text={s.goal.text}>{#snippet body()}{t.goal}: {s.goal?.text}{/snippet}</LongText></div>{/if}
+            {:else if s.goal?.text}<div class="ktk"><div class="kgt"><LongText text={s.goal.text} /></div></div>{/if}
+            {#if dt.doing}<div class="kline mono2" data-testid="scheda-sta-facendo"><LongText text={dt.doing} /></div>{/if}
+            {#if x.body && group !== 'waiting'}{@const old = staleHours(r, now)}{@const xb = x.body}
+              {#snippet staleBody()}{xb} <span class="ago">{t.staleAgo(old!)}</span>{/snippet}
+              <div class="kline" class:stale={old != null}><LongText text={xb} body={old != null ? staleBody : null} /></div>{/if}
+            {#if dt.said}<div class="kline" data-testid="scheda-ultimo-messaggio"><LongText text={dt.said.replace(/\*\*|__|`/g, '')} /></div>{/if}
             {#if pv && pvHere}<StepBar steps={pv} />{/if}
             {@render svcB()}
             {@render headsB()}
@@ -1503,12 +1515,12 @@
           {/if}
           {#if kn || waitsHere || kRest.length || (!unified && sessionTodo && (todo[s.name]?.d || todo[s.name]?.v))}
             <section class="kg ksec you" data-testid="k-prossimo"><h4>{t.kYourTurn}</h4>
-              {#if kn}<p class="kline strong">{kn}</p>{/if}
+              {#if kn}<div class="kline strong"><LongText text={kn} /></div>{/if}
               {#if kRest.length}{@render chipRow(s, kRest, x.blocking)}{/if}
         {#if open && !unified && sessionTodo && (todo[s.name]?.d || todo[s.name]?.v)}<div class="tdbody" role="presentation" onclick={(e) => e.stopPropagation()}>{@render sessionTodo(s.name)}</div>{/if}
               {#if waitsHere}
                 <div class="kr kw"><span class="kl">{t.kWaits}</span><div class="kx">
-                  {#if group === 'waiting' && x.body}<p class="body full strong">{x.body}</p>{/if}
+                  {#if group === 'waiting' && x.body}<div class="body full strong"><LongText text={x.body} /></div>{/if}
                 {#if open && group === 'waiting' && askedFor(s)}{@const a = askedFor(s)!}<p class="asked mono2">{a.task ? t.askedForTask(a.from, a.task) : t.askedFor(a.from)}</p>{/if}
                   {@render okDoneB()}{@render approvalsB()}{@render mineB()}{@render optionsB()}
                 </div></div>
@@ -1608,8 +1620,9 @@
           <b>{x.name}</b>
           {#if !x.closable}<span class="why">{t.closeBlocked[x.blocked_by ?? ''] ?? t.closeBlockedOther}</span>
           {:else}
-            {#if x.save?.outcome}<span>{t.closeSavesOutcome(x.save.outcome)}</span>{/if}
-            {#if x.save?.next}<span>{t.closeSavesNext(x.save.next)}</span>{/if}
+            <!-- app-play-lettura-ovunque-27-11: esito e prossimo che salva col ▶ accanto, se vanno oltre una riga. -->
+            {#if x.save?.outcome}<LongText text={t.closeSavesOutcome(x.save.outcome)} />{/if}
+            {#if x.save?.next}<LongText text={t.closeSavesNext(x.save.next)} />{/if}
             {#if x.save?.dirty_n}<span class="warn">{t.closeDirty(x.save.dirty_n, (x.save.dirty ?? []).slice(0, 3).join(', '))}</span>{/if}
             {#if x.save?.session_id}<span class="ok">{t.closeResumable}</span>{/if}
           {/if}
@@ -1648,6 +1661,7 @@
   .ka .ksec > h4 small { font: 400 12px/16px var(--mono); letter-spacing: 0; text-transform: none; }
   .ka .ktk { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
   .ka .ktk b { font: 600 17px/22px var(--display); color: var(--tx); min-width: 0; }
+  .ka .ktk .kgt { flex: 1; font: 600 17px/22px var(--display); color: var(--tx); min-width: 0; }
   .ka .ktk span { flex: none; font-size: 14px; color: var(--busy); }
   .ka .ktk span.paused { color: var(--wait); }
   .ka .kgoal { display: block; font-size: 13px; color: var(--tx2); margin-top: 2px; }
@@ -1824,7 +1838,7 @@
   .close { display: flex; align-items: center; gap: 8px; background: var(--high); border-radius: 999px; padding: 8px 14px; color: var(--text); font-weight: 500; flex: none; }
   dialog.alert { margin: auto; border: 0; color: var(--text); background: var(--surface); padding: 22px; width: min(400px, 92vw); border-radius: 28px; }
   dialog.alert::backdrop { background: rgb(0 0 0 / .55); }
-  .ccol { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; overflow-wrap: anywhere; } .ccol small { color: var(--text2); font-size: 12.5px; } .ccol small.warn { color: var(--b-warn); }
+  .ccol { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; overflow-wrap: anywhere; } .ccol small, .ccol .cs { color: var(--text2); font-size: 12.5px; } .ccol small.warn { color: var(--b-warn); }
   .ghact { font: 500 12.5px var(--sans); letter-spacing: 0; color: var(--icon); padding: 3px 10px; border-radius: 14px; background: color-mix(in srgb, var(--icon) 12%, transparent); }
   .ghact:hover { background: color-mix(in srgb, var(--icon) 20%, transparent); }
   .cfl { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; max-height: 50vh; overflow-y: auto; }
@@ -1899,6 +1913,9 @@
   .ok svg { flex: none; }
   .okt.mono2 { font-family: ui-monospace, monospace; font-size: 12.5px; color: var(--text2); }
   .okt { flex: 1 1 140px; min-width: 0; font-size: 14px; color: var(--text); display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  /* Il consiglio con LongText: le due righe le piega LongText (clamp), qui solo il posto e il carattere di .okt. */
+  .okl { flex: 1 1 140px; min-width: 0; font-size: 14px; color: var(--text); }
+  .rdk { flex: none; display: flex; }
   /* Il riordino (app-home-riordino-29-10): «Ti aspettano» ha un'intestazione fissa ambra; le card stanno in un involucro
      per l'animazione; chiuse, le card fuori da «Ti aspettano» tengono una riga; Lavori ed Esiti hanno righe compatte. */
   .sec.static { cursor: default; }

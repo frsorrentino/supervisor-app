@@ -5,6 +5,7 @@
   import type { Card, NightPage } from './night'
   import { t } from './t'
   import Icon from './Icon.svelte'
+  import LongText from './LongText.svelte'
   // La pagina «Notte» (specifica docs/proposte/2026-10-07-pagina-notte.md, approvata da Franz il 07/10 alle 21:50): la
   // finestra della notte, quello che serve a te, una card per lavoro o sessione che si apre al tocco, i progetti.
   // Un solo tasto pieno: il primo di «Serve a te».
@@ -64,7 +65,8 @@
       {#each model.needs as n, i}
         <div class="need">
           <span class="ni" style:color={n.kind === 'question' ? 'var(--advice)' : 'var(--wait)'}>{n.kind === 'question' ? '?' : '!'}</span>
-          <span class="nt"><b>{n.session}</b><small>{readable(n.text, t.slashPhrases)}</small></span>
+          <!-- app-play-lettura-ovunque-27-11: cosa serve col ▶ accanto, se va oltre una riga. -->
+          <div class="nt"><b>{n.session}</b><div class="ntx"><LongText text={readable(n.text, t.slashPhrases)} /></div></div>
           <span class="na">
             {#if n.kind === 'question'}
               {#each n.options as o, k}<button class="nb" class:filled={i === 0 && k === 0} onclick={() => onAnswer(n.session, o.n)}>{o.n} · {o.label}</button>{/each}
@@ -106,8 +108,9 @@
         <div class="proj">
           <div class="ph"><b>{p.name}</b><small>{p.total ? t.nightParts(p.done, p.total) : t.nightNoParts}</small></div>
           {#if p.parts.length}<div class="segs">{#each p.parts as st}<i class={st}></i>{/each}</div>{/if}
-          {#if p.waiting.length}<small>{t.nightWaiting}: {p.waiting.map(w => readableWaiting(w, t.slashPhrases)).join(' · ')}</small>{/if}
-          {#if p.next}<small>{t.nightNext}: {p.next}</small>{/if}
+          <!-- app-play-lettura-ovunque-27-11: in attesa e prossimo col ▶ accanto, se vanno oltre una riga; l'etichetta resta scritta, si legge il valore. -->
+          {#if p.waiting.length}{@const wl = p.waiting.map(w => readableWaiting(w, t.slashPhrases)).join(' · ')}<div class="pl"><LongText text={wl}>{#snippet body()}{t.nightWaiting}: {wl}{/snippet}</LongText></div>{/if}
+          {#if p.next}<div class="pl"><LongText text={p.next}>{#snippet body()}{t.nightNext}: {p.next}{/snippet}</LongText></div>{/if}
         </div>
       {/each}
       {/if}
@@ -134,7 +137,7 @@
   .ni { width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--high); font-weight: 700; }
   .nt { flex: 1 1 150px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
   .nt b { font-size: 15.5px; font-weight: 500; }
-  .nt small { color: var(--text2); font-size: 14px; }
+  .nt .ntx { color: var(--text2); font-size: 14px; }
   .na { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
   .nb { padding: 10px 16px; border-radius: 22px; background: var(--high); color: var(--icon); font-weight: 500; font-size: 14px; white-space: normal; text-align: left; }
   .nb.filled { background: var(--primary); color: var(--on-primary); }
@@ -153,7 +156,7 @@
   .proj { display: flex; flex-direction: column; gap: 6px; padding: 14px 18px; border-radius: 24px; background: var(--surface); }
   .ph { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
   .ph b { font-size: 17px; font-weight: 500; }
-  .proj small { color: var(--text2); font-size: 14px; }
+  .proj small, .proj .pl { color: var(--text2); font-size: 14px; }
   .segs { display: flex; gap: 4px; }
   .segs i { flex: 1; height: 8px; border-radius: 3px; background: var(--high); }
   .segs i.done { background: var(--good); }

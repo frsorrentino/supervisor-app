@@ -3379,9 +3379,10 @@ class MainActivity : ComponentActivity() {
                             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                                 Text(s.name, color = it.pixelbox.cmwatch.mobile.ui.Cm.text, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip)
                                 val small = androidx.compose.material3.MaterialTheme.typography.bodySmall
-                                s.closed?.outcome?.let { o -> Text(getString(R.string.close_saves_outcome, o), style = small, color = it.pixelbox.cmwatch.mobile.ui.Cm.text2) }
-                                s.closed?.next?.let { nx -> Text(getString(R.string.close_saves_next, nx), style = small, color = it.pixelbox.cmwatch.mobile.ui.Cm.text2) }
-                                s.closed?.dirtyN?.takeIf { d -> d > 0 }?.let { n -> Text(getString(R.string.close_dirty, n, s.closed?.dirty.orEmpty().take(3).joinToString(", ")), style = small, color = it.pixelbox.cmwatch.mobile.ui.Cm.briefWarn) }
+                                // app-play-lettura-ovunque-27-11: esito, prossimo passo e file salvati, ognuno col ▶ se va oltre una riga.
+                                s.closed?.outcome?.let { o -> it.pixelbox.cmwatch.mobile.ui.LongText(getString(R.string.close_saves_outcome, o), style = small, color = it.pixelbox.cmwatch.mobile.ui.Cm.text2) }
+                                s.closed?.next?.let { nx -> it.pixelbox.cmwatch.mobile.ui.LongText(getString(R.string.close_saves_next, nx), style = small, color = it.pixelbox.cmwatch.mobile.ui.Cm.text2) }
+                                s.closed?.dirtyN?.takeIf { d -> d > 0 }?.let { n -> it.pixelbox.cmwatch.mobile.ui.LongText(getString(R.string.close_dirty, n, s.closed?.dirty.orEmpty().take(3).joinToString(", ")), style = small, color = it.pixelbox.cmwatch.mobile.ui.Cm.briefWarn) }
                             }
                             androidx.compose.material3.FilledTonalButton(onClick = { closedOpen = false; scope.launch { runCatching { app.repo.command(CmdOp.REOPEN, s.name, null) } } }) { Text(getString(if (s.closed?.sessionId != null) R.string.resume_saved else R.string.reopen)) }
                         }

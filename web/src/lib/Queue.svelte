@@ -7,6 +7,7 @@
   import { confirmMs } from './leave'
   import Badge from './Badge.svelte'
   import QuestionCard from './QuestionCard.svelte'
+  import LongText from './LongText.svelte'
 
   // «Ti aspettano» (QueueScreen dell'app): le domande aperte di tutte le sessioni in fila, dalla più vecchia, una per
   // pagina; dopo una risposta si passa alla successiva. Si scorre di lato (trascinando o con le frecce e i tasti ← →).
@@ -74,7 +75,8 @@
             <button class="who" onclick={() => onSession(s.name)}><Badge {s} size={26} /><b>{s.name}</b><span>{t.queueAge(since(it.askedAt, now))}</span></button>
             <div class="stop">
               <span class="sh">{t.queueStopHead}</span>
-              <p>{it.text}</p>
+              <!-- app-play-lettura-ovunque-27-11: il motivo della ferma col ▶ accanto, se va oltre una riga. -->
+              <div class="why"><LongText text={it.text} /></div>
               <!-- Contratto 1.80: la scadenza di un needs-you e il tasto «Fatto», che chiude la richiesta dal telefono. -->
               {#if it.expiresAt}<span class="exp">{expiryText(it.expiresAt)}</span>{/if}
               <div class="acts">
@@ -108,7 +110,7 @@
   .who span { font-size: 14px; color: var(--text2); font-weight: 500; }
   .stop { background: var(--surface); border-radius: 24px; padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 10px; }
   .sh { font: 500 12.5px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--advice); }
-  .stop p { margin: 0; font-size: 15.5px; line-height: 1.45; color: var(--text); }
+  .stop .why { margin: 0; font-size: 15.5px; line-height: 1.45; color: var(--text); }
   .go { align-self: flex-start; height: 44px; padding: 0 22px; border-radius: 999px; background: var(--primary); color: var(--on-primary); font-size: 15px; font-weight: 500; }
   .go.tonal { background: var(--high); color: var(--text); }
   .acts { display: flex; gap: 10px; flex-wrap: wrap; }

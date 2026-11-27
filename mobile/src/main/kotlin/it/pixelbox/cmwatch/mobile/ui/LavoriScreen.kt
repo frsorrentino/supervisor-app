@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -452,7 +453,8 @@ private fun DoneRow(d: Lavori.Done, zone: ZoneId, onSession: (String) -> Unit) {
         }
         Text(hhmm(d.at, zone), style = MonoSmall.copy(fontSize = 12.5.sp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(d.title, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold), color = Cm.text)
+            // app-play-lettura-ovunque-27-11: titolo e prova, ognuno col ▶ accanto se va oltre una riga.
+            LongText(d.title, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold), color = Cm.text)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 d.session?.let { s -> Text(s, style = MaterialTheme.typography.bodySmall, color = Cm.text2, modifier = Modifier.clip(RoundedCornerShape(6.dp)).handCursor().clickable { onSession(s) }) }
                 if (d.silence != null) Text(
@@ -461,12 +463,13 @@ private fun DoneRow(d: Lavori.Done, zone: ZoneId, onSession: (String) -> Unit) {
                 )
                 val uri = LocalUriHandler.current
                 val url = d.url
-                Text(
+                // Larga quanto il testo (IntrinsicSize.Max), così il tocco del link resta sul testo come prima.
+                LongText(
                     // Senza prova l'esito in parole, mai il comando del controllo (Franz 24/10 18:36).
                     // Un superato (1.115) dice perché è chiuso, anche con una prova: non è verificato.
                     (if (d.session != null) "· " else "") + (if (d.outcome == Lavori.SUPERSEDED) stringResource(R.string.lavori_proof_superseded) else d.proof ?: stringResource(when (d.outcome) { "failed" -> R.string.lavori_proof_failed; "cancelled" -> R.string.lavori_proof_cancelled; else -> R.string.lavori_proof_check })),
+                    Modifier.width(IntrinsicSize.Max).then(if (url != null && d.outcome != Lavori.SUPERSEDED) Modifier.clip(RoundedCornerShape(6.dp)).handCursor().clickable { runCatching { uri.openUri(url) } } else Modifier),
                     style = MaterialTheme.typography.bodySmall, color = if (d.proof != null && d.outcome != Lavori.SUPERSEDED) Cm.actionIcon else Cm.text2,
-                    modifier = if (url != null && d.outcome != Lavori.SUPERSEDED) Modifier.clip(RoundedCornerShape(6.dp)).handCursor().clickable { runCatching { uri.openUri(url) } } else Modifier,
                 )
             }
         }
@@ -507,7 +510,8 @@ internal fun Tonight(state: State, onAdd: () -> Unit, onRemove: (String) -> Unit
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(job.name, fontWeight = FontWeight.SemiBold, color = Cm.text, style = MaterialTheme.typography.bodyMedium)
-                    Text(job.prompt, color = Cm.text2, style = MaterialTheme.typography.bodySmall)
+                    // app-play-lettura-ovunque-27-11: il testo del lavoro col ▶ accanto se va oltre una riga, prima di «Rimuovi».
+                    LongText(job.prompt, style = MaterialTheme.typography.bodySmall, color = Cm.text2)
                     if (job.started != null) Text(stringResource(R.string.night_started), color = Cm.busy, style = MaterialTheme.typography.bodySmall)
                 }
                 TextButton(onClick = { onRemove(job.id) }, enabled = job.started == null) { Text(stringResource(R.string.night_remove), color = Cm.actionIcon) }

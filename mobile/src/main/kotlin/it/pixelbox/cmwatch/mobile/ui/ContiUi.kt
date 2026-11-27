@@ -95,13 +95,14 @@ fun RendicontiBody(
                 Icon(if (d != null) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, null, tint = V3.Tx3)
             }
             if (d != null) Column(Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
+                // app-play-lettura-ovunque-27-11: il misurato, i titoli dei compiti e la nota, ognuno col ▶ se va oltre una riga.
+                LongText(
                     listOf(pluralStringResource(R.plurals.conti_tasks, d.measured.tasks, d.measured.tasks), stringResource(R.string.conti_commits, d.measured.commits), stringResource(R.string.conti_releases_n, d.measured.releases)).joinToString(" · "),
                     style = V3.Body.copy(fontSize = 15.sp),
                 )
                 d.tasks.forEach { x ->
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text(x.title, style = V3.Small.copy(fontSize = 14.sp), modifier = Modifier.weight(1f))
+                        LongText(x.title, Modifier.weight(1f), style = V3.Small.copy(fontSize = 14.sp))
                         Text(day.format(Instant.ofEpochSecond(x.at).atZone(zone)), style = V3.Small.copy(fontSize = 13.sp, color = V3.Tx3))
                     }
                 }
@@ -116,7 +117,7 @@ fun RendicontiBody(
                             scope.launch { val r = onAsk(page.mese, c.project); asking = false; note = if (r == null) askFailed else if (r.first) asked else r.second }
                         }.padding(horizontal = 16.dp, vertical = 9.dp).testTag("rendiconti-bozza"),
                 )
-                note?.let { Text(it, style = V3.Small.copy(fontSize = 14.sp)) }
+                note?.let { LongText(it, style = V3.Small.copy(fontSize = 14.sp)) }
             }
         }
     }
@@ -140,7 +141,8 @@ fun PagellaBody(pagella: Pagella, zone: ZoneId = ZoneId.systemDefault()) {
                 Text(stringResource(R.string.pagella_cases, r.n) + (pct?.let { p -> " · " + stringResource(R.string.pagella_defects, p) } ?: ""), style = V3.Meter.copy(fontSize = 14.sp, color = if ((pct ?: 0) >= 20) V3.Wait else V3.Tx), textAlign = TextAlign.End)
             }
         }
-        pagella.advice.forEach { a -> Text(a, style = V3.Small.copy(fontSize = 14.sp, color = V3.Wait), modifier = Modifier.padding(start = 14.dp, end = 14.dp, top = 6.dp)) }
+        // app-play-lettura-ovunque-27-11: ogni consiglio col ▶ accanto se va oltre una riga.
+        pagella.advice.forEach { a -> LongText(a, Modifier.padding(start = 14.dp, end = 14.dp, top = 6.dp), style = V3.Small.copy(fontSize = 14.sp, color = V3.Wait)) }
     }
 }
 

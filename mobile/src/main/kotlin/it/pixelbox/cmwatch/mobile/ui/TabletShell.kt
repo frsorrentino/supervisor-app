@@ -706,7 +706,8 @@ fun TabletInspector(i: Tablet.Inspector, quotaH5: Int?, loading: Boolean) {
         }
         s.goal?.let { gl ->
             Text(stringResource(R.string.goal).uppercase(), style = MonoLabel, modifier = Modifier.padding(top = 6.dp))
-            Text(gl.text, style = MaterialTheme.typography.bodyMedium, color = Cm.briefLabel)
+            // app-play-lettura-ovunque-27-11: l'obiettivo col ▶ accanto se va oltre una riga.
+            LongText(gl.text, style = MaterialTheme.typography.bodyMedium, color = Cm.briefLabel)
         }
         Box(Modifier.padding(top = 8.dp)) { RuledLabel(stringResource(R.string.tablet_insp_today), Cm.text2) }
         when {
@@ -757,9 +758,10 @@ private fun TimelineRow(e: TimelineEvent) {
             (kind?.let { stringResource(it) } ?: e.kind).uppercase(), style = MonoLabel.copy(color = tone, fontSize = 11.sp), maxLines = 1,
             modifier = Modifier.border(1.dp, tone.copy(alpha = 0.8f), RoundedCornerShape(5.dp)).padding(horizontal = 6.dp, vertical = 2.dp),
         )
-        Text(
-            if (e.kind == "commit" && e.ref != null) "${e.ref} ${e.text}" else e.text,
-            style = MaterialTheme.typography.bodyMedium, color = Cm.text, modifier = Modifier.weight(1f),
+        // app-play-lettura-ovunque-27-11: il testo della voce col ▶ accanto se va oltre una riga (si legge com'è scritto).
+        LongText(
+            if (e.kind == "commit" && e.ref != null) "${e.ref} ${e.text}" else e.text, Modifier.weight(1f),
+            style = MaterialTheme.typography.bodyMedium, color = Cm.text,
         )
     }
 }

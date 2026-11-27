@@ -7,6 +7,7 @@
   import DaProvare from './DaProvare.svelte'
   import SceltaAperta from './SceltaAperta.svelte'
   import AttesaFiles from './AttesaFiles.svelte'
+  import LongText from './LongText.svelte'
   import type { CmdResult, DecisionItem, State, WaitAction, WaitFile, WaitItem } from './contract'
   import { isChoice, outcomeOf } from './scelta'
   import { lang, locale } from './lang'
@@ -141,11 +142,12 @@
         {@const acts = w.actions ?? []}
         <div class="wc" data-testid="ti-aspetta-carta">
           <p class="k">{w.label_text}{#if w.card?.deploy}<span class="tag">{t.tiAspettaProduction}</span>{/if}</p>
-          {#if w.title && w.title !== w.text}<p class="ttl">{w.title}</p>{/if}
-          <p class="q">{w.text}</p>
+          <!-- app-play-lettura-ovunque-27-11: titolo, domanda, consiglio, ogni riga della carta ed esito col ▶ accanto, se vanno oltre una riga. -->
+          {#if w.title && w.title !== w.text}<div class="ttl"><LongText text={w.title} /></div>{/if}
+          <div class="q"><LongText text={w.text} /></div>
           <!-- Contratto 1.149: il consiglio di chi chiede, con la motivazione, sotto la domanda. -->
-          {#if adviceOf(w.advice)}<p class="adv" data-testid="ti-aspetta-consiglio">{adviceLine(adviceOf(w.advice)!, t.tiAspettaAdvice, t.tiAspettaAdviceYes, t.tiAspettaAdviceNo)}</p>{/if}
-          {#if rows(w).length}<dl>{#each rows(w) as [k, v]}<dt>{k}</dt><dd>{v}</dd>{/each}</dl>{/if}
+          {#if adviceOf(w.advice)}<div class="adv" data-testid="ti-aspetta-consiglio"><LongText text={adviceLine(adviceOf(w.advice)!, t.tiAspettaAdvice, t.tiAspettaAdviceYes, t.tiAspettaAdviceNo)} /></div>{/if}
+          {#if rows(w).length}<dl>{#each rows(w) as [k, v]}<dt>{k}</dt><dd><LongText text={v} /></dd>{/each}</dl>{/if}
           {#if w.files?.length}<AttesaFiles files={w.files} {onFile} />{/if}
           {#if acts.some(a => lookOf(a) === 'option')}
             <div class="opts">
@@ -179,7 +181,7 @@
               <button class="pill" onclick={() => (writing = null)}>{t.cancel}</button>
             </div>
           {/if}
-          {#if !acts.length}<p class="note">{out && out.state !== 'open' ? [out.state === 'chosen' ? t.sceltaChosen(out.letter, out.name) : t.sceltaDone[out.state], out.reason].filter(Boolean).join(': ') : t.tiAspettaByMaster}</p>{/if}
+          {#if !acts.length}<div class="note"><LongText text={out && out.state !== 'open' ? [out.state === 'chosen' ? t.sceltaChosen(out.letter, out.name) : t.sceltaDone[out.state], out.reason].filter(Boolean).join(': ') : t.tiAspettaByMaster} /></div>{/if}
         </div>
       {/if}
     {/snippet}

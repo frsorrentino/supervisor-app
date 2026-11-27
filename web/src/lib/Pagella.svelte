@@ -3,6 +3,7 @@
   import { modelName, pagellaRows, ratePct } from './conti'
   import { locale } from './lang'
   import { t } from './t'
+  import LongText from './LongText.svelte'
   // app-rendiconti-2-02-11 (contratto 1.103): la pagella in Utilizzo, per modello e tipo di lavoro, solo le righe da `min` casi (10)
   // in su; le altre non si mostrano. I consigli del relay sotto, come li scrive.
   let { pagella }: { pagella: Pagella } = $props()
@@ -18,7 +19,8 @@
       <span class="v">{t.pagellaCases(r.n)}{#if ratePct(r) != null}{' · '}<b class:bad={ratePct(r)! >= 20}>{t.pagellaDefects(ratePct(r)!)}</b>{/if}</span>
     </div>
   {/each}
-  {#each pagella.advice ?? [] as a}<p class="adv">{a}</p>{/each}
+  <!-- app-play-lettura-ovunque-27-11: ogni consiglio col ▶ accanto, se va oltre una riga. -->
+  {#each pagella.advice ?? [] as a}<div class="adv"><LongText text={a} /></div>{/each}
 </div>
 
 <style>

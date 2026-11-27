@@ -89,7 +89,8 @@
     <div class="h" out:leaveOut><span>{g.build}</span>{#if shown(g).length > 1}<button class="tonal ck" class:done={g.prove.every(p => picked[String(p.id)] === 'ok')} onclick={() => result(g.prove.map(p => String(p.id)), allOk(g), 'ok')}><span class="lbl">{t.proveAllOk}</span>{#if g.prove.every(p => picked[String(p.id)] === 'ok')}<Check />{/if}</button>{/if}</div>
     <!-- Le prove come righe (app-richiede-te-righe-02-11): il tocco apre la scheda con Non va e Ok. Sul web la versione c'è sempre. -->
     <ItemList rows={shown(g).map(p => prove(p, true))} testid={`prova-${g.build}`} {focus} onOpen={onWait ? (r) => { const w = g.prove.find(x => String(x.id) === r.key)?.wid; if (w) onWait(w); return !!w } : null}>{#snippet card(r)}{@const p = g.prove.find(x => String(x.id) === r.key)}{#if p}{@const pk = picked[String(p.id)]}
-      <div class="in"><LongText text={p.fai} /><p class="m">{t.proveExpected(p.atteso)}</p>
+      <!-- app-play-lettura-ovunque-27-11: anche cosa vedere col ▶ accanto, se va oltre una riga. -->
+      <div class="in"><LongText text={p.fai} /><div class="lw m"><LongText text={t.proveExpected(p.atteso)} /></div>
         <!-- Le immagini di cosa guardare, dalla richiesta della prova (app-scheda-scelta-12-11). -->
         {#if p.wid}<ProvaFiles wid={p.wid} />{/if}
         <div class="ac">
@@ -122,7 +123,7 @@
   .c { background: var(--low); border-radius: 20px; padding: 14px; display: flex; flex-direction: column; gap: 6px; }
   .c b { font-weight: 600; }
   .fuse .row { margin: 0 0 0 4px; } .fuse b { font-size: 17px; } .pick { display: flex; gap: 8px; align-items: center; padding: 4px 0; }
-  p { font-size: 14px; }
+  p, .lw { font-size: 14px; }
   .m { color: var(--text2); } .r { color: var(--gone); } .small { font-size: 12.5px; }
   .ac { display: flex; align-items: center; gap: 8px; } .sp { flex: 1; }
   .tonal { background: var(--high); color: var(--text); border-radius: 999px; padding: 8px 14px; font-weight: 500; font-size: 14px; white-space: nowrap; }
