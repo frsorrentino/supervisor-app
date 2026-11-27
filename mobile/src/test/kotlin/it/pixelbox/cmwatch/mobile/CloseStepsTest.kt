@@ -10,6 +10,7 @@ import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.unit.toSize
 import app.cash.paparazzi.DeviceConfig
 import app.cash.paparazzi.Paparazzi
 import app.cash.paparazzi.SnapshotHandler
@@ -61,7 +62,8 @@ abstract class CloseStepsCheck(locale: String, scale: Float, private val save: L
                             val out = mutableListOf<TextLayoutResult>()
                             n.config.getOrNull(SemanticsActions.GetTextLayoutResult)?.action?.invoke(out)
                             seen.texts += t.joinToString("") { it.text } to out.firstOrNull()
-                            seen.boxes += t.joinToString("") { it.text } to n.boundsInRoot
+                            // Dove sta davvero, non tagliato dai contenitori: un nome agli estremi esce dalla riga dei nomi ma deve restare nella scheda.
+                            seen.boxes += t.joinToString("") { it.text } to Rect(n.positionInRoot, n.size.toSize())
                         }
                     }
                 }
@@ -78,8 +80,10 @@ abstract class CloseStepsCheck(locale: String, scale: Float, private val save: L
             val hit = seen.texts.filter { it.first == name }
             assertEquals("«$name» non sta una volta sola nella scheda (${seen.texts.map { it.first }})", 1, hit.size)
             val tl = hit.single().second
-            assertTrue("«$name» va a capo o non sta intero", tl != null && tl.lineCount == 1 && !tl.didOverflowWidth)
             val box = seen.boxes.first { it.first == name }.second
+            // Intero su una riga: la sua larghezza su una riga sta nello spazio che ha. (didOverflowWidth non serve: per un Text con una String il
+            // risultato che la semantica restituisce è ricalcolato sulla larghezza massima ricevuta, e sembra sempre sforare.)
+            assertTrue("«$name» va a capo o non sta intero", tl != null && tl.lineCount == 1 && tl.multiParagraph.intrinsics.maxIntrinsicWidth <= box.width + 1f)
             assertTrue("«$name» esce dalla scheda ($box fuori da $card)", box.left >= card.left - 0.5f && box.right <= card.right + 0.5f)
         }
         assertEquals("il passo in corso «$running» si ripete fuori dal segmento (${seen.texts.map { it.first }})", 1, seen.texts.count { it.first.contains(running) })
