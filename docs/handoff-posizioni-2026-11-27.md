@@ -56,3 +56,16 @@ Franz (20:22) ha chiesto il Rubber dock di designbookmark «agli elementi dell'a
 - Un WebP animato per voce, come dock-elastico-2026-11-27/home-entrata.html: __frame(ms) disegna un istante, foto a 30 fps, montaggio in
   loop (la home: 55 fotogrammi, 326 KB).
 - Nella scheda: prima l'HTML autonomo, poi i WebP e le immagini.
+
+## Gruppo 1, in più: Sessioni dentro il tabellone (Franz 27/11 21:27, segnalazione su app-posizioni-sistema-27-11)
+«Il blocco delle sessioni dovrebbe essere dove si trova adesso il blocco dei suggerimenti… per fisso in alto intendevo lo stato attuale del
+blocco dei suggerimenti, cioè come se fosse stato fissato a mano nel tabellone.» Schermata: D:\cm-sessions\dalla-master\2026-11-27-blocco-sessioni-in-tabellone.jpg
+(0.2.2394: «Suggerimenti 6» sta dentro il tabellone sotto le tre caselle, SESSIONI è la prima sezione fuori). Da fare nel gruppo 1:
+Sessioni di default DENTRO il tabellone, subito sotto le tre caselle, come un blocco fissato a mano; i blocchi fissati a mano da Franz (oggi
+Suggerimenti) restano fissati sotto. Telefono e web; se qualcosa del gruppo 1 esce con Sessioni fuori, si corregge nello stesso compito.
+
+## Insieme al gruppo 1: app-livello-riga-27-11 (Franz 27/11 21:33, approvato)
+Nel tabellone della home la linea della settimana (oggi 3 px sul bordo basso della sola terza casella, app-casella-settimana-27-11) va su TUTTA
+la riga in basso, da un bordo all'altro sotto le tre caselle; riempimento e segno di adesso in proporzione alla larghezza intera, con o senza
+blocchi fissati sotto. Telefono (KpiViews.kt UsageBoard: il drawBehind va spostato sul Row del tabellone) e web (Kpi7.svelte `.edge`: da
+figlio della casella `.use` a figlio di `.board`, left 0 right 0). Commit col compito, build, deploy web, prova di Franz.
