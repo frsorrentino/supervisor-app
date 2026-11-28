@@ -766,10 +766,11 @@ fun SummaryList(
         }
     }
     androidx.compose.foundation.lazy.LazyColumn(
-        // In fondo lo spazio del controller della lettura, che si posa sopra la barra della master (09/10 16:50).
+        // In fondo lo spazio del controller della lettura, che si posa sopra la barra della master (09/10 16:50), e sulla plancia del tablet
+        // quello della riga del foglio della master (LocalSheetRoom, app-posizioni-sistema-27-11 gruppo 6).
         Modifier.fillMaxSize().background(V3.Bg).onGloballyPositioned { c -> viewTop[0] = c.boundsInRoot().top }.pointerInput(Unit) {
             awaitPointerEventScope { while (true) { val e = awaitPointerEvent(androidx.compose.ui.input.pointer.PointerEventPass.Initial); touch[0] = if (e.changes.any { it.pressed }) 1L else 0L; touch[1] = System.currentTimeMillis() } }
-        }, state = listState, contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 12.dp, end = 12.dp, top = if (parts != null) 0.dp else 8.dp, bottom = 12.dp + readingRoom()),
+        }, state = listState, contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 12.dp, end = 12.dp, top = if (parts != null) 0.dp else 8.dp, bottom = 12.dp + readingRoom() + LocalSheetRoom.current),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         if (parts == null && update?.phase?.release != null) item(key = "update-card") { Box(moving()) { UpdateCard(update, now, onInstallUpdate, onDismissUpdate) } }

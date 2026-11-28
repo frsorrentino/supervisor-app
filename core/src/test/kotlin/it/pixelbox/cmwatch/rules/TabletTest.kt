@@ -52,6 +52,15 @@ class TabletTest {
         assertTrue(Tablet.inspector(1200))
     }
 
+    // app-posizioni-sistema-27-11 gruppo 6: la colonna della home e il foglio della master sopra di lei, come sulla web larga.
+    @Test fun `la colonna della home e il foglio della master sono larghi 400, e 440 da 1680`() {
+        assertEquals(400, Tablet.homeDp(840))
+        assertEquals(400, Tablet.homeDp(1280))
+        assertEquals(400, Tablet.homeDp(1679))
+        assertEquals(440, Tablet.homeDp(1680))
+        assertEquals(440, Tablet.homeDp(1920))
+    }
+
     // La colonna delle sessioni: i gruppi del riepilogo, con la master al suo posto come le altre.
     @Test fun columnPutsTheMasterInItsGroup() {
         val state = st(s("master"), s("busy", SessionState.BUSY), s("idle", since = at(10)))

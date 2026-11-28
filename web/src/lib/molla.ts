@@ -144,51 +144,6 @@ export function arriva(node: HTMLElement, p: { on: boolean }) {
 }
 
 /**
- * Voce 2, fedele all'originale (Morph island; app-animazioni-fedeli-26-11), la barra della master che si allunga: l'altezza del testo va
- * con la molla 300 22 quando cresce e 390 22 quando cala; mentre corre la barra cede in larghezza fino al 5 % (`-v/7000`); a ogni cambio
- * la barra si abbassa e torna con la molla 520 18 (spinta -1,6 se cresce, -1 se cala). Moto ridotto: altezza criticamente smorzata.
- */
-export function isola(node: HTMLElement, peek: boolean) {
-  const bar = (node.closest('.dock') as HTMLElement | null) ?? node
-  const H = molla(node.offsetHeight, 300, 22)
-  const P = molla(1, 520, 18)
-  let last = peek
-  let moving = false
-  const render = () => {
-    const give = clamp(-H.v / 7000, -0.05, 0.05)
-    bar.style.transformOrigin = '50% 100%'
-    bar.style.transform = `scale(${(P.x * (1 + give)).toFixed(4)}, ${P.x.toFixed(4)})`
-    node.style.height = moving && !(ferma(H) && ferma(P)) ? `${Math.max(20, H.x).toFixed(2)}px` : ''
-    node.style.overflow = node.style.height ? 'hidden' : ''
-    if (ferma(H) && ferma(P)) { moving = false; bar.style.transform = ''; node.style.height = '' }
-  }
-  const m = motore([H, P], render)
-  return {
-    update(p: boolean) {
-      if (p === last) return
-      last = p
-      const from = moving ? H.x : node.offsetHeight
-      node.style.height = ''
-      const to = node.offsetHeight
-      const grow = to > from
-      const k = 300 * (grow ? 1 : 1.3)
-      H.k = k; H.c = ridotto() ? 2 * Math.sqrt(k) : 22
-      H.x = from; H.t = to
-      P.v -= grow ? 1.6 : 1
-      moving = true
-      // Il contenuto che entra: dopo 90 ms, da sfocato (6 px) e scala 0,9, opacità in 350 ms, scala in 600 ms con (.16, 1, .3, 1).
-      if (!ridotto() && node.animate) {
-        node.animate([{ opacity: 0, filter: 'blur(6px)' }, { opacity: 1, filter: 'blur(0px)' }], { duration: 350, delay: 90, easing: 'ease', fill: 'backwards' })
-        node.animate([{ scale: '0.9' }, { scale: '1' }], { duration: 600, delay: 90, easing: 'cubic-bezier(.16, 1, .3, 1)', fill: 'backwards' })
-      }
-      render()
-      m.vai()
-    },
-    destroy: () => m.stop(),
-  }
-}
-
-/**
  * Voce 3, fedele all'originale (Notification stack; app-animazioni-fedeli-26-11): all'apertura di «Per te» ogni voce scende dalla pila al
  * suo posto, da 10 px per livello sotto la testa e con la scala del suo livello (-5 % ciascuno), in 300 ms con (0.23, 1, 0.32, 1); dalla
  * quarta entrano dall'invisibile. Moto ridotto: solo l'opacità, come l'originale.

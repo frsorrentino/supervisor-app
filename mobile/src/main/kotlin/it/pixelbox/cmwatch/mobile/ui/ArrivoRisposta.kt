@@ -27,7 +27,7 @@ import kotlin.math.roundToInt
  * che arriva a chat aperta e ferma compare intera in 120 ms e sale con la lista, una corsa sola con la molla del pannello (CmMotion.panelFloat,
  * 400 ms) a pixel interi, senza scoperte. Poi due segnali: un lampo sull'esito, col fondo del piede che si accende e torna in 900 ms e la
  * spunta che entra da 0,8 con la molla di casa (CmMotion.bounceFloat, 620 ms); e nel riquadro della master l'ora che scorre (RollNumber,
- * MasterDock.kt). Un dito sulla lista mostra subito tutto; una risposta nuova chiude subito quella in corsa; più in alto niente corsa e
+ * nella riga del suo foglio, MasterSheetUi.kt). Un dito sulla lista mostra subito tutto; una risposta nuova chiude subito quella in corsa; più in alto niente corsa e
  * resta «1 nuovo ↓». Animazioni ridotte: la chat si spegne in 70 ms, va in fondo e si riaccende in 150 ms; niente lampo.
  */
 

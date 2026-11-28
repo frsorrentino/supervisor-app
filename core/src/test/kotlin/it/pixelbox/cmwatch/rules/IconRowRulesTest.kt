@@ -3,6 +3,7 @@ package it.pixelbox.cmwatch.rules
 import it.pixelbox.cmwatch.rules.IconRowRules.Span
 import it.pixelbox.cmwatch.rules.IconRowRules.Tone
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -128,6 +129,14 @@ class IconRowRulesTest {
         assertEquals(0f, IconRowRules.nameGap(-0.1f), 0f)
         assertEquals(0.5f, IconRowRules.nameGap(0.5f), 0f)
         assertEquals(1f, IconRowRules.nameGap(1.2f), 0f)
+    }
+
+    // app-posizioni-sistema-27-11 gruppo 6: stretta secondo la larghezza che la riga riceve, anche in una colonna del tablet largo.
+    @Test fun `la riga è stretta quando le arrivano al massimo 400 dp`() {
+        assertTrue(IconRowRules.tight(300f))
+        assertTrue(IconRowRules.tight(400f))
+        assertFalse(IconRowRules.tight(401f))
+        assertFalse(IconRowRules.tight(Float.POSITIVE_INFINITY))
     }
 
     @Test fun `Alt e una cifra da 1 a 5 sceglie la scheda che c'è`() {

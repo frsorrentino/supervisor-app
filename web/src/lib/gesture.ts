@@ -1,10 +1,8 @@
-// I gesti della master (rules/MasterGestures.kt, app-master-gesti-senza-conflitti-04-11): oltre DRAG_PX è un trascinamento, fermo
-// al rilascio è un tocco; la velocità del dito e la molla senza rimbalzo dei rilasci.
-// app-posizioni-sistema-27-11 gruppo 5: via il riconoscitore dei clic sulle maniglie e la corsa breve fra posti fissi, che
-// servivano solo alle posizioni di prima; la corsa breve resta in MasterGestures.kt finché il tablet la usa.
+// I gesti della master (rules/MasterGestures.kt, app-master-gesti-senza-conflitti-04-11): oltre DRAG_PX il dito sul foglio è un
+// trascinamento, fermo al rilascio è un tocco (MasterSheet); la velocità del dito e la molla senza rimbalzo dei rilasci.
+// app-posizioni-sistema-27-11 gruppi 5 e 6: via il riconoscitore dei clic sulle maniglie, la soglia della barra di prima e la corsa
+// breve fra posti fissi, che servivano solo alle posizioni di prima (anche in MasterGestures.kt).
 export const DRAG_PX = 6
-
-export const isDrag = (dx: number, dy: number) => Math.hypot(dx, dy) > DRAG_PX
 
 /** La velocità del dito negli ultimi 80 ms, in px/s: `add(x, t)` a ogni movimento, `speed()` al rilascio. */
 export function velocity(windowMs = 80) {

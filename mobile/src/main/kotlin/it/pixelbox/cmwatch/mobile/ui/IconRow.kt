@@ -10,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -52,7 +53,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.positionInParent
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -92,6 +92,9 @@ private val CountStyle get() = TextStyle(fontFamily = V3.Mono, fontWeight = Font
  *
  * [onPick] arriva a ogni tocco, anche sulla scheda aperta (decide chi chiama: la apre o chiude la tendina), e al rilascio del dito su
  * un'altra scheda. [onEsc]: Esc dalla tastiera, torna alla conversazione. Le schede non cambiano mai ordine né posto.
+ *
+ * Stretta (spazi di 7 e icone da 20) quando la riga riceve al massimo 400 dp (IconRowRules.tight): la larghezza che le arriva, non lo
+ * schermo, così sta anche nelle colonne strette del tablet (app-posizioni-sistema-27-11 gruppo 6, come la container query della web).
  */
 @Composable
 fun IconRow(
@@ -100,10 +103,10 @@ fun IconRow(
     onPick: (String) -> Unit,
     modifier: Modifier = Modifier,
     onEsc: (() -> Unit)? = null,
-) {
+) = BoxWithConstraints(modifier) {
     val off = animationsOff()
     val u = LocalDensity.current.density
-    val tight = LocalConfiguration.current.screenWidthDp <= 400
+    val tight = IconRowRules.tight(maxWidth.value)
     // La scheda sotto il dito mentre trascina: pillola e nome vanno lì, la scelta arriva al rilascio.
     var drag by remember { mutableStateOf<String?>(null) }
     val shown = drag ?: active
@@ -160,7 +163,7 @@ fun IconRow(
     val pillColor = V3.S3
     val rimColor = V3.Tx.copy(alpha = 0.12f)
     Row(
-        modifier
+        Modifier
             .graphicsLayer { translationX = nudge.value }
             .background(V3.S2, RowShape)
             .border(1.dp, V3.Line, RowShape)

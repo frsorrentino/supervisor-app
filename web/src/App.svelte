@@ -828,12 +828,13 @@
   })
   const known = (n: string) => (!!tr && !demo) || st.sessions.some(s => s.name === n && s.state !== 'gone')
 
-  // La master vive nella home, nel suo foglio (mai una pagina a parte); la barra in fondo resta solo dentro Studio (`dock`).
+  // La master vive nella home, nel suo foglio (mai una pagina a parte); dentro Studio (`dock`) lo stesso foglio a tutta larghezza
+  // (app-posizioni-sistema-27-11 gruppo 6).
   // Franz 24/10 09:41 (Studio, strada A): `/embed` è la sola chat della master, incorporata da studio.francescosorrentino.com.
   const embed = /^\/embed(\.html)?$/.test(location.pathname)
-  // `/embed?dock=1` (studio-dock-coerente-24-10): la barra della master e il suo foglio, su fondo trasparente, dentro Studio.
+  // `/embed?dock=1` (studio-dock-coerente-24-10): il foglio della master, su fondo trasparente, dentro Studio.
   const dock = dockWanted(location.pathname, location.search)
-  // Dentro Studio la barra parte dall'ultima vista (dockEmbed.ts), finché il relay non risponde; poi si aggiorna da sé.
+  // Dentro Studio la riga del foglio parte dall'ultima vista (dockEmbed.ts), finché il relay non risponde; poi si aggiorna da sé.
   const dockCached = dock ? readDockCache<Session, TranscriptEntry>(load(DOCK_CACHE)) : null
   $effect(() => { const e = transcripts[MASTER]; if (dock && master && e) save(DOCK_CACHE, dockCacheOf(master, e)) })
   // app-posizioni-sistema-27-11 gruppo 4: la master è un foglio, riga · metà · intera (lib/masterSheet.ts, MasterSheet), al posto della
@@ -2068,8 +2069,9 @@
 </MasterSheet>{/if}{/snippet}
 
 {#if dock}
+  <!-- app-posizioni-sistema-27-11 gruppo 6: dentro Studio la master è il suo foglio, con la conversazione com'è nel foglio della home. -->
   <DockEmbed master={master ?? dockCached?.master ?? ghost(MASTER)} entries={transcripts[MASTER] ?? dockCached?.entries ?? []} onSpeak={(x) => toggle(x, MASTER)}>
-    {#snippet chat()}{@render chatOf(MASTER, true)}{/snippet}
+    {#snippet chat()}{@render chatOf(MASTER, true, true)}{/snippet}
   </DockEmbed>
 {:else if embed}
   <div class="embedded v3">{@render chatOf(MASTER, true)}</div>

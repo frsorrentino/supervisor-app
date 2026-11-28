@@ -2,6 +2,7 @@ package it.pixelbox.cmwatch.mobile.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -62,8 +63,11 @@ internal fun FeatureDemoBox(key: String, d: FeatureDemoData) {
         "master" -> {
             val master = st.sessions.firstOrNull { it.name == "master" }
             var open by remember { mutableStateOf(false) }
+            // app-posizioni-sistema-27-11 gruppo 6: la riga del foglio della master al posto della barra di prima; il tocco apre la risposta.
             Column(frame) {
-                if (master != null) MasterDock(master, MasterHome.Hero("Fase 2.2 avviata su payments-api", "", emptyList(), d.now - 600), {}, { open = !open }, expanded = open)
+                if (master != null) Box(Modifier.handCursor().clickable { open = !open }) {
+                    MasterSheetHead(master, MasterHome.Hero("Fase 2.2 avviata su payments-api", "", emptyList(), d.now - 600), {}, closed = !open)
+                }
                 if (open) Box(Modifier.padding(12.dp)) { ChatBody(FeatureDemoTexts.MASTER_ANSWER) }
             }
         }

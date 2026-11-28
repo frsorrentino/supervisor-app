@@ -374,8 +374,9 @@ class SessionSheetTest {
             }
         }
     }
-    // La master a tutto schermo sul telefono e a metà sul tablet (Franz, 08/10 18:15).
-    private fun masterSize(half: Boolean, tablet: Boolean = half, pulled: Float? = null) = paparazzi.snapshot {
+    // La master a tutto schermo sul telefono (Franz, 08/10 18:15), nel suo foglio dal gruppo 4 di app-posizioni-sistema-27-11; le misure
+    // del tablet di prima sono uscite col gruppo 6 (il tablet ha lo stesso foglio, TabletShellTest).
+    private fun masterSize(pulled: Float? = null) = paparazzi.snapshot {
         val m = st.sessions.first { it.state == SessionState.IDLE }.copy(name = "master", question = null, suggestion = null)
         val t = st.ts - 600
         val entries = listOf(
@@ -387,21 +388,16 @@ class SessionSheetTest {
         CmPhoneTheme(still = true) {
             SessionSheet(m, st.ts, emptyList(), 120, none, grid = true,
                 home = { _, _ -> st.sessions.take(4).forEach { s -> androidx.compose.material3.Text(s.name, color = it.pixelbox.cmwatch.mobile.ui.V3.Tx, modifier = androidx.compose.ui.Modifier.padding(16.dp)) } },
-                homeOpen = pulled != null, homePull = pulled, halfStops = tablet, half = half,
-                // app-posizioni-sistema-27-11 gruppo 4: sul telefono il foglio della master, con la sua riga in testa (intero, o fermo a metà
-                // della corsa); sul tablet la barra di prima.
-                dock = if (!tablet) ({ it.pixelbox.cmwatch.mobile.ui.MasterSheetHead(m, hero, {}, closed = pulled != null) }) else if (pulled != null) ({ it.pixelbox.cmwatch.mobile.ui.MasterDock(m, hero, {}, {}) }) else null,
+                homeOpen = pulled != null, homePull = pulled,
+                // app-posizioni-sistema-27-11 gruppo 4: il foglio della master, con la sua riga in testa (intero, o fermo a metà della corsa).
+                dock = { it.pixelbox.cmwatch.mobile.ui.MasterSheetHead(m, hero, {}, closed = pulled != null) },
                 appBar = { it.pixelbox.cmwatch.mobile.ui.PageHeader(null, st.sessions, 3, st.ts, {}, {}, menu) },
-                bar = if (!tablet) null else ({ it.pixelbox.cmwatch.mobile.ui.MasterDock(m, hero, {}, {}, expanded = true, toggleUp = half, onClose = if (half) ({}) else null, screen = false, trailing = if (half) null else ({ it.pixelbox.cmwatch.mobile.ui.AppMenu(menu) })) }),
                 feed = it.pixelbox.cmwatch.rules.ChatFeed.merge(entries, emptyList()))
         }
     }
-    @Test fun masterScreenPhone() = masterSize(half = false)
+    @Test fun masterScreenPhone() = masterSize()
     // A metà del trascinamento la conversazione sta sotto la sua barra, sopra la home che arretra (Franz, 01/11).
-    @Test fun masterDraggedHalfway() = masterSize(half = false, pulled = .5f)
-    @Test fun masterHalfTablet() = masterSize(half = true)
-    // A tutta altezza sul tablet la testata della home rientra: il ≡ sta nella barra della master (Franz, 09/10 21:26).
-    @Test fun masterFullTablet() = masterSize(half = false, tablet = true)
+    @Test fun masterDraggedHalfway() = masterSize(pulled = .5f)
 
     // Il pannello di chiusura sopra la pagina (Franz, 08/10 18:29, variante A).
     private fun closeSplash(phase: it.pixelbox.cmwatch.rules.CloseSplash.Phase, column: Boolean = false) = paparazzi.snapshot {

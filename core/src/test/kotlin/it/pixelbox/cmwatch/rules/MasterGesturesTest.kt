@@ -1,49 +1,21 @@
 package it.pixelbox.cmwatch.rules
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-// I casi di app-master-gesti-senza-conflitti-04-11; la soglia e le molle anche in gesture.test.ts, la corsa breve solo qui (app-posizioni-sistema-27-11 gruppo 5).
+// Le molle d'arrivo della master (app-altezza-senza-rimbalzo-06-11), anche in gesture.test.ts; il riconoscitore delle maniglie e la corsa
+// breve sono usciti con app-posizioni-sistema-27-11 gruppo 6, insieme alle posizioni di prima.
 class MasterGesturesTest {
-    @Test fun aDragStartsPast6dp() {
-        assertFalse(MasterGestures.isDrag(4f, 4f))
-        assertTrue(MasterGestures.isDrag(5f, 4f))
-    }
-
-    // La corsa breve (app-master-corsa-breve-05-11): conta la direzione, non la metà della corsa.
-    @Test fun shortRunGoesToTheNextStopThatWay() {
-        val stops = listOf(0f, 300f, 700f, 1000f)
-        assertEquals(1, MasterGestures.step(stops, 1, 10f))
-        assertEquals(1, MasterGestures.step(stops, 1, -23f))
-        assertEquals(2, MasterGestures.step(stops, 1, 24f))
-        assertEquals(0, MasterGestures.step(stops, 1, -30f))
-        // Un tratto lungo arriva al posto più vicino, mai meno di uno.
-        assertEquals(3, MasterGestures.step(stops, 1, 650f))
-        // Ai bordi si resta.
-        assertEquals(3, MasterGestures.step(stops, 3, 80f))
-    }
-
-    @Test fun flickCountsAndProjects() {
-        val stops = listOf(0f, 300f, 700f, 1000f)
-        // Fermo quasi subito ma con un colpo: va nella direzione del colpo.
-        assertEquals(2, MasterGestures.step(stops, 1, 5f, 600f))
-        assertEquals(0, MasterGestures.step(stops, 1, 30f, -800f))
-        // Un colpo forte proietta più lontano.
-        assertEquals(3, MasterGestures.step(stops, 1, 40f, 1500f))
-        assertEquals(1, MasterGestures.step(stops, 1, 5f, 400f))
-    }
-
     // app-altezza-senza-rimbalzo-06-11: ogni rilascio arriva e si ferma, mai oltre l'arrivo, con qualunque velocità del dito.
-    @Test fun landNeverPassesTheArrival() {
+    @Test fun `ogni rilascio arriva senza passare oltre, a qualunque velocità del dito`() {
         for (from in listOf(-400f, -40f, -3f, 3f, 40f, 400f)) for (v in listOf(-6000f, -3000f, -800f, 0f, 800f, 3000f, 6000f)) {
             var t = 0f
             while (t < 1.5f) { assertTrue("da $from a $v al tempo $t", MasterGestures.landAt(from, v, t) * from >= 0f); t += 0.001f }
         }
     }
 
-    @Test fun landKeepsTheFingerSpeedWhenItCan() {
+    @Test fun `la molla tiene la velocità del dito quando può`() {
         // Da 40 px a 3000 px/s verso l'arrivo: prima passava di circa 36 px; ora parte a 3000 px/s con una molla più rigida.
         val l = MasterGestures.land(40f, -3000f)
         assertEquals(-3000f, l.velocity, 0f)

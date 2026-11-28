@@ -78,6 +78,15 @@ object IconRowRules {
     /** Lo spazio fra l'icona e il nome aperto. */
     const val NAME_GAP = 8f
 
+    /**
+     * La riga stretta (spazi di 7 e icone da 20 invece di 11 e 22) quando le arrivano al massimo 400 dp: la misura è quella che riceve la
+     * riga, non lo schermo, così sta anche nelle colonne strette del tablet (app-posizioni-sistema-27-11 gruppo 6; la web la decide con la
+     * container query di IconRow.svelte).
+     */
+    const val TIGHT_DP = 400f
+
+    fun tight(widthDp: Float): Boolean = widthDp <= TIGHT_DP
+
     /** Alt+1…5 sceglie la scheda (proposta, «Tastiera fisica»). */
     const val MAX_KEYS = 5
 

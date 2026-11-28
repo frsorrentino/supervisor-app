@@ -21,6 +21,9 @@
     const hr = home.getBoundingClientRect()
     const gr = handle.getBoundingClientRect()
     const x = gr.left + gr.width / 2
+    // app-posizioni-sistema-27-11 gruppo 6: le schede coperte dal foglio della master (a metà o intero) non hanno segno nella corsia.
+    const sheet = home.querySelector<HTMLElement>('.msheet')?.getBoundingClientRect()
+    const floor = sheet && sheet.height > 0 ? Math.min(hr.bottom, sheet.top) : hr.bottom
     const out: Spot[] = []
     for (const el of home.querySelectorAll<HTMLElement>('[data-sess]')) {
       const r = el.getBoundingClientRect()
@@ -28,7 +31,7 @@
       const y = r.top + r.height / 2
       const col = homeRight ? gr.left - 13 : gr.right + 13
       const card = homeRight ? r.left : r.right
-      if (y > hr.top + 20 && y < hr.bottom - 20) out.push({ name: el.dataset.sess!, y, x, a: Math.min(col, card), b: Math.max(col, card) })
+      if (y > hr.top + 20 && y < floor - 20) out.push({ name: el.dataset.sess!, y, x, a: Math.min(col, card), b: Math.max(col, card) })
     }
     if (JSON.stringify(out) !== JSON.stringify(spots)) spots = out
   }

@@ -1,47 +1,13 @@
 package it.pixelbox.cmwatch.rules
 
 import kotlin.math.abs
-import kotlin.math.hypot
 
 /**
- * Un solo riconoscitore per le maniglie della master (app-master-gesti-senza-conflitti-04-11, come web/src/lib/gesture.ts): oltre
- * DRAG_DP è un trascinamento; fermo, al rilascio è un tocco. Le due maniglie della riga coi loro tocchi sono state tolte
- * (app-riga-senza-maniglie-15-11).
+ * Le molle senza rimbalzo della master: l'arrivo del suo foglio dopo il dito ([MasterSheet], app-posizioni-sistema-27-11 gruppo 4) e i
+ * movimenti che la seguono (Fx.land). Con il gruppo 6 vanno il riconoscitore delle maniglie e la corsa breve fra le posizioni di
+ * prima, che non usa più nessuno: il foglio scatta col punto proiettato (MasterSheet.snap).
  */
 object MasterGestures {
-    const val DRAG_DP = 6f
-
-    fun isDrag(dx: Float, dy: Float): Boolean = hypot(dx, dy) > DRAG_DP
-
-    /**
-     * La corsa breve (app-master-corsa-breve-05-11, Franz 05/11 11:23: «serve che si possa rilasciare e passare alla posizione
-     * della direzione presa, molto prima nella corsa»). Fra posizioni fisse al rilascio conta la direzione: oltre COMMIT_DP nella
-     * direzione presa, o con un colpo oltre FLICK_DP_S, la master va alla posizione dopo in quella direzione; sotto torna dov'era.
-     * Come i fogli di iOS la velocità si proietta (PROJECT_S: dove arriverebbe il dito rallentando): un tratto o un colpo
-     * lunghi saltano più posizioni. Sulla web la corsa breve è uscita con app-posizioni-sistema-27-11 gruppo 5: resta per il tablet.
-     */
-    const val COMMIT_DP = 24f
-    const val FLICK_DP_S = 500f
-    /** La proiezione di iOS, decelerazione 0,998 per millisecondo: v · 0,998 / (1 − 0,998) / 1000 secondi. */
-    const val PROJECT_S = 0.499f
-
-    /**
-     * La posizione al rilascio fra `stops` (le posizioni lungo l'asse del gesto, in ordine crescente), partendo da `from`, con il
-     * dito spostato di `delta` e la velocità `velocity` al rilascio, nelle stesse unità al secondo.
-     */
-    fun step(stops: List<Float>, from: Int, delta: Float, velocity: Float = 0f): Int {
-        if (stops.size < 2) return from
-        val dir = when {
-            abs(velocity) >= FLICK_DP_S -> if (velocity > 0f) 1 else -1
-            abs(delta) >= COMMIT_DP -> if (delta > 0f) 1 else -1
-            else -> return from
-        }
-        val next = (from + dir).coerceIn(0, stops.lastIndex)
-        val at = stops[from] + delta + velocity * PROJECT_S
-        val near = stops.indices.minBy { abs(stops[it] - at) }
-        return if (dir > 0) maxOf(next, near) else minOf(next, near)
-    }
-
     /**
      * Il cambio di lato che continua il gesto (app-lato-animazione-06-11): una molla smorzata senza rimbalzo, rigidità 300
      * (ω ≈ 17): da ferma arriva al 95 % in circa 270 ms, partendo dalla velocità del dito. Le stesse in gesture.ts.

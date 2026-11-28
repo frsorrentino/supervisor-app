@@ -19,6 +19,7 @@ import it.pixelbox.cmwatch.mobile.ui.*
 import it.pixelbox.cmwatch.rules.ChatFeed
 import it.pixelbox.cmwatch.rules.DiffRules
 import it.pixelbox.cmwatch.rules.DayBars
+import it.pixelbox.cmwatch.rules.MasterSheet
 import it.pixelbox.cmwatch.rules.PhoneOverview
 import it.pixelbox.cmwatch.rules.QuotaHistory
 import it.pixelbox.cmwatch.rules.Summary
@@ -111,22 +112,27 @@ class TabletShellTest {
     private val today = listOf(7 to 2, 8 to 5, 9 to 9, 10 to 7, 11 to 4, 12 to 3, 13 to 6, 14 to 8, 15 to 11, 16 to 6).map { (h, c) -> DayBars.Bar(h, c) } +
         (0..6).map { DayBars.Bar(it, 0) }
 
-    /** La vista unica (Franz, 04/10 16:36): la home del telefono di lato, le colonne, i dettagli se accesi. */
+    /**
+     * La vista unica (Franz, 04/10 16:36): la home del telefono di lato, le colonne, i dettagli se accesi. Con `sheet` la home sta a destra
+     * e ha sopra il foglio della master a quella misura, senza ⇄ (app-posizioni-sistema-27-11 gruppo 6).
+     */
     @Composable
-    private fun desk(cols: List<String>, shares: List<Int>, homeRight: Boolean = false, details: Boolean = false, changes: Boolean = false, homeHidden: Boolean = false, swap: Boolean = false, strips: Boolean = false, day: Boolean = false, override: (@Composable () -> Unit)? = null) = CmPhoneTheme(still = true, day = day) {
+    private fun desk(cols: List<String>, shares: List<Int>, homeRight: Boolean = false, details: Boolean = false, changes: Boolean = false, swap: Boolean = false, strips: Boolean = false, day: Boolean = false, sheet: MasterSheet.Stop? = null, override: (@Composable () -> Unit)? = null) = CmPhoneTheme(still = true, day = day) {
         val summary = Summary.build(st, emptyList(), emptyList(), ts, zone, emptySet())
         val rows = Tablet.groups(summary).flatMap { it.second }
         val rings = PhoneOverview.build(st, emptyList(), samples, ts, zone, stale = false).rings
+        val list: @Composable () -> Unit = {
+            SummaryList(summary, {}, { _, _ -> }, { _, _ -> }, {}, {}, now = ts, showLavori = cols.isNotEmpty(), showUsage = cols.isNotEmpty(), footer = if (cols.isEmpty()) null else ({
+                androidx.compose.foundation.layout.Column(
+                    androidx.compose.ui.Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
+                ) { rings.forEach { TabletQuotaPanel(it, ts) } }
+            }))
+        }
         TabletDesk(
-            home = {
-                SummaryList(summary, {}, { _, _ -> }, { _, _ -> }, {}, {}, now = ts, showLavori = cols.isNotEmpty(), showUsage = cols.isNotEmpty(), footer = if (cols.isEmpty()) null else ({
-                    androidx.compose.foundation.layout.Column(
-                        androidx.compose.ui.Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                        verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
-                    ) { rings.forEach { TabletQuotaPanel(it, ts) } }
-                }))
-            },
-            homeRight = homeRight, onHomeSide = {}, columns = cols, shares = shares, onSwap = { _, _ -> }, onShares = {},
+            // Senza la master la lista della home sfuma in fondo, come in MainActivity; col foglio sfuma la sua (SessionSheet).
+            home = { if (sheet != null) masterSheet(sheet) { _, _ -> list() } else androidx.compose.foundation.layout.Box(androidx.compose.ui.Modifier.fillMaxSize().homeFadeEnd()) { list() } },
+            homeRight = homeRight || sheet != null, onHomeSide = if (sheet != null) null else ({}), columns = cols, shares = shares, onSwap = { _, _ -> }, onShares = {},
             strip = if (strips) ({ name, open -> DeskStrip(rows.first { it.session.name == name }.session, name, open) {} }) else null,
             column = { name, drag ->
                 val r = rows.first { it.session.name == name }
@@ -151,10 +157,33 @@ class TabletShellTest {
                 )
             },
             inspector = if (details) ({ TabletInspector(Tablet.inspect(selected, timeline, ts, zone), st.quota[selected.account]?.h5, loading = false) }) else null,
-            homeHidden = homeHidden,
             swap = if (swap) SwapPills(cols, {}, {}) else null,
             override = override,
         )
+    }
+
+    private val menu = MenuActions(null, "", false, {}, {}, {}, {}, {})
+
+    /**
+     * Il foglio della master sul tablet (app-posizioni-sistema-27-11 gruppo 6), lo stesso del telefono: la riga della master col suo stato e
+     * ▶ in testa, il campo sotto, la conversazione fra i due da metà in su. Sopra la home della colonna con la testata della home; sopra la
+     * plancia senza testata, con la pagina trasparente fuori dal foglio e al posto della home una lista vuota, come in MainActivity.
+     */
+    @Composable
+    private fun masterSheet(stop: MasterSheet.Stop, over: Boolean = false, home: @Composable androidx.compose.foundation.layout.ColumnScope.((String) -> Unit, (String) -> Unit) -> Unit) {
+        val m = st.sessions.first { it.name == "master" }
+        val feed = shortFeed("master")
+        val entries = feed.mapNotNull { (it as? ChatFeed.Item.Claude)?.entry }
+        val sheet: @Composable () -> Unit = {
+            SessionSheet(
+                m, ts, emptyList(), 120, none, ops = st.ops, canAttach = true, choices = st.choices,
+                home = home, homeOpen = stop == MasterSheet.Stop.ROW, sheetAt = stop,
+                appBar = if (over) null else ({ PageHeader(null, st.sessions, 3, ts, {}, {}, menu) }),
+                dock = { MasterSheetHead(m, it.pixelbox.cmwatch.rules.MasterHome.hero(entries, m), {}, closed = stop == MasterSheet.Stop.ROW) },
+                feed = feed,
+            )
+        }
+        if (over) androidx.compose.runtime.CompositionLocalProvider(LocalPageBg provides androidx.compose.ui.graphics.Color.Transparent) { sheet() } else sheet()
     }
 
     // La home a sinistra e due colonne, la prima larga due terzi (8 dodicesimi).
@@ -189,15 +218,14 @@ class TabletShellTest {
     // Nessuna colonna ancora: l'invito a toccare una sessione nella home.
     @Test fun tabletDeskEmpty() = paparazzi.snapshot { desk(emptyList(), emptyList()) }
     /**
-     * La plancia senza sessioni aperte come la PWA larga (app-tablet-come-pwa-03-11): quattro colonne per categoria con la cifra
-     * in testa, la barra della master in fondo; `panel` la master aperta di lato, 420 dp, che lascia posto a tre colonne.
+     * La plancia senza sessioni aperte come la PWA larga (app-tablet-come-pwa-03-11): quattro colonne per categoria con la cifra in testa.
+     * app-posizioni-sistema-27-11 gruppo 6: la master è il suo foglio sopra le colonne, a destra e largo quanto la colonna della home (400 dp),
+     * alla misura `stop`; le colonne restano quattro e non si spostano.
      */
     @Composable
-    private fun plancia(panel: Boolean) = CmPhoneTheme(still = true) {
+    private fun plancia(stop: MasterSheet.Stop) = CmPhoneTheme(still = true) {
         val summary = Summary.build(st, emptyList(), emptyList(), ts, zone, emptySet())
         val head = it.pixelbox.cmwatch.rules.Kpi.head(st, null, ts, zone)
-        val m = summary.master!!
-        val hero = it.pixelbox.cmwatch.rules.MasterHome.hero(emptyList(), m)
         Plancia(
             // Come MainActivity (app-home-sessioni-a-se-08-11): Sessioni, Dalla master, Lavori in una colonna sua, Risorse; a 1440 dp
             // quattro colonne.
@@ -212,8 +240,8 @@ class TabletShellTest {
                     },
                 )
             },
-            bar = { MasterDock(m, hero, onSpeak = {}, onToggle = {}) },
-            panel = if (panel) ({ MasterDock(m, hero, onSpeak = {}, onToggle = {}, expanded = true) }) else null,
+            sheet = { masterSheet(stop, over = true) { _, _ -> androidx.compose.foundation.layout.Box(androidx.compose.ui.Modifier.fillMaxSize()) } },
+            sheetRoom = MasterSheet.ROW_DP.dp,
         )
     }
     /**
@@ -222,7 +250,7 @@ class TabletShellTest {
      */
     @Test fun planciaEmpty() {
         val lines = mutableMapOf<String, Int>()
-        paparazzi.snapshot { androidx.compose.runtime.CompositionLocalProvider(LocalNameLines provides { n, c -> lines[n] = c }) { plancia(panel = false) } }
+        paparazzi.snapshot { androidx.compose.runtime.CompositionLocalProvider(LocalNameLines provides { n, c -> lines[n] = c }) { plancia(MasterSheet.Stop.ROW) } }
         org.junit.Assert.assertTrue(lines.keys.containsAll(listOf("ledger-api", "atlas-shop", "field-notes")))
         org.junit.Assert.assertEquals(lines.keys.associateWith { 1 }, lines)
     }
@@ -230,68 +258,19 @@ class TabletShellTest {
     // + e › accanto alle sessioni della home che non sono in colonna; il filo bianco su quella già aperta (atlas-shop).
     @Test fun deskSwapPills() = paparazzi.snapshot { desk(listOf("atlas-shop"), listOf(12), swap = true) }
 
-    // app-master-morph-m3-06-11: il blocco della master a metà fra la riga in fondo e la colonna di destra, col dito sopra di lui:
-    // il bordo alto allungato e arrotondato, gli angoli in basso tondi, la presa che compare (la copia della riga è vuota qui).
-    @Test fun masterMorphMidway() = paparazzi.snapshot {
-        CmPhoneTheme(still = true) {
-            androidx.compose.foundation.layout.Box(androidx.compose.ui.Modifier.fillMaxSize().background(V3.Bg)) {
-                val bar = it.pixelbox.cmwatch.rules.MasterLanding.Rect(0f, 840f, 1440f, 60f)
-                val col = it.pixelbox.cmwatch.rules.MasterLanding.Rect(1020f, 0f, 420f, 900f)
-                val p = 0.5f
-                BlobLayer(
-                    BlobDraw(it.pixelbox.cmwatch.rules.MorphBlob.shape(bar, col, p, 1100f, 300f), it.pixelbox.cmwatch.rules.MorphBlob.contentAlpha(p), it.pixelbox.cmwatch.rules.MorphBlob.gripAlpha(p), true),
-                    androidx.compose.ui.graphics.rememberGraphicsLayer(),
-                )
-            }
-        }
+    // app-colonne-strette-05-11 (scelta A): a 1280 dp, accanto alla home da 400, stanno due colonne leggibili; la terza è una striscia col
+    // pallino, il nome in verticale e la X (app-posizioni-sistema-27-11 gruppo 6: prima le stringeva la master larga di lato).
+    @Test fun deskStrips() {
+        paparazzi.unsafeUpdateConfig(deviceConfig = TABLET.copy(screenWidth = 2560))
+        paparazzi.snapshot { desk(listOf("atlas-shop", "ledger-api", "field-notes"), listOf(4, 4, 4), strips = true) }
     }
 
-    // app-riga-senza-maniglie-15-11 (Franz 15/11 15:19): la master chiusa in riga e trascinabile; sul bordo superiore niente maniglie né frecce.
-    @Test fun riga_senza_maniglie() = paparazzi.snapshot {
-        val m = st.sessions.first { it.name == "master" }
-        val hero = it.pixelbox.cmwatch.rules.MasterHome.hero(emptyList(), m)
-        CmPhoneTheme(still = true) {
-            MasterFrame(left = true, panelWidthDp = 420f, panel = null, bar = { MasterDock(m, hero, onSpeak = {}, onToggle = {}) },
-                place = it.pixelbox.cmwatch.rules.MasterPlace(), onPlace = { _, _, _ -> }) { desk(listOf("atlas-shop"), listOf(12)) }
-        }
-    }
+    // app-posizioni-sistema-27-11 gruppo 6: con le sessioni aperte la master è il foglio sopra la colonna della home, a destra e larga quanto
+    // lei; a metà la home sopra resta da toccare, le colonne a sinistra non si spostano.
+    @Test fun deskSheetHalf() = paparazzi.snapshot { desk(listOf("atlas-shop", "ledger-api"), listOf(6, 6), sheet = MasterSheet.Stop.HALF) }
 
-    // Con le sessioni aperte la master come nella PWA larga: aperta di lato a sinistra col tasto Posizione, la home dal suo lato.
-    @Test fun deskMasterLeft() = paparazzi.snapshot {
-        val m = st.sessions.first { it.name == "master" }
-        val hero = it.pixelbox.cmwatch.rules.MasterHome.hero(emptyList(), m)
-        CmPhoneTheme(still = true) {
-            MasterFrame(left = true, panelWidthDp = 420f, panel = {
-                // Il tasto tondo della master in testa al pannello, a riposo col chevron (app-sposta-master-a-13-11).
-                MasterDock(m, hero, onSpeak = {}, onToggle = {}, expanded = true, moveKey = { MasterMoveKey(it.pixelbox.cmwatch.rules.MasterMove.Spot(true, it.pixelbox.cmwatch.rules.MasterLanding.Height.COLUMN), sessionsOpen = true, up = false, onToggle = {}, onMove = {}) })
-            }, bar = null) { desk(listOf("atlas-shop"), listOf(12)) }
-        }
-    }
-
-    // app-colonne-strette-05-11 (scelta A): la master larga lascia posto a una colonna leggibile; le altre due sono strisce col
-    // pallino, il nome in verticale e la X.
-    @Test fun deskStrips() = paparazzi.snapshot {
-        val m = st.sessions.first { it.name == "master" }
-        val hero = it.pixelbox.cmwatch.rules.MasterHome.hero(emptyList(), m)
-        CmPhoneTheme(still = true) {
-            MasterFrame(left = true, panelWidthDp = 560f, panel = {
-                MasterDock(m, hero, onSpeak = {}, onToggle = {}, expanded = true)
-            }, bar = null) { desk(listOf("atlas-shop", "ledger-api", "field-notes"), listOf(4, 4, 4), strips = true) }
-        }
-    }
-
-    // Home sopra e master compatta sotto, nella colonna della master; le colonne prendono il posto della home.
-    @Test fun deskMasterUnder() = paparazzi.snapshot {
-        val m = st.sessions.first { it.name == "master" }
-        val hero = it.pixelbox.cmwatch.rules.MasterHome.hero(emptyList(), m)
-        val summary = Summary.build(st, emptyList(), emptyList(), ts, zone, emptySet())
-        CmPhoneTheme(still = true) {
-            MasterFrame(left = false, panelWidthDp = 420f, panel = {
-                MasterStack(half = false, home = { SummaryList(summary, {}, { _, _ -> }, { _, _ -> }, {}, {}, now = ts) }, master = { MasterDock(m, hero, onSpeak = {}, onToggle = {}) }, onStep = {})
-            }, bar = null) { desk(listOf("atlas-shop", "ledger-api"), listOf(6, 6), homeHidden = true) }
-        }
-    }
-    @Test fun planciaMasterOpen() = paparazzi.snapshot { plancia(panel = true) }
+    // app-posizioni-sistema-27-11 gruppo 6: il foglio della master a metà sopra la plancia, a destra; le quattro colonne restano.
+    @Test fun planciaMasterOpen() = paparazzi.snapshot { plancia(MasterSheet.Stop.HALF) }
 
     // Contratto 1.72: la vista «Modifiche» si apre nella colonna della sessione; la home e l'altra colonna restano.
     @Test fun tabletDeskChanges() = paparazzi.snapshot { desk(listOf("atlas-shop", "ledger-api"), listOf(6, 6), changes = true) }

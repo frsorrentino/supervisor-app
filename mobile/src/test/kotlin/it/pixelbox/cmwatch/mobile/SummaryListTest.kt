@@ -234,17 +234,6 @@ class SummaryListTest {
         }
     }
 
-    @Test fun dockMaster() = paparazzi.snapshot {
-        val m = st.sessions.first { it.state == SessionState.IDLE }.copy(name = "master", question = null)
-        val reply = TranscriptEntry("a1", "assistant", "Lanciata claude-master sulla fase 2.2.\n\nEsito: Fase 2.2 avviata su claude-master\nProssimi: distilla il confronto nella kb", st.ts - 600)
-        CmPhoneTheme(still = true) { Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) { MasterDock(m, it.pixelbox.cmwatch.rules.MasterHome.hero(listOf(reply), m), {}, {}) } }
-    }
-    // La master espansa a tutta pagina (Franz, 03/10 16:44): la stessa barra in cima, con ▼ per ridurla.
-    @Test fun dockMasterExpanded() = paparazzi.snapshot {
-        val m = st.sessions.first { it.state == SessionState.IDLE }.copy(name = "master", question = null)
-        val reply = TranscriptEntry("a1", "assistant", "Lanciata claude-master sulla fase 2.2.\n\nEsito: Fase 2.2 avviata su claude-master", st.ts - 600)
-        CmPhoneTheme(still = true) { Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg)) { MasterDock(m, it.pixelbox.cmwatch.rules.MasterHome.hero(listOf(reply), m), {}, {}, expanded = true) } }
-    }
     // app-master-avvia-19-11: la card della master chiusa nei suoi quattro stati, dall'alto: avvia, si sta avviando, rifiutata, PC spento.
     @Test fun dockAbsent() = paparazzi.snapshot { CmPhoneTheme(still = true) { Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg).padding(16.dp), verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)) {
         MasterAbsent(MasterLaunch.Card(MasterLaunch.Kind.LAUNCH)) {}

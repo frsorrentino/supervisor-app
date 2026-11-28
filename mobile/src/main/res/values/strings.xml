@@ -225,8 +225,6 @@
     <plurals name="summary_closed"><item quantity="one">Chiusa ·\u00A0%1$d</item><item quantity="other">Chiuse ·\u00A0%1$d</item></plurals>
     <string name="summary_since">da %1$s</string>
     <string name="dock_master">MASTER</string>
-    <string name="dock_listen">Ascolta l\'ultimo esito della master</string>
-    <string name="dock_conversation">Apri la conversazione della master</string>
     <string name="master_placeholder">Scrivi alla master</string>
     <string name="menu_connected">Collegato a %1$s · %2$s</string>
     <string name="menu_pc">PC</string>
@@ -407,13 +405,11 @@
     <string name="menu_row_waiting">domanda · %1$s</string>
     <string name="menu_row_working">al lavoro · %1$s</string>
     <string name="menu_row_still">ferma da %1$s</string>
-    <string name="dock_collapse">Riduci la master</string>
     <!-- app-posizioni-sistema-27-11 gruppo 4: il foglio della master; la maniglia dice cosa fa il tocco. -->
     <string name="master_sheet_tap_row">Apri la master a metà</string>
     <string name="master_sheet_tap_half">Apri la master a tutta altezza</string>
     <string name="master_sheet_tap_full">Riduci la master alla riga</string>
     <string name="master_sheet_ctx_sub">Handoff, compatta, finestra più grande</string>
-    <string name="dock_close">Chiudi</string>
     <string name="context_pct">%1$d%% contesto</string>
     <string name="effort">Effort</string>
     <string name="question_high_risk">Rischio alto: tieni premuta l\'opzione per rispondere</string>
@@ -2002,28 +1998,12 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="desk_win">PC Windows</string>
     <string name="desk_win_none">Nessun host remoto: il relay non ne ha letto nessuno.</string>
     <string name="desk_host_down">non risponde</string>
-    <string name="master_place">Posizione della master</string>
-    <string name="master_pos_right">A destra</string>
-    <string name="master_pos_left">A sinistra</string>
-    <string name="master_pos_home_row">Home in riga</string>
-    <string name="home_row_open">Riapri la Home</string>
-    <string name="home_row_new">nuovo</string>
     <string name="usage_cell_week">della settimana</string>
     <string name="usage_cell_5h">delle 5 ore</string>
     <string name="max_sessions">Sessioni al massimo</string>
     <string name="max_sessions_sub">quante sessioni tiene aperte il PC</string>
     <string name="max_sessions_old">per cambiarlo aggiorna supervisor sul PC</string>
-    <!-- app-posizioni-sistema-27-11 gruppo 5: via i testi del menu Posizione di prima, che nessuno usava più (sotto la dashboard, allarga, stringi, chiudi, il bordo). -->
-    <string name="master_half_screen">Metà schermo</string>
-    <string name="master_land_bar">Una riga in basso</string>
-    <string name="master_land_column">Colonna intera</string>
-    <string name="master_land_half">Sotto la home, a metà</string>
-    <string name="master_land_compact">Sotto la home, compatta</string>
-    <string name="master_mid_left">a sinistra</string>
-    <string name="master_mid_right">a destra</string>
-    <string name="master_mid_cross">Oltre questa linea: %1$s %2$s</string>
-    <string name="master_mid_release">Rilascia: %1$s</string>
-    <string name="master_stack_step">Cambia altezza della master</string>
+    <!-- app-posizioni-sistema-27-11 gruppi 5 e 6: via i testi delle posizioni di prima (menu Posizione, lati, misure, Home in riga, la barra della master); resta il foglio. -->
     <string name="swap_add">Apri %1$s accanto</string>
     <string name="swap_close">Chiudi la colonna di %1$s</string>
     <string name="reading_channel">Lettura vocale</string>

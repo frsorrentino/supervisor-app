@@ -17,15 +17,16 @@
   import { heads } from './headMore.svelte'
   import { t } from './t'
 
-  // app-posizioni-sistema-27-11 gruppo 4 (B «Foglio»): la master è un foglio che sale dal basso e prende il posto della sua barra
-  // (MasterDock), in tre misure (masterSheet.ts): riga, cioè maniglia, la riga della master col suo stato e ▶, e il campo; metà; intera.
+  // app-posizioni-sistema-27-11 gruppo 4 (B «Foglio»): la master è un foglio che sale dal basso e prende il posto della sua barra di prima,
+  // in tre misure (masterSheet.ts): riga, cioè maniglia, la riga della master col suo stato e ▶, e il campo; metà; intera. Dal gruppo 6 è
+  // anche la master dentro Studio (DockEmbed, a tutta larghezza).
   // Sta sopra la pagina e non la sposta mai: chi lo contiene gli dà il posto (`position: relative`) e lascia sotto la riga lo spazio
   // `rowH`. Trascinato dalla maniglia o dalla riga segue il dito, con l'elastico oltre la riga e l'intera; al rilascio scatta alla misura
   // più vicina al punto proiettato, con la molla senza rimbalzo che parte dalla velocità del dito (anche con le animazioni ridotte:
   // smorzamento critico, niente oltre la misura). Il tocco sulla riga passa alla misura dopo; Esc, e ↓ a campo vuoto o fuori dal campo,
   // tornano alla riga. Dentro, la conversazione della master com'è (`chat`): alla riga se ne vede solo il fondo, il campo; il resto sta
   // sopra, tagliato dal bordo, e compare mentre il foglio sale.
-  let { master, entries, stop, onStop, onSpeak, chat, inset = false, rowH = $bindable(ROW_PX) }: {
+  let { master, entries, stop, onStop, onSpeak, chat, inset = false, rowH = $bindable(ROW_PX), screen = false, onHeight = null }: {
     master: Session; entries: Entry[]; stop: Stop; onStop: (s: Stop) => void; onSpeak: (text: string) => void
     /** La conversazione della master (Chat), o il posto dove arriva quella spostata (la web larga ne ha una sola). */
     chat: Snippet
@@ -33,6 +34,13 @@
     inset?: boolean
     /** L'altezza della riga, misurata: chi contiene il foglio la lascia libera sotto la pagina. */
     rowH?: number
+    /**
+     * app-posizioni-sistema-27-11 gruppo 6, dentro Studio (`/embed?dock=1`): il riquadro cresce e cala col dito, quindi il gesto si misura
+     * sullo schermo (screenY), come la barra di prima; nella pagina la posizione del dito si sposterebbe col riquadro.
+     */
+    screen?: boolean
+    /** L'altezza di adesso a ogni disegno, con la misura dove sta ('move' mentre il dito o la molla lo portano): DockEmbed la dice a Studio. */
+    onHeight?: ((h: number, at: Stop | 'move') => void) | null
   } = $props()
 
   let el = $state<HTMLElement>()
@@ -53,7 +61,10 @@
     if (!el) return
     el.style.height = `${Math.max(0, h).toFixed(1)}px`
     el.style.setProperty('--open', openness(a, h).toFixed(3))
+    onHeight?.(Math.max(0, h), moving ? 'move' : shown)
   }
+  // La posizione del dito: nella pagina, o sullo schermo dentro Studio (`screen`).
+  const yOf = (e: PointerEvent) => (screen ? e.screenY : e.clientY)
 
   // La riga è la maniglia con la riga della master più il fondo della conversazione (il campo, o la barra dei miei messaggi, con le
   // ricorrenti aperte sopra); `--chat-min` è la conversazione senza la lista: sotto quella misura se ne vede solo il fondo.
@@ -117,13 +128,13 @@
     // Il ▶ e il ⋮ col suo menu tengono i loro tocchi.
     if ((e.target as Element | null)?.closest?.('button:not(.gr), .more')) return
     cancelAnimationFrame(raf); anim = null
-    drag = { id: e.pointerId, y0: e.clientY, h0: h, moved: false, speed: velocity() }
-    drag.speed.add(e.clientY, e.timeStamp)
+    drag = { id: e.pointerId, y0: yOf(e), h0: h, moved: false, speed: velocity() }
+    drag.speed.add(yOf(e), e.timeStamp)
   }
   function move(e: PointerEvent) {
     if (!drag || e.pointerId !== drag.id) return
-    drag.speed.add(e.clientY, e.timeStamp)
-    const dy = e.clientY - drag.y0
+    drag.speed.add(yOf(e), e.timeStamp)
+    const dy = yOf(e) - drag.y0
     if (!drag.moved) {
       if (Math.abs(dy) <= DRAG_PX) return
       drag.moved = true; moving = true
@@ -140,7 +151,7 @@
     document.body.style.userSelect = ''
     if (!d.moved) { if (!cancelled) go(tap(shown)); else animate(0); return }
     if (cancelled) { go(shown); return }
-    d.speed.add(e.clientY, e.timeStamp)
+    d.speed.add(yOf(e), e.timeStamp)
     const v = -d.speed.speed()
     go(snap(a, h, v), v)
   }
@@ -199,7 +210,7 @@
   const label = $derived([t.dockMaster, when, master.context != null ? t.ctx(master.context) : null].filter(Boolean).join(' · '))
   const said = $derived(hh ? [hh.headline, hh.body].filter(Boolean).join('\n') : '')
   const reading = $derived(!!said && speech.text === said && !speech.paused)
-  // Una risposta nuova a foglio sulla riga: il punto ambra per DOCK_PEEK_MS, l'ora che scorre e il titolo che entra (MasterDock).
+  // Una risposta nuova a foglio sulla riga: il punto ambra per DOCK_PEEK_MS, l'ora che scorre e il titolo che entra, come la barra di prima.
   let fresh = $state(false)
   let seenAt: number | null | undefined = undefined
   let freshTimer: ReturnType<typeof setTimeout> | undefined

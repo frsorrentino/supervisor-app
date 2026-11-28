@@ -23,6 +23,16 @@ object Tablet {
     fun inspector(widthDp: Int) = widthDp >= INSPECTOR_DP
 
     /**
+     * La colonna della home, dove sta il foglio della master (app-posizioni-sistema-27-11 gruppo 6, come Desk.svelte e Plancia.svelte):
+     * 400 dp, 440 da 1680. Sulla plancia senza sessioni il foglio è largo uguale, a destra.
+     */
+    const val HOME_DP = 400
+    const val HOME_WIDE_DP = 440
+    const val HOME_WIDE_FROM_DP = 1680
+
+    fun homeDp(widthDp: Int): Int = if (widthDp >= HOME_WIDE_FROM_DP) HOME_WIDE_DP else HOME_DP
+
+    /**
      * La colonna delle sessioni: i gruppi del riepilogo nell'ordine del bisogno, con la master al suo posto come le altre
      * (sul telefono è la cornice della home, qui una sessione della lista). Fra le ferme vale l'ordine del riepilogo, la
      * più recente in alto.

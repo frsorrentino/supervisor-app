@@ -811,10 +811,12 @@ fun TabletColumnHeader(r: Summary.Row, now: Long, onClose: () -> Unit, drag: Mod
  * di lato, a sinistra o a destra con un clic su ⇄; da una a quattro sessioni in colonne affiancate, aggiunte toccando le
  * loro schede nella home. Una colonna trascinata per la testata scambia il posto con quella su cui la si lascia; i bordi
  * fra le colonne si trascinano a scatti di un dodicesimo (`Tablet.Shares`). Con `inspector`, i dettagli dall'altro lato.
+ * app-posizioni-sistema-27-11 gruppo 6: la colonna della home è larga 400 dp, 440 da 1680 (Tablet.homeDp, come Desk.svelte), e con la
+ * master ha sopra il suo foglio; allora sta a destra e ⇄ non c'è (`onHomeSide` null). Le colonne non si spostano per il foglio.
  */
 @Composable
 fun TabletDesk(
-    home: @Composable () -> Unit, homeRight: Boolean, onHomeSide: () -> Unit,
+    home: @Composable () -> Unit, homeRight: Boolean, onHomeSide: (() -> Unit)?,
     columns: List<String>, shares: List<Int>, onSwap: (Int, Int) -> Unit, onShares: (List<Int>) -> Unit,
     column: @Composable (name: String, drag: Modifier) -> Unit,
     empty: @Composable () -> Unit,
@@ -823,8 +825,6 @@ fun TabletDesk(
     inspector: (@Composable () -> Unit)? = null,
     /** Quello che va nella barra del titolo della finestra, quando Android la lascia all'app (Pixel Tablet in finestra). */
     caption: (@Composable RowScope.() -> Unit)? = null,
-    /** La home sta sopra la master nella colonna della master (app-tablet-come-pwa-03-11): qui non c'è, le colonne prendono il posto. */
-    homeHidden: Boolean = false,
     /** Le pillole + e › accanto alle sessioni della home, nel filo verso le colonne (app-sessione-sostituisci-03-11). */
     swap: SwapPills? = null,
     /** app-colonne-strette-05-11: la colonna a striscia, col tocco che la riapre; null = mai strisce. */
@@ -847,12 +847,12 @@ fun TabletDesk(
                 CaptionStrip(Modifier.padding(start = with(density) { left.toDp() }, end = with(density) { right.toDp() }), caption)
             }
             Box(Modifier.weight(1f).fillMaxWidth()) {
-                DeskBody(home, homeRight, onHomeSide, columns, shares, onSwap, onShares, column, empty, override, inspector, insets = false, homeHidden = homeHidden, swap = swap, strip = strip)
+                DeskBody(home, homeRight, onHomeSide, columns, shares, onSwap, onShares, column, empty, override, inspector, insets = false, swap = swap, strip = strip)
             }
         }
         return
     }
-    DeskBody(home, homeRight, onHomeSide, columns, shares, onSwap, onShares, column, empty, override, inspector, insets = true, homeHidden = homeHidden, swap = swap, strip = strip)
+    DeskBody(home, homeRight, onHomeSide, columns, shares, onSwap, onShares, column, empty, override, inspector, insets = true, swap = swap, strip = strip)
 }
 
 /** La barra del titolo dell'app: le colonne come schede a sinistra, a destra quello che serve (la quota); il resto si trascina. */
@@ -879,14 +879,14 @@ fun CaptionTab(s: Session, onFocus: () -> Unit, onClose: () -> Unit) {
 
 @Composable
 private fun DeskBody(
-    home: @Composable () -> Unit, homeRight: Boolean, onHomeSide: () -> Unit,
+    home: @Composable () -> Unit, homeRight: Boolean, onHomeSide: (() -> Unit)?,
     columns: List<String>, shares: List<Int>, onSwap: (Int, Int) -> Unit, onShares: (List<Int>) -> Unit,
     column: @Composable (name: String, drag: Modifier) -> Unit, empty: @Composable () -> Unit,
-    override: (@Composable () -> Unit)?, inspector: (@Composable () -> Unit)?, insets: Boolean, homeHidden: Boolean = false,
+    override: (@Composable () -> Unit)?, inspector: (@Composable () -> Unit)?, insets: Boolean,
     swap: SwapPills? = null, strip: (@Composable (name: String, onOpen: () -> Unit) -> Unit)? = null,
 ) {
     val edge = androidx.compose.runtime.remember { EdgeSpots() }
-    androidx.compose.runtime.SideEffect { edge.swap = swap.takeIf { !homeHidden && columns.isNotEmpty() && override == null } }
+    androidx.compose.runtime.SideEffect { edge.swap = swap.takeIf { columns.isNotEmpty() && override == null } }
     // La home cambia lato scivolando sopra le colonne, che scivolano dall'altra parte (Franz, 04/10 22:15: «spartane»). Le
     // parti restano nello stesso punto della composizione e cambiano solo posizione: la home non si ricrea e tiene lo
     // scorrimento.
@@ -900,8 +900,9 @@ private fun DeskBody(
     // Un solo fondo, il più scuro, su tutta la tela, corsia compresa (app-superfici-plancia-07-11, Franz 07/11 17:02: il grigio più
     // scuro della home contro quello più chiaro dietro le sessioni faceva asimmetria). Prima la luce 4 (app-luci-02-11).
     androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize().background(Cm.bg).then(if (insets) Modifier.systemBarsPadding() else Modifier.navigationBarsPadding())) {
-        val homeW = if (homeHidden) 0.dp else 400.dp
-        val handleW = if (homeHidden) 0.dp else CORSIA_DP.dp
+        // La colonna della home come sulla web larga (app-posizioni-sistema-27-11 gruppo 6): 400 dp, 440 da 1680.
+        val homeW = Tablet.homeDp(maxWidth.value.toInt()).dp
+        val handleW = CORSIA_DP.dp
         val detailsW = if (inspector != null) 341.dp else 0.dp
         val total = maxWidth
         // Da sinistra: home, maniglia, colonne, dettagli; con la home a destra l'ordine si rovescia.
@@ -925,32 +926,36 @@ private fun DeskBody(
         // Le colonne di nuovo uguali, quando non lo sono (Franz, 05/10 12:30: «ci vuole un tasto per resettare le dimensioni»).
         val reset = if (columns.size > 1 && shares != Tablet.Shares.equal(columns.size)) ({ onShares(Tablet.Shares.equal(columns.size)) }) else null
         // La corsia fra la home e le colonne, con ⇄ e il ripristino in alto e il + o il filo di ogni sessione (Corsia).
-        if (!homeHidden) Corsia(edge, at(homeW, total - homeW - handleW).zIndex(2f)) { HomeSideButtons(homeRight, onHomeSide, reset) }
+        Corsia(edge, at(homeW, total - homeW - handleW).zIndex(2f)) { HomeSideButtons(homeRight, onHomeSide, reset) }
         // A metà strada la home passa sopra le colonne, con un'ombra che c'è solo mentre si sposta.
-        if (!homeHidden) Box(
+        Box(
             at(0.dp, total - homeW).width(homeW).fillMaxHeight().zIndex(1f)
                 .graphicsLayer { shadowElevation = 32f * (1f - kotlin.math.abs(side * 2f - 1f)) }
                 .background(Cm.bg).onGloballyPositioned { c -> edge.area = c.boundsInRoot() },
         ) {
-            // La home finisce dove finiscono le colonne, 10 dp sopra il fondo, e sfuma come nella pila (prova di Franz, 05/11 21:54:
-            // con la master in riga la home passava sotto la riga e le colonne si fermavano prima).
-            Box(Modifier.fillMaxSize().padding(bottom = 10.dp).homeFadeEnd()) {
-                androidx.compose.runtime.CompositionLocalProvider(LocalSessionSpots provides edge.spots.takeIf { swap != null }) { home() }
+            // La home finisce dove finiscono le colonne, 10 dp sopra il fondo (prova di Franz, 05/11 21:54). Sfuma la sua lista e non la
+            // colonna: con la master in fondo alla colonna c'è il campo del foglio (app-posizioni-sistema-27-11 gruppo 6).
+            Box(Modifier.fillMaxSize().padding(bottom = 10.dp)) {
+                val toFloor = remember(edge) { { y: Float? -> edge.floor = y } }
+                androidx.compose.runtime.CompositionLocalProvider(LocalSessionSpots provides edge.spots.takeIf { swap != null }, LocalSheetTop provides toFloor) { home() }
             }
         }
     }
 }
 
-/** In alto nella corsia della plancia: ⇄ porta la home dall'altro lato, sotto il ripristino delle larghezze. */
+/**
+ * In alto nella corsia della plancia: ⇄ porta la home dall'altro lato, sotto il ripristino delle larghezze. Con la master la home sta
+ * a destra sotto il suo foglio e ⇄ non c'è (`onHomeSide` null, app-posizioni-sistema-27-11 gruppo 6, come Desk.svelte).
+ */
 @Composable
-private fun androidx.compose.foundation.layout.BoxScope.HomeSideButtons(homeRight: Boolean, onHomeSide: () -> Unit, onReset: (() -> Unit)? = null) {
-    Box(
+private fun androidx.compose.foundation.layout.BoxScope.HomeSideButtons(homeRight: Boolean, onHomeSide: (() -> Unit)?, onReset: (() -> Unit)? = null) {
+    if (onHomeSide != null) Box(
         Modifier.align(Alignment.TopCenter).padding(top = 10.dp).size(28.dp).clip(CircleShape).background(Cm.surface)
             .handCursor().clickable(onClickLabel = stringResource(if (homeRight) R.string.tablet_home_left else R.string.tablet_home_right), onClick = onHomeSide).handCursor(),
         contentAlignment = Alignment.Center,
     ) { Icon(Icons.Rounded.SwapHoriz, stringResource(if (homeRight) R.string.tablet_home_left else R.string.tablet_home_right), tint = Cm.text2, modifier = Modifier.size(18.dp)) }
     if (onReset != null) Box(
-        Modifier.align(Alignment.TopCenter).padding(top = 46.dp).size(28.dp).clip(CircleShape).background(Cm.surface)
+        Modifier.align(Alignment.TopCenter).padding(top = if (onHomeSide != null) 46.dp else 10.dp).size(28.dp).clip(CircleShape).background(Cm.surface)
             .handCursor().clickable(onClickLabel = stringResource(R.string.tablet_reset_widths), onClick = onReset),
         contentAlignment = Alignment.Center,
     ) { Icon(Icons.Rounded.ViewColumn, stringResource(R.string.tablet_reset_widths), tint = Cm.text2, modifier = Modifier.size(18.dp)) }
@@ -965,30 +970,29 @@ internal class EdgeSpots {
     val spots = androidx.compose.runtime.mutableStateMapOf<String, androidx.compose.ui.geometry.Rect>()
     var area by mutableStateOf<androidx.compose.ui.geometry.Rect?>(null)
     var swap by mutableStateOf<SwapPills?>(null)
+    /** Dove comincia il foglio della master sopra la home, in px dalla radice: le schede sotto non hanno segno (gruppo 6). */
+    var floor by mutableStateOf<Float?>(null)
 }
 
-/** Il telaio della master dà la sua corsia alla home che sta nella pila (StackEdge). */
-internal val LocalEdgeSpots = androidx.compose.runtime.staticCompositionLocalOf<EdgeSpots?> { null }
-
 /**
- * La corsia, una per tutte le posizioni della master (app-tablet-barre-bordi-05-11): fra le colonne e la home della plancia,
- * e fra le colonne e il pannello della master, anche con la home nella pila. 28 dp con la linea a metà; il + e il filo di ogni
- * sessione all'altezza della sua scheda, il filo lungo dalla colonna alla scheda; `grip`, il bordo della master che si
- * trascina, prende tutta la corsia e ha la presa a metà.
+ * La corsia fra le colonne e la home della plancia (app-tablet-barre-bordi-05-11): 28 dp con la linea a metà; il + e il filo di ogni
+ * sessione all'altezza della sua scheda, il filo lungo dalla colonna alla scheda. Il bordo della master da trascinare è uscito con le
+ * posizioni di prima (app-posizioni-sistema-27-11 gruppo 6).
  */
 @Composable
-internal fun Corsia(edge: EdgeSpots?, modifier: Modifier = Modifier, grip: Boolean = false, top: (@Composable androidx.compose.foundation.layout.BoxScope.() -> Unit)? = null) {
+internal fun Corsia(edge: EdgeSpots?, modifier: Modifier = Modifier, top: (@Composable androidx.compose.foundation.layout.BoxScope.() -> Unit)? = null) {
     var me by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
     val density = androidx.compose.ui.platform.LocalDensity.current
     Box(modifier.width(CORSIA_DP.dp).fillMaxHeight().onGloballyPositioned { c -> me = c.boundsInRoot() }.testTag("corsia")) {
         Box(Modifier.align(Alignment.Center).width(1.dp).fillMaxHeight().background(Cm.line))
-        if (grip) Box(Modifier.align(Alignment.Center).width(4.dp).height(48.dp).clip(RoundedCornerShape(2.dp)).background(V3.Tx3).testTag("master-bordo"))
         top?.invoke(this)
         val m = me; val a = edge?.area; val swap = edge?.swap
         if (edge != null && m != null && a != null && swap != null) edge.spots.forEach { (name, r) ->
             // A metà della riga, anche aperta (prova 165 di Franz, 05/11 21:45: col massimo di 44 dp dall'alto il + stava alto).
             val y = r.top + r.height / 2f
-            if (y > a.top + with(density) { 20.dp.toPx() } && y < a.bottom - with(density) { 20.dp.toPx() }) {
+            // Le schede coperte dal foglio della master non hanno segno (app-posizioni-sistema-27-11 gruppo 6).
+            val bottom = edge.floor?.let { f -> minOf(a.bottom, f) } ?: a.bottom
+            if (y > a.top + with(density) { 20.dp.toPx() } && y < bottom - with(density) { 20.dp.toPx() }) {
                 val yDp = with(density) { (y - m.top).toDp() }
                 if (name in swap.shown) CloseLink(name, swap, Modifier.align(Alignment.TopCenter).offset(y = yDp - 15.dp))
                 else SwapPill(name, swap, Modifier.align(Alignment.TopCenter).offset(y = yDp - 15.dp))
@@ -1196,40 +1200,33 @@ private fun SwapPill(name: String, swap: SwapPills, modifier: Modifier) {
 
 
 /**
- * Con la master sotto la home la home sta nella colonna della master (app-bordo-aggiungi-sparito-04-11, come SwapPills.svelte
- * con `aside.stackcol`): il + e il filo bianco di ogni sessione stanno nella corsia del telaio fra la colonna e le sessioni
- * aperte, come nella plancia (app-tablet-barre-bordi-05-11: dentro la colonna coprivano le schede).
- */
-@Composable
-internal fun StackEdge(swap: SwapPills?, home: @Composable () -> Unit) {
-    val edge = LocalEdgeSpots.current ?: remember { EdgeSpots() }
-    androidx.compose.runtime.SideEffect { edge.swap = swap }
-    androidx.compose.runtime.DisposableEffect(edge) { onDispose { edge.swap = null; edge.area = null; edge.spots.clear() } }
-    Box(Modifier.fillMaxSize().onGloballyPositioned { c -> edge.area = c.boundsInRoot() }) {
-        androidx.compose.runtime.CompositionLocalProvider(LocalSessionSpots provides edge.spots.takeIf { swap != null }) { home() }
-    }
-}
-
-/**
  * Il tablet prima del primo stato (app-avvio-senza-salto-04-11, come lo scheletro della web): mai la pagina del telefono né la
  * plancia mezza vuota, ma la forma che sta per arrivare, dalle colonne viste l'ultima volta (lette subito): senza colonne la
- * plancia con le sue colonne grigie, con le colonne la home e una colonna grigia per sessione; in basso la riga della master.
+ * plancia con le sue colonne grigie, con le colonne una colonna grigia per sessione e la home a destra. app-posizioni-sistema-27-11
+ * gruppo 6: in fondo a destra la riga del foglio della master, larga quanto la colonna della home.
  */
 @Composable
 internal fun TabletBoot(seenCols: Int, widthDp: Int, master: Boolean) {
     val shape = RoundedCornerShape(14.dp)
-    Column(Modifier.fillMaxSize().background(V3.Bg).systemBarsPadding().testTag("avvio-scheletro")) {
-        Row(Modifier.weight(1f).fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    val homeW = Tablet.homeDp(widthDp).dp
+    Box(Modifier.fillMaxSize().background(V3.Bg).systemBarsPadding().testTag("avvio-scheletro")) {
+        Row(Modifier.fillMaxSize().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             if (seenCols == 0) {
                 repeat(it.pixelbox.cmwatch.rules.Plancia.count(widthDp.toFloat(), null).coerceAtLeast(1)) {
                     Box(Modifier.weight(1f).fillMaxHeight().clip(shape).background(V3.S1)) { BootRows() }
                 }
             } else {
-                Box(Modifier.width(388.dp).fillMaxHeight().clip(shape).background(V3.S1)) { BootRows() }
+                // Con la master la home sta a destra, sotto il suo foglio; senza, a sinistra come la preferenza di partenza.
+                val home: @Composable () -> Unit = { Box(Modifier.width(homeW - 12.dp).fillMaxHeight().clip(shape).background(V3.S1)) { BootRows() } }
+                if (!master) home()
                 repeat(seenCols) { Box(Modifier.weight(1f).fillMaxHeight().clip(shape).background(V3.S1).border(1.dp, Cm.line, shape)) }
+                if (master) home()
             }
         }
-        if (master) Box(Modifier.fillMaxWidth().height(64.dp).background(V3.S1))
+        if (master) Box(
+            Modifier.align(Alignment.BottomEnd).width(homeW).height(it.pixelbox.cmwatch.rules.MasterSheet.ROW_DP.dp)
+                .clip(RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp)).background(V3.S2),
+        )
     }
 }
 

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { isDrag, springFrames } from './gesture'
+import { DRAG_PX, springFrames } from './gesture'
 
-// app-posizioni-sistema-27-11 gruppo 5: restano le molle e la soglia del trascinamento; via i clic delle maniglie e la corsa breve.
+// app-posizioni-sistema-27-11 gruppi 5 e 6: restano le molle e la soglia del trascinamento del foglio; via i clic delle maniglie, la corsa
+// breve e la soglia della barra di prima.
 describe('il cambio di lato che continua il gesto (app-lato-animazione-06-11)', () => {
   it('parte da dove l\'ha lasciato il dito, finisce a 0 senza rimbalzo, in circa 300 ms', () => {
     const f = springFrames(400, 0)
@@ -28,9 +29,8 @@ describe('il cambio di lato che continua il gesto (app-lato-animazione-06-11)', 
   })
 })
 
-describe('il trascinamento', () => {
-  it('oltre 6 px è un trascinamento, fermo no', () => {
-    expect(isDrag(4, 4)).toBe(false)
-    expect(isDrag(5, 4)).toBe(true)
+describe('il trascinamento del foglio della master', () => {
+  it('comincia oltre 6 px, come MasterSheet', () => {
+    expect(DRAG_PX).toBe(6)
   })
 })

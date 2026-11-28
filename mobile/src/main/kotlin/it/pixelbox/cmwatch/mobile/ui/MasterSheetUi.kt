@@ -45,7 +45,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
+import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -74,7 +76,28 @@ import kotlin.math.roundToInt
 private val SHEET_HM = DateTimeFormatter.ofPattern("HH:mm")
 
 /**
- * La riga della master nel suo foglio (app-posizioni-sistema-27-11 gruppo 4, al posto di [MasterDock]): il glifo dello stato, «Master»
+ * La master è la superficie più alta dell'app (Celeste velato, Franz 06/10 21:15-22:27; dal 30/10 i neutri dello stile «Studio e
+ * Diretta», HomeV3.kt): i suoi toni, gli stessi della web app. Stavano con la barra di prima, uscita con app-posizioni-sistema-27-11 gruppo 6.
+ */
+internal val MasterHighest get() = V3.S2
+internal val MasterHigh get() = V3.S1
+internal val MasterContainer get() = V3.S1
+internal val MasterLow get() = V3.Bg
+
+/**
+ * Il posto della riga del foglio della master in fondo a una lista che gli sta sotto e non si sposta: le colonne della plancia del tablet
+ * (app-posizioni-sistema-27-11 gruppo 6, come `--sheet-row` di Plancia.svelte). SummaryList lo aggiunge in fondo al suo scorrimento.
+ */
+internal val LocalSheetRoom = androidx.compose.runtime.compositionLocalOf { 0.dp }
+
+/**
+ * Chi vuole sapere dove comincia il foglio della master, in px dalla radice (null quando non c'è più): la corsia del tablet, che non
+ * mette il + né il filo accanto alle schede della home coperte dal foglio (app-posizioni-sistema-27-11 gruppo 6, come SwapPills.svelte).
+ */
+internal val LocalSheetTop = androidx.compose.runtime.staticCompositionLocalOf<((Float?) -> Unit)?> { null }
+
+/**
+ * La riga della master nel suo foglio (app-posizioni-sistema-27-11 gruppo 4, al posto della barra di prima): il glifo dello stato, «Master»
  * col punto ambra quando arriva una risposta a foglio chiuso ([closed]), l'ora dell'ultima risposta che scorre e il suo titolo su una
  * riga, ▶ per ascoltarla (■ mentre legge, con la velocità accanto), e il ⋮ della master (LocalHeadMore) con quello che stava nella riga
  * dei dati. I gesti sono del foglio ([MasterSheetBox]): qui toccano solo ▶ e ⋮.
@@ -157,6 +180,8 @@ internal fun MasterSheetBox(
 ) {
     val density = LocalDensity.current
     val off = animationsOff()
+    val sheetTop = LocalSheetTop.current
+    androidx.compose.runtime.DisposableEffect(sheetTop) { onDispose { sheetTop?.invoke(null) } }
     BoxWithConstraints(modifier.clipToBounds()) {
         val boxPx = constraints.maxHeight.toFloat()
         var headPx by remember { mutableIntStateOf(0) }
@@ -223,7 +248,8 @@ internal fun MasterSheetBox(
                     val p = m.measure(c.copy(minHeight = h, maxHeight = h))
                     layout(p.width, h) { p.place(0, 0) }
                 }
-                .clip(sh).background(MasterHigh).testTag("foglio-master"),
+                .clip(sh).background(MasterHigh).testTag("foglio-master")
+                .then(if (sheetTop != null) Modifier.onGloballyPositioned { c -> sheetTop(c.boundsInRoot().top) } else Modifier),
         ) {
             val tapLabel = stringResource(
                 when (stop) { MasterSheet.Stop.ROW -> R.string.master_sheet_tap_row; MasterSheet.Stop.HALF -> R.string.master_sheet_tap_half; MasterSheet.Stop.FULL -> R.string.master_sheet_tap_full },

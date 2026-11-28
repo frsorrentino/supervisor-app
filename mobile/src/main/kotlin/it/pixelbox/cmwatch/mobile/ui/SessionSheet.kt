@@ -279,16 +279,12 @@ fun SessionSheet(
     bar: (@Composable () -> Unit)? = null,
     /** Con `home`: true la lista della home con `dock` in basso, false la conversazione con `bar` e l'intestazione. */
     homeOpen: Boolean = true,
-    /** Solo per i provini: il pannello della master fermo a questa frazione, come a metà di un trascinamento. */
+    /** Solo per i provini: il foglio della master fermo a questa frazione, come a metà di un trascinamento. */
     homePull: Float? = null,
     /**
-     * Le tre misure della master sul tablet (Franz, 08/10 18:15): `halfStops` le accende, `half` con `homeOpen` false è la
-     * misura a metà, con la home sopra e la conversazione sotto. Sul telefono restano due: barra e tutto schermo.
-     */
-    halfStops: Boolean = false, half: Boolean = false,
-    /**
-     * app-posizioni-sistema-27-11 gruppo 4: sul telefono, con `home`, la misura del foglio della master (riga, metà, intera) e chi la
-     * cambia col dito o col tocco; null = da `homeOpen` (la home è la riga, la conversazione l'intera).
+     * app-posizioni-sistema-27-11 gruppo 4: con `home`, la misura del foglio della master (riga, metà, intera) e chi la cambia col dito
+     * o col tocco; null = da `homeOpen` (la home è la riga, la conversazione l'intera). Dal gruppo 6 anche sul tablet, sopra la colonna
+     * della home: le tre misure di prima del tablet (barra, metà, tutta) non ci sono più.
      */
     sheetAt: MasterSheet.Stop? = null, onSheet: (MasterSheet.Stop) -> Unit = {},
     /** La testata della pagina (`PageHeader`), in cima e dentro la parte che vola: scorre e vola con la sessione. */
@@ -346,7 +342,8 @@ fun SessionSheet(
     // le Azioni in chip sopra il campo, l'anellino del contesto nel campo, il chip dell'handoff alle stesse condizioni); in cima niente riga
     // dei dati né pillole. Modello ed effort, quota, contesto, obiettivo, gli Avvisi e le voci del ⋮ di prima stanno nel ⋮ della riga del
     // foglio (MasterSheetMore, con LocalHeadMore); Per te e Risultati della master sono nel Per te della home, sopra; le altre nel tabellone.
-    val inSheet = home != null && !halfStops
+    // Dal gruppo 6 anche sul tablet: la master sta sempre nel suo foglio.
+    val inSheet = home != null
     val stepsBox by remember(steps, s.suggestion, idle, draftHolder) {
         // app-riall-3-doppioni-16-11 (direzione A): in una sessione i Prossimi stanno solo sopra il campo, non nel campo né nel turno; dal
         // gruppo 4 anche nel foglio della master.
@@ -611,16 +608,9 @@ fun SessionSheet(
     // una sessione la home intera volava verso quella card: se ne vedeva solo la cima nel riquadro della card, il resto nero.
     Column((if (home == null) Modifier.fly("card-${s.id}", page = true) else Modifier).fillMaxSize().background(LocalPageBg.current ?: Cm.bg).then(if (grid) Modifier.dotGrid() else Modifier)) {
         if (home == null) androidx.compose.runtime.CompositionLocalProvider(LocalHeadMore provides moreMenu) { appBar?.invoke() }
-        // app-posizioni-sistema-27-11 gruppo 4: sul telefono la testata della home resta, col menu ≡, anche col foglio della master a tutta
-        // altezza (prima rientrava mentre la master saliva a tutto schermo).
-        else if (!halfStops) appBar?.invoke()
-        else appBar?.let { ab ->
-            androidx.compose.animation.AnimatedVisibility(
-                visible = homeOpen || (halfStops && half),
-                enter = androidx.compose.animation.expandVertically(MaterialTheme.motionScheme.defaultSpatialSpec()) + androidx.compose.animation.fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()),
-                exit = androidx.compose.animation.shrinkVertically(MaterialTheme.motionScheme.defaultSpatialSpec()) + androidx.compose.animation.fadeOut(MaterialTheme.motionScheme.defaultEffectsSpec()),
-            ) { ab() }
-        }
+        // app-posizioni-sistema-27-11 gruppo 4: la testata della home resta, col menu ≡, anche col foglio della master a tutta altezza
+        // (prima rientrava mentre la master saliva a tutto schermo); dal gruppo 6 anche sul tablet.
+        else appBar?.invoke()
         val ime = androidx.compose.foundation.layout.WindowInsets.ime.getBottom(androidx.compose.ui.platform.LocalDensity.current) > 0
         // Tutto quello che sta sopra il campo in una sessione: barra, intestazione, avviso, conversazione, consigli.
         val masterVoice = home != null && LocalMasterLook.current.voice
@@ -927,62 +917,12 @@ fun SessionSheet(
             }
             }
         } }
-        if (home == null) { chatArea(); dock?.invoke() } else if (halfStops) {
-            // Il tablet (Franz, 08/10 18:15): la home resta sotto, ferma; la conversazione è un foglio che cresce dal basso fino
-            // a una delle tre misure: la barra, metà della colonna, tutta. Cresce dalla barra, così la sua barra in cima parte
-            // dal posto di quella in basso; a metà la home sopra resta da toccare.
-            val h = home
-            val off = animationsOff()
-            var dockPx by remember { mutableIntStateOf(0) }
-            BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().clipToBounds()) {
-                val full = constraints.maxHeight.toFloat()
-                val target = when {
-                    homeOpen -> dockPx.toFloat()
-                    half -> full * HALF_SHARE
-                    else -> full
-                }
-                val height = remember { androidx.compose.animation.core.Animatable(if (homeOpen) 0f else target) }
-                var settled by remember { mutableIntStateOf(0) }
-                val fling = remember { floatArrayOf(0f) }
-                LaunchedEffect(target, off, settled) {
-                    if (height.value < dockPx && !homeOpen) height.snapTo(dockPx.toFloat())
-                    if (off) height.snapTo(target) else height.animateTo(target, androidx.compose.animation.core.spring(stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow), fling[0])
-                    fling[0] = 0f
-                }
-                // Il foglio segue il dito: si allunga o si accorcia con la sua barra in cima.
-                val pullScope = androidx.compose.runtime.rememberCoroutineScope()
-                val pull = remember(full, dockPx, off) {
-                    MasterPull(
-                        by = { dy -> if (!off) pullScope.launch { height.snapTo((height.value - dy).coerceIn(dockPx.toFloat(), full)) } },
-                        release = { v -> fling[0] = -v; settled++ },
-                    )
-                }
-                androidx.compose.runtime.CompositionLocalProvider(LocalMasterPull provides pull) {
-                // Il foglio c'è finché non è tornato nella barra: solo allora ricompare la barra della home.
-                val sheet = !homeOpen || height.value > dockPx + 1f
-                Column(Modifier.fillMaxSize()) {
-                    Column(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        h({ draft = it }, { t -> actions.send(PhonePrimary.Target.PROMPT, t) })
-                    }
-                    if (!sheet) ReadingSlot(s.name, overlay = true)
-                    Box(Modifier.onSizeChanged { dockPx = it.height }.graphicsLayer { alpha = if (sheet) 0f else 1f }) { dock?.invoke() }
-                }
-                if (sheet) {
-                    val px = height.value.coerceIn(0f, full)
-                    val sh = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
-                    Column(
-                        Modifier.align(Alignment.BottomCenter).fillMaxWidth()
-                            .height(with(androidx.compose.ui.platform.LocalDensity.current) { px.toDp() })
-                            .clip(sh).masterChat(LocalMasterChatStyle.current, sh),
-                    ) { chatArea() }
-                }
-                }
-            }
-        } else {
-            // app-posizioni-sistema-27-11 gruppo 4 (B «Foglio»): sul telefono la master è un foglio sopra la home (MasterSheetBox), riga ·
-            // metà · intera; alla riga prende il posto della barra (MasterDock) con la sua riga (`dock`), e il campo qui sotto resta fermo,
-            // con la bozza. La home sta ferma sotto il foglio e lascia in fondo il posto della riga; alla riga il controller della lettura
-            // si posa sopra il foglio. La conversazione (`chatArea`) è il corpo del foglio.
+        if (home == null) { chatArea(); dock?.invoke() } else {
+            // app-posizioni-sistema-27-11 gruppo 4 (B «Foglio»): la master è un foglio sopra la home (MasterSheetBox), riga · metà · intera;
+            // alla riga prende il posto della barra di prima con la sua riga (`dock`), e il campo qui sotto resta fermo, con la bozza. La home
+            // sta ferma sotto il foglio e lascia in fondo il posto della riga; alla riga il controller della lettura si posa sopra il foglio.
+            // La conversazione (`chatArea`) è il corpo del foglio. Dal gruppo 6 anche sul tablet, nella colonna della home o a destra sopra
+            // la plancia senza sessioni.
             val h = home
             MasterSheetBox(
                 sheetAt ?: if (homeOpen) MasterSheet.Stop.ROW else MasterSheet.Stop.FULL, onSheet, Modifier.weight(1f).fillMaxWidth(), pull = homePull,
@@ -2593,9 +2533,6 @@ internal fun ZoomableImage(
  * in Claude e Terminale; sotto modello ed effort toccabili (contratto 1.12) e, se ci sono, obiettivo e bassa priorità. Il
  * nome e la forma dell'account stanno nel menu delle sessioni in alto.
  */
-/** La misura a metà della master sul tablet: la parte di colonna che prende il foglio della conversazione. */
-private const val HALF_SHARE = 0.55f
-
 @Composable
 private fun SheetHeader(
     s: Session, now: Long, choices: Choices?, canTune: Boolean, actions: SheetActions, showTerminal: Boolean,
