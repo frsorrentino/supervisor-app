@@ -90,6 +90,9 @@ import kotlinx.coroutines.async
 /** La «sessione» dei riquadri per «Per te» in Dalla master (app-riall-2-viste-16-11): aperta o chiusa come «Per te» in una sessione. */
 private const val PER_TE_HOME = "·dalla-master"
 
+/** app-va-riga-riappare-28-11: quanto resta nascosta al massimo una voce risposta da qui, se le attese non la tolgono prima. */
+private const val PER_TE_HOLD_MS = 5 * 60_000L
+
 class MainActivity : ComponentActivity() {
     /** Un dito è sullo schermo: lo guarda la guardia del volo (Franz 31/10 22:15). Qui, prima di ogni gesto che può cancellarsi. */
     private val fingerDown = mutableStateOf(false)
@@ -1809,7 +1812,13 @@ class MainActivity : ComponentActivity() {
                     // Dopo l'esito del PC le attese si rileggono; un rifiuto, o nessuna risposta, rimette la voce.
                     val sentId = runCatching { app.repo.commandOf(a, null) }.getOrNull()
                     val x = sentId?.let { i -> kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(i) }[i] } }
-                    if (x?.ok == true) { readWaits(); v.wait?.let { w -> waitRefresh { o -> o.id == w.id || (w.cardId != null && o.cardId == w.cardId) } } }
+                    if (x?.ok == true) {
+                        readWaits(); v.wait?.let { w -> waitRefresh { o -> o.id == w.id || (w.cardId != null && o.cardId == w.cardId) } }
+                        // app-va-riga-riappare-28-11 (Franz 28/11 14:14: dopo un «Va» la riga spariva, tornava e spariva di nuovo): la
+                        // voce resta nascosta finché le attese non la tolgono, come sulla web (attese.svelte.ts), così una push o una
+                        // rilettura col vecchio stato non la rimette; al massimo PER_TE_HOLD_MS.
+                        v.wait?.let { w -> kotlinx.coroutines.withTimeoutOrNull(PER_TE_HOLD_MS) { androidx.compose.runtime.snapshotFlow { waitOthers.any { o -> o.id == w.id } }.first { here -> !here } } }
+                    } else toast(x?.text)
                     perTeSent.remove(v.key)
                 } }
                 v.wait != null -> waitOpen = v.key
