@@ -4,13 +4,14 @@
   import type { ToccaState } from './contract'
   import { t } from './t'
 
-  let { today }: { today: NonNullable<ToccaState['today']> } = $props()
+  // `entra`: nella home dell'app la riga è un blocco dell'entrata all'avvio (app-entrata-home-27-11, entrataHome.ts).
+  let { today, entra = false }: { today: NonNullable<ToccaState['today']>; entra?: boolean } = $props()
   let open = $state(false)
   const hm = (at: number) => new Date(at * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   const more = $derived(today.n - today.items.length)
 </script>
 
-<div class="tc" data-testid="tocca-chiuse-oggi">
+<div class="tc" data-testid="tocca-chiuse-oggi" data-entra={entra ? '' : undefined}>
   <button class="row" aria-expanded={open} onclick={() => (open = !open)}>
     <span class="ms ic" aria-hidden="true">cleaning_services</span>
     <span class="tx">{t.toccaClosedToday(today.n)}</span>

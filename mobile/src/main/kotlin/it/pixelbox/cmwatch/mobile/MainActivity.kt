@@ -2727,6 +2727,8 @@ class MainActivity : ComponentActivity() {
                         val r = id?.let { i -> kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(i) }[i] } }
                         r?.let { x -> android.widget.Toast.makeText(this@MainActivity, x.text, android.widget.Toast.LENGTH_SHORT).show() }
                     } }) else null,
+                    // app-entrata-home-27-11: la prima home del processo entra a blocchi; le colonne della plancia (parts) no.
+                    entrance = true,
                 )
             }
             val list: @Composable () -> Unit = { listPart(null, null, null) }

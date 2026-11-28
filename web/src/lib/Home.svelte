@@ -93,7 +93,8 @@
   import MonitorsList from './MonitorsList.svelte'
   import { looking as monitorsLooking, sectionOf as monitorsSection } from './monitors'
   import type { MonitorCard, MonitorsSummary } from './contract'
-  let { perTeRows = 0, perTeOpen = false, onPerTeToggle = () => {}, perTeFirst = null, perTeFocus = null, perTeBySession = {}, newBody, suggestionNames = [], suggestionsAt, onHomeOrder = null, st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, todo = {}, sessionTodo = null, onApprovalClose = null, onDone = () => {}, onOk = () => {}, onClose = () => {}, closeSave = false, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, closeRefused = null, onCloseSeen = () => {}, onCloseArm = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, onJump = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0, suggestionsTotal, usageBlock, onMine = null, onRestart = null, monitors = null, conti = null, monitorsSum = null, onMonitor = () => {}, onNewMonitor = () => {} }: {
+  import { entrataHome, type Entrata } from './entrataHome'
+  let { perTeRows = 0, perTeOpen = false, onPerTeToggle = () => {}, perTeFirst = null, perTeFocus = null, perTeBySession = {}, newBody, suggestionNames = [], suggestionsAt, onHomeOrder = null, st, selected, onPick, onAnswer, onStep, withMaster = false, footer, onApprove = () => {}, todo = {}, sessionTodo = null, onApprovalClose = null, onDone = () => {}, onOk = () => {}, onClose = () => {}, closeSave = false, onSessionCmd = () => {}, night, nightTitle = '', onNight = () => {}, usage, justClosed = null, closing = null, closeRefused = null, onCloseSeen = () => {}, onCloseArm = null, elicitations = [], onElicit = () => {}, agenda = null, onLavori = () => {}, onEdit = () => {}, onStart = () => {}, onDoneForPerson = () => {}, showLavori = true, showUsage = true, usageFocus = 0, onUsageFocused = () => {}, onSpeak = null, donePages = {}, events = [], sent = [], read = new Set<string>(), now = st.ts, onService = () => {}, onReopen = null, onJump = null, lastNight = null, suggestions, onClosePreview = null, onCloseMany = () => {}, onSystem = null, kpiPage = null, kpiData = null, onBox = () => {}, onQuota = () => {}, part = null, afterSessions, pluginsLoad = null, pluginsRun = null, suggestionsN = 0, suggestionsTotal, usageBlock, onMine = null, onRestart = null, monitors = null, conti = null, monitorsSum = null, onMonitor = () => {}, onNewMonitor = () => {}, entrata = null }: {
     suggestionNames?: string[]
     /** I corpi delle voci del programma del 01/11, gli stessi delle pagine: si aprono sul posto (Franz 02/11 08:05). */
     newBody?: Snippet<[string]>
@@ -191,6 +192,11 @@
     usageFocus?: number; onUsageFocused?: () => void
     /** ▶ sul dettaglio di «Approfondisci» (09/10 16:31). */
     onSpeak?: ((text: string) => void) | null
+    /**
+     * app-entrata-home-27-11: la home dell'app, che alla prima apertura della pagina entra a blocchi (`[data-entra]`, entrataHome.ts):
+     * 'attesa' prima del primo stato, 'via' col primo stato; null nelle colonne della plancia e nelle anteprime, che restano ferme.
+     */
+    entrata?: Entrata
   } = $props()
   const today = todayIso()
   // L'ordine nuovo vale subito, finché il relay non lo conferma.
@@ -876,7 +882,8 @@
   {/if}
 {/snippet}
 
-<section class="home" class:part={!!part} class:topdrag={topDrag}>
+<!-- app-entrata-home-27-11: alla prima apertura della pagina i blocchi `data-entra` entrano dall'alto uno dopo l'altro (entrataHome.ts). -->
+<section class="home" class:part={!!part} class:topdrag={topDrag} use:entrataHome={entrata}>
 {#snippet secOf(k: HomeSection)}{#if k === 'prima_raccolta'}{@render secNuove(k)}{:else if k === 'seguiti'}{@render secNuove(k)}{:else if k === 'prove'}{@render secNuove(k)}{:else if k === 'decisioni'}{@render secNuove(k)}{:else if k === 'sessions'}{@render secSessions()}{@render secClosed()}{:else if k === 'suggestions'}{@render secSuggestions()}{:else if k === 'notte'}{@render secNotte()}{:else if k === 'lavori'}{@render secLavori()}{:else if k === 'esiti'}{@render secEsiti()}{:else if k === 'usage'}{@render secUsage()}{:else if k === 'system'}{@render secSystem()}{#if listSkip !== 'plugins' && !up.includes('system')}{@render secPlugins()}{/if}{:else if k === 'plugins'}{@render secPlugins()}{:else if (k as string) === 'da_guardare'}{@render secNuove(k)}{:else if (k as string) === 'monitors'}{@render secMonitors()}{:else if (k as string) === 'rendiconti'}{@render secConti()}{:else if (k as string) === 'pagella'}{@render secPagella()}{:else}{@render secClosed()}{/if}{/snippet}
 <!-- app-rendiconti-2-02-11: Rendiconti in Lavori, coi clienti del mese; Pagella in Risorse, solo con righe da 10 casi in su. -->
 {#snippet secConti()}{#if conti && newBody && shows('work')}{@render sec('rendiconti', t.contiTitle, 'svg:inbox', String(conti.clienti.length), 'home-rendiconti', !open['rendiconti'] ? monthName(conti.mese) : null)}{@render nuovaBody('rendiconti' as HomeSection)}{/if}{/snippet}
@@ -888,23 +895,24 @@
  <!-- app-tabellone-utilizzo-a-13-11 (Franz 13/11 15:41 e 15:46): sotto i tre blocchi niente riga degli esiti, che restano nelle voci
       della Home al loro posto; qui si aprono solo i dettagli dell'utilizzo. -->
  {#if usageCell}
-   {#if open.usage && usage}<div class="hsec onboard inboard" bind:this={usageEl}><div class="fold" in:fold out:fold={{ ms: 150 }}><div class="foldin"><div class="card wrows">{@render (usageBlock ?? usage)()}</div></div></div></div>{/if}
+   {#if open.usage && usage}<div class="hsec onboard inboard" data-entra bind:this={usageEl}><div class="fold" in:fold out:fold={{ ms: 150 }}><div class="foldin"><div class="card wrows">{@render (usageBlock ?? usage)()}</div></div></div></div>{/if}
  {/if}
  <!-- app-posizioni-sistema-27-11 (Franz 27/11 21:27): Sessioni è la prima voce del tabellone, come una messa a mano (boardKeys in
       homeCats): la riga con la freccia, aperta la lista e sotto Chiuse; senza sessioni resta la riga di Chiuse. Non si prende e niente le
       va sopra; resta aperta anche mentre si trascina una voce del tabellone, perché chiudendosi farebbe salire la voce oltre il bordo, fuori da In cima. Poi l'allarme e le voci di Franz. -->
- {#if rows[0] === 'sessions'}<div class="hsec inboard" data-testid="home-sessioni" data-vt={vt('sessions')} style:--vt={vt('sessions')}>{@render secSessions()}{#if open.sessions || !sessionsAny}{@render secClosed()}{/if}</div>{/if}
- {#if pin && !(usageCell && pin === 'usage')}<div class="hsec inslot" data-testid="slot-in-alto">{@render secOf(pin)}</div>{/if}
+ <!-- app-entrata-home-27-11: dentro il tabellone ogni voce è un blocco suo, che entra dopo i tre riquadri. -->
+ {#if rows[0] === 'sessions'}<div class="hsec inboard" data-entra data-testid="home-sessioni" data-vt={vt('sessions')} style:--vt={vt('sessions')}>{@render secSessions()}{#if open.sessions || !sessionsAny}{@render secClosed()}{/if}</div>{/if}
+ {#if pin && !(usageCell && pin === 'usage')}<div class="hsec inslot" data-entra data-testid="slot-in-alto">{@render secOf(pin)}</div>{/if}
  {#each rows.filter(k => k !== 'sessions') as k (k)}
-   <div class="hsec onboard inboard" class:held={k === dragKey}>{@render secOf(k)}</div>
+   <div class="hsec onboard inboard" data-entra class:held={k === dragKey}>{@render secOf(k)}</div>
  {/each}
 {/snippet}
   <!-- Contratto 1.83: dopo 120 s la domanda torna al terminale, quindi sta sopra a tutto il resto. -->
   {#if allDone && (!part || part === 'you')}<div class="alldone" data-testid="tutto-fatto"><svg viewBox="0 0 24 24" width="32" height="32"><path pathLength="1" d="M5 12.5l5 5L20 7" /></svg></div>{/if}
-  {#if !part || part === 'you'}{#each elicitations as e (e.id)}<ElicitationCard {e} {now} onAnswer={onElicit} />{/each}{/if}
+  {#if !part || part === 'you'}{#each elicitations as e (e.id)}<ElicitationCard {e} {now} onAnswer={onElicit} entra={!part} />{/each}{/if}
 <!-- Proposta 7 (compito app-kpi-piccole-25-10): tre cifre in testa alla home, prima delle sezioni. Il primo box è l'unico
      avviso di chi aspetta: niente più banner giallo né «N per te» qui (app-home-riordino-29-10). -->
-{#if !part}<div bind:this={boardEl} class="boardwrap"><Kpi7 h={kh} {st} {now} filter={bf} onBox={openCat} {onQuota} slot={slotBox} usage={usageCell} onUsage={() => toggleSec('usage')} />{#if slotOpen}<div class="slotdrop" class:hot={slotHot && !slotFull} data-testid={slotFull ? 'slot-pieno' : 'slot-rilascia'}>{slotFull ? t.boardFull : t.slotDrop}</div>{/if}</div>{/if}
+{#if !part}<div bind:this={boardEl} class="boardwrap" data-entra><Kpi7 h={kh} {st} {now} filter={bf} onBox={openCat} {onQuota} slot={slotBox} usage={usageCell} onUsage={() => toggleSec('usage')} />{#if slotOpen}<div class="slotdrop" class:hot={slotHot && !slotFull} data-testid={slotFull ? 'slot-pieno' : 'slot-rilascia'}>{slotFull ? t.boardFull : t.slotDrop}</div>{/if}</div>{/if}
 <!-- L'ordine (Franz 29/10 20:48, app-home-riordino-29-10): chi aspetta te, le sessioni, i lavori, gli esiti di oggi; poi
      in «Altro» Utilizzo, Sistema, Plugin e Chiuse col numero in vista. La Notte sta nei Lavori (stile «Studio e Diretta»). -->
 <!-- Ti aspettano si fonde con Sessioni (Franz 02/11 21:41, app-home-nomi-02-11): le sessioni ferme su una domanda e gli ok senza
@@ -1175,12 +1183,13 @@
        tabellone, con Chiuse (slotBox, app-posizioni-sistema-27-11, Franz 27/11 21:27). -->
   {#each shownCats as c (c.id)}
     <div class="hcat" class:held={catHeld === c.id} data-testid="cat-{c.id}">
-      {#if c.open}<button class="catlabel cathead" class:amber={c.id === 'you' && catSignal(c.id).amber} aria-expanded="true" data-counter={c.id} onpointerdown={(e) => catDown(c.id, e)} onclick={() => setCats(toggleCat(cats, c.id))}><span>{#if c.id === 'you' && catSignal(c.id).amber}<span class="catic">{#if CATS_ICON[c.id].startsWith('svg:')}<CatIcon name={CATS_ICON[c.id].slice(4)} />{:else}<span class="ms" aria-hidden="true">{CATS_ICON[c.id]}</span>{/if}</span>{/if}{t.catName[c.id]}</span><span class="ms arr up" aria-hidden="true">expand_more</span></button>
+      <!-- app-entrata-home-27-11: la testata della categoria e ogni sua voce sono blocchi dell'entrata. -->
+      {#if c.open}<button class="catlabel cathead" class:amber={c.id === 'you' && catSignal(c.id).amber} aria-expanded="true" data-entra data-counter={c.id} onpointerdown={(e) => catDown(c.id, e)} onclick={() => setCats(toggleCat(cats, c.id))}><span>{#if c.id === 'you' && catSignal(c.id).amber}<span class="catic">{#if CATS_ICON[c.id].startsWith('svg:')}<CatIcon name={CATS_ICON[c.id].slice(4)} />{:else}<span class="ms" aria-hidden="true">{CATS_ICON[c.id]}</span>{/if}</span>{/if}{t.catName[c.id]}</span><span class="ms arr up" aria-hidden="true">expand_more</span></button>
       {:else}
         {@const sig = catSignal(c.id)}
         <!-- Chiusa, la stessa testata di una aperta, col riepilogo accanto (app-categorie-testate-06-11, scelta A di Franz 06/11
              «allinea anche da pwa»): prima era una riga come le sottosezioni e sembrava una voce dentro la categoria sopra. -->
-        <button class="catlabel cathead shut" class:amber={sig.amber} aria-expanded="false" data-counter={c.id} onpointerdown={(e) => catDown(c.id, e)} onclick={() => setCats(toggleCat(cats, c.id))}>
+        <button class="catlabel cathead shut" class:amber={sig.amber} aria-expanded="false" data-entra data-counter={c.id} onpointerdown={(e) => catDown(c.id, e)} onclick={() => setCats(toggleCat(cats, c.id))}>
           <span>{t.catName[c.id]}</span>
           <span class="catsig"><OneLine parts={sig.bits.map(b => ({ text: b.text, tone: b.red ? 'red' as const : b.mute ? 'mute' as const : undefined }))} /></span>
           <span class="ms arr" aria-hidden="true">expand_more</span>
@@ -1188,18 +1197,18 @@
       {/if}
       {#if c.open}
         {#each live.slice(edgeAt(live) + 1).filter(k => k !== listSkip && catFor(k) === c.id) as k (k)}
-          <div class="hsec" class:held={k === dragKey} data-vt={vt(k)} style:--vt={vt(k)}>{@render secOf(k)}</div>
+          <div class="hsec" class:held={k === dragKey} data-entra data-vt={vt(k)} style:--vt={vt(k)}>{@render secOf(k)}</div>
         {/each}
         <!-- Con Sistema sul tabellone, Plugin e skill restano nella loro categoria, che si sposta come le altre (Franz 03/11 18:54,
              app-risorse-categoria-03-11). -->
-        {#if c.id === 'tools' && up.includes('system')}<div class="hsec" data-vt={vt("plugins")} style:--vt={vt("plugins")}>{@render secPlugins()}</div>{/if}
+        {#if c.id === 'tools' && up.includes('system')}<div class="hsec" data-entra data-vt={vt("plugins")} style:--vt={vt("plugins")}>{@render secPlugins()}</div>{/if}
         <!-- Le voci uscite da sole oggi, solo da guardare (app-pulizia-tocca-03-11, contratto 1.113). -->
-        {#if c.id === 'you' && closedToday(st)}<ToccaClosed today={closedToday(st)!} />{/if}
+        {#if c.id === 'you' && closedToday(st)}<ToccaClosed today={closedToday(st)!} entra />{/if}
       {/if}
     </div>
   {/each}
 {/if}
-  {#if footer && !part}<div class="footer">{@render footer()}</div>{/if}
+  {#if footer && !part}<div class="footer" data-entra>{@render footer()}</div>{/if}
   {#if dragKey && dragGhost}
     <div class="dragg" data-testid="home-sezione-trascina" style:top="{dragY + dragGhost.shift}px" style:left="{dragGhost.left}px" style:width="{dragGhost.width}px"><span class="ic">{#if DRAG_SEC[dragKey].icon.startsWith('svg:')}<CatIcon name={DRAG_SEC[dragKey].icon.slice(4)} />{:else}<span class="ms" aria-hidden="true">{DRAG_SEC[dragKey].icon}</span>{/if}</span><b>{DRAG_SEC[dragKey].name}</b></div>
   {/if}

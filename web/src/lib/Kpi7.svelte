@@ -143,7 +143,8 @@
   <button class="cell" class:on={filter === 'lavoro'} aria-pressed={filter === 'lavoro'} disabled={!h.busy} data-testid="home-box-lavoro" onclick={() => onBox('lavoro')}><span class="ring" aria-hidden="true"></span><b class="n">{h.busy}{#if h.open}<small class="of">/{h.open}</small>{/if}</b><span class="l">{t.kpi7Busy}</span>{#if h.busy}<span class="ms chev" aria-hidden="true">chevron_right</span>{/if}</button>
   {#if usage}
     <button class="cell use" data-testid="home-box-utilizzo" aria-expanded={usage.open} onclick={onUsage}><b class="n" style:color={usage.tone === 'var(--tx2)' ? null : usage.tone}>{usage.pct}<sup>%</sup></b><span class="l" class:one={!!usage.reset}>{usage.label}</span>{#if usage.reset}<span class="rs" data-testid="home-box-utilizzo-azzera">{usage.reset}</span>{/if}<span class="ms chev" aria-hidden="true">{usage.open ? 'expand_less' : 'expand_more'}</span>
-      <span class="edge" style:color={usage.tone}><i style="width:{Math.min(100, usage.pct)}%"></i></span></button>
+      <!-- app-entrata-home-27-11: all'avvio il pieno cresce da sinistra 220 ms dopo il tabellone (data-entra-barra, entrataHome.ts). -->
+      <span class="edge" style:color={usage.tone}><i data-entra-barra style="width:{Math.min(100, usage.pct)}%"></i></span></button>
   {:else}
   <button class="cell" data-testid="home-box-esiti" onclick={() => onBox('esiti')}><b class="n">{h.outcomes ?? '–'}</b><span class="l">{#if h.outcomes == null}{t.kpi7OutcomesUnknown}{:else if h.red}{t.kpi7Outcomes}, <em>{t.kpi7Red(h.red)}</em>{:else}{t.kpi7Outcomes}{/if}</span><span class="ms chev" aria-hidden="true">chevron_right</span></button>
   {/if}

@@ -9,7 +9,8 @@
   // qualcosa a metà di uno strumento. In cima alla home, perché dopo `expires_at` (120 s) la domanda torna al terminale: il
   // server, la sessione e il tempo che resta, la domanda, il modulo e «Rifiuta» / «Invia». Il modo url ha il link e «Apri»:
   // si risponde al terminale. Niente si riempie da solo: solo il `default` che il server stesso propone.
-  let { e, now, onAnswer }: { e: Elicitation; now: number; onAnswer: (e: Elicitation, action: 'accept' | 'decline', values: Values) => void } = $props()
+  // `entra`: nella home dell'app la scheda è un blocco dell'entrata all'avvio (app-entrata-home-27-11, entrataHome.ts).
+  let { e, now, onAnswer, entra = false }: { e: Elicitation; now: number; onAnswer: (e: Elicitation, action: 'accept' | 'decline', values: Values) => void; entra?: boolean } = $props()
   // I valori di partenza una volta sola: la scheda è legata all'id della domanda (`#each … (e.id)` in Home).
   let values = $state<Values>(untrack(() => Object.fromEntries((e.fields ?? []).map(f => [f.key, initial(f)]))))
   const left = $derived(Math.max(0, e.expires_at - now))
@@ -21,7 +22,7 @@
   const input = (f: ElicitField) => f.kind === 'integer' || f.kind === 'number' ? 'decimal' : f.format === 'email' ? 'email' : f.format === 'uri' ? 'url' : 'text'
 </script>
 
-<div class="card elicit" role="group" aria-label={e.server}>
+<div class="card elicit" role="group" aria-label={e.server} data-entra={entra ? '' : undefined}>
   <div class="head">
     <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="var(--wait)" d="M20.5 11H19V7a2 2 0 0 0-2-2h-4V3.5a2.5 2.5 0 0 0-5 0V5H4a2 2 0 0 0-2 2v3.8h1.5a2.7 2.7 0 0 1 0 5.4H2V20a2 2 0 0 0 2 2h3.8v-1.5a2.7 2.7 0 0 1 5.4 0V22H17a2 2 0 0 0 2-2v-4h1.5a2.5 2.5 0 0 0 0-5z" /></svg>
     <span class="col"><b>{e.server}</b><small class="mono">{t.elicitMeta(e.session, clock)}</small></span>

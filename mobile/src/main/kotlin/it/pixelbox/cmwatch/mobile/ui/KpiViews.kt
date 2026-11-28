@@ -474,12 +474,14 @@ private const val W_THIRD_WEEK = 1.23f
 @Composable
 private fun UsageBoard(u: UsageCell, modifier: Modifier) {
     val track = V3.Tx.copy(alpha = 0.14f)
+    // app-entrata-home-27-11: all'avvio il pieno cresce da sinistra col rimbalzo delle barre del dock; ferma la crescita vale 1.
+    val grow = LocalWeekBarGrow.current
     Column(
         modifier.drawBehind {
             val h = 3.dp.toPx()
             val y = size.height - h
             drawRect(track, topLeft = androidx.compose.ui.geometry.Offset(0f, y), size = androidx.compose.ui.geometry.Size(size.width, h))
-            drawRect(u.tone, topLeft = androidx.compose.ui.geometry.Offset(0f, y), size = androidx.compose.ui.geometry.Size(size.width * (u.pct.coerceIn(0, 100) / 100f), h))
+            drawRect(u.tone, topLeft = androidx.compose.ui.geometry.Offset(0f, y), size = androidx.compose.ui.geometry.Size(size.width * (u.pct.coerceIn(0, 100) / 100f) * grow(), h))
         }.padding(start = 14.dp, end = 6.dp, top = 12.dp, bottom = 12.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {

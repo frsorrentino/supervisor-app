@@ -254,6 +254,11 @@ fun SummaryList(
     parts: List<String>? = null,
     partHead: (@Composable (String) -> Unit)? = null,
     partFoot: (@Composable (String) -> Unit)? = null,
+    /**
+     * app-entrata-home-27-11: la home dell'app, che alla prima apertura del processo entra a blocchi ([HomeEntrance]). La chiede solo
+     * MainActivity; test, anteprime e colonne della plancia restano fermi.
+     */
+    entrance: Boolean = false,
 ) {
     // Pressione lunga su una voce riordinabile (Franz 31/10 14:27, supera la regola delle 01:01): niente si chiude e niente cambia
     // posto alla pressione. La sezione resta dov'è, attenuata e com'era; una copia del titolo segue il dito. Il gesto lo legge la
@@ -568,10 +573,22 @@ fun SummaryList(
     // Una lista «pigra» con le card riconosciute dal nome della sessione: quando una sessione cambia gruppo (da «Al lavoro» a
     // «Ha finito») la sua card scivola al posto nuovo e le altre si spostano (osservazioni del 03/10, transizione 4).
     val off = animationsOff()
+    // app-entrata-home-27-11: la corsa dell'entrata, solo per la prima home del processo e mai col movimento ridotto. Le posizioni vanno
+    // ai blocchi composti nei primi due fotogrammi; chi arriva dopo, scorrendo o con un dato nuovo, compare fermo.
+    val entrata = remember { if (entrance && parts == null) HomeEntrance.start(off) else null }
+    androidx.compose.runtime.LaunchedEffect(entrata) {
+        if (entrata == null) return@LaunchedEffect
+        androidx.compose.runtime.withFrameNanos { }
+        androidx.compose.runtime.withFrameNanos { }
+        entrata.order.close()
+    }
     // Durante il trascinamento niente rimbalzo: i centri delle testate, letti a metà molla, invertivano la scelta del posto.
-    val moving: @Composable androidx.compose.foundation.lazy.LazyItemScope.() -> Modifier = {
+    val movingBase: @Composable androidx.compose.foundation.lazy.LazyItemScope.() -> Modifier = {
         if (dragKey != null) Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null, placementSpec = androidx.compose.animation.core.tween(120, easing = CmMotion.easing)) else foldItem()
     }
+    // Ogni blocco della lista entra con la sua posizione dall'alto (app-entrata-home-27-11), così regge le posizioni che cambiano; fuori
+    // dall'entrata il modificatore non c'è.
+    val moving: @Composable androidx.compose.foundation.lazy.LazyItemScope.() -> Modifier = { movingBase().entrata(entrataBlock(entrata)) }
     val movingIn: (String) -> @Composable androidx.compose.foundation.lazy.LazyItemScope.() -> Modifier = { sec ->
         // La voce presa non scivola: al suo posto c'è già la copia che segue il dito, e scivolando passerebbe sopra le altre.
         { (if (dragKey == sec) Modifier.animateItem(fadeInSpec = null, placementSpec = null, fadeOutSpec = null) else moving()).graphicsLayer { alpha = if (dragKey == sec) 0.35f else 1f } }
@@ -779,8 +796,11 @@ fun SummaryList(
         val sessionsInBoard = parts == null && (sessionsLive || model.closed.isNotEmpty())
         if (parts == null) kpiState?.let { st ->
             item(key = "kpi-7") {
+                // app-entrata-home-27-11: il tabellone entra come gli altri blocchi e la sua barra della settimana cresce 220 ms dopo di lui.
+                val block = entrataBlock(entrata)
+                val weekBar = entrataBar(block)
                 // Sopra le voci che seguono: il segno di adesso della settimana esce dal bordo del tabellone (app-livello-riga-27-11).
-                Box(moving().zIndex(1f).onGloballyPositioned { c -> boardBox = c }) {
+                Box(movingBase().entrata(block).zIndex(1f).onGloballyPositioned { c -> boardBox = c }) {
                     val boardClick: (HomeBox) -> Unit = { b ->
                         // I tre riquadri aprono la loro categoria (app-home-categorie-02-11): chiusa, si apre e resta aperta, come col tocco
                         // sulla testata (app-home-in-cima-02-11); poi la lista ci scorre. Esiti sta in Lavori: il suo riquadro apre Lavori e
@@ -813,7 +833,9 @@ fun SummaryList(
                             }?.let { l -> resetText(l) },
                         ) { usageOpen = !usageOpen; save("usage", usageOpen) }
                     }
-                    Kpi7(kh, st, now, boardClick, onQuota, joined = sessionsInBoard || up.any { k -> k != pin }, usage = cell, filter = bf, slot = { slotContent() })
+                    androidx.compose.runtime.CompositionLocalProvider(LocalWeekBarGrow provides weekBar) {
+                        Kpi7(kh, st, now, boardClick, onQuota, joined = sessionsInBoard || up.any { k -> k != pin }, usage = cell, filter = bf, slot = { slotContent() })
+                    }
                     val held = dragKey
                     // Sul tabellone si rilascia una sezione che non c'è ancora; con quattro voci lo dice, e il rilascio non cambia niente.
                     if (held != null && catFor(held) != null && held !in up && !(weekAlarm && held == "usage")) SlotDrop(overSlot(held, dragY) && boardTakes(held), full = !boardTakes(held))
@@ -1247,8 +1269,8 @@ fun SummaryList(
             // Con Sistema sul tabellone, Plugin e skill restano nella loro categoria, che si sposta come le altre (Franz 03/11 18:54,
             // app-risorse-categoria-03-11).
             if (c.id == "tools" && "system" in liveTop && listSkip != "plugins" && "plugins" !in liveTop) renderPlugins()
-            // Le voci uscite da sole oggi, solo da guardare (app-pulizia-tocca-03-11, contratto 1.113).
-            if (c.id == "you") kpiState?.let(it.pixelbox.cmwatch.rules.ToccaRules::closedToday)?.let { td -> item(key = "tocca-closed") { ToccaClosedRow(td, Modifier.animateItem()) } }
+            // Le voci uscite da sole oggi, solo da guardare (app-pulizia-tocca-03-11, contratto 1.113); all'avvio entrano con le altre.
+            if (c.id == "you") kpiState?.let(it.pixelbox.cmwatch.rules.ToccaRules::closedToday)?.let { td -> item(key = "tocca-closed") { ToccaClosedRow(td, Modifier.animateItem().entrata(entrataBlock(entrata))) } }
             catHas[c.id] = dragPresent.size > before
         }
         footer?.let { f -> item(key = "footer") { f() } }
