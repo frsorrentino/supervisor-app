@@ -40,7 +40,9 @@ class SuggFocusTest {
 
     @Test fun suggFocusATapInTheEmptyFieldLeavesItEmpty() {
         val sug = "Committa le modifiche, apri la PR su GitHub e aspetta che la CI torni verde"
-        val s = st.sessions.first { it.state == SessionState.IDLE && it.question == null }.copy(suggestion = sug)
+        // Senza contesto, quindi senza l'anellino nel campo (app-posizioni-sistema-27-11 gruppo 3): a 393 dp il suggerimento resta nel campo,
+        // dove lo si tocca, invece di andare sulla riga sopra.
+        val s = st.sessions.first { it.state == SessionState.IDLE && it.question == null }.copy(suggestion = sug, context = null)
         val draft = mutableStateOf("")
         var focused = false
         var tapped = false

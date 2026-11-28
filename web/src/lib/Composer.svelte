@@ -16,10 +16,13 @@
   import { crescita, invio, saltaLettere } from './molla'
   import { lang } from './lang'
   import { dictate, dictLang, speechCtor, type Dictation, type DictError } from './dictation'
+  import { ringDash, ringHigh } from './sessionBottom'
 
   // La barra di scrittura (Composer dell'app): + per allegati (e le azioni ricorrenti nella master), il suggerimento
   // attenuato nel campo vuoto con «Usa», i comandi slash scrivendo «/», a destra Invia, Invia tonale o Stop.
-  let { st, s, draft = $bindable(), field, toMaster, onSend, onAnswerText, onSlash, onStop, onReopen, onAttach, onRecurring, onMineJump = null, onSendAt = null, onSendTo = null, onCloseSave = null, quotes = $bindable([]) }: {
+  // app-posizioni-sistema-27-11 gruppo 3: in una sessione l'anellino del contesto nel campo, accanto al microfono; il promemoria dei
+  // tasti sotto il campo non c'è più, resta come suggerimento del tasto Invia.
+  let { st, s, draft = $bindable(), field, toMaster, onSend, onAnswerText, onSlash, onStop, onReopen, onAttach, onRecurring, onMineJump = null, onSendAt = null, onSendTo = null, onCloseSave = null, quotes = $bindable([]), ctx = null, onCtx = null }: {
     st: State; s: Session; draft: string; field: string | null; toMaster: boolean
     onSend: (text: string) => void; onAnswerText: (arg: string) => void; onSlash: (cmd: string, args: string | null) => void
     onStop: () => void; onReopen: () => void; onAttach: (files: File[], text: string) => void; onRecurring: (() => void) | null
@@ -34,6 +37,10 @@
     onSendTo?: ((name: string, text: string) => void) | null
     /** I pezzi citati dalla trascrizione, sopra il campo; partono con la risposta in Markdown (app-citazione-trascrizione-07-11). */
     quotes?: Quote[]
+    /** Gruppo 3: la percentuale dell'anellino del contesto nel campo (`ringPct`); null = niente anellino (la master). */
+    ctx?: number | null
+    /** Il tocco sull'anellino apre il foglio del contesto; null = anellino spento (nessuna scelta dal relay, sessione chiusa). */
+    onCtx?: (() => void) | null
   } = $props()
   let picking = $state(false)
   let when = $state(`${String((new Date().getHours() + 1) % 24).padStart(2, '0')}:00`)
@@ -130,12 +137,17 @@
   // In un campo stretto (le colonne della plancia) il suggerimento accanto a «Usa» e all'invio andava a frammenti: lì sta
   // su una riga sua sopra il campo, intero, e il clic lo mette nel campo (come l'app sotto i 320 dp).
   let barW = $state(0)
-  const narrow = $derived(barW > 0 && barW < 320)
+  // Gruppo 3: con l'anellino del contesto il suggerimento sta nel campo solo se accanto a «Usa» gli restano circa 200 px (la barra da 480);
+  // più stretto va sulla riga sopra il campo, intero, invece di andare a frammenti.
+  const narrow = $derived(barW > 0 && barW < (ctx != null ? 480 : 320))
+  // Scrivendo in un campo stretto, con «Manda alle» accanto a Invia, l'anellino tiene l'arco e lascia il numero al suo nome: al testo restano
+  // circa 110 px a 360 invece di 80.
+  const ringTight = $derived(!!draft.trim() && barW > 0 && barW < 420)
   const inField = $derived(narrow ? null : field)
   const placeholder = $derived(inField ?? (s.question ? t.answerFree : toMaster ? t.masterPlaceholder : t.writeTo(s.name)))
 </script>
 
-  <div class="bar" bind:clientWidth={barW}>
+  <div class="bar" class:sess={!toMaster} bind:clientWidth={barW}>
     {#if files.length}
       <div class="thumbs">
         {#each files as f, i}
@@ -190,7 +202,14 @@
       <input bind:this={images} type="file" accept="image/*" multiple hidden onchange={picked} />
       <input bind:this={camera} type="file" accept="image/*" capture="environment" hidden onchange={picked} />
       <input bind:this={any} type="file" multiple hidden onchange={picked} />
-      <textarea bind:this={area} use:crescita={draft} data-fix="sugg-focus" rows="1" class:sug={!!inField} bind:value={draft} onkeydown={key} onpaste={paste} {placeholder}></textarea>
+      <textarea bind:this={area} use:crescita={draft} data-fix="sugg-focus" rows="1" class:sug={!!inField} class:one={!toMaster && !draft && !inField} bind:value={draft} onkeydown={key} onpaste={paste} {placeholder}></textarea>
+      {#if ctx != null}
+        <!-- Gruppo 3: quanto contesto resta mentre scrivi, ambra dal 70 %; il tocco apre il foglio del contesto (handoff, compatta, finestra). -->
+        <button type="button" class="ctxr" class:hi={ringHigh(ctx)} class:tight={ringTight} aria-label={t.ctxTitle(ctx)} title={t.ctxTitle(ctx)} disabled={!onCtx} data-testid="campo-contesto" onclick={() => onCtx?.()}>
+          <svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><circle class="trk" cx="9" cy="9" r="7.5" />{#if ctx > 0}<circle class="arc" cx="9" cy="9" r="7.5" stroke-dasharray={ringDash(ctx)} />{/if}</svg>
+          {#if !ringTight}<span>{ctx}%</span>{/if}
+        </button>
+      {/if}
       {#if Speech && md !== 'reopen'}
         <button type="button" class="round mic" class:on={!!dictation} aria-label={t.micStart} aria-pressed={!!dictation} title={dictation ? t.micStop : t.micStart} onclick={mic}>
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></svg>
@@ -219,14 +238,13 @@
         <!-- Voce 4 del terzo giro (Prompt box; app-animazioni-terzo-c-26-11): un tasto solo, la freccia che diventa lo Stop con
              `invio` in molla.ts, fondo e colore in 200 ms. -->
         <button type={md === 'stop' ? 'button' : 'submit'} class="round psend" class:filled={md === 'send' || md === 'stop'} class:tonal={md === 'send_tonal'} disabled={md === 'none'}
-          aria-label={md === 'stop' ? t.stop : t.send} title={md === 'stop' ? t.stop : undefined} onclick={md === 'stop' ? onStop : undefined} use:invio={md === 'stop'}>
+          aria-label={md === 'stop' ? t.stop : t.send} title={md === 'stop' ? t.stop : t.enterSends} onclick={md === 'stop' ? onStop : undefined} use:invio={md === 'stop'}>
           <svg class="ar" viewBox="0 0 24 24" width="22" height="22"><path d="M3.4 20.4 21 12 3.4 3.6 3.4 10.2 15 12 3.4 13.8z" fill="currentColor" /></svg>
           <svg class="sq" viewBox="0 0 24 24" width="20" height="20"><rect x="6.5" y="6.5" width="11" height="11" rx="2" fill="currentColor" /></svg>
         </button>
       {/if}
     </form>
     {#if micErr}<div class="micerr" role="status">{micErr === 'denied' ? t.micDenied : micErr === 'no_speech' ? t.micNoSpeech : t.micFailed}</div>{/if}
-    {#if !narrow}<div class="keys mono">{t.enterSends}</div>{/if}
   </div>
 
 <CloseDialog bind:this={closer} canSave={!!onCloseSave} onConfirm={(_, save) => { if (save) onCloseSave?.(); else { const a = exitArgs; later(t.undoClose(s.name), () => onSlash('exit', a)) } draft = '' }} />
@@ -282,6 +300,10 @@
   textarea::placeholder { color: var(--text2); }
   /* In corsivo e attenuato solo il suggerimento, come dopo ❯ nel terminale. */
   textarea.sug::placeholder { font-style: italic; color: var(--stale); }
+  /* Gruppo 3: il campo vuoto di una sessione resta su una riga anche accanto all'anellino: «Scrivi a storefront» si taglia sfumato,
+     senza puntini, invece di andare a capo. Scrivendo il testo va a capo come sempre. */
+  textarea.one { white-space: nowrap; overflow: hidden; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 16px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 16px), transparent); }
+  textarea.one::placeholder { white-space: nowrap; }
   .sugrow { display: flex; align-items: center; gap: 10px; padding: 6px 12px; border-radius: 12px; text-align: left; }
   .sugrow i { flex: 1; color: var(--stale); }
   .sugrow span { color: var(--icon); font-weight: 500; font-size: 14px; }
@@ -300,8 +322,19 @@
   .round.mic:hover { background: var(--surface); }
   .round.mic.on { background: var(--primary); color: var(--on-primary); }
   .micerr { padding: 0 22px; font-size: 12.5px; color: var(--text2); }
-  .keys { padding: 0 22px 6px; }
-  @media (max-width: 760px) { .keys { display: none; } .bar { padding-bottom: 12px; } }
+  /* Gruppo 3: senza il promemoria dei tasti il campo di una sessione tiene sotto lo stesso margine a ogni larghezza; la master com'era. */
+  @media (max-width: 760px) { .bar { padding-bottom: 12px; } }
+  .bar.sess { padding-bottom: 12px; }
+  /* L'anellino del contesto (mockup m/a-regia.html, `.ctx`): 18 px, binario e arco da 3, la percentuale in mono da 12; ambra dal 70 %. */
+  .ctxr { flex: none; display: flex; align-items: center; gap: 4px; height: 30px; padding: 0 6px; border-radius: 15px; font: 500 12px var(--mono); color: var(--tx2); font-variant-numeric: tabular-nums; }
+  .ctxr svg { flex: none; transform: rotate(-90deg); }
+  .ctxr .trk { fill: none; stroke: var(--s3); stroke-width: 3; }
+  .ctxr .arc { fill: none; stroke: var(--tx2); stroke-width: 3; stroke-linecap: round; }
+  .ctxr.hi { color: var(--wait); }
+  .ctxr.hi .arc { stroke: var(--wait); }
+  .ctxr.tight { padding: 0 4px; }
+  .ctxr:not(:disabled):hover { background: var(--surface); }
+  .ctxr:disabled { cursor: default; }
   dialog { margin: auto; border: 0; color: var(--text); background: var(--surface); padding: 20px 22px; width: min(400px, 92vw); border-radius: 28px; }
   dialog::backdrop { background: rgb(0 0 0 / .55); }
   dialog h3 { font-size: 22px; font-weight: 600; margin-bottom: 8px; }

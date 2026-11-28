@@ -62,6 +62,8 @@ const it = {
   tapRevoked: 'Dispositivo revocato', trackNotTaken: 'Il PC non ha ancora preso il comando', trackWorking: 'Il PC ci sta lavorando', trackQueued: (n: string) => `In coda: ${n} lavora, lo legge a fine turno`, trackDelivered: (n: string) => `Consegnato a ${n}`, trackNoAnswer: 'Nessuna risposta dal PC: riprova o guarda la sessione',
   handoffSent: (n: string) => `Handoff mandato a ${n}`, handoffSentClear: (n: string) => `Handoff mandato a ${n}: il /clear parte a turno finito`, handoffNone: (n: string) => `${n} non ha un comando di handoff`, handoffGone: (n: string) => `${n} non c'è più fra le sessioni`,
   ctxNudge: (p: number) => `Contesto al ${p}%`, ctxNudgeSub: 'Handoff, poi /clear', ctxNudgeGo: 'Fallo',
+  // app-posizioni-sistema-27-11 gruppo 3: il chip del contesto, primo nella riga delle Azioni sopra il campo.
+  ctxChip: (p: number) => `Contesto ${p}% · Handoff`,
   cleanupOpen: 'aperta', cleanupFinished: 'ha finito il compito', cleanupFinishedAt: (hm: string) => `ha finito il compito alle ${hm}`,
   cleanupAttached: 'Finestra aperta sul PC: si chiude da lì',
   cleanupDuplicate: (of: string) => `stessa conversazione di ${of}`, cleanupDupTag: 'Doppione', cleanupClose: (n: string) => `Chiudi ${n}`,
@@ -571,6 +573,7 @@ const en: typeof it = {
   tapRevoked: 'Device revoked', trackNotTaken: 'The PC has not taken the command yet', trackWorking: 'The PC is working on it', trackQueued: (n: string) => `Queued: ${n} is working, it reads it when the turn ends`, trackDelivered: (n: string) => `Delivered to ${n}`, trackNoAnswer: 'No answer from the PC: try again or look at the session',
   handoffSent: (n: string) => `Handoff sent to ${n}`, handoffSentClear: (n: string) => `Handoff sent to ${n}: /clear runs when the turn ends`, handoffNone: (n: string) => `${n} has no handoff command`, handoffGone: (n: string) => `${n} is no longer among the sessions`,
   ctxNudge: (p: number) => `Context at ${p}%`, ctxNudgeSub: 'Handoff, then /clear', ctxNudgeGo: 'Do it',
+  ctxChip: (p: number) => `Context ${p}% · Handoff`,
   cleanupOpen: 'open', cleanupFinished: 'finished its task', cleanupFinishedAt: (hm: string) => `finished its task at ${hm}`,
   cleanupAttached: 'Window open on the PC: close it there',
   cleanupDuplicate: (of: string) => `same conversation as ${of}`, cleanupDupTag: 'Duplicate', cleanupClose: (n: string) => `Close ${n}`,

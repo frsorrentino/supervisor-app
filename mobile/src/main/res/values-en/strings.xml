@@ -589,6 +589,8 @@
     <string name="tts_code">Code</string>
     <string name="quota_reset_desc">5-hour quota at %1$d%%, resets %2$s</string>
     <string name="ctx_title">Context %1$d%%</string>
+    <string name="ctx_ring">%1$d%%</string>
+    <string name="ctx_chip">Context %1$d%% · Handoff</string>
     <string name="ctx_handoff">Write the handoff and restart clean</string>
     <string name="ctx_handoff_prompt">Write the handoff with %1$s, then I send /clear.</string>
     <!-- app-tasti-riscontro-20-11: «Handoff, poi /clear» dalla home dice cosa succede. -->
@@ -756,7 +758,6 @@
     <string name="tablet_bar_hint">Collapsible: it closes when you open a column, it comes back with the button at the top</string>
     <string name="tablet_bar_open">Open the sessions bar</string>
     <string name="tablet_bar_close">Close the sessions bar</string>
-    <string name="enter_sends">Enter sends</string>
     <plurals name="tablet_closed"><item quantity="one">%1$d\u00A0closed</item><item quantity="other">%1$d\u00A0closed</item></plurals>
     <string name="tablet_quota_label">5h quota</string>
     <string name="tablet_week_label">Week</string>

@@ -2805,9 +2805,8 @@
   .mbar:has(> .mquick:focus-within, > .mquick :global(textarea:not(:placeholder-shown))) > .mquick { flex: 1 1 60%; }
   .mbar:has(> .mquick:focus-within, > .mquick :global(textarea:not(:placeholder-shown))) > :global(.dock) { min-width: 30%; }
   @media (prefers-reduced-motion: reduce) { .mbar > .mquick, .mbar > :global(.dock) { transition: none; } }
-  /* La barra della plancia (pwa2): il campo è una pillola sola, senza il promemoria dei tasti. */
+  /* La barra della plancia (pwa2): il campo è una pillola sola (il promemoria dei tasti non c'è più, app-posizioni-sistema-27-11 gruppo 3). */
   .mbar :global(.bar) { padding: 0; }
-  .mbar :global(.keys), .mchat :global(.keys) { display: none; }
   .mbar :global(.field.master) { min-height: 52px; background: var(--s2); }
   .mquick { flex: 1; min-width: 0; }
   .mchat { flex: 1; min-height: 0; display: flex; flex-direction: column; }

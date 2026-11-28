@@ -130,6 +130,7 @@ import it.pixelbox.cmwatch.rules.Sent
 import it.pixelbox.cmwatch.rules.SessionMeters
 import it.pixelbox.cmwatch.rules.SessionsText
 import it.pixelbox.cmwatch.rules.SessionTabs
+import it.pixelbox.cmwatch.rules.SessionBottom
 import it.pixelbox.cmwatch.rules.ToolText
 import java.time.Instant
 import kotlinx.coroutines.flow.first
@@ -425,10 +426,20 @@ fun SessionSheet(
             else recurring.filterNot { r -> NextSteps.inDraft(draftHolder.value, r.prompt) }.map { r -> PromptRow(r.label, r.prompt, direct = !r.param && idle) }
         }
     }
+    // app-posizioni-sistema-27-11 gruppo 3 (in basso si scrive): in una sessione le Azioni sono una riga di chip sopra il campo, nascosta
+    // appena si scrive; il contesto è un anellino nel campo che apre il suo foglio, e dal 70 % il chip «Contesto 72% · Handoff» è il primo
+    // della riga. Le regole in SessionBottom; la master resta com'è fino al suo foglio (gruppo 4).
+    val chipCtx = if (tabsOn) SessionBottom.ctxChip(s.context, s.state == SessionState.IDLE, actions.handoff != null) else null
+    val azioni = remember(stepsSplit, stepsBlocking) {
+        stepsSplit.fresh.map { x -> AzioneChip(x, blocking = x in stepsBlocking) } + stepsSplit.old.map { x -> AzioneChip(x, blocking = x in stepsBlocking, old = true) }
+    }
+    var ctxOpen by remember(s.name) { mutableStateOf(false) }
     // La nicchia del controller (Franz, 10/10 08:19: «una nicchia vuota sotto così non nasconde informazioni»): con un box
     // sopra il campo (Prossimi o Ricorrenti) il controller si posa su uno spazio vuoto suo fra il box e il campo, invece di
-    // coprirne le righe; senza box resta sopra la fine della conversazione, che gli lascia posto in fondo.
-    val niche = stepsSplit.fresh.isNotEmpty() || stepsSplit.old.isNotEmpty() || (boxes.recurringOpen && recurringRows.isNotEmpty())
+    // coprirne le righe; senza box resta sopra la fine della conversazione, che gli lascia posto in fondo. Nella sessione conta la riga
+    // delle Azioni anche mentre si scrive, così la nicchia non cambia a ogni lettera.
+    val niche = (if (tabsOn) azioni.isNotEmpty() || chipCtx != null else stepsSplit.fresh.isNotEmpty() || stepsSplit.old.isNotEmpty()) ||
+        (boxes.recurringOpen && recurringRows.isNotEmpty())
     // La chat segue l'ultimo testo finché non la si sposta a mano per rileggere (Franz, 01/10 06:52). «Segui» si decide
     // solo quando lo scorrimento si ferma: letto dopo l'arrivo di un testo nuovo, il fondo era già più giù e la chat
     // restava ferma. Un proprio invio torna a seguire; una pagina di messaggi precedenti non rimbalza in fondo.
@@ -881,7 +892,15 @@ fun SessionSheet(
             // ricordate per sessione.
             val stepsOn = stepsSplit.fresh.isNotEmpty() || stepsSplit.old.isNotEmpty()
             val nudgeOn = nudge != null && goHandoff != null
-            if (stepsOn || nudgeOn) RiquadriRow(Modifier.padding(top = 6.dp, bottom = 2.dp)) {
+            if (tabsOn) {
+                // Gruppo 3: le Azioni in chip sopra il campo, solo a campo vuoto, il chip del contesto per primo; mai mentre si salta fra i
+                // miei messaggi. La bozza si legge in un derivato: la riga si ricompone solo quando compare o sparisce.
+                val rowOn by remember(draftHolder, azioni.size, chipCtx) { derivedStateOf { SessionBottom.rowShown(azioni.size, chipCtx != null, draftHolder.value) } }
+                if (rowOn && !jumping) AzioniRow(
+                    azioni, chipCtx, onPick = { x -> draft = NextSteps.append(draft, x, then) }, onHandoff = { goHandoff?.invoke() },
+                    onDismiss = dismissStep, modifier = Modifier.padding(top = 6.dp, bottom = 2.dp),
+                )
+            } else if (stepsOn || nudgeOn) RiquadriRow(Modifier.padding(top = 6.dp, bottom = 2.dp)) {
                 if (stepsOn) PromptBox(
                     stringResource(R.string.next_steps), stepsSplit.fresh.map { PromptRow(it, it, direct = true, blocking = it in stepsBlocking) },
                     old = stepsSplit.old.map { PromptRow(it, it, direct = true, blocking = it in stepsBlocking) }, onDismiss = { r -> dismissStep(r.text) },
@@ -1059,6 +1078,8 @@ fun SessionSheet(
             toMaster = home != null, canAttachFiles = canAttachFiles, fieldSuggestion = stepsBox.field,
             onRecurring = if (recurringRows.isEmpty()) null else ({ boxes.recurring(!boxes.recurringOpen) }), recurringOpen = boxes.recurringOpen,
             onMine = if (stops.isNotEmpty() && feed != null) ({ jumping = true; jumpAt = null; jump(-1) }) else null,
+            ring = if (tabsOn && s.state != SessionState.GONE) SessionBottom.ringPct(s.context) else null,
+            onRing = if (tabsOn && canTune && choices != null && s.state != SessionState.GONE) ({ ctxOpen = true }) else null,
         )
     }
     // Contratto 1.72: la vista «Modifiche» sopra la sessione: sul telefono ne prende la pagina, sul tablet la colonna.
@@ -1066,6 +1087,8 @@ fun SessionSheet(
     if (changesOpen && loadChanges != null && !tabsOn) ChangesPanel(
         s, loadChanges, onClose = { changesOpen = false }, modifier = Modifier.fillMaxSize(), start = changesShown,
     )
+    // Gruppo 3: il foglio del contesto di prima (handoff, compatta, finestra più grande), dall'anellino nel campo.
+    if (ctxOpen) s.context?.let { pct -> ContextSheet(pct, it.pixelbox.cmwatch.rules.ContextActions.wider(s.copy(model = model), choices), actions) { ctxOpen = false } }
     }
     }
 }
@@ -1109,6 +1132,10 @@ private fun Composer(
     onRecurring: (() -> Unit)? = null, recurringOpen: Boolean = false,
     /** «Vai ai tuoi messaggi», l'ultima voce del + (app-fumetto-menu-file-25-11); null senza messaggi miei nella chat. */
     onMine: (() -> Unit)? = null,
+    /** app-posizioni-sistema-27-11 gruppo 3: la percentuale dell'anellino del contesto nel campo ([SessionBottom.ringPct]); null = niente anellino (la master). */
+    ring: Int? = null,
+    /** Il tocco sull'anellino apre il foglio del contesto; null = anellino spento (nessuna scelta dal relay, sessione chiusa). */
+    onRing: (() -> Unit)? = null,
     /** Contratto 1.37: «Salva una decisione» nel + della master. */
 ) {
     val draft = draftState.value
@@ -1226,8 +1253,9 @@ private fun Composer(
         var lineH by remember { mutableIntStateOf(0) }
         var fieldW by remember { mutableIntStateOf(0) }
         // In un campo stretto (le colonne del tablet col carattere grande) il suggerimento accanto a «Usa» e all'invio andava
-        // in frammenti di una parola: lì sta su una riga sua sopra il campo, intero, e il tocco lo mette nel campo.
-        val narrow = fieldW > 0 && with(density) { fieldW.toDp() } < 320.dp
+        // in frammenti di una parola: lì sta su una riga sua sopra il campo, intero, e il tocco lo mette nel campo. Gruppo 3: con l'anellino
+        // del contesto il suggerimento sta nel campo solo se accanto a «Usa» gli restano circa 200 dp (il campo da 420), come sul web.
+        val narrow = fieldW > 0 && with(density) { fieldW.toDp() } < (if (ring != null) 420.dp else 320.dp)
         if (narrow && sug != null) Row(
             Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium).handCursor().clickable { onDraft(sug) }.padding(horizontal = 12.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -1293,8 +1321,12 @@ private fun Composer(
                 },
             placeholder = {
                 if (inField != null) Text(inField, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic, color = Cm.stale, maxLines = 5)
-                // Il destinatario esplicito, «Scrivi a fable-director» (osservazioni del 03/10).
-                else Text(when { s.question != null -> stringResource(R.string.answer_free); toMaster -> stringResource(R.string.master_placeholder); else -> stringResource(if (it.pixelbox.cmwatch.rules.Preposition.ad(s.name)) R.string.write_to_ad else R.string.write_to, s.name) }, maxLines = 2)
+                // Il destinatario esplicito, «Scrivi a fable-director» (osservazioni del 03/10). Gruppo 3: accanto all'anellino resta su una
+                // riga, tagliato senza puntini, invece di andare a capo.
+                else Text(
+                    when { s.question != null -> stringResource(R.string.answer_free); toMaster -> stringResource(R.string.master_placeholder); else -> stringResource(if (it.pixelbox.cmwatch.rules.Preposition.ad(s.name)) R.string.write_to_ad else R.string.write_to, s.name) },
+                    maxLines = if (ring != null) 1 else 2, softWrap = ring == null, overflow = androidx.compose.ui.text.style.TextOverflow.Clip,
+                )
             },
             shape = MaterialTheme.shapes.extraLarge,
             // Il campo della master sul suo fondo velato di celeste, piatto e senza bordo; scrivendo, il bordo chiaro (Franz, 06/10 21:23).
@@ -1309,9 +1341,10 @@ private fun Composer(
                 Box(Modifier.onSizeChanged { leadW = it.width }) { AttachButton(files = canAttachFiles, attach = canAttach, onRecurring = onRecurring, onMine = onMine) { picked -> images = (images + picked).distinct().take(MAX_IMAGES) } }
             }) else null,
             trailingIcon = { Row(Modifier.onSizeChanged { trailW = it.width }, verticalAlignment = Alignment.CenterVertically) {
+                // Gruppo 3: l'anellino del contesto accanto al testo, come sul web; il promemoria «Invio manda» con la tastiera fisica non c'è
+                // più (Invio manda sempre, Maiusc+Invio va a capo).
+                if (ring != null) ContextRing(ring, enabled = onRing != null) { onRing?.invoke() }
                 if (inField != null && draft.isBlank()) TextButton(onClick = { take(inField) }) { Text(stringResource(R.string.suggestion_use), color = Cm.actionIcon) }
-                // Con una tastiera fisica collegata il campo lo dice, come nel mockup del tablet.
-                else if (hardKeyboard() && mode != PhonePrimary.Composer.STOP && with(density) { fieldW.toDp() } >= 420.dp) Text(stringResource(R.string.enter_sends), style = MonoSmall, modifier = Modifier.padding(end = 10.dp))
                 val filled = IconButtonDefaults.filledIconButtonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary)
                 // Il cerchio concentrico all'estremità della barra (segnalazione 03/10 19:18, come ChatGPT): 40 dp nella barra da 56,
                 // quindi 8 dp sopra, sotto e a destra.
@@ -1337,13 +1370,6 @@ private fun Composer(
             } },
         )
     }
-}
-
-/** Una tastiera fisica collegata e aperta (Chromebook, tablet con tastiera). */
-@Composable
-private fun hardKeyboard(): Boolean {
-    val c = androidx.compose.ui.platform.LocalConfiguration.current
-    return c.keyboard == android.content.res.Configuration.KEYBOARD_QWERTY && c.hardKeyboardHidden == android.content.res.Configuration.HARDKEYBOARDHIDDEN_NO
 }
 
 /**
@@ -2773,8 +2799,8 @@ private fun ShadeNone(text: String) = Text(text, style = MaterialTheme.typograph
 /**
  * La scheda Dettagli della sessione (app-posizioni-sistema-27-11, gruppo 2): quello che stava nella riga dei dati della testata e sotto,
  * con le stesse pillole e gli stessi tocchi. Modello ed effort aprono il pannello Modello ed effort (tenuta premuta, la scheda dei
- * permessi); la quota delle 5 ore porta a Utilizzo; il contesto apre il suo foglio; poi obiettivo, priorità e finestra, a capo.
- * Le modifiche hanno la loro scheda.
+ * permessi); la quota delle 5 ore porta a Utilizzo; poi obiettivo, priorità e finestra, a capo. Le modifiche hanno la loro scheda; il
+ * contesto sta nel campo, come anellino che apre il suo foglio (gruppo 3), e qui non si ripete.
  */
 @Composable
 private fun SessionDetailsBody(
@@ -2783,7 +2809,6 @@ private fun SessionDetailsBody(
     quota: it.pixelbox.cmwatch.contract.QuotaAccount?, notesInHeader: Boolean,
 ) {
     var picker by remember { mutableStateOf(false) }
-    var ctxSheet by remember { mutableStateOf(false) }
     val tunable = canTune && choices != null && s.state != SessionState.GONE
     val advice = it.pixelbox.cmwatch.rules.MasterService.advice(s, choices, now)
     val tune = listOfNotNull(ModelText.short(model) ?: stringResource(R.string.model_title), effort).joinToString(" · ")
@@ -2795,7 +2820,6 @@ private fun SessionDetailsBody(
     )
     val shape = RoundedCornerShape(14.dp)
     val h5 = quota?.h5
-    val ctx = s.context
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 10.dp)) {
         Column(Modifier.fillMaxWidth().clip(shape).background(V3.S1).border(1.dp, V3.Line, shape).testTag("dettagli")) {
             DetailRow(stringResource(R.string.details_model), 0) {
@@ -2804,9 +2828,8 @@ private fun SessionDetailsBody(
             if (quota != null && h5 != null) DetailRow(stringResource(R.string.details_quota), 1) {
                 QuotaPill(h5, quota.resetH5, quota.stale, now, QuotaForm.FULL, onClick = actions.overview)
             }
-            if (ctx != null) DetailRow(stringResource(R.string.box_context), 2) { ContextPill(ctx, enabled = tunable) { ctxSheet = true } }
             notes.forEachIndexed { i, n ->
-                Column(Modifier.fillMaxWidth().tendinaRow(3 + i)) {
+                Column(Modifier.fillMaxWidth().tendinaRow(2 + i)) {
                     HorizontalDivider(color = V3.Line)
                     if (i == 0 && goalNote != null) LongText(n, Modifier.padding(horizontal = 14.dp, vertical = 8.dp), style = MaterialTheme.typography.labelMedium, color = Cm.briefLabel)
                     else Text(n, style = MaterialTheme.typography.labelMedium, color = Cm.briefLabel, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp))
@@ -2814,7 +2837,6 @@ private fun SessionDetailsBody(
             }
         }
     }
-    if (ctxSheet && ctx != null) ContextSheet(ctx, it.pixelbox.cmwatch.rules.ContextActions.wider(s.copy(model = model), choices), actions) { ctxSheet = false }
     if (picker && choices != null) TunePanel(choices, model?.id, effort, advice, onModel = actions.setModel, onEffort = actions.setEffort, onDismiss = { picker = false }, session = s, onPermission = actions.setPermission, modelNext = modelNext, effortNext = effortNext)
 }
 

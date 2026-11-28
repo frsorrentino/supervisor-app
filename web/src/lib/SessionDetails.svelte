@@ -8,13 +8,13 @@
 
   // La scheda Dettagli della sessione (app-posizioni-sistema-27-11, gruppo 2): quello che stava nella riga dei dati della testata e
   // sotto di lei, coi tocchi di prima. Modello ed effort aprono il pannello Modello ed effort; la quota delle 5 ore porta a Utilizzo;
-  // il contesto apre il suo foglio (handoff, compatta, finestra più grande); poi obiettivo, priorità e finestra, a capo. Le modifiche
-  // hanno la loro scheda. Pannello e foglio restano nella testata (Header), una volta sola: qui `tune` e i due tocchi.
-  let { s, st, tune, onTune, onCtx, onUsage }: {
+  // poi obiettivo, priorità e finestra, a capo. Le modifiche hanno la loro scheda; il contesto sta nel campo, come anellino che apre il
+  // suo foglio (gruppo 3), e qui non si ripete. Il pannello resta nella testata (Header), una volta sola: qui `tune` e i due tocchi.
+  let { s, st, tune, onTune, onUsage }: {
     s: Session; st: State
     /** Modello ed effort come li mostra la testata, con la scelta appena fatta; il segno dei permessi; il puntino del consiglio. */
     tune: { label: string; glyph: Glyph; permTitle: string; tunable: boolean; dot: boolean } | null
-    onTune: (anchor: HTMLElement) => void; onCtx: () => void; onUsage: () => void
+    onTune: (anchor: HTMLElement) => void; onUsage: () => void
   } = $props()
   const quota = $derived(st.quota[s.account])
   const reset = $derived(resetLabel(quota?.reset_h5, st.ts))
@@ -42,15 +42,6 @@
       <span class="dv">
         <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><circle cx="10" cy="10" r="7.5" class="trk" /><circle cx="10" cy="10" r="7.5" pathLength="47.12" stroke-dasharray={arc(quota.h5)} style="stroke:{quota.stale ? 'var(--wait)' : ring[tone(quota.h5)]}" class="arc" /></svg>
         <span class:stale={quota.stale}>{quotaLabel('full', t.quota5h(quota.h5), reset)}</span>
-      </span>
-    </button>
-  {/if}
-  {#if s.context != null}
-    <button class="dr" data-testid="dettagli-contesto" disabled={!tune?.tunable} onclick={onCtx}>
-      <span class="dl">{t.boxContext}</span>
-      <span class="dv">
-        <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><circle cx="10" cy="10" r="7.5" class="trk" /><circle cx="10" cy="10" r="7.5" pathLength="47.12" stroke-dasharray={arc(s.context)} style="stroke:{ring[tone(s.context)]}" class="arc" /></svg>
-        <span>{t.ctx(s.context)}</span>
       </span>
     </button>
   {/if}

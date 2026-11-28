@@ -601,6 +601,9 @@
     <string name="tts_code">Codice</string>
     <string name="quota_reset_desc">Quota delle 5 ore al %1$d%%, si azzera %2$s</string>
     <string name="ctx_title">Contesto %1$d%%</string>
+    <!-- app-posizioni-sistema-27-11 gruppo 3: l'anellino del contesto nel campo e il chip ambra della riga delle Azioni, dal 70 %. -->
+    <string name="ctx_ring">%1$d%%</string>
+    <string name="ctx_chip">Contesto %1$d%% · Handoff</string>
     <string name="ctx_handoff">Scrivi l\'handoff e riparti pulita</string>
     <string name="ctx_handoff_prompt">Scrivi l\'handoff con %1$s, poi io mando /clear.</string>
     <!-- app-tasti-riscontro-20-11: «Handoff, poi /clear» dalla home dice cosa succede. -->
@@ -774,7 +777,6 @@
     <string name="tablet_bar_hint">Richiudibile: si chiude quando apri una colonna, torna con il tasto in alto</string>
     <string name="tablet_bar_open">Apri la barra delle sessioni</string>
     <string name="tablet_bar_close">Chiudi la barra delle sessioni</string>
-    <string name="enter_sends">Invio manda</string>
     <plurals name="tablet_closed"><item quantity="one">%1$d\u00A0chiusa</item><item quantity="other">%1$d\u00A0chiuse</item></plurals>
     <string name="tablet_quota_label">Quota 5h</string>
     <string name="tablet_week_label">Settimana</string>

@@ -317,7 +317,8 @@ class TabletShellTest {
         val TABLET = DeviceConfig.PIXEL_5.copy(
             screenWidth = 2880, screenHeight = 1800, xdpi = 320, ydpi = 320, density = Density.XHIGH,
             orientation = ScreenOrientation.LANDSCAPE, locale = "it",
-            // Con la tastiera fisica, come il Chromebook: il campo dice «Invio manda».
+            // Con la tastiera fisica, come il Chromebook: Invio manda. Il promemoria «Invio manda» nel campo non c'è più (app-posizioni-sistema-27-11
+            // gruppo 3).
             keyboard = Keyboard.QWERTY, keyboardState = KeyboardState.EXPOSED,
         )
     }

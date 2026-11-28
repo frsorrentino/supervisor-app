@@ -23,7 +23,7 @@ import java.io.File
  * La sessione con la riga di icone e la tendina (app-posizioni-sistema-27-11, gruppo 2), a 360 dp e ferma: niente golden del movimento.
  * Due stati, con la testata vera della pagina (←, il nome, il ⋮ e il ≡): la riga con Chat aperta e i numeri dei tre colori (Per te 3 in
  * ambra, Risultati 1 in verde, Modifiche 4 in grigio), la conversazione sotto; la tendina di Dettagli giù, con modello ed effort, la
- * quota delle 5 ore, il contesto e le note, il campo in vista sotto. Golden da CI.
+ * quota delle 5 ore e le note, il campo in vista sotto. Il contesto sta nel campo, come anellino (gruppo 3). Golden da CI.
  */
 class SessionTabsShotsTest {
     @get:Rule val paparazzi = Paparazzi(

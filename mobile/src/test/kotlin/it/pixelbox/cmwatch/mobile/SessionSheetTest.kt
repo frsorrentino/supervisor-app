@@ -234,7 +234,8 @@ class SessionSheetTest {
     }
 
     // Il box rivisto (Franz, 04/10 20:21): scrivendo resta, la riga già nel campo esce, il suggerito diverso del terminale
-    // entra in fondo, e le righe accodano (+) invece di partire.
+    // entra in fondo, e le righe accodano (+) invece di partire. In una sessione, dal gruppo 3 di app-posizioni-sistema-27-11, le Azioni
+    // sono chip sopra il campo e scrivendo si nascondono: qui il campo scritto, con l'anellino del contesto.
     @Test fun sheetNextStepsTyping() = paparazzi.snapshot {
         val t = st.ts - 600
         val entries = listOf(
@@ -269,7 +270,8 @@ class SessionSheetTest {
     }
 
     // Poco spazio in altezza, come una colonna del tablet con la tastiera aperta (segnalazione del 09/10 20:38): il campo
-    // resta intero e il box dei Prossimi scorre dentro, invece di schiacciare il campo.
+    // resta intero e il box dei Prossimi scorre dentro, invece di schiacciare il campo. Dal gruppo 3 in una sessione le Azioni sono una
+    // riga di chip, nascosta scrivendo: qui resta il campo intero.
     @Test fun sheetNextStepsShort() {
         paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(
             screenWidth = 1600, screenHeight = 560, xdpi = 320, ydpi = 320, density = com.android.resources.Density.XHIGH,

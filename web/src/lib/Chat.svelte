@@ -49,6 +49,8 @@
   import type { IconTab } from './iconRow'
   import { countOf, notesCount, pick as pickTab, TABS, tabCounts, toneOf, type SessionTab } from './sessionTabs'
   import { MINUS, pill as changesOf } from './diff'
+  import RigaAzioni from './RigaAzioni.svelte'
+  import { ctxChip, ringPct, rowShown } from './sessionBottom'
   let { onNewer = null, onLatest = null, focus = null, onFocused = () => {}, resultsRow = null, perTe = null, onHeadsUp = null, onTask = null, menuMove = null, st, s, entries, mine, onSend, onBack, onPick, onAnswer, onCmd, wide, events, sent, read, onRead, onPromptTo, slots, onAttach, onFile, onFiles = () => {}, onHandoff, elsewhere = null, elsewhereAway = null, onElsewhere = () => {}, onElsewhereDismiss = () => {}, waitingSince = null, updating = false, onSendAt = null, onSendTo = null, inject = null, onInjected = () => {}, onUsage = () => {}, onOlder = null, onGo = null, onReopen = null, appMenu = null, onDiff = null, onChanges = null, onMine = null }: {
     /** Contratto 1.106: la riga «Risultati» in cima alla chat; nella sessione (gruppo 2) le sue righe nella tendina, `bare`, e i conteggi. */
     resultsRow?: import('svelte').Snippet<[boolean, ((fresh: number, all: number) => void) | null]> | null
@@ -208,6 +210,13 @@
     dismissed = { ...dismissed, [s.name]: nudge! }
     try { localStorage.setItem('cm.ctx_dismissed', JSON.stringify(dismissed)) } catch { /* resta per la sessione */ }
   }
+  // app-posizioni-sistema-27-11 gruppo 3 (in basso si scrive): in una sessione le Azioni sono una riga di chip sopra il campo, nascosta
+  // appena si scrive; il contesto è un anellino nel campo che apre il suo foglio, e dal 70 % il chip «Contesto 72% · Handoff» è il primo
+  // della riga. Le regole in sessionBottom.ts. La master resta com'è fino al suo foglio (gruppo 4).
+  const azioni = $derived(tabsOn && !home ? stepsBox.rows.map(x => ({ text: x, blocking: stepsBlocking.has(x) })) : [])
+  const chipCtx = $derived(tabsOn ? ctxChip(s.context, s.state === 'idle', handoffPrompt(st, s, () => '') != null) : null)
+  const azioniOn = $derived(tabsOn && rowShown(azioni.length, chipCtx != null, draft))
+  const ring = $derived(tabsOn && s.state !== 'gone' ? ringPct(s.context) : null)
   // File trascinati sulla colonna: vanno nel campo come quelli scelti con il +.
   let dragging = $state(false)
   let dragN = $state(0)
@@ -443,14 +452,15 @@
       {/if}
       {#if lastTab === 'dettagli'}
         <div class="sec" data-testid="tendina-dettagli">
-          <SessionDetails {s} {st} tune={header?.tuneView() ?? null} onTune={(el) => header?.openTune(el)} onCtx={() => header?.openCtx()} {onUsage} />
+          <SessionDetails {s} {st} tune={header?.tuneView() ?? null} onTune={(el) => header?.openTune(el)} {onUsage} />
         </div>
       {/if}
     </Tendina>
   {/if}
   </div>
 
-  <!-- Sopra il campo, «Azioni» e «Contesto» come pillole (app-riquadri-chiusi-16-11). -->
+  <!-- Sopra il campo, «Azioni» e «Contesto» come pillole (app-riquadri-chiusi-16-11); restano nella master fino al suo foglio (gruppo 4). -->
+  {#if !tabsOn}
   <div class="riq low" data-testid="chat-riquadri-sotto">
     {#if stepsBox.rows.length && !home}
       <PromptBox pill title={t.next} rows={stepsBox.rows.map(x => ({ label: x, text: x, direct: true, blocking: stepsBlocking.has(x) }))} open={boxOpen(s.name, 'azioni')}
@@ -465,6 +475,10 @@
       </div>
     </Blocco>{/if}
   </div>
+  {:else if azioniOn && !jumping}
+    <!-- Gruppo 3: le Azioni in una riga di chip sopra il campo, solo a campo vuoto; il chip del contesto per primo. -->
+    <RigaAzioni actions={azioni} ctx={chipCtx} onPick={pick} {onHandoff} />
+  {/if}
   {#if recurringOpen && recurringRows.length}
     <PromptBox title={t.recurring} rows={recurringRows} open={true} onOpen={() => { recurringOpen = false; save('cm.recurring_open', false) }} draftBlank={!draft.trim()}
       onPick={(r) => { draft = append(draft, r.direct ? r.text : r.text.trimEnd() + ' ', t.then); recurringOpen = false; save('cm.recurring_open', false); composer?.focus() }}
@@ -484,7 +498,7 @@
     onReopen={() => onCmd('reopen')} {onAttach} onCloseSave={s.name !== MASTER && st.ops?.includes('close') ? () => onCmd('close', 'save') : null}
     onRecurring={recurringRows.length ? () => { recurringOpen = !recurringOpen; save('cm.recurring_open', recurringOpen) } : null}
     onMineJump={stops.length && !home ? () => { jumping = true; jumpAt = null; jump(-1) } : null}
-    {onSendAt} {onSendTo} bind:quotes />
+    {onSendAt} {onSendTo} bind:quotes ctx={ring} onCtx={st.choices && s.state !== 'gone' ? () => header?.openCtx() : null} />
   {/if}
   {#if qsel}{@const p = qsel}
     <div class="qpick" role="toolbar" style="left:{p.x}px;top:{p.y}px">
