@@ -185,6 +185,24 @@ class SummaryListTest {
         }
     }
 
+    // app-novita-cosa-cambia-28-11 (Franz 28/11 16:42-16:43): le Novità aperte partono dal bordo del contenuto della carta, come la
+    // riga della versione e «Installa», e accanto hanno il ▶ della voce.
+    @Test fun updateNewsOpen() = paparazzi.snapshot {
+        val r = it.pixelbox.cmwatch.rules.AppUpdate.Release("auto-2026-11-28-1514-03784ae5", "0.2.2446", st.ts - 360, true, "https://example.com/mobile-release.apk", 75_000_000, null, "")
+        val n = it.pixelbox.cmwatch.rules.Novita.Lines(listOf(
+            "Nel lettore della voce la barra, il cursore e i comandi della velocità sono bianchi e si vedono bene.",
+            "Sotto la barra la conversazione sfuma invece di tagliarsi a metà riga.",
+        ), 0)
+        val u = it.pixelbox.cmwatch.mobile.update.AppUpdater.Ui(phase = it.pixelbox.cmwatch.mobile.update.AppUpdater.Phase.Available(r), novita = n)
+        CmPhoneTheme(still = true) {
+            it.pixelbox.cmwatch.mobile.ui.ProvideSpeech(null, null, null, 1f, { t -> listOf(it.pixelbox.cmwatch.rules.AnswerText.Block(it.pixelbox.cmwatch.rules.AnswerText.Kind.PARA, t)) }, {}, {}) {
+                Column(Modifier.background(it.pixelbox.cmwatch.mobile.ui.V3.Bg).padding(16.dp)) {
+                    it.pixelbox.cmwatch.mobile.ui.UpdateCard(u, st.ts, {}, {}, newsOpenAtStart = true)
+                }
+            }
+        }
+    }
+
     // Attenzione n. 5 del piano: con dieci sessioni ferme «Ferme» resta una riga breve ciascuna, «Chiuse» una riga sola.
     @Test fun summaryMany() = paparazzi.snapshot {
         val idle = st.sessions.first { it.state == SessionState.IDLE }

@@ -2477,7 +2477,7 @@ private fun NightCount(icon: androidx.compose.ui.graphics.vector.ImageVector, te
  * Android vuole prima il permesso di installare app, lo dice; se non va, il perché e «Riprova».
  */
 @Composable
-private fun UpdateCard(u: AppUpdater.Ui, now: Long, onInstall: (AppUpdate.Release) -> Unit, onDismiss: (String) -> Unit) {
+internal fun UpdateCard(u: AppUpdater.Ui, now: Long, onInstall: (AppUpdate.Release) -> Unit, onDismiss: (String) -> Unit, newsOpenAtStart: Boolean = false) {
     val p = u.phase
     val r = p.release ?: return
     Column(
@@ -2497,7 +2497,7 @@ private fun UpdateCard(u: AppUpdater.Ui, now: Long, onInstall: (AppUpdate.Releas
         )
         // app-changelog-aggiornamento-26-11 (Franz 26/11 14:00): «Novità», chiuso, con la fisarmonica delle sezioni della home; aperto,
         // cosa cambia rispetto alla versione installata, anche saltando più pre-release. Senza righe scritte: «Correzioni minori».
-        var newsOpen by rememberSaveable(r.tag) { mutableStateOf(false) }
+        var newsOpen by rememberSaveable(r.tag) { mutableStateOf(newsOpenAtStart) }
         V3Section(stringResource(R.string.update_news), Icons.Rounded.NewReleases, open = newsOpen, onToggle = { newsOpen = !newsOpen }, tag = "aggiornamento-novita")
         androidx.compose.animation.AnimatedVisibility(
             newsOpen,
@@ -2505,12 +2505,18 @@ private fun UpdateCard(u: AppUpdater.Ui, now: Long, onInstall: (AppUpdate.Releas
             exit = androidx.compose.animation.shrinkVertically(androidx.compose.animation.core.tween(150, easing = CmMotion.easing)) + androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(150)),
         ) {
             val n = u.novita
-            Column(Modifier.fillMaxWidth().padding(start = V3.Rail + 8.dp).testTag("aggiornamento-novita-righe"), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                if (n == null || n.lines.isEmpty()) Text(stringResource(R.string.update_news_minor), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
-                else {
-                    n.lines.forEach { line -> Text("• $line", style = MaterialTheme.typography.bodyMedium, color = Cm.text) }
-                    if (n.more > 0) Text(pluralStringResource(R.plurals.update_news_more, n.more, n.more), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
+            // app-novita-cosa-cambia-28-11, Franz 28/11 16:42 «togli spaziatura a sinistra nel testo novità»: le righe partono dal bordo
+            // del contenuto della carta, come la riga della versione e i tasti, non più sotto il titolo; 16:43 «aggiungi play anche lì»:
+            // accanto il ▶ della voce, che legge le righe una per paragrafo.
+            Row(Modifier.fillMaxWidth().testTag("aggiornamento-novita-righe"), verticalAlignment = Alignment.Top) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    if (n == null || n.lines.isEmpty()) Text(stringResource(R.string.update_news_minor), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
+                    else {
+                        n.lines.forEach { line -> Text("• $line", style = MaterialTheme.typography.bodyMedium, color = Cm.text) }
+                        if (n.more > 0) Text(pluralStringResource(R.plurals.update_news_more, n.more, n.more), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
+                    }
                 }
+                if (n != null && n.lines.isNotEmpty()) ReadButton(n.lines.joinToString("\n\n"), Modifier.padding(start = 8.dp))
             }
         }
         when (p) {
