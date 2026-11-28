@@ -1273,19 +1273,32 @@ private fun Composer(
  */
 @Composable
 private fun QuotaLine(w: QuotaWarning.Warn, draft: String, canDefer: Boolean, canTonight: Boolean, actions: SheetActions, onDeferred: () -> Unit, night: Boolean = false) {
-    Column(Modifier.fillMaxWidth().clip(MaterialTheme.shapes.large).background(V3.Banner).handCursor().clickable(onClick = actions.overview).padding(start = 14.dp, end = 6.dp, top = 8.dp, bottom = 2.dp)) {
-        Text(
-            stringResource(if (w.projected) R.string.quota_warn_pace else R.string.quota_warn, w.pct, hhmm(w.resetAt)),
-            style = MaterialTheme.typography.bodyMedium, color = Cm.briefWarnInk,
-        )
-        // Senza testo nel campo, al posto di due bottoni spenti e illeggibili sull'ambra (segnalazione 01/10 21:58) una riga
-        // che dice cosa si può fare; scritto il testo, compaiono i bottoni.
-        if (draft.isBlank()) Text(
-            stringResource(if (night) R.string.quota_write_hint else R.string.quota_write_hint_reset), style = MaterialTheme.typography.bodySmall, color = Cm.briefWarnInk,
-            modifier = Modifier.padding(top = 2.dp, bottom = 8.dp),
-        ) else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            if (canDefer) TextButton(onClick = { if (actions.sendAtReset(draft)) onDeferred() }) { Text(stringResource(R.string.send_at_reset), color = Cm.briefWarnInk, fontWeight = FontWeight.SemiBold) }
-            if (canTonight) TextButton(onClick = { if (actions.sendTonight(draft)) onDeferred() }) { Text(stringResource(R.string.send_tonight), color = Cm.briefWarnInk, fontWeight = FontWeight.SemiBold) }
+    // app-avviso-giallo-28-11 (Franz 28/11 16:37: «questo alert giallo è poco accessibile come lettura»): non più testo scuro su ambra
+    // pieno ma il linguaggio degli altri avvisi, cioè il velo ambra al 14% con il bordo ambra al 60% dei Tasti B, l'orologio ambra e il
+    // testo chiaro. Contrasto misurato sul velo (sopra #0B0B0B-#111111 di notte, #F4F4F4-bianco di giorno): testo almeno 12,5:1, riga
+    // sotto 5,1:1, tasti ambra di notte 8,1:1; di giorno i tasti prendono il testo scuro, perché l'ambra lì darebbe 4,2:1.
+    val shape = MaterialTheme.shapes.large
+    val keys = if (V3.day) Cm.text else V3.Wait
+    Row(
+        Modifier.fillMaxWidth().clip(shape).background(V3.Wait.copy(alpha = 0.14f)).border(1.dp, V3.Wait.copy(alpha = 0.6f), shape).handCursor()
+            .clickable(onClick = actions.overview).padding(start = 12.dp, end = 6.dp, top = 10.dp, bottom = 2.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Icon(Icons.Rounded.Schedule, null, tint = V3.Wait, modifier = Modifier.padding(top = 1.dp).size(18.dp))
+        Column(Modifier.weight(1f).padding(start = 10.dp)) {
+            Text(
+                stringResource(if (w.projected) R.string.quota_warn_pace else R.string.quota_warn, w.pct, hhmm(w.resetAt)),
+                style = MaterialTheme.typography.bodyMedium, color = Cm.text,
+            )
+            // Senza testo nel campo, al posto di due bottoni spenti (segnalazione 01/10 21:58) una riga che dice cosa si può fare;
+            // scritto il testo, compaiono i bottoni.
+            if (draft.isBlank()) Text(
+                stringResource(if (night) R.string.quota_write_hint else R.string.quota_write_hint_reset), style = MaterialTheme.typography.bodySmall, color = Cm.text2,
+                modifier = Modifier.padding(top = 2.dp, bottom = 8.dp),
+            ) else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                if (canDefer) TextButton(onClick = { if (actions.sendAtReset(draft)) onDeferred() }) { Text(stringResource(R.string.send_at_reset), color = keys, fontWeight = FontWeight.SemiBold) }
+                if (canTonight) TextButton(onClick = { if (actions.sendTonight(draft)) onDeferred() }) { Text(stringResource(R.string.send_tonight), color = keys, fontWeight = FontWeight.SemiBold) }
+            }
         }
     }
 }
