@@ -191,6 +191,8 @@ data class SheetActions(
     val sessions: List<Session> = emptyList(), val sendToSession: ((String, String) -> Unit)? = null,
     /** Tocco sulla riga dell'avviso: la Panoramica, casa dei dati della quota. */
     val overview: () -> Unit = {},
+    /** app-avviso-giallo-28-11: la × dell'avviso della quota; torna a una soglia nuova o dopo l'azzeramento (QuotaWarning.shown). */
+    val closeQuota: () -> Unit = {},
     /** Contratto 1.25: un comando slash consentito, senza «/», con i suoi argomenti o null. */
     val slash: (cmd: String, args: String?) -> Unit = { _, _ -> },
     /** Contratto 1.155 (app-chiudi-salva-19-11): «Salva e chiudi»; null sulla master o con un relay che non ha `close`. */
@@ -1268,36 +1270,49 @@ private fun Composer(
 }
 
 /**
- * L'avviso della quota sopra la barra: la finestra e quando riparte, e due bottoni testuali che rimandano il testo
- * scritto (alla ripartenza o stanotte). Senza testo nel campo i bottoni restano spenti; tocco sulla riga = Panoramica.
+ * L'avviso della quota sopra la barra: la finestra e quando riparte, e due bottoni testuali che rimandano il testo scritto (alla
+ * ripartenza o stanotte). app-avviso-giallo-28-11 (Franz 28/11 16:37: «questo alert giallo è poco accessibile come lettura»): il
+ * linguaggio degli altri avvisi, cioè il velo ambra al 14% con il bordo ambra al 60% dei Tasti B, l'orologio ambra e il testo chiaro.
+ * Contrasto misurato sul velo (sopra #0B0B0B-#111111 di notte, #F4F4F4-bianco di giorno): testo almeno 12,5:1, riga sotto 5,1:1, tasti
+ * ambra di notte 8,1:1; di giorno i tasti prendono il testo scuro, perché l'ambra lì darebbe 4,2:1. Franz 17:19 («serve cambiare anche
+ * l'ingombro o comunque dare la possibilità di chiuderlo»): una riga sola che sfuma; il tocco apre il resto (la riga che dice cosa si può
+ * fare o i tasti, e «Utilizzo», che prima apriva il tocco) e lo richiude; la × lo chiude finché non cambia la soglia o non si azzera la
+ * finestra (QuotaWarning.shown, ricordato per account).
  */
 @Composable
 private fun QuotaLine(w: QuotaWarning.Warn, draft: String, canDefer: Boolean, canTonight: Boolean, actions: SheetActions, onDeferred: () -> Unit, night: Boolean = false) {
-    // app-avviso-giallo-28-11 (Franz 28/11 16:37: «questo alert giallo è poco accessibile come lettura»): non più testo scuro su ambra
-    // pieno ma il linguaggio degli altri avvisi, cioè il velo ambra al 14% con il bordo ambra al 60% dei Tasti B, l'orologio ambra e il
-    // testo chiaro. Contrasto misurato sul velo (sopra #0B0B0B-#111111 di notte, #F4F4F4-bianco di giorno): testo almeno 12,5:1, riga
-    // sotto 5,1:1, tasti ambra di notte 8,1:1; di giorno i tasti prendono il testo scuro, perché l'ambra lì darebbe 4,2:1.
     val shape = MaterialTheme.shapes.large
     val keys = if (V3.day) Cm.text else V3.Wait
-    Row(
-        Modifier.fillMaxWidth().clip(shape).background(V3.Wait.copy(alpha = 0.14f)).border(1.dp, V3.Wait.copy(alpha = 0.6f), shape).handCursor()
-            .clickable(onClick = actions.overview).padding(start = 12.dp, end = 6.dp, top = 10.dp, bottom = 2.dp),
-        verticalAlignment = Alignment.Top,
+    var open by rememberSaveable(w.account, w.resetAt, QuotaWarning.band(w)) { mutableStateOf(false) }
+    Column(
+        Modifier.fillMaxWidth().clip(shape).background(V3.Wait.copy(alpha = 0.14f)).border(1.dp, V3.Wait.copy(alpha = 0.6f), shape)
+            .animateContentSize(CmMotion.spec(animationsOff())),
     ) {
-        Icon(Icons.Rounded.Schedule, null, tint = V3.Wait, modifier = Modifier.padding(top = 1.dp).size(18.dp))
-        Column(Modifier.weight(1f).padding(start = 10.dp)) {
+        Row(
+            Modifier.fillMaxWidth().handCursor().clickable { open = !open }.padding(start = 12.dp).heightIn(min = 44.dp),
+            verticalAlignment = if (open) Alignment.Top else Alignment.CenterVertically,
+        ) {
+            Icon(Icons.Rounded.Schedule, null, tint = V3.Wait, modifier = Modifier.padding(top = if (open) 13.dp else 0.dp).size(18.dp))
             Text(
                 stringResource(if (w.projected) R.string.quota_warn_pace else R.string.quota_warn, w.pct, hhmm(w.resetAt)),
-                style = MaterialTheme.typography.bodyMedium, color = Cm.text,
+                style = MaterialTheme.typography.bodyMedium, color = Cm.text, maxLines = if (open) Int.MAX_VALUE else 1, softWrap = open,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Clip,
+                modifier = Modifier.weight(1f).padding(start = 10.dp, top = if (open) 11.dp else 0.dp).then(if (open) Modifier else Modifier.fadeEnd()),
             )
-            // Senza testo nel campo, al posto di due bottoni spenti (segnalazione 01/10 21:58) una riga che dice cosa si può fare;
-            // scritto il testo, compaiono i bottoni.
+            IconButton(onClick = actions.closeQuota, modifier = Modifier.size(44.dp).testTag("quota-chiudi")) {
+                Icon(Icons.Rounded.Close, stringResource(R.string.close), tint = Cm.text2, modifier = Modifier.size(18.dp))
+            }
+        }
+        if (open) Column(Modifier.fillMaxWidth().padding(start = 40.dp, end = 6.dp)) {
+            // Senza testo nel campo, al posto di due bottoni spenti (segnalazione 01/10 21:58) una riga che dice cosa si può fare.
             if (draft.isBlank()) Text(
                 stringResource(if (night) R.string.quota_write_hint else R.string.quota_write_hint_reset), style = MaterialTheme.typography.bodySmall, color = Cm.text2,
-                modifier = Modifier.padding(top = 2.dp, bottom = 8.dp),
-            ) else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                if (canDefer) TextButton(onClick = { if (actions.sendAtReset(draft)) onDeferred() }) { Text(stringResource(R.string.send_at_reset), color = keys, fontWeight = FontWeight.SemiBold) }
-                if (canTonight) TextButton(onClick = { if (actions.sendTonight(draft)) onDeferred() }) { Text(stringResource(R.string.send_tonight), color = keys, fontWeight = FontWeight.SemiBold) }
+                modifier = Modifier.padding(end = 6.dp),
+            )
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(onClick = actions.overview) { Text(stringResource(R.string.home_sec_usage), color = keys, fontWeight = FontWeight.SemiBold) }
+                if (draft.isNotBlank() && canDefer) TextButton(onClick = { if (actions.sendAtReset(draft)) onDeferred() }) { Text(stringResource(R.string.send_at_reset), color = keys, fontWeight = FontWeight.SemiBold) }
+                if (draft.isNotBlank() && canTonight) TextButton(onClick = { if (actions.sendTonight(draft)) onDeferred() }) { Text(stringResource(R.string.send_tonight), color = keys, fontWeight = FontWeight.SemiBold) }
             }
         }
     }

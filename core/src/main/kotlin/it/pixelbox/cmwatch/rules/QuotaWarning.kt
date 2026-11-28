@@ -34,4 +34,13 @@ object QuotaWarning {
         val projected = pace.projected ?: return null
         return if (projected >= 100) Warn(name, pct, reset, projected = true) else null
     }
+
+    /**
+     * app-avviso-giallo-28-11 (Franz 28/11 17:19: «serve cambiare anche l'ingombro o comunque dare la possibilità di chiuderlo»): chiuso
+     * con la ×, l'avviso dell'account torna solo a una soglia nuova (il ritmo sotto il 70 %, poi 70, poi 90) o dopo l'azzeramento della
+     * finestra. [closeKey] è quello che si ricorda per account; [shown] dice se l'avviso va mostrato.
+     */
+    fun band(w: Warn): Int = when { w.pct >= THRESHOLD -> 90; w.pct >= 70 -> 70; else -> 0 }
+    fun closeKey(w: Warn): String = "${band(w)}@${w.resetAt}"
+    fun shown(w: Warn, closed: String?): Boolean = closed != closeKey(w)
 }

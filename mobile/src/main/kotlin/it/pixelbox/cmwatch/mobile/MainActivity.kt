@@ -377,6 +377,10 @@ class MainActivity : ComponentActivity() {
         val tunePicks = remember { androidx.compose.runtime.mutableStateMapOf<String, Tune.Pick>() }
         // La riga «Risultati» chiusa con la X, per sessione: il risultato più recente di allora (Guardare.lastKey).
         val resultsPrefs = remember { getSharedPreferences("results_closed", MODE_PRIVATE) }
+        // app-avviso-giallo-28-11 (Franz 28/11 17:19): l'avviso della 5 ore chiuso con la ×, per account; torna a una soglia nuova o dopo
+        // l'azzeramento della finestra (QuotaWarning.shown).
+        val quotaPrefs = remember { getSharedPreferences("quota_closed", MODE_PRIVATE) }
+        var quotaClosed by remember { mutableStateOf(quotaPrefs.all.mapNotNull { (k, v) -> (v as? String)?.let { k to it } }.toMap()) }
         val resultsClosed = remember { androidx.compose.runtime.mutableStateMapOf<String, String>().apply { resultsPrefs.all.forEach { (k, v) -> (v as? String)?.let { put(k, it) } } } }
         var refreshing by remember { mutableStateOf(false) }
         val scope = rememberCoroutineScope()
@@ -2410,6 +2414,11 @@ class MainActivity : ComponentActivity() {
                                 true
                             } ?: false },
                             overview = goUsage,
+                            closeQuota = { quotaWarn?.let { w ->
+                                val k = it.pixelbox.cmwatch.rules.QuotaWarning.closeKey(w)
+                                quotaClosed = quotaClosed + (w.account to k)
+                                quotaPrefs.edit().putString(w.account, k).apply()
+                            } },
                             // Proposta approvata (01/10 21:19): la master legge la sessione e risponde nella sua chat.
                             speakFrom = { t, i -> speech.speakBlocks(t, i, session.name) },
                             // Contratto 1.51: senza un comando di handoff il tasto non c'è.
@@ -2428,7 +2437,7 @@ class MainActivity : ComponentActivity() {
                             askMaster = it.pixelbox.cmwatch.rules.ContextActions.master(state)?.takeIf { m -> m.name != session.name }?.let { m -> { askMasterAbout(m.name, session.name) } },
                             changes = readChanges(session.name),
                             menuState = state, mine = mineOf(session.name), openMine = { k -> openMine(session.name, k) },
-                        ), chat = rows, quota = quotaWarn, accountQuota = state?.quota?.get(session.account), canTonight = nightDir != null,
+                        ), chat = rows, quota = quotaWarn?.takeIf { w -> it.pixelbox.cmwatch.rules.QuotaWarning.shown(w, quotaClosed[w.account]) }, accountQuota = state?.quota?.get(session.account), canTonight = nightDir != null,
                             // Niente frasi rapide (Franz, 01/10 23:34: «via» fisso, generico e fuori luogo): i consigli in più
                             // li scriverà la sessione stessa a fine turno.
                             choices = state?.choices, ops = state?.ops, canTune = !demo, canAttach = state?.share != null,

@@ -64,4 +64,17 @@ class QuotaWarningTest {
         val low = listOf(QuotaHistory.Sample(now, 2), QuotaHistory.Sample(now + 3600, 15))
         assertNull(QuotaWarning.of(personal(p.copy(h5 = 15)), atlas, low, now + 3600))
     }
+
+    // app-avviso-giallo-28-11: chiuso, l'avviso torna solo a una soglia nuova o dopo l'azzeramento.
+    @Test fun closedComesBackOnlyAtANewBandOrAfterTheReset() {
+        val pace = QuotaWarning.Warn("personal", 36, 5_000, projected = true)
+        val closed = QuotaWarning.closeKey(pace)
+        assertFalse(QuotaWarning.shown(pace, closed))
+        assertFalse("stessa soglia, stesso azzeramento", QuotaWarning.shown(pace.copy(pct = 52), closed))
+        assertTrue("70 %", QuotaWarning.shown(pace.copy(pct = 70), closed))
+        assertTrue("90 %", QuotaWarning.shown(pace.copy(pct = 94, projected = false), QuotaWarning.closeKey(pace.copy(pct = 75))))
+        assertTrue("dopo l'azzeramento", QuotaWarning.shown(pace.copy(resetAt = 23_000), closed))
+        assertTrue("mai chiuso", QuotaWarning.shown(pace, null))
+        assertEquals(listOf(0, 70, 90), listOf(36, 70, 90).map { QuotaWarning.band(pace.copy(pct = it)) })
+    }
 }
