@@ -19,7 +19,7 @@
   import Kpi4 from './Kpi4.svelte'
   import PluginsSection from './PluginsSection.svelte'
   import type { KpiData, PluginsPage } from './contract'
-  import { day as kpiDay, dayFigures, HANDOFF, boardFold, boardMatch, boardShown, boardTap, head as kpiHead, resultsOf, hourly, midnight, outcomes as kpiOutcomes, split as kpiSplit, todayShare, turnsOf, waitingSince } from './kpi'
+  import { suggestions7d, day as kpiDay, dayFigures, HANDOFF, boardFold, boardMatch, boardShown, boardTap, head as kpiHead, resultsOf, hourly, midnight, outcomes as kpiOutcomes, split as kpiSplit, todayShare, turnsOf, waitingSince } from './kpi'
   import { before as kBefore, nextStep as kNext, results as kResultsOf, task as kTask } from './sessionK'
   import type { TimelinePage } from './contract'
   import { actionOf, consumersLine, isOpen as sysIsOpen, num as sysNum, summaryLine, type Manual } from './system'
@@ -198,6 +198,9 @@
      */
     entrata?: Entrata
   } = $props()
+  // app-suggerimenti-push-27-11: «% accettati» dei sette giorni dalla push (contratto 1.164), che cambia appena Franz accetta;
+  // senza il campo, dall'op kpi come prima.
+  const sugg7 = $derived(suggestions7d(st, kpiData))
   const today = todayIso()
   // L'ordine nuovo vale subito, finché il relay non lo conferma.
   let sentOrder = $state<{ from: string; cats: Cat[]; pin: HomeSection | null; top: HomeKey[] } | null>(null)
@@ -934,7 +937,7 @@
 {#snippet secSuggestions()}
 {#if shows('you') && suggestions && suggestionsN}
   {@render sec('suggestions', t.sugTitle, 'auto_awesome', String(suggestionsTotal ?? suggestionsN), 'home-sez-suggerimenti', !part && !open.suggestions && suggestionsAt ? t.homeLastAt(hhmm(suggestionsAt)) : null, { hot: true })}
-  {#if open.suggestions}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="foldin"><div class="sugg">{@render suggestions()}</div>{#if kpiData?.kpi_suggestions_7d}<Kpi13 s={kpiData.kpi_suggestions_7d} />{/if}</div></div>{/if}
+  {#if open.suggestions}<div class="fold" in:fold out:fold={{ ms: 150 }}><div class="foldin"><div class="sugg">{@render suggestions()}</div>{#if sugg7}<Kpi13 s={sugg7} />{/if}</div></div>{/if}
 {/if}
 {/snippet}
 <!-- I Monitoraggi (app-monitoraggi-09-11): l'ultima sezione di Dalla master; il numero si accende quando uno è da guardare. -->

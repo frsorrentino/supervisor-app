@@ -391,6 +391,9 @@ export type State = {
   system?: SystemStatus | null
   /** Contratto 1.95: plugin con un aggiornamento, per account; assente con un relay precedente. */
   plugins?: { checked_at: number | null; accounts: { account: string; updates: string[] }[] } | null
+  /** Contratto 1.164: gli stessi numeri di `kpi_suggestions_7d` in ogni push, così «% accettati» cambia subito dopo un Accetta;
+   *  assente con un relay precedente o se lo storico non si legge, e allora vale l'op `kpi`. */
+  suggestions_7d?: KpiSuggestions | null
 }
 
 /** Contratto 1.95: l'elenco intero dell'op `plugins`. `latest` null se il marketplace non lo dice; `update` null se non si sa. */

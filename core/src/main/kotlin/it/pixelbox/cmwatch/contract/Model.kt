@@ -746,6 +746,11 @@ enum class CmdOp {
     val system: SystemStatus? = null,
     /** Contratto 1.95: plugin con un aggiornamento, per account; null con un relay precedente. */
     val plugins: PluginsSummary? = null,
+    /**
+     * Contratto 1.164: gli stessi numeri di `kpi_suggestions_7d` in ogni push, così «% accettati» cambia subito dopo un Accetta;
+     * null con un relay precedente o se lo storico non si legge, e allora vale l'op `kpi`.
+     */
+    @SerialName("suggestions_7d") val suggestions7d: KpiSuggestions? = null,
 )
 
 /**

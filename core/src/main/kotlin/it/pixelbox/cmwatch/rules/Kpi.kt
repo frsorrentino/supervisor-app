@@ -344,6 +344,12 @@ object Kpi {
 
     fun suggestionsTotal(s: KpiSuggestions): Int = s.accepted + s.discussed + s.later + s.never + s.expired
 
+    /**
+     * 13 · i suggerimenti dei sette giorni: quelli della push quando ci sono (contratto 1.164, app-suggerimenti-push-27-11), che cambiano
+     * appena Franz accetta o sceglie; altrimenti quelli dell'op `kpi`, riletta al più ogni 5 minuti.
+     */
+    fun suggestions7d(st: State?, kpi: KpiData?): KpiSuggestions? = st?.suggestions7d ?: kpi?.suggestions7d
+
     /** 17 · le attese chiuse nella settimana e la mediana più alta, per la scala delle colonne. */
     fun waitsClosed(w: KpiWaits): Int = w.week.sumOf { it.n }
     fun waitsTop(w: KpiWaits): Double = w.week.mapNotNull { it.medianMin }.maxOrNull() ?: 0.0

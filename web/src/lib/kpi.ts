@@ -283,6 +283,11 @@ export function turnsSummary(turns: KpiTurn[]): TurnsSummary {
 
 export const suggestionsTotal = (s: KpiSuggestions) => s.accepted + s.discussed + s.later + s.never + s.expired
 
+/** 13 · i suggerimenti dei sette giorni: quelli della push quando ci sono (contratto 1.164, app-suggerimenti-push-27-11), che cambiano
+ *  appena Franz accetta o sceglie; altrimenti quelli dell'op `kpi`, riletta al più ogni 5 minuti. */
+export const suggestions7d = (st: Pick<State, 'suggestions_7d'> | null | undefined, kpi: Pick<KpiData, 'kpi_suggestions_7d'> | null | undefined): KpiSuggestions | null =>
+  st?.suggestions_7d ?? kpi?.kpi_suggestions_7d ?? null
+
 /** 13 · la parte accettata in percento; null senza suggerimenti nei sette giorni. */
 export function acceptRate(s: KpiSuggestions): number | null {
   const total = suggestionsTotal(s)
