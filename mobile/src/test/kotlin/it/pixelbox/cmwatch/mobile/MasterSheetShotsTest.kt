@@ -31,9 +31,12 @@ import java.time.ZoneId
  * home, con la conversazione fra la sua riga e il campo. Golden da CI; niente golden del movimento.
  */
 class MasterSheetShotsTest {
+    // La home dietro al foglio è rimpicciolita (0,96-0,98): il ricampionamento cambia l'antialiasing da una macchina della CI all'altra
+    // (0,011-0,017 % dei pixel, run di cd711890, 28/11); la tolleranza dello 0,1 % lo accetta, come per i pannelli della quota.
     @get:Rule val paparazzi = Paparazzi(
         deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenWidth = (360 * 2.75).toInt(), screenHeight = (780 * 2.75).toInt()),
         theme = "android:Theme.Material.NoActionBar",
+        maxPercentDifference = 0.1,
     )
     private val st = ContractJson.decodeState(File("../contract/state-1-question.json").readText())
     private val none = SheetActions({}, {}, { _, _ -> }, {}, {}, {}, {}, {}, {})
