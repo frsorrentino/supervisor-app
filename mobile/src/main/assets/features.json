@@ -1877,8 +1877,8 @@
     "en": "Close a session"
    },
    "what": {
-    "it": "Manda /exit dopo una conferma che dice cosa si salva; anche tutte le finite insieme.",
-    "en": "Sends /exit after a confirmation saying what is saved; also all finished ones together."
+    "it": "Tenendo premuto il tasto rosso salva lo stato e manda /exit; anche tutte le finite insieme.",
+    "en": "Holding the red button saves the state and sends /exit; also all finished ones together."
    },
    "where": {
     "it": "Menu della sessione, Sessioni",
@@ -1891,18 +1891,18 @@
     "en": "Useful to clear from the home what has finished."
    },
    "how": {
-    "it": "Apri il menu della sessione e tocca Chiudi; «Chiudi le finite» sta in Sessioni.",
-    "en": "Open the session menu and tap Close; «Close finished» is in Sessions."
+    "it": "Apri il menu della sessione e tieni premuto «Tieni premuto per chiudere» finché diventa la spunta; «Chiudi le finite» sta in Sessioni.",
+    "en": "Open the session menu and hold «Hold to close» until it turns into a check; «Close finished» is in Sessions."
    },
    "route": null,
    "section": null,
    "phone": {
     "file": "mobile/src/main/res/values/strings.xml",
-    "needle": "name=\"menu_exit\""
+    "needle": "name=\"hold_close\""
    },
    "web": {
     "file": "web/src/lib/t.ts",
-    "needle": "menuExit"
+    "needle": "holdClose"
    },
    "image": "chiudi.webp"
   },

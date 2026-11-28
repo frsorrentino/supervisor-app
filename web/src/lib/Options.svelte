@@ -2,6 +2,9 @@
   import type { Question } from './contract'
   import { inline as isInline, needsLongPress, optionLabel, optionNote, optionText, primaryIndex } from './questionRules'
   import { t } from './t'
+  import HoldButton from './HoldButton.svelte'
+  import { holdMs, holdOption } from './tieniPremuto'
+  import { HOLD_ICON } from './icons'
   // Le opzioni di una domanda, uguali dovunque (QuestionOptions dell'app): la prima piena se è l'azione della schermata,
   // brevi su una riga in parti uguali, lunghe una sotto l'altra; col rischio alto risponde solo la pressione lunga, e il
   // clic breve lo ricorda.
@@ -14,6 +17,10 @@
   let held: ReturnType<typeof setTimeout> | null = null
   let fired = false
   const HOLD_MS = 600
+  // app-tieni-premuto-28-11: l'opzione consigliata di una domanda che pubblica («Deploy now?») lascia l'elenco e diventa il tasto ambra da
+  // tenere premuto 1,5 s, sotto le altre; le altre restano com'erano.
+  const hold = $derived(holdOption(q))
+  const holdLabel = $derived(q.options.find(o => o.n === hold))
   function down(n: number, e: PointerEvent) {
     if (!long || e.button !== 0) return
     fired = false
@@ -28,16 +35,20 @@
 
 {#if long}<p class="warn" class:hint>{hint ? t.questionHold : t.questionHighRisk}</p>{/if}
 <div class="opts" class:row>
-  {#each q.options as o, i}
+  {#each q.options as o, i}{#if o.n !== hold}
     {@const note = optionNote(o, t.optionRecommended)}
     <button class="opt" class:filled={i === primary && firstFilled} class:rec={i === primary} class:long style="--tonal:{tonal}"
       onpointerdown={(e) => down(o.n, e)} onpointerup={up} onpointerleave={up} onpointercancel={up} onclick={(e) => click(o.n, e)}
       oncontextmenu={(e) => long && e.preventDefault()}><span class="lbl">{optionLabel(o)}</span><span class="v3l"><span class="k">{o.n}</span>{optionText(o.label)}</span>{#if note}<small>{note}</small>{/if}</button>
-  {/each}
+  {/if}{/each}
 </div>
+{#if hold != null && holdLabel}
+  <div class="pub"><HoldButton tone="amber" ms={holdMs('pubblica')} icon={HOLD_ICON.rocket} label={t.holdPublish} aria={`${t.holdPublish}: ${optionLabel(holdLabel)}`} said={t.holdSaidPublish} stop testid="domanda-pubblica" onDone={() => onAnswer(hold!)} /></div>
+{/if}
 
 <style>
   .warn { font-size: 14px; font-weight: 500; color: var(--b-warn); }
+  .pub { margin-top: 8px; }
   .warn.hint { color: var(--wait); }
   .opts { display: flex; flex-direction: column; gap: 6px; }
   .opts.row { flex-direction: row; gap: 2px; }

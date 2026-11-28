@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import it.pixelbox.cmwatch.contract.*
 import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.BancoProva
+import it.pixelbox.cmwatch.rules.TieniPremuto
 import it.pixelbox.cmwatch.rules.CinqueMinuti
 import it.pixelbox.cmwatch.rules.HeadsUpNote
 import it.pixelbox.cmwatch.rules.OkInformato
@@ -232,7 +233,14 @@ fun DaProvareBody(
                         Spacer(Modifier.weight(1f))
                         if (b != BancoProva.Build.TO_INSTALL) {
                             OutlinedButton(onClick = { ko = p }, enabled = pk == null, modifier = Modifier.graphicsLayerAlpha(if (pk == "ok") 0.35f else 1f)) { Text(stringResource(R.string.prove_ko)) }
-                            ConfirmButton(stringResource(R.string.prove_ok), confirmed = pk == "ok", enabled = pk == null, faded = pk == "ko") { act(listOf(id), "ok") { onOk(id) } }
+                            // app-tieni-premuto-28-11 (correzione della master del 28/11): il Va resta un tocco, col finale del cerchio verde; la riga
+                            // esce dopo la spunta, e se il PC rifiuta il tasto torna.
+                            Box(Modifier.graphicsLayerAlpha(if (pk == "ko") 0.35f else 1f)) {
+                                HoldButton(
+                                    stringResource(R.string.prove_ok), onDone = { act(listOf(id), "ok") { onOk(id) } }, mode = TieniPremuto.Mode.TAP, tone = HoldTone.GREY,
+                                    form = HoldForm.MINI, said = stringResource(R.string.hold_said_ok), on = pk == "ok", enabled = pk == null, tag = "prova-va",
+                                )
+                            }
                         }
                     }
                 }
@@ -251,7 +259,10 @@ fun DaProvareBody(
                         LongText(k.text, style = V3.Body)
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Spacer(Modifier.weight(1f))
-                            Box(Modifier.testTag("prova-ora-va")) { ConfirmButton(stringResource(R.string.prove_now_ok), confirmed = pk == "ok", enabled = pk == null) { act(listOf(now.row), "ok") { onOk(now.arg) } } }
+                            HoldButton(
+                                stringResource(R.string.prove_now_ok), onDone = { act(listOf(now.row), "ok") { onOk(now.arg) } }, mode = TieniPremuto.Mode.TAP, tone = HoldTone.GREY,
+                                form = HoldForm.MINI, said = stringResource(R.string.hold_said_ok), on = pk == "ok", enabled = pk == null, tag = "prova-ora-va",
+                            )
                         }
                     }
                 }

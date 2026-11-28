@@ -3,15 +3,16 @@
 import type { CmdResult, WaitItem } from './contract'
 import { newCmd } from './transport'
 import { cmdOf } from './tiAspetta'
-import { markAnswered } from './attese.svelte'
+import { answeredLater } from './attese.svelte'
 
-export async function answerWait(run: (c: ReturnType<typeof newCmd>) => Promise<CmdResult | null>, w: WaitItem, index: number, written: string | null = null): Promise<boolean> {
+/** `wait` (app-tieni-premuto-28-11): dopo un ok a un tocco la voce esce a spunta disegnata. */
+export async function answerWait(run: (c: ReturnType<typeof newCmd>) => Promise<CmdResult | null>, w: WaitItem, index: number, written: string | null = null, wait = 0): Promise<boolean> {
   const a = w.actions?.[index]
   if (!a) return false
   const c = cmdOf(a, a.text_field ? written : null)
-  markAnswered(w.id)
+  const out = answeredLater(w.id, wait)
   const r = await run({ ...newCmd(c.op as Parameters<typeof newCmd>[0], c.session ?? null, c.arg ?? null), ...c } as ReturnType<typeof newCmd>)
   if (r?.ok) return true
-  markAnswered(w.id, false)
+  out.undo()
   return false
 }

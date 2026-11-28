@@ -99,6 +99,14 @@ object MasterSheet {
      */
     fun corner(a: Anchors, h: Float, max: Float): Float = (a.full - h).coerceIn(0f, max)
 
+    /**
+     * app-barra-ibrida-28-11 (Franz 16:41, «non dispone in modo centrato il titolo o non stringe in altezza l'header per sfruttare lo
+     * spazio avanzato»): aperto, senza l'ultimo esito, la riga del titolo si stringe di [max] («Master», ▶ e ⋮ al centro di una riga sola)
+     * e la capsula sale sotto di lei. Cresce coi primi [max] di corsa dalla riga, così niente salta; la misura «riga» non cambia. In px.
+     */
+    const val LIFT_DP = 12f
+    fun lift(a: Anchors, h: Float, max: Float): Float = (h - a.row).coerceIn(0f, max)
+
     /** Quanto è salito il foglio: 0 alla riga, 1 all'intera. Guida il velo, l'arretramento della home e l'ombra sopra il bordo. */
     fun progress(a: Anchors, h: Float): Float = if (a.full <= a.row) 0f else ((h - a.row) / (a.full - a.row)).coerceIn(0f, 1f)
 

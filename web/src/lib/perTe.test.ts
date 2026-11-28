@@ -58,7 +58,10 @@ describe('Dalla master per sessione e il consiglio sulla riga', () => {
   it('il consiglio: approvare su un ok, la scelta consigliata col numero del tasto, niente senza', () => {
     const ok = voceOf(items.find(w => w.id === 'w17f9a258a0')!)
     expect(ok.advice).toEqual({ approve: true, option: null })
-    expect(ok.main).toEqual({ index: 0, label: '1 · Approva', direct: true, recommended: true })
+    // app-tieni-premuto-28-11: l'ok di «pubblica 1.4» pubblica, quindi si tiene premuto nella sua scheda e la riga la apre.
+    expect(ok.main).toEqual({ index: 0, label: '1 · Approva', direct: false, recommended: true })
+    // Il Va di una prova resta un tocco sulla riga, col finale del cerchio verde.
+    expect(voceOf(items.find(w => w.id === 'wdd48019c59')!).main).toEqual({ index: 0, label: 'Va', direct: true, recommended: false, tap: true })
     expect(voceOf(items.find(w => w.id === 'wdd48019c59')!).advice).toBeNull()
     const pick = mainOf([{ label: 'no', style: 'option' }, { label: 'sì', style: 'option', recommended: true }])
     expect(adviceOf({ advice: { text: 'già provato' } }, pick)).toEqual({ approve: null, option: '2 · sì' })

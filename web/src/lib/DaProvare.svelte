@@ -16,6 +16,7 @@
   import { revoke, type Allegato, type CardFiles } from './allegatiCarta'
   import type { State } from './contract'
   import { prove, proveKo, proveRed } from './itemRows'
+  import HoldButton from './HoldButton.svelte'
   // «Da provare» (contratto 1.99, banco_prova), porta di DaProvareScreen. Sul web vale l'ultima versione online: nessuna prova aspetta un'installazione.
   // `focus` (app-prova-link-diretta-10-11): la prova di un link «prova #N», aperta, in vista ed evidenziata.
   // `only` (app-sessioni-compatte-06-11): solo le verifiche di una sessione, dentro la sua scheda; o solo quelle senza.
@@ -115,14 +116,15 @@
         <div class="ac">
           {#if screen(p.dove)}<button class="text" onclick={() => onScreen(screen(p.dove)!)}>{t.featuresGo}</button>{/if}
           <span class="sp"></span>
-          <button class="out" class:fade={pk === 'ok'} disabled={!!pk} onclick={() => openKo(p)}>{t.proveKo}</button><button class="tonal ck" class:done={pk === 'ok'} class:fade={pk === 'ko'} disabled={!!pk} onclick={() => result([String(p.id)], String(p.id), 'ok')}><span class="lbl">{t.proveOk}</span>{#if pk === 'ok'}<Check />{/if}</button>
+          <button class="out" class:fade={pk === 'ok'} disabled={!!pk} onclick={() => openKo(p)}>{t.proveKo}</button><!-- app-tieni-premuto-28-11 (correzione della master del 28/11): il Va resta un tocco, col finale del cerchio verde; la riga esce dopo la spunta, e se il PC rifiuta il tasto torna. -->
+          <span class:fade={pk === 'ko'}><HoldButton mode="tap" size="mini" tone="grey" label={t.proveOk} said={t.holdSaidOk} on={pk === 'ok'} disabled={!!pk && pk !== 'ok'} testid="prova-va" onDone={() => result([String(p.id)], String(p.id), 'ok')} /></span>
         </div>
       </div>{/if}{/snippet}</ItemList>
   {/each}
   <!-- Una prova segnalata si chiude con «Ora va» quando, riprovata, va (app-verifica-conto-elenco-12-11): è l'Ok di una prova, che il relay
        accetta anche dopo un «Non va». -->
   {#if koShown.length}<div class="h"><span>{t.proveReported}</span></div><ItemList rows={koShown.map(proveKo)} testid="prova-ko">{#snippet card(r)}{@const k = koShown.find(x => `ko-${x.id}` === r.key)}{@const pk = picked[r.key]}<div class="in"><div class="m"><LongText text={k?.text ?? ''} /></div>
-      {#if k}<div class="ac"><span class="sp"></span><button class="tonal ck" class:done={pk === 'ok'} disabled={!!pk} data-testid="prova-ora-va" onclick={() => result([r.key], String(k.id), 'ok')}><span class="lbl">{t.proveNowOk}</span>{#if pk === 'ok'}<Check />{/if}</button></div>{/if}</div>{/snippet}</ItemList>{/if}
+      {#if k}<div class="ac"><span class="sp"></span><HoldButton mode="tap" size="mini" tone="grey" label={t.proveNowOk} said={t.holdSaidOk} on={pk === 'ok'} disabled={!!pk && pk !== 'ok'} testid="prova-ora-va" onDone={() => result([r.key], String(k.id), 'ok')} /></div>{/if}</div>{/snippet}</ItemList>{/if}
   {#if page?.red.length}<div class="h"><span>{t.proveRed}</span></div><ItemList rows={page.red.map(proveRed)} testid="prova-rossa">{#snippet card(r)}<div class="r in"><LongText text={page?.red.find(x => `red-${x.task}` === r.key)?.reason ?? t.proveRedRunning} /></div>{/snippet}</ItemList>{/if}
   {#if (page?.groups ?? []).some(g => shown(g).length)}<p class="m small">{t.proveWeb}</p>{/if}
   {#if ko}

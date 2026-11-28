@@ -2,7 +2,11 @@
   import { MASTER } from './summary'
   import { MENU_ICON, mineOf, sessionMenu, type MenuKind } from './sessionMenu'
   import { genie } from './motion'
-  import CloseDialog from './CloseDialog.svelte'
+  import HoldButton from './HoldButton.svelte'
+  import { holdMs } from './tieniPremuto'
+  import { later } from './undo.svelte'
+  import { close as closeOk } from './vociAssenti'
+  import { HOLD_ICON } from './icons'
   import type { CmdOp, Model, Session, State } from './contract'
   import { modelKind, nextTurn, notes as notesOf, quotaLabel, resetLabel, sameModel, shortModel, tone, wider as widerOf, type QuotaForm, type Tone } from './header'
   import { t } from './t'
@@ -79,6 +83,8 @@
   const has = (k: MenuKind) => items.some(i => i.kind === k)
   const wider = $derived(widerOf({ ...s, model }, st.choices))
   const canExit = $derived(!!st.slash?.includes('exit') && s.state !== 'gone')
+  // Contratto 1.155: «Salva e chiudi» (`close` con save) per una sessione, non per la master; senza l'op resta /exit.
+  const canSaveClose = $derived(!s.master && s.name !== MASTER && !!st.ops?.includes('close'))
   // Contratto 1.37: il consiglio di fable-director, dentro il foglio; il puntino solo se la scelta attuale è diversa.
   const advice = $derived(adviceOf(s, st.choices, st.ts))
   // Tre pillole uguali (variante A, scelta da Franz il 09/10 alle 17:50): la quota prende la forma più lunga che ci sta,
@@ -148,13 +154,22 @@
   const arc = (pct: number) => `${Math.max(0, Math.min(100, pct)) * 0.4712} 100`
 
   let menu = $state(false)
+  // app-tieni-premuto-28-11: il pannello sta dentro lo schermo, sotto il ⋮, come Modello ed effort: a 360 px, ancorato al bordo destro del
+  // ⋮, usciva di 30 px a sinistra e tagliava i tasti da tenere premuto.
+  let menuPos = $state('')
+  function toggleMenu(e: MouseEvent) {
+    if (menu) { menu = false; return }
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect(), vw = window.innerWidth
+    const w = Math.min(380, vw - 24), top = Math.round(r.bottom + 6)
+    menuPos = `position:fixed;top:${top}px;left:${Math.round(Math.max(12, Math.min(r.right - w, vw - w - 12)))}px;right:auto;width:${w}px;max-height:calc(100dvh - ${top + 12}px);overflow-y:auto`
+    menu = true
+  }
   // La scheda dei permessi a pressione lunga sulla pillola (PermissionUi dell'app): segno, nome e spiegazione.
   let permTip = $state(false)
   let held = false
   let holdTimer: ReturnType<typeof setTimeout> | undefined
   let tune: HTMLDialogElement | undefined = $state()
   let ctx: HTMLDialogElement | undefined = $state()
-  let closer: CloseDialog | undefined = $state()
   function close(d?: HTMLDialogElement) { d?.close() }
   function setModel(m: Model) { picked.model = m; picked.modelAt = nowS(); onCmd('model', m.id); close(tune); close(ctx) }
   function setEffort(e: string) { picked.effort = e; picked.effortAt = nowS(); onCmd('effort', e); close(tune) }
@@ -285,14 +300,14 @@
 {#snippet more()}
   <span class="anchor">
     <!-- Aperto il menu, «⋮» diventa «×» e lo richiude (Genie, app-genie-menu-09-11); sta sopra lo sfondo che chiude. -->
-    <button class="ib trig" class:open={menu} aria-label={menu ? t.closeWord : t.more} aria-expanded={menu} onclick={() => (menu = !menu)}>
+    <button class="ib trig" class:open={menu} aria-label={menu ? t.closeWord : t.more} aria-expanded={menu} onclick={toggleMenu}>
       {#if menu}<svg viewBox="0 0 24 24" width="22" height="22"><path d="M18 6 6 18M6 6l12 12" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round" /></svg>
       {:else}<svg viewBox="0 0 24 24" width="22" height="22"><g fill="var(--text2)"><circle cx="12" cy="5" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="12" cy="19" r="2" /></g></svg>{/if}
       {#if changesMenu}<span class="mdot" aria-hidden="true"></span>{/if}
     </button>
     {#if menu}
       <button class="scrim" aria-label={t.closeWord} onclick={() => (menu = false)}></button>
-      <div class="panel v3" transition:genie role="menu">
+      <div class="panel v3" style={menuPos} transition:genie role="menu">
         <div class="ph"><Badge {s} size={20} /><b>{s.name}</b></div>
         {#if has('changes') && changes}
           <button class="mi" role="menuitem" disabled={!onChanges} onclick={() => { menu = false; onChanges?.() }}>
@@ -322,19 +337,25 @@
             <span><span class="mt">{t.openInClaude}</span><span class="msub">{t.openInClaudeSub}</span></span>
           </a>
         {/if}
-        {#if has('restart_clean')}
-          <button class="mi" role="menuitem" onclick={() => { menu = false; onHandoff() }}>
-            <svg viewBox="0 0 24 24" width="22" height="22"><path d={MENU_ICON.restart_clean} /></svg>
-            <span><span class="mt">{t.smenuRestart}</span><span class="msub">{t.smenuRestartSub}</span></span>
+        <!-- app-posizioni-sistema-27-11 gruppo 5: via le voci delle posizioni della master, spente dal 03/11. -->
+        <!-- app-tieni-premuto-28-11 (Franz 28/11 16:22): «Chiudi senza salvare» resta una voce, con l'Annulla di 5 s che è la sua conferma. -->
+        {#if has('exit') && canSaveClose && closeOk(s)}
+          <button class="mi" role="menuitem" data-testid="menu-chiudi-senza-salvare" onclick={() => { menu = false; const n = s.name; later(t.undoClose(n), () => onCmd('slash', 'exit')) }}>
+            <svg viewBox="0 0 24 24" width="22" height="22"><path d={HOLD_ICON.logout} /></svg>
+            <span><span class="mt">{t.closeNoSave}</span><span class="msub">{t.menuNoSaveSub}</span></span>
           </button>
         {/if}
-        <!-- app-posizioni-sistema-27-11 gruppo 5: via le voci delle posizioni della master, spente dal 03/11. -->
-        {#if has('exit')}
-          <hr />
-          <button class="mi danger" role="menuitem" onclick={() => { menu = false; closer?.ask(s) }}>
-            <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 2v10M18.4 6.6a9 9 0 1 1-12.8 0" /></svg>
-            <span><span class="mt">{t.menuExit}</span><span class="msub">{t.menuExitSub}</span></span>
-          </button>
+        <!-- app-tieni-premuto-28-11: in fondo i tasti da tenere premuto, al posto della voce e della carta «Chiudere X?» di prima.
+             Ripartire 1 s col colore del testo; chiudere 1,2 s in rosso, che fa quello che faceva «Salva e chiudi» (handoff, poi /exit;
+             la master e un relay senza «close»: /exit). Con Franz al PC su questa sessione niente chiusura: il motivo, come la carta. -->
+        {#if has('restart_clean') || has('exit')}
+          <div class="holds">
+            {#if has('restart_clean')}<HoldButton tone="ink" ms={holdMs('riparti')} icon={MENU_ICON.restart_clean} label={t.holdRestart} said={t.holdSaidRestart(s.name)} testid="tieni-ripartire" onDone={() => { menu = false; onHandoff() }} />{/if}
+            {#if has('exit')}
+              {#if closeOk(s)}<HoldButton tone="red" ms={holdMs('chiudi')} icon={HOLD_ICON.power} label={t.holdClose} said={t.holdSaidClose(s.name)} testid="tieni-chiudere" onDone={() => { menu = false; if (canSaveClose) onCmd('close', 'save'); else onCmd('slash', 'exit') }} />
+              {:else}<div class="ck-attached" data-testid="close-blocked"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2" /><path d="M8 20h8M12 16v4" /></svg><span><b>{t.closeBlockedAttached}</b><small>{t.closeBlockedLine}</small></span></div>{/if}
+            {/if}
+          </div>
         {/if}
       </div>
     {/if}
@@ -421,7 +442,6 @@
   {/if}
 </dialog>
 
-<CloseDialog bind:this={closer} canSave={!s.master && s.name !== MASTER && !!st.ops?.includes('close')} onConfirm={(_, save) => (save ? onCmd('close', 'save') : onCmd('slash', 'exit'))} />
 
 <style>
   header { border-bottom: 1px solid var(--line); padding: 2px 0 6px; background: var(--bg); }
@@ -554,9 +574,6 @@
   .mi > span { display: flex; flex-direction: column; gap: 2px; }
   .mt { font-size: 15.5px; }
   .msub { font-size: 12.5px; color: var(--text2); }
-  .danger svg { stroke: var(--b-alert); }
-  .danger .mt { color: var(--b-alert); }
-  hr { border: 0; height: 1px; background: var(--line); margin: 4px 8px; }
   /* Il menu ⋮ nella forma della v3 (app-menu-v3-30-10): icone grigie nel binario, una voce per riga col filo. */
   .panel { background: var(--s1); border: 1px solid var(--line); border-radius: 14px; padding: 0; overflow: hidden; }
   .ph { min-height: 54px; padding: 0 12px 0 16px; border-bottom: 1px solid var(--line); font: 600 17px var(--display); }
@@ -566,7 +583,9 @@
   .mi > :global(svg) { margin: 0 15px; stroke: var(--tx2); }
   .mt { font: 600 17px/1.2 var(--display); }
   .msub { font-size: 14px; line-height: 1.3; color: var(--tx2); }
-  hr { display: none; }
+  /* app-tieni-premuto-28-11: i tasti da tenere premuto in fondo al menu, uno per riga, col filo sopra come le voci. */
+  .holds { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px 16px; border-top: 1px solid var(--line); }
+  .holds .ck-attached { margin-top: 0; }
   /* I fogli: in basso sul telefono, una scheda al centro da 600 px (fogli adattivi dell'app). */
   dialog { margin: auto; border: 0; color: var(--text); background: var(--surface); padding: 20px 20px 24px; width: min(560px, 100vw); max-height: 85vh; border-radius: 28px; }
   dialog::backdrop { background: rgb(0 0 0 / .55); }

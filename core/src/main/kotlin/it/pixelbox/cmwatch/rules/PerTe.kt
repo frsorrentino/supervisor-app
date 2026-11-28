@@ -20,9 +20,10 @@ object PerTe {
 
     /**
      * Il tasto sulla voce: `index` nei tasti della richiesta; `direct` false = chiede un testo, quindi apre la scheda; `recommended`: è
-     * la scelta consigliata, e la riga lo mostra in ambra (app-riall-2-viste-16-11).
+     * la scelta consigliata, e la riga lo mostra in ambra (app-riall-2-viste-16-11). `tap` (app-tieni-premuto-28-11): un ok o un Va a un
+     * tocco, col finale del cerchio verde.
      */
-    data class Main(val index: Int, val label: String, val direct: Boolean, val recommended: Boolean = false)
+    data class Main(val index: Int, val label: String, val direct: Boolean, val recommended: Boolean = false, val tap: Boolean = false)
 
     /** Il tasto sta sulla voce accanto al titolo: al massimo questi caratteri, tagliato a una parola intera; l'etichetta intera è nella scheda. */
     const val MAIN_MAX = 16
@@ -82,7 +83,13 @@ object PerTe {
     fun voceOf(w: WaitItem): Voce {
         val title = one(w.title).ifEmpty { one(w.text) }
         val context = listOf(one(w.text), one(w.description)).firstOrNull { it.isNotEmpty() && it != title }
-        val main = mainOf(w.actions)
+        // app-tieni-premuto-28-11: l'ok che pubblica si tiene premuto nella sua scheda, quindi la riga la apre; ogni altro ok e ogni Va
+        // restano un tocco sulla riga ([Main.tap]), col finale del cerchio verde (correzione della master del 28/11).
+        val m = mainOf(w.actions)
+        val place = if (m != null) TieniPremuto.placeOf(w, m.index) else null
+        val main = if (m != null && place == TieniPremuto.Place.PUBBLICA) m.copy(direct = false)
+            else if (m != null && place != null) m.copy(tap = true)
+            else m
         return Voce(w.id, groupOf(w.label), title, context, w.at, wait = w, main = main, advice = adviceOf(w, main))
     }
 

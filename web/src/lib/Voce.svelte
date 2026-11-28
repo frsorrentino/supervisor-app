@@ -1,14 +1,17 @@
 <script lang="ts">
   import type { Group } from './perTe'
   import { MENU_ICON } from './sessionMenu'
+  import HoldButton from './HoldButton.svelte'
+  import { t } from './t'
   // Una voce del formato unico (app-formato-unico-12-11, variante A, tavola 2 del mockup): l'icona del tipo, il titolo, una riga di
   // contesto con da quanto aspetta, e a destra il tasto principale; il tocco sulla voce apre la sua scheda. Titolo e contesto stanno
   // ognuno su una riga, tagliati senza «…»: il testo intero è nella scheda. `hot`: la voce che aspetta una risposta, in ambra.
   // `tone`: l'esito di una prova già chiusa, al posto del tasto. `advice` (app-riall-2-viste-16-11): il consiglio di chi chiede, in
   // ambra in testa alla riga di contesto; `rec`: il tasto è la scelta consigliata, in ambra.
   // `silence` (app-silenzio-assenso-23-11): «si chiude da sola gio 26/11», in blu in testa alla riga (quella tagliata la tiene) e al posto di da quanto aspetta.
-  let { group, title, sub, ago = null, silence = null, advice = null, main = null, rec = false, tone = null, card = false, testid = undefined, onOpen, onMain = () => {} }: {
-    group: Group; title: string; sub: string; ago?: string | null; silence?: string | null; advice?: string | null; main?: string | null; rec?: boolean; tone?: 'good' | 'red' | null
+  // `tap` (app-tieni-premuto-28-11, correzione della master del 28/11): il tasto è un ok o un Va a un tocco, col finale del cerchio verde.
+  let { group, title, sub, ago = null, silence = null, advice = null, main = null, rec = false, tap = false, tone = null, card = false, testid = undefined, onOpen, onMain = () => {} }: {
+    group: Group; title: string; sub: string; ago?: string | null; silence?: string | null; advice?: string | null; main?: string | null; rec?: boolean; tap?: boolean; tone?: 'good' | 'red' | null
     /** Da sola in una chat, fuori da un blocco: col suo bordo. */
     card?: boolean; testid?: string; onOpen: () => void; onMain?: () => void
   } = $props()
@@ -26,7 +29,9 @@
     </svg>
   </span>
   <span class="tx"><span class="ti">{title}</span><span class="cx" class:good={tone === 'good'} class:red={tone === 'red'}>{#if silence}<span class="sil">{silence}</span>{advice || sub ? ' · ' : ''}{/if}{#if advice}<span class="adv">{advice}</span>{sub ? ' · ' : ''}{/if}{sub}{#if ago && !silence}{sub ? ' · ' : ''}<span class="ago">{ago}</span>{/if}</span></span>
-  {#if main}
+  {#if main && tap}
+    <HoldButton mode="tap" size="mini" tone={hot || rec ? 'amber' : 'grey'} label={main} said={t.holdSaidOk} stop testid={testid ? `${testid}-tasto` : 'voce-tasto'} onDone={onMain} />
+  {:else if main}
     <button class="mini" class:rec onclick={(e) => { e.stopPropagation(); onMain() }}>{main}</button>
   {:else}
     <svg class="chev" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>

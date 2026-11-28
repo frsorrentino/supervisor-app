@@ -526,12 +526,16 @@ class MainActivity : ComponentActivity() {
         val answerWait: (it.pixelbox.cmwatch.contract.WaitItem, Int) -> Unit = { w, i ->
             w.actions?.getOrNull(i)?.let { a ->
                 it.pixelbox.cmwatch.mobile.ui.Gesture.mark()
-                perTeSent[w.id] = true
+                // app-tieni-premuto-28-11: dopo un ok o un Va a un tocco la voce esce a spunta disegnata (LEAVE_MS), non subito; se il PC ha
+                // già detto di no, non esce.
+                var settled = false
+                val tap = it.pixelbox.cmwatch.rules.TieniPremuto.placeOf(w, i)?.let { p -> it.pixelbox.cmwatch.rules.TieniPremuto.modeOf(p) == it.pixelbox.cmwatch.rules.TieniPremuto.Mode.TAP } == true
+                if (tap) scope.launch { kotlinx.coroutines.delay(it.pixelbox.cmwatch.rules.TieniPremuto.LEAVE_MS); if (!settled) perTeSent[w.id] = true } else perTeSent[w.id] = true
                 scope.launch {
                     val sentId = runCatching { app.repo.commandOf(a, null) }.getOrNull()
                     val x = sentId?.let { id -> kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(id) }[id] } }
                     // Chiusa intanto (risposta altrove, sostituita): resta fuori, non torna.
-                    if (x?.ok == true || it.pixelbox.cmwatch.rules.WaitGone.gone(x?.text)) readWaits() else perTeSent.remove(w.id)
+                    if (x?.ok == true || it.pixelbox.cmwatch.rules.WaitGone.gone(x?.text)) readWaits() else { settled = true; perTeSent.remove(w.id) }
                 }
             }
         }
@@ -1808,7 +1812,12 @@ class MainActivity : ComponentActivity() {
             val a = v.main?.takeIf { m -> m.direct }?.let { m -> v.wait?.actions?.getOrNull(m.index) }
             when {
                 r != null -> { perTeSent[v.key] = true; guardare.seen(r); scope.launch { kotlinx.coroutines.delay(60_000); perTeSent.remove(v.key) } }
-                a != null -> { perTeSent[v.key] = true; scope.launch {
+                a != null -> {
+                    // app-tieni-premuto-28-11: dopo un ok o un Va a un tocco la riga esce a spunta disegnata (LEAVE_MS), non subito; se il PC ha
+                    // già detto di no, non esce.
+                    var settled = false
+                    if (v.main?.tap == true) scope.launch { kotlinx.coroutines.delay(it.pixelbox.cmwatch.rules.TieniPremuto.LEAVE_MS); if (!settled) perTeSent[v.key] = true } else perTeSent[v.key] = true
+                    scope.launch {
                     // Dopo l'esito del PC le attese si rileggono; un rifiuto, o nessuna risposta, rimette la voce.
                     val sentId = runCatching { app.repo.commandOf(a, null) }.getOrNull()
                     val x = sentId?.let { i -> kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(i) }[i] } }
@@ -1819,6 +1828,7 @@ class MainActivity : ComponentActivity() {
                         // rilettura col vecchio stato non la rimette; al massimo PER_TE_HOLD_MS.
                         v.wait?.let { w -> kotlinx.coroutines.withTimeoutOrNull(PER_TE_HOLD_MS) { androidx.compose.runtime.snapshotFlow { waitOthers.any { o -> o.id == w.id } }.first { here -> !here } } }
                     } else toast(x?.text)
+                    settled = true
                     perTeSent.remove(v.key)
                 } }
                 v.wait != null -> waitOpen = v.key
@@ -1934,7 +1944,12 @@ class MainActivity : ComponentActivity() {
                         waitRefresh { w -> w.id == item.id || (item.cardId != null && w.cardId == item.cardId) }
                     }
                 }
-                leave(it.pixelbox.cmwatch.rules.TiAspetta.sentWhat(a.label, if (a.textField != null) written else null), it.pixelbox.cmwatch.rules.TiAspetta.cmdSession(a))
+                val what = it.pixelbox.cmwatch.rules.TiAspetta.sentWhat(a.label, if (a.textField != null) written else null)
+                val to = it.pixelbox.cmwatch.rules.TiAspetta.cmdSession(a)
+                // app-tieni-premuto-28-11: dopo un ok o un Va a un tocco la carta esce a spunta disegnata (LEAVE_MS), non subito.
+                val tap = item?.let { x -> x.actions?.indexOf(a)?.takeIf { i -> i >= 0 }?.let { i -> it.pixelbox.cmwatch.rules.TieniPremuto.placeOf(x, i) } }
+                    ?.let { p -> it.pixelbox.cmwatch.rules.TieniPremuto.modeOf(p) == it.pixelbox.cmwatch.rules.TieniPremuto.Mode.TAP } == true
+                if (tap) scope.launch { kotlinx.coroutines.delay(it.pixelbox.cmwatch.rules.TieniPremuto.LEAVE_MS); leave(what, to) } else leave(what, to)
             }
             // Contratto 1.159 (app-silenzio-assenso-23-11): «Dai per risolto se tace» e «Annulla» mandano l'op `silence` sul compito della
             // voce e aspettano l'esito; poi la voce si rilegge, così Per te e Dalla master hanno la data.

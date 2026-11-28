@@ -95,7 +95,10 @@ class PerTeTest {
     @Test fun theAdviceOnTheRow() {
         val ok = PerTe.voceOf(rdItems.first { w -> w.id == "w17f9a258a0" })
         assertEquals(PerTe.Advice(true, null), ok.advice)
-        assertEquals(PerTe.Main(0, "1 · Approva", true, true), ok.main)
+        // app-tieni-premuto-28-11: l'ok di «pubblica 1.4» pubblica, quindi si tiene premuto nella sua scheda e la riga la apre.
+        assertEquals(PerTe.Main(0, "1 · Approva", false, true), ok.main)
+        // Il Va di una prova resta un tocco sulla riga, col finale del cerchio verde.
+        assertEquals(PerTe.Main(0, "Va", true, false, tap = true), PerTe.voceOf(rdItems.first { w -> w.id == "wdd48019c59" }).main)
         assertNull(PerTe.voceOf(rdItems.first { w -> w.id == "wdd48019c59" }).advice)
         val pick = PerTe.mainOf(listOf(act("no", "option"), act("sì", "option", true)))
         fun adv(a: it.pixelbox.cmwatch.contract.WaitAdvice?, m: PerTe.Main?) = PerTe.adviceOf(rdItems[0].copy(advice = a), m)

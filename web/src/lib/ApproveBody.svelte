@@ -3,7 +3,8 @@
   import { choices } from './approvals'
   import { t } from './t'
   import HoldButton from './HoldButton.svelte'
-  import { needsHold } from './animazioni'
+  import { holdMs, holds, LEAVE_MS } from './tieniPremuto'
+  import { HOLD_ICON } from './icons'
   import ReadButton from './ReadButton.svelte'
   // Franz 24/10 09:25: la finestra di conferma di un ok: titolo corto, la domanda una volta sola con il tasto ▶, le opzioni
   // con quella scelta evidenziata, la nota facoltativa, poi Annulla e la conferma.
@@ -13,6 +14,9 @@
   let note = $state('')
   const question = $derived([a.title, a.what, a.where ? t.approveWhere(a.where) : ''].filter(x => x && x.trim()).join('. '))
   const opts = $derived(choices(a))
+  // app-tieni-premuto-28-11: l'ok che pubblica si tiene premuto 1,5 s (tieniPremuto.holds); ogni altro ok resta un tocco col finale del
+  // cerchio verde, e la finestra si chiude a spunta disegnata.
+  const hold = $derived(holds(a))
 </script>
 
 <h3 class="ah">{choice ? t.chooseShort(choice) : a.deploy ? t.approveProdTitle : t.approveShort}</h3>
@@ -23,10 +27,10 @@
 </div>
 {#if opts.length}<div class="aopts">{#each opts as o (o)}<span class:on={o === choice}>{o}</span>{/each}</div>{/if}
 <label class="alab">{t.approveNote}<input bind:value={note} placeholder="ok" /></label>
-<div class="abtns">
+<div class="abtns" class:col={hold}>
   <button class="acancel" onclick={onCancel}>{t.cancel}</button>
-  {#if needsHold(a)}<HoldButton cls="aok" label={t.holdToApprove(choice ?? t.approve)} onDone={() => onConfirm(note)} />
-  {:else}<button class="aok" onclick={() => onConfirm(note)}>{choice ?? t.approve}</button>{/if}
+  {#if hold}<HoldButton tone="amber" ms={holdMs('pubblica')} icon={HOLD_ICON.rocket} label={t.holdPublish} aria={`${t.holdPublish}: ${choice ?? t.approve}`} said={t.holdSaidPublish} testid="approva-pubblica" onDone={() => onConfirm(note)} />
+  {:else}<HoldButton mode="tap" size="key" tone="amber" label={choice ?? t.approve} said={t.holdSaidOk} testid="approva" onDone={() => setTimeout(() => onConfirm(note), LEAVE_MS)} />{/if}
 </div>
 
 <style>
@@ -40,5 +44,7 @@
   .alab input { padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--low); color: var(--text); font-size: 15px; }
   .abtns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
   .acancel { padding: 10px 16px; border-radius: 999px; color: var(--text2); background: none; }
-  .abtns :global(.aok) { padding: 10px 20px; border-radius: 999px; background: var(--primary); color: var(--on-primary); font-weight: 500; }
+  /* Il tasto da tenere premuto prende la riga intera, sotto Annulla. */
+  .abtns.col { flex-direction: column; align-items: stretch; }
+  .abtns.col .acancel { align-self: flex-end; }
 </style>

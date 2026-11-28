@@ -53,7 +53,7 @@
 </script>
 
 {#snippet row(v: Item, session: string | null, withSession: boolean)}
-  <Voce group={v.group} title={v.title} sub={withSession && session ? `${session} · ${subOf(v)}` : subOf(v)} ago={agoOf(v, now)} silence={silenceOf(v, now)} advice={adviceText(v.advice)} main={mainLabelOf(v)} rec={!!v.main?.recommended}
+  <Voce group={v.group} title={v.title} sub={withSession && session ? `${session} · ${subOf(v)}` : subOf(v)} ago={agoOf(v, now)} silence={silenceOf(v, now)} advice={adviceText(v.advice)} main={mainLabelOf(v)} rec={!!v.main?.recommended} tap={!!v.main?.tap && !v.result}
     testid="voce-{v.key}" onOpen={() => open(v, session)} onMain={() => void actVoce(run, v, { open: (x) => open(x, session), reread, onAnswered })} />
 {/snippet}
 

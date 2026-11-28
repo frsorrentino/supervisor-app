@@ -90,6 +90,14 @@ export const readStop = (raw: string | null | undefined): Stop => (raw === 'half
  */
 export const corner = (a: Anchors, h: number): number => Math.min(CORNER, Math.max(0, a.full - h))
 
+/**
+ * app-barra-ibrida-28-11 (Franz 16:41, «non dispone in modo centrato il titolo o non stringe in altezza l'header per sfruttare lo spazio
+ * avanzato»): aperto, senza l'ultimo esito, la riga del titolo si stringe di LIFT px («Master», ▶ e ⋮ al centro di una riga sola) e la
+ * capsula sale sotto di lei. Cresce coi primi LIFT px di corsa dalla riga, così niente salta; la misura «riga» del foglio non cambia.
+ */
+export const LIFT = 12
+export const lift = (a: Anchors, h: number): number => Math.min(LIFT, Math.max(0, h - a.row))
+
 /** Quanto è salito il foglio: 0 alla riga, 1 all'intera. Guida il velo, l'arretramento della home e l'ombra sopra il bordo. */
 export function progress(a: Anchors, h: number): number {
   if (a.full <= a.row) return 0

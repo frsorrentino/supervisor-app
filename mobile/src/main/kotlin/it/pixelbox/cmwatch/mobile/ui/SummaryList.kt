@@ -1385,7 +1385,6 @@ private fun SummaryCard(
     // Il menu contestuale della sessione sulla card (Franz, 14/10 20:58: «il menu contestuale di una sessione non lo vedo»):
     // pressione lunga o tasto destro; «Chiudi» chiede conferma nella card, come la chiusura del riordino.
     var menu by remember { mutableStateOf(false) }
-    var menuClose by rememberSaveable(s.name) { mutableStateOf(false) }
     // Il tasto di un passo toccato resta segnato «mandato» finché la sessione non cambia esito (Franz, 06/10 12:32).
     var sentSteps by rememberSaveable(s.name, s.outcome?.at) { mutableStateOf(listOf<String>()) }
     val waiting = r.group == Summary.Group.WAITING
@@ -1427,7 +1426,7 @@ private fun SummaryCard(
     // altre anche con tasti o testi diversi — il nome, il contesto, la prossima azione su una riga che sfuma e il tasto della
     // scelta, che la apre come la freccia; aperta, tutto il resto e la misura del contenuto. Gli stati di passaggio (chiusura,
     // conferma, rifiuto) si vedono sempre.
-    val compact = !open && !closing && !closeAsk && !menuClose && refused == null
+    val compact = !open && !closing && !closeAsk && refused == null
     val okStep0 = if (waiting && s.question == null && perTe < 0) AttentionQueue.okOf(s) else null
     val verb = if (!compact) null else if (perTe >= 0) {
         // Resta «Chiudi», che non è una voce di «Per te», e solo quando la sessione non aspetta niente.
@@ -1686,9 +1685,6 @@ private fun SummaryCard(
             refused?.let { why -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) { CloseRefusedBody(s.name, why, onArm, onRefusedSeen, inCard = true) } }
             // Contratto 1.120: armata dal relay, la card lo dice finché non si chiude.
             if (!closing && !armed) s.closing?.let { c -> ArmedChip(c.mode) }
-            if (menuClose) Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                CloseAskBody(s, closeSave, onKeep = { menuClose = false }, onClose = { save -> menuClose = false; onClose(save) }, inCard = true)
-            }
         }
 
         if (!open) {
@@ -1796,15 +1792,18 @@ private fun SummaryCard(
             // Un menu solo, lo stesso della chat e della plancia (app-menu-sessione-03-11): le voci da SessionMenu.
             val st0 = menuState ?: it.pixelbox.cmwatch.contract.State(v = 1, ts = 0, host = "", sessions = listOf(s))
             val items = it.pixelbox.cmwatch.rules.SessionMenu.entries(s, st0, mine, canExit = canExit)
-            val (entries, footer) = sessionMenuEntries(s, items, SessionMenuActions(
+            // app-tieni-premuto-28-11 (Franz 28/11 16:22): il tasto rosso da tenere premuto salva e chiude dove si può, al posto della
+            // conferma nella card; «Chiudi senza salvare» resta una voce, e parte dopo i 5 s dell'Annulla (onClose senza salvare).
+            val acts = SessionMenuActions(
                 prove = onMine?.let { m -> { m(it.pixelbox.cmwatch.rules.SessionMenu.Kind.PROVE) } },
                 decidi = onMine?.let { m -> { m(it.pixelbox.cmwatch.rules.SessionMenu.Kind.DECIDI) } },
                 guarda = onMine?.let { m -> { m(it.pixelbox.cmwatch.rules.SessionMenu.Kind.GUARDA) } },
                 seguiti = onMine?.let { m -> { m(it.pixelbox.cmwatch.rules.SessionMenu.Kind.SEGUITI) } },
                 follow = onFollow, askMaster = onAskMaster, openInClaude = onOpenInClaude, restartClean = onRestartClean,
-                exit = { menuClose = true },
-            ))
-            MenuPanel(onDismiss = { menu = false }, entries = entries, footer = footer) {
+                exit = { onClose(closeSave) },
+                exitNoSave = if (closeSave) ({ onClose(false) }) else null,
+            )
+            MenuPanel(onDismiss = { menu = false }, entries = sessionMenuEntries(s, items, acts), bottom = { close -> SessionMenuHolds(s, items, acts, close) }) {
                 SessionBadge(s, 20.dp)
                 Text(
                     s.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold), color = Cm.text,
@@ -2594,6 +2593,7 @@ internal fun CommitmentCard(r: Commitments.Row, now: Long, onApprove: (String, S
 @Composable
 internal fun ApproveDialog(a: it.pixelbox.cmwatch.contract.Approval, choice: String? = null, onConfirm: (note: String) -> Unit, onDismiss: () -> Unit) {
     val hapticView = androidx.compose.ui.platform.LocalView.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
     var note by rememberSaveable(a.task) { mutableStateOf("") }
     // Franz 24/10 09:25: titolo corto, la domanda una volta sola con il tasto ▶, le opzioni con quella scelta evidenziata,
     // la nota facoltativa, poi Annulla e la conferma.
@@ -2621,10 +2621,19 @@ internal fun ApproveDialog(a: it.pixelbox.cmwatch.contract.Approval, choice: Str
                 androidx.compose.material3.OutlinedTextField(note, { note = it }, label = { Text(stringResource(R.string.approve_note)) }, placeholder = { Text("ok") }, singleLine = true)
             }
         },
-        // Voce 6 di app-animazioni-otto-26-11: un ok che esce in produzione si tiene premuto, gli altri restano a un tocco.
+        // app-tieni-premuto-28-11: un ok che pubblica si tiene premuto 1,5 s (TieniPremuto.holds); ogni altro ok resta un tocco, col finale
+        // del cerchio verde, e la finestra si chiude a spunta disegnata.
         confirmButton = {
-            if (it.pixelbox.cmwatch.rules.Animazioni.needsHold(a)) HoldButton(stringResource(R.string.hold_to_approve, choice ?: stringResource(R.string.approve)), onDone = { hapticView.confirmHaptic(); onConfirm(note) })
-            else androidx.compose.material3.Button(onClick = { hapticView.confirmHaptic(); onConfirm(note) }, colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary)) { Text(choice ?: stringResource(R.string.approve)) }
+            val okLabel = choice ?: stringResource(R.string.approve)
+            if (it.pixelbox.cmwatch.rules.TieniPremuto.holds(a)) HoldButton(
+                stringResource(R.string.hold_publish), onDone = { hapticView.confirmHaptic(); onConfirm(note) },
+                holdMs = it.pixelbox.cmwatch.rules.TieniPremuto.holdMs(it.pixelbox.cmwatch.rules.TieniPremuto.Place.PUBBLICA), tone = HoldTone.AMBER,
+                icon = Icons.Outlined.RocketLaunch, a11y = stringResource(R.string.hold_publish) + ": " + okLabel, said = stringResource(R.string.hold_said_publish),
+            )
+            else HoldButton(
+                okLabel, onDone = { hapticView.confirmHaptic(); scope.launch { kotlinx.coroutines.delay(it.pixelbox.cmwatch.rules.TieniPremuto.LEAVE_MS); onConfirm(note) } },
+                mode = it.pixelbox.cmwatch.rules.TieniPremuto.Mode.TAP, tone = HoldTone.AMBER, form = HoldForm.KEY, said = stringResource(R.string.hold_said_ok),
+            )
         },
         dismissButton = { androidx.compose.material3.TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel), color = Cm.text2) } },
     )

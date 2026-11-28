@@ -648,9 +648,28 @@ const cartProva = (now: number): WaitItem => ({
   silence_ok: true, blocking: true,
 })
 
+/**
+ * app-tieni-premuto-28-11: la carta del mockup approvato da Franz, un deploy in produzione di payments-api. La scelta consigliata diventa
+ * il tasto ambra da tenere premuto 1,5 s (tieniPremuto.holdIndex); il «no» resta un ok a un tocco.
+ */
+const deployCard = (now: number): WaitItem => ({
+  id: 'w00000000e5', type: 'carta', kind: 'ok', label: 'decide', label_text: en ? 'Decide' : 'Decidi', session: 'payments-api', task: 'demo-deploy-2-8',
+  title: en ? 'Publish the 2.8.0 deploy' : 'Pubblica il deploy 2.8.0',
+  text: en ? 'Staging is green: do I deploy 2.8.0 to production now?' : 'Staging è verde: faccio il deploy della 2.8.0 in produzione adesso?',
+  options: null, at: now - 300, card: { what: './deploy.sh --env production', where: en ? 'payments-api, production' : 'payments-api, produzione', deploy: true },
+  link: '#/attesa/w00000000e5', answer: { op: 'approve', arg: 'demo-deploy-2-8' },
+  actions: [
+    { label: en ? 'yes · Deploy 2.8.0 to production now' : 'sì · Deploy 2.8.0 in produzione adesso', style: 'option', recommended: true, cmd: { op: 'approve', session: null, arg: 'demo-deploy-2-8', text: 'ok', choice: en ? 'yes' : 'sì' } },
+    { label: en ? "no · wait for the client's ok" : "no · aspetta l'ok del cliente", style: 'option', cmd: { op: 'approve', session: null, arg: 'demo-deploy-2-8', text: 'ok', choice: 'no' } },
+    { label: en ? "Let's talk" : 'Parliamone', style: 'secondary', cmd: { op: 'prompt', session: 'payments-api' }, text_field: 'arg' },
+  ],
+  description: null, card_id: 'w00000000e5', state: 'open', answered: null,
+})
+
 export const waitsDemo = (now: number): WaitItem[] => [
   cartChoice(now),
   cartProva(now),
+  deployCard(now),
   { id: 'w00000000a1', type: 'carta', kind: 'pausa', label: 'decide', label_text: en ? 'Decide' : 'Decidi', session: 'blog', task: 'demo-cover',
     text: en ? 'Send me the cover image' : "Mandami l'immagine di copertina", options: null, at: now - 1200, card: null, link: '#/attesa/w00000000a1',
     answer: { op: 'decisione', arg: 'demo-a' },

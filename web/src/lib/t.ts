@@ -16,8 +16,8 @@ function nightShort(s: number): string {
 const it = {
   // app-posizioni-sistema-27-11, gruppo 2: le schede della sessione e la tendina.
   tabChat: 'Chat', tabDetails: 'Dettagli', tabsLabel: 'Sezioni della sessione', shadeClose: 'Chiudi e torna alla chat',
-  // app-barra-stato-28-11: la parte destra della barra di stato, per i lettori di schermo e al passaggio del puntatore; la riga del contesto in Dettagli.
-  barState: (m: string, left: number | null, ctx: number | null) => [m, left != null ? `quota delle 5 ore: resta il ${left}%` : null, ctx != null ? `contesto ${ctx}%` : null].filter(Boolean).join(', ') + '. Apri Dettagli',
+  // app-barra-stato-28-11, app-barra-ibrida-28-11: lo stato nella capsula, per i lettori di schermo e al passaggio del puntatore; la riga del contesto in Dettagli.
+  barState: (m: string, used: number | null, ctx: number | null) => [m, used != null ? `quota delle 5 ore usata al ${used}%` : null, ctx != null ? `contesto ${ctx}%` : null].filter(Boolean).join(', ') + '. Apri Dettagli',
   detailsCtx: 'Contesto',
   perTeNone: 'Niente ti aspetta in questa sessione.', resultsNone: 'Questa sessione non ha ancora consegnato risultati.',
   changesNoneHere: 'Nessuna modifica da mostrare.', detailsModel: 'Modello ed effort', detailsQuota: 'Quota delle 5 ore',
@@ -114,7 +114,7 @@ const it = {
   fyAnswer: 'Rispondi', fyAdd: 'Aggiungi', fyStart: 'Avvia', fySee: 'Vedi', fyOpen: 'Apri',
   nightTitle: 'Aggiungi alla notte', nightProject: 'Progetto', nightPrompt: 'Cosa deve fare stanotte', nightAdd: 'Aggiungi', fyMore: (n: number) => `+${n} altre`,
   quota: (a: string, h5: number, w7: number) => `${a} ${h5}% · sett. ${w7}%`, quotaOld: (a: string) => `${a} · non aggiornata`,
-  copy: 'Copia', copiedWord: 'Copiato', quoteMore: 'altro', proofRunning: (x: string) => `${x} in corso`, proofFailed: (x: string) => `${x} non è passata`, proofTodo: (x: string) => `${x} da fare`, proofAllDone: 'Tutte le tappe passate', typedRefusal: (x: string) => `Non mandato: sul PC, nella casella di ${x}, c'è del testo scritto a mano e lo avrei cancellato. Mandalo o cancellalo sul PC, poi riprova.`, slashGone: (x: string) => `${x} non è più aperta: il comando non parte`, undo: 'Annulla', undoLater: (x: string) => `Messo da parte: ${x}`, undoNever: (x: string) => `Mai più: ${x}`, undoSeen: (x: string) => `Visto: ${x}`, undoClose: (x: string) => `Chiudo ${x} senza salvare`, holdToApprove: (x: string) => `Tieni premuto: ${x}`, readAloud: 'Leggi ad alta voce', stopReading: 'Ferma la lettura', outcomeLabel: 'Esito', textCut: 'testo accorciato dal PC',
+  copy: 'Copia', copiedWord: 'Copiato', quoteMore: 'altro', proofRunning: (x: string) => `${x} in corso`, proofFailed: (x: string) => `${x} non è passata`, proofTodo: (x: string) => `${x} da fare`, proofAllDone: 'Tutte le tappe passate', typedRefusal: (x: string) => `Non mandato: sul PC, nella casella di ${x}, c'è del testo scritto a mano e lo avrei cancellato. Mandalo o cancellalo sul PC, poi riprova.`, slashGone: (x: string) => `${x} non è più aperta: il comando non parte`, undo: 'Annulla', undoLater: (x: string) => `Messo da parte: ${x}`, undoNever: (x: string) => `Mai più: ${x}`, undoSeen: (x: string) => `Visto: ${x}`, undoClose: (x: string) => `Chiudo ${x} senza salvare`, readAloud: 'Leggi ad alta voce', stopReading: 'Ferma la lettura', outcomeLabel: 'Esito', textCut: 'testo accorciato dal PC',
   turnTokens: (n: number) => `${n} token scritti`, thinking: 'sta pensando',
   stepsCount: (n: number) => (n === 1 ? '1 passaggio' : `${n} passaggi`), stepsFailed: (n: number) => (n === 1 ? '1 fallito' : `${n} falliti`),
   origin: { pc: 'dal PC', watch: "dall'orologio", phone: 'dal telefono', web: 'dalla web app' } as Record<string, string>,
@@ -451,9 +451,14 @@ const it = {
   askMasterPrompt: (n: string) => `Controlla la sessione ${n} e dimmi in breve a che punto è e se serve qualcosa da me.`,
   openInClaude: 'Apri in Claude', openInClaudeSub: "Continua nell'app Claude",
   openInSupervisor: 'Apri in supervisor', openInSupervisorHint: 'Tasto destro o pressione lunga: il link in Claude',
-  menuExit: 'Chiudi la sessione', menuExitSub: 'Manda /exit, dopo una conferma',
+  // app-tieni-premuto-28-11 (Franz 28/11 16:22): nel menu ⋮ «Chiudi la sessione» e «Riparti pulito» si tengono premuti, l'ok di una carta
+  // che pubblica anche; «Chiudi senza salvare» resta una voce, con l'Annulla di 5 s. L'esito si dice al lettore di schermo.
+  menuNoSaveSub: 'Senza handoff, con 5 s per annullare',
+  holdClose: 'Tieni premuto per chiudere', holdRestart: 'Tieni premuto per ripartire', holdPublish: 'Tieni premuto per pubblicare',
+  holdEarly: 'Lasciato prima: non parte niente', holdSaidClose: (n: string) => `Chiusura di ${n} partita`, holdSaidRestart: (n: string) => `${n}: handoff in scrittura, poi /clear`,
+  holdSaidPublish: 'Pubblicazione partita', holdSaidOk: 'Mandato',
   // Il menu unico della sessione (app-menu-sessione-03-11).
-  smenuCount: (x: string, n: number) => `${x} · ${n}`, smenuTitle: { prove: 'Da provare', decidi: 'Da decidere', guarda: 'Da guardare', seguiti: 'Da seguire' } as Record<string, string>, smenuSub: { prove: 'Le prove di questa sessione', decidi: 'Le scelte che aspetta da te', guarda: 'I suoi lavori che non hai ancora visto', seguiti: 'Quello che ha lasciato indietro' } as Record<string, string>, smenuRestart: 'Riparti pulito', smenuRestartSub: "Scrive l'handoff, poi /clear a turno finito",
+  smenuCount: (x: string, n: number) => `${x} · ${n}`, smenuTitle: { prove: 'Da provare', decidi: 'Da decidere', guarda: 'Da guardare', seguiti: 'Da seguire' } as Record<string, string>, smenuSub: { prove: 'Le prove di questa sessione', decidi: 'Le scelte che aspetta da te', guarda: 'I suoi lavori che non hai ancora visto', seguiti: 'Quello che ha lasciato indietro' } as Record<string, string>,
   slashConfirmOk: 'Manda',
   ctxTitle: (p: number) => `Contesto ${p}%`, ctxHandoff: "Scrivi l'handoff e riparti pulita", ctxCompact: 'Compatta la conversazione',
   ctxWider: 'Passa alla finestra da 1M',
@@ -535,7 +540,7 @@ function nightLongEn(s: number): string {
 // In inglese: le parole di mobile/src/main/res/values-en dove ci sono, il resto nello stesso stile.
 const en: typeof it = {
   tabChat: 'Chat', tabDetails: 'Details', tabsLabel: 'Session sections', shadeClose: 'Close and go back to the chat',
-  barState: (m: string, left: number | null, ctx: number | null) => [m, left != null ? `5-hour quota: ${left}% left` : null, ctx != null ? `context ${ctx}%` : null].filter(Boolean).join(', ') + '. Open Details',
+  barState: (m: string, used: number | null, ctx: number | null) => [m, used != null ? `5-hour quota ${used}% used` : null, ctx != null ? `context ${ctx}%` : null].filter(Boolean).join(', ') + '. Open Details',
   detailsCtx: 'Context',
   perTeNone: 'Nothing is waiting for you in this session.', resultsNone: 'This session has not delivered any results yet.',
   changesNoneHere: 'No changes to show.', detailsModel: 'Model and effort', detailsQuota: '5-hour quota',
@@ -626,7 +631,7 @@ const en: typeof it = {
   fyAnswer: 'Answer', fyAdd: 'Add', fyStart: 'Start', fySee: 'See', fyOpen: 'Open',
   nightTitle: 'Add to tonight', nightProject: 'Project', nightPrompt: 'What it should do tonight', nightAdd: 'Add', fyMore: (n: number) => `+${n} more`,
   quota: (a: string, h5: number, w7: number) => `${a} ${h5}% · wk ${w7}%`, quotaOld: (a: string) => `${a} · not updated`,
-  copy: 'Copy', copiedWord: 'Copied', quoteMore: 'more', proofRunning: (x: string) => `${x} running`, proofFailed: (x: string) => `${x} failed`, proofTodo: (x: string) => `${x} to do`, proofAllDone: 'All steps passed', typedRefusal: (x: string) => `Not sent: on the PC, the input box of ${x} has hand-typed text and sending would have wiped it. Send or clear it on the PC, then try again.`, slashGone: (x: string) => `${x} is no longer open: the command is not sent`, undo: 'Undo', undoLater: (x: string) => `Set aside: ${x}`, undoNever: (x: string) => `Never again: ${x}`, undoSeen: (x: string) => `Seen: ${x}`, undoClose: (x: string) => `Closing ${x} without saving`, holdToApprove: (x: string) => `Hold: ${x}`, readAloud: 'Read aloud', stopReading: 'Stop reading', outcomeLabel: 'Outcome', textCut: 'text shortened by the PC',
+  copy: 'Copy', copiedWord: 'Copied', quoteMore: 'more', proofRunning: (x: string) => `${x} running`, proofFailed: (x: string) => `${x} failed`, proofTodo: (x: string) => `${x} to do`, proofAllDone: 'All steps passed', typedRefusal: (x: string) => `Not sent: on the PC, the input box of ${x} has hand-typed text and sending would have wiped it. Send or clear it on the PC, then try again.`, slashGone: (x: string) => `${x} is no longer open: the command is not sent`, undo: 'Undo', undoLater: (x: string) => `Set aside: ${x}`, undoNever: (x: string) => `Never again: ${x}`, undoSeen: (x: string) => `Seen: ${x}`, undoClose: (x: string) => `Closing ${x} without saving`, readAloud: 'Read aloud', stopReading: 'Stop reading', outcomeLabel: 'Outcome', textCut: 'text shortened by the PC',
   turnTokens: (n: number) => `${n} tokens written`, thinking: 'thinking',
   stepsCount: (n: number) => (n === 1 ? '1 step' : `${n} steps`), stepsFailed: (n: number) => `${n} failed`,
   origin: { pc: 'from the PC', watch: 'from the watch', phone: 'from the phone', web: 'from the web app' } as Record<string, string>,
@@ -945,8 +950,11 @@ const en: typeof it = {
   askMasterPrompt: (n: string) => `Check session ${n} and tell me briefly where it stands and whether it needs anything from me.`,
   openInClaude: 'Open in Claude', openInClaudeSub: 'Continue in the Claude app',
   openInSupervisor: 'Open in supervisor', openInSupervisorHint: 'Right click or long press: the link in Claude',
-  menuExit: 'Close the session', menuExitSub: 'Sends /exit, after a confirmation',
-  smenuCount: (x: string, n: number) => `${x} · ${n}`, smenuTitle: { prove: 'To test', decidi: 'To decide', guarda: 'To look at', seguiti: 'To follow up' } as Record<string, string>, smenuSub: { prove: "This session's tests", decidi: 'The choices it is waiting on from you', guarda: 'Its work you have not seen yet', seguiti: 'What it left behind' } as Record<string, string>, smenuRestart: 'Restart clean', smenuRestartSub: 'Writes the handoff, then /clear when the turn ends',
+  menuNoSaveSub: 'No handoff, with 5 s to undo',
+  holdClose: 'Hold to close', holdRestart: 'Hold to restart', holdPublish: 'Hold to publish',
+  holdEarly: 'Let go too early: nothing was sent', holdSaidClose: (n: string) => `Closing ${n}`, holdSaidRestart: (n: string) => `${n}: writing the handoff, then /clear`,
+  holdSaidPublish: 'Publishing started', holdSaidOk: 'Sent',
+  smenuCount: (x: string, n: number) => `${x} · ${n}`, smenuTitle: { prove: 'To test', decidi: 'To decide', guarda: 'To look at', seguiti: 'To follow up' } as Record<string, string>, smenuSub: { prove: "This session's tests", decidi: 'The choices it is waiting on from you', guarda: 'Its work you have not seen yet', seguiti: 'What it left behind' } as Record<string, string>,
   slashConfirmOk: 'Send',
   ctxTitle: (p: number) => `Context ${p}%`, ctxHandoff: 'Write the handoff and restart clean', ctxCompact: 'Compact the conversation',
   ctxWider: 'Switch to the 1M window',

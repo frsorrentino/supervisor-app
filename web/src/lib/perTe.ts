@@ -6,6 +6,7 @@
 import type { ResultGroup, WaitAction, WaitItem } from './contract'
 import { kindOf, line, type Kind } from './guardare'
 import { lookOf } from './tiAspetta'
+import { placeOf } from './tieniPremuto'
 
 export type Group = 'aspetta' | 'decidi' | 'prova' | 'verifica'
 export const ORDER: readonly Group[] = ['aspetta', 'decidi', 'prova', 'verifica']
@@ -16,7 +17,7 @@ export const groupOf = (label: string): Group => (label === 'reply' ? 'aspetta' 
  * Il tasto sulla voce: `index` nei tasti della richiesta; `direct` false = chiede un testo, quindi apre la scheda; `recommended`: è la
  * scelta consigliata, e la riga lo mostra in ambra (app-riall-2-viste-16-11).
  */
-export type Main = { index: number; label: string; direct: boolean; recommended: boolean }
+export type Main = { index: number; label: string; direct: boolean; recommended: boolean; tap?: boolean }
 type Act = Pick<WaitAction, 'label' | 'style' | 'recommended' | 'text_field'>
 /**
  * Il tasto principale: la scelta consigliata, altrimenti il tasto pieno, altrimenti la prima scelta numerata; solo tasti secondari,
@@ -69,7 +70,11 @@ const one = (s: string | null | undefined) => (s ?? '').replace(/\s+/g, ' ').tri
 export function voceOf(w: WaitItem): Voce {
   const title = one(w.title) || one(w.text)
   const context = [one(w.text), one(w.description)].find(x => x && x !== title) ?? null
-  const main = mainOf(w.actions)
+  // app-tieni-premuto-28-11: l'ok che pubblica si tiene premuto nella sua scheda, quindi la riga la apre; ogni altro ok e ogni Va
+  // restano un tocco sulla riga (`tap`), col finale del cerchio verde (correzione della master del 28/11).
+  const m = mainOf(w.actions)
+  const place = m ? placeOf(w, m.index) : null
+  const main = m && place === 'pubblica' ? { ...m, direct: false } : m && place ? { ...m, tap: true } : m
   return { key: w.id, group: groupOf(w.label), title, context, since: w.at, wait: w, main, advice: adviceOf(w, main), result: null }
 }
 

@@ -1,0 +1,135 @@
+{
+ "_": "Il tasto «tieni premuto» (app-tieni-premuto-28-11): gli stessi casi per tieniPremuto.ts della web e TieniPremuto.kt. publishes: un testo -> se nomina un'uscita. cards: una carta di `attese` -> il tasto da tenere premuto per pubblicare (hold, l'indice in actions o null) e il posto di ogni tasto (places). approvals: un ok di state.approvals -> se si tiene premuto.",
+ "publishes": [
+  { "text": "Pubblica il deploy 2.8.0", "out": true },
+  { "text": "payments-api · ./deploy.sh --env production", "out": true },
+  { "text": "Pubblico la 1.4 sul Play Store?", "out": true },
+  { "text": "Release 2.4 of atlas-shop", "out": true },
+  { "text": "tag v2.4 and push to origin main", "out": true },
+  { "text": "Rilascio la 2.5 ai tester su Play?", "out": true },
+  { "text": "npm publish --access public", "out": true },
+  { "text": "git push --tags", "out": true },
+  { "text": "Mando in produzione la 3.1 stasera?", "out": true },
+  { "text": "Metto online il sito nuovo?", "out": true },
+  { "text": "Go live with the new pricing page?", "out": true },
+  { "text": "Promote build 812 to production", "out": true },
+  { "text": "Lo pubblico adesso o domattina?", "out": true },
+  { "text": "Nome del branch dei rimborsi: hotfix/refunds o release/2.9?", "out": false },
+  { "text": "Scrivo le note di rilascio della 2.4?", "out": false },
+  { "text": "Aggiorno le release notes del plugin?", "out": false },
+  { "text": "Il bug è in produzione da ieri: lo guardo?", "out": false },
+  { "text": "Valuto il bug in produzione?", "out": false },
+  { "text": "Rispondo alla recensione su Play?", "out": false },
+  { "text": "Pubblicità: rinnovo la campagna di novembre?", "out": false },
+  { "text": "Apri https://github.com/example/storefront/releases e copia il numero", "out": false },
+  { "text": "Faccio girare i test su staging?", "out": false },
+  { "text": "Push notification per i nuovi ordini: le attivo?", "out": false }
+ ],
+ "cards": [
+  {
+   "name": "il deploy del mockup: la scelta consigliata si tiene premuta, il «no» resta un ok a un tocco",
+   "item": { "id": "w1", "type": "carta", "kind": "ok", "label": "decide", "session": "payments-api", "title": "Pubblica il deploy 2.8.0", "text": "Deploy 2.8.0 in produzione?",
+    "card": { "what": "payments-api · ./deploy.sh --env production", "deploy": false },
+    "actions": [
+     { "label": "sì · Deploy 2.8.0 in produzione adesso", "style": "option", "recommended": true, "cmd": { "op": "approve", "arg": "pay-deploy", "choice": "sì" } },
+     { "label": "no · aspetta l'ok del cliente", "style": "option", "cmd": { "op": "approve", "arg": "pay-deploy", "choice": "no" } },
+     { "label": "Parliamone", "style": "secondary", "text_field": "arg", "cmd": { "op": "prompt", "session": "payments-api" } }
+    ] },
+   "hold": 0, "places": ["pubblica", "approva", null]
+  },
+  {
+   "name": "la release della fixture, segnata per la produzione: «Release now» si tiene premuto, «Tomorrow morning» è un ok",
+   "item": { "id": "wd2f87e85e2", "type": "carta", "kind": "choice", "label": "choose", "title": "Release 2.4", "text": "tag v2.4 and push to origin main",
+    "card": { "what": "tag v2.4 and push to origin main", "where": "production (shop.example.com)", "deploy": true },
+    "actions": [
+     { "label": "Release now", "style": "primary", "recommended": true, "cmd": { "op": "approve", "arg": "atlas-release-2-4", "choice": "Release now (recommended)" } },
+     { "label": "Tomorrow morning", "style": "option", "cmd": { "op": "approve", "arg": "atlas-release-2-4", "choice": "Tomorrow morning" } },
+     { "label": "None, redo", "style": "secondary", "text_field": "text", "cmd": { "op": "approval_redo", "arg": "atlas-release-2-4" } },
+     { "label": "Close without ok", "style": "secondary", "text_field": "text", "cmd": { "op": "approval_close", "arg": "atlas-release-2-4" } }
+    ] },
+   "hold": 0, "places": ["pubblica", "approva", null, null]
+  },
+  {
+   "name": "un ok che pubblica sul Play Store senza il segno della produzione: lo dice il titolo",
+   "item": { "id": "w17f9a258a0", "type": "carta", "kind": "ok", "label": "decide", "title": "pubblica 1.4", "text": "Pubblico la 1.4 sul Play Store?",
+    "card": { "what": "Pubblico la 1.4 sul Play Store?", "where": "Play Store", "deploy": false },
+    "actions": [
+     { "label": "Approva", "style": "primary", "recommended": true, "cmd": { "op": "approve", "arg": "pubblica-1-4" } },
+     { "label": "Chiudi senza ok", "style": "secondary", "text_field": "text", "cmd": { "op": "approval_close", "arg": "pubblica-1-4" } },
+     { "label": "Non ora", "style": "secondary", "cmd": { "op": "decisione", "arg": "d1", "action": "not_now" } }
+    ] },
+   "hold": 0, "places": ["pubblica", null, null]
+  },
+  {
+   "name": "il segno della produzione basta anche con un testo che non nomina l'uscita",
+   "item": { "id": "w2", "type": "carta", "kind": "ok", "label": "decide", "title": "Migrazione del database clienti", "text": "Applico la migrazione 0042?",
+    "card": { "where": "db-prod", "deploy": true },
+    "actions": [ { "label": "Approva", "style": "primary", "cmd": { "op": "approve", "arg": "migra-0042" } } ] },
+   "hold": 0, "places": ["pubblica"]
+  },
+  {
+   "name": "la consigliata che rimanda non diventa mai «Tieni premuto per pubblicare»",
+   "item": { "id": "w3", "type": "chat", "kind": "prossimi", "label": "reply", "title": "Pubblico la 2.4?", "text": "Pubblico la 2.4 adesso?",
+    "actions": [
+     { "label": "sì, adesso", "style": "option", "cmd": { "op": "answer", "arg": "1" } },
+     { "label": "no, aspetta il cliente", "style": "option", "recommended": true, "cmd": { "op": "answer", "arg": "2" } }
+    ] },
+   "hold": null, "places": [null, null]
+  },
+  {
+   "name": "un tasto che chiede un testo non si tiene premuto",
+   "item": { "id": "w4", "type": "chat", "kind": "prossimi", "label": "reply", "title": "Lo pubblico adesso o domattina?", "text": "Lo pubblico adesso o domattina?",
+    "actions": [ { "label": "Rispondi", "style": "primary", "text_field": "arg", "cmd": { "op": "prompt", "session": "blog" } } ] },
+   "hold": null, "places": [null]
+  },
+  {
+   "name": "una verifica non pubblica anche se ne parla: il suo Va resta un tocco col finale verde",
+   "item": { "id": "w5", "type": "carta", "kind": "prova", "label": "verify", "title": "Pubblica la pagina e guarda il titolo", "text": "Apri la bozza pubblicata e controlla il titolo",
+    "actions": [
+     { "label": "Va", "style": "primary", "cmd": { "op": "prova", "arg": "1301", "result": "ok" } },
+     { "label": "Non va", "style": "secondary", "text_field": "text", "cmd": { "op": "prova", "arg": "1301", "result": "ko" } }
+    ] },
+   "hold": null, "places": ["va", null]
+  },
+  {
+   "name": "«Ora va» di una prova segnalata è un Va",
+   "item": { "id": "w6", "type": "carta", "kind": "nonva", "label": "verify", "title": "login col codice", "text": "Non entra col codice",
+    "actions": [
+     { "label": "Ora va", "style": "primary", "cmd": { "op": "prova", "arg": "1290", "result": "ok" } },
+     { "label": "Non serve più", "style": "secondary", "cmd": { "op": "prova", "arg": "1290", "result": "ritirata" } }
+    ] },
+   "hold": null, "places": ["va", null]
+  },
+  {
+   "name": "il nome di un ramo release/… non è un'uscita",
+   "item": { "id": "w7", "type": "chat", "kind": "prossimi", "label": "choose", "title": "Nome del branch dei rimborsi", "text": "Che nome do al branch della correzione dei rimborsi?",
+    "actions": [
+     { "label": "hotfix/refunds", "style": "primary", "recommended": true, "cmd": { "op": "prompt", "session": "payments-api", "arg": "hotfix/refunds" } },
+     { "label": "release/2.9", "style": "option", "cmd": { "op": "prompt", "session": "payments-api", "arg": "release/2.9" } }
+    ] },
+   "hold": null, "places": [null, null]
+  },
+  {
+   "name": "una scelta che non pubblica: ogni opzione è un ok a un tocco",
+   "item": { "id": "w00000000c3", "type": "carta", "kind": "choice", "label": "choose", "title": "Carrello sul telefono", "text": "Dove stanno il totale e il tasto Paga nel carrello",
+    "actions": [
+     { "label": "A riepilogo in alto", "style": "option", "cmd": { "op": "approve", "arg": "demo-cart-layout", "choice": "A riepilogo in alto" } },
+     { "label": "B barra in fondo", "style": "primary", "recommended": true, "cmd": { "op": "approve", "arg": "demo-cart-layout", "choice": "B barra in fondo" } },
+     { "label": "Nessuna, rifare", "style": "secondary", "text_field": "text", "cmd": { "op": "approval_redo", "arg": "demo-cart-layout" } }
+    ] },
+   "hold": null, "places": ["approva", "approva", null]
+  }
+ ],
+ "questions": [
+  { "name": "la domanda del deploy della fixture: la consigliata «yes» si tiene premuta", "question": { "id": "q-1789210500-1", "kind": "ask", "text": "Deploy ready with DEPLOY_TOKEN=dpl_9f8e7d6c5b4a, client ok pending. Deploy now?", "options": [ { "n": 1, "label": "yes", "description": "Deploy 2.4 to production now", "recommended": true }, { "n": 2, "label": "no", "description": "Wait for the client's ok" } ], "tier": "medium", "asked_at": 1789210500 }, "out": 1 },
+  { "name": "il permesso del deploy senza consigliata: la prima che non dice di no", "question": { "id": "q2", "kind": "permission", "text": "Bash command", "what": "Pubblica il deploy 2.8.0: ./deploy.sh --env production", "body": "Do you want to proceed?", "options": [ { "n": 1, "label": "Yes" }, { "n": 2, "label": "Yes, and don't ask again for ./deploy.sh" }, { "n": 3, "label": "No, and tell Claude what to do differently" } ], "tier": "medium", "asked_at": 1 }, "out": 1 },
+  { "name": "una domanda che non pubblica", "question": { "id": "q3", "kind": "ask", "text": "Quale colore per il bottone?", "options": [ { "n": 1, "label": "ambra", "recommended": true }, { "n": 2, "label": "verde" } ], "tier": "low", "asked_at": 1 }, "out": null },
+  { "name": "la consigliata che rimanda non si tiene premuta", "question": { "id": "q4", "kind": "ask", "text": "Pubblico la 2.4 adesso?", "options": [ { "n": 1, "label": "sì" }, { "n": 2, "label": "no, domattina", "recommended": true } ], "tier": "medium", "asked_at": 1 }, "out": null }
+ ],
+ "approvals": [
+  { "approval": { "task": "atlas-release-2-4", "title": "Release 2.4 of atlas-shop", "what": "tag v2.4 and push to origin main", "where": "production (shop.example.com)", "deploy": true }, "out": true },
+  { "approval": { "task": "pubblica-1-4", "title": "Pubblicare la 1.4 sul Play Store", "deploy": false }, "out": true },
+  { "approval": { "task": "atlas-checkout-layout", "title": "Checkout layout of atlas-shop", "what": "pick the checkout layout", "where": "atlas-shop, branch checkout", "deploy": false }, "out": false },
+  { "approval": { "task": "branch", "title": "Rinomina il branch in release/2.9", "deploy": false }, "out": false }
+ ]
+}

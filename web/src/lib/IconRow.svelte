@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { untrack } from 'svelte'
+  import { untrack, type Snippet } from 'svelte'
   import CatIcon from './CatIcon.svelte'
   import { ferma, molla, motore, ridotto, type Molla } from './molla'
   import {
@@ -14,7 +14,9 @@
   // e oltre la prima e l'ultima scheda tira come un elastico (rubber di dock.js) con la riga che segue al 35 % (300/18). L'icona scelta
   // fa un piccolo salto (--dock-pop 520/16, spinta -3,2). Posto e forma della pillola li decide solo `pill`, sulla meta di `target`.
   // Moto ridotto: molle critiche, niente salto, e il motore di molla.ts le porta subito alla meta. Le schede non cambiano mai ordine.
-  let { tabs, active, onPick, onEsc, label, keyScope = null }: {
+  // app-barra-ibrida-28-11 (H1): la stessa capsula porta anche lo stato della sessione (`trailing`), dopo le schede; chi la usa può tenere
+  // per sé le scorciatoie (`keys`) e sapere quanto sono larghe le schede a riposo col nome più lungo aperto (`rest`), per ridurre lo stato.
+  let { tabs, active, onPick, onEsc, label, keyScope = null, trailing = null, keys: keysOn = true, rest = $bindable(0) }: {
     tabs: IconTab[]
     /** La scheda aperta, con la sua `key`. */
     active: string | null
@@ -26,6 +28,12 @@
     label?: string
     /** Dove valgono Alt+1…5 ed Esc: col fuoco dentro questo elemento (la colonna della riga). Senza, in tutta la pagina, se nessuno li ha già presi. */
     keyScope?: HTMLElement | null
+    /** Dentro la capsula, dopo le schede: lo stato della sessione (app-barra-ibrida-28-11). Il dito che parte da qui non trascina la pillola. */
+    trailing?: Snippet | null
+    /** Alt+1…5 ed Esc della riga; false quando li gestisce chi la usa. */
+    keys?: boolean
+    /** Le schede a riposo, padding della capsula escluso, col nome più lungo aperto: scritta dalla riga. */
+    rest?: number
   } = $props()
 
   let root = $state<HTMLElement>()
@@ -89,6 +97,19 @@
     hl.style.transform = `translate3d(${g.x.toFixed(2)}px, ${(top + g.top).toFixed(2)}px, 0)`
   }
 
+  /** Le schede a riposo col nome più lungo aperto: le parti fisse di ogni scheda, il nome più largo, gli spazi fra le schede. */
+  function measureRest() {
+    const els = items()
+    if (!els.length) return
+    let fixed = 0, name = 0
+    for (const el of els) {
+      fixed += el.offsetWidth - (el.querySelector<HTMLElement>('.nm')?.offsetWidth ?? 0)
+      name = Math.max(name, (el.querySelector<HTMLElement>('.nmi')?.offsetWidth ?? 0) + NAME_GAP)
+    }
+    const r = Math.round(fixed + name + 2 * (els.length - 1))
+    if (r !== rest) rest = r
+  }
+
   /** Tutto al suo posto senza moto, alla prima misura. */
   function place() {
     for (const [k, s] of per) { s.w.x = s.w.t = k === shown ? 1 : 0; s.w.v = 0; s.p.x = s.p.t = 1; s.p.v = 0 }
@@ -96,6 +117,7 @@
     N.v = 0
     placed = true
     render()
+    measureRest()
   }
 
   /** La pillola, il nome e il salto vanno sulla scheda `key`; `drag`: col dito. */
@@ -144,7 +166,7 @@
     void keys
     const r = root
     if (!r || typeof ResizeObserver === 'undefined') return
-    const ro = new ResizeObserver(() => { if (placed && all().every(ferma)) render() })
+    const ro = new ResizeObserver(() => { if (placed && all().every(ferma)) render(); measureRest() })
     ro.observe(r)
     for (const el of items()) ro.observe(el)
     return () => ro.disconnect()
@@ -158,6 +180,7 @@
   let suppress = false
   function down(e: PointerEvent) {
     if (!e.isPrimary || e.button !== 0) return
+    if (e.target instanceof Element && e.target.closest('.trail')) return
     pid = e.pointerId
     x0 = e.clientX
     live = false
@@ -257,6 +280,7 @@
     }
   })
   $effect(() => {
+    if (!keysOn) return
     const t: HTMLElement | Window = keyScope ?? window
     const on = (e: Event) => pageKey(e as KeyboardEvent)
     t.addEventListener('keydown', on)
@@ -276,6 +300,7 @@
       {#if b}<span class="n {b.tone}">{b.text}</span>{/if}
     </button>
   {/each}
+  {#if trailing}<span class="trail">{@render trailing()}</span>{/if}
 </div>
 
 <style>
@@ -284,6 +309,7 @@
     box-shadow: inset 0 0 0 1px var(--line); max-width: 100%; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
     touch-action: pan-y; }
   .ir:global(.dragging) { cursor: grabbing; }
+  .trail { position: relative; z-index: 1; display: flex; align-items: center; flex: none; }
   .hl { position: absolute; left: 0; top: 0; width: 0; height: 40px; border-radius: 999px; background: var(--s3);
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tx) 12%, transparent); will-change: transform, width, height; pointer-events: none; }
   .it { position: relative; z-index: 1; display: flex; align-items: center; flex: none; height: 40px; padding: 0 11px; border-radius: 999px;

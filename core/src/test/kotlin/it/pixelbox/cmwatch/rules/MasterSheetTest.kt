@@ -167,4 +167,14 @@ class MasterSheetTest {
         assertEquals(c, MasterSheet.corner(a, a.row, c), 0f)
         assertEquals(0f, MasterSheet.corner(a, a.full + 30f, c), 0f)
     }
+
+    @Test fun `aperto, la riga del titolo si stringe di 12, alla riga no, e cresce coi primi 12 di corsa`() {
+        val m = MasterSheet.LIFT_DP
+        assertEquals(12f, m, 0f)
+        assertEquals(0f, MasterSheet.lift(a, a.row, m), 0f)
+        assertEquals(0f, MasterSheet.lift(a, a.row - 20f, m), 0f)
+        assertEquals(5f, MasterSheet.lift(a, a.row + 5f, m), 0.001f)
+        assertEquals(12f, MasterSheet.lift(a, a.half, m), 0f)
+        assertEquals(12f, MasterSheet.lift(a, a.full, m), 0f)
+    }
 }

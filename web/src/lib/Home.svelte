@@ -4,6 +4,11 @@
   import { dtf } from './dtf'
   import { asking as primaAsking, homeStatus as primaHome } from './primaRaccolta'
   import { MENU_ICON, mineOf, sessionMenu, type MenuKind } from './sessionMenu'
+  import HoldButton from './HoldButton.svelte'
+  import { holdMs } from './tieniPremuto'
+  import { later } from './undo.svelte'
+  import { close as closeOk } from './vociAssenti'
+  import { HOLD_ICON } from './icons'
   import Check from './Check.svelte'
   import OneLine from './OneLine.svelte'
   import { parts as oneLineParts } from './oneLine'
@@ -778,7 +783,8 @@
   let ctx = $state<string | null>(null)
   // Il pannello sta sopra tutto (anche sopra il riquadro della master), vicino al punto toccato e dentro lo schermo.
   let at = $state({ x: 0, y: 0 })
-  const MENU_W = 360, MENU_H = 290
+  // app-tieni-premuto-28-11: col tasto da tenere premuto in fondo il menu è più alto.
+  const MENU_W = 360, MENU_H = 440
   function openCtx(name: string, x: number, y: number) {
     at = { x: Math.max(8, Math.min(x, innerWidth - Math.min(MENU_W, innerWidth - 24) - 8)), y: Math.max(8, Math.min(y, innerHeight - MENU_H - 8)) }
     ctx = name
@@ -793,6 +799,8 @@
     held = setTimeout(() => { longFired = true; openCtx(name, x, y) }, HOLD_MS)
   }
   function holdEnd() { if (held) clearTimeout(held); held = null }
+  /** Il menu della sessione ha la voce `k` (sessionMenu): i tasti da tenere premuto stanno in fondo, fuori dall'elenco delle voci. */
+  const menuHas = (s: Session, k: MenuKind): boolean => sessionMenu(s, st, mineOf(st, s.name), { canExit }).some(i => i.kind === k)
   // Il tasto di un passo toccato resta segnato «mandato» finché la sessione non cambia esito (Franz, 06/10 12:32): la card
   // risponde subito, poi la sessione al lavoro la aggiorna.
   let sentSteps = $state(new Set<string>())
@@ -1286,19 +1294,25 @@
                 <svg viewBox="0 0 24 24" width="22" height="22"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /></svg>
                 <span><span class="mt">{t.openInClaude}</span><span class="msub">{t.openInClaudeSub}</span></span>
               </a>
-            {:else if i.kind === 'restart_clean' && onRestart}
-              <button class="mi" role="menuitem" onclick={() => { ctx = null; onRestart?.(s.name) }}>
-                <svg viewBox="0 0 24 24" width="22" height="22"><path d={MENU_ICON.restart_clean} /></svg>
-                <span><span class="mt">{t.smenuRestart}</span><span class="msub">{t.smenuRestartSub}</span></span>
-              </button>
-            {:else if i.kind === 'exit'}
-              <hr />
-              <button class="mi danger" role="menuitem" onclick={() => { ctx = null; confirming = s.name }}>
-                <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 2v10M18.4 6.6a9 9 0 1 1-12.8 0" /></svg>
-                <span><span class="mt">{t.menuExit}</span><span class="msub">{t.menuExitSub}</span></span>
+            {:else if i.kind === 'exit' && closeSave && !s.master && s.name !== MASTER && closeOk(s)}
+              <!-- app-tieni-premuto-28-11 (Franz 28/11 16:22): «Chiudi senza salvare» resta una voce, con l'Annulla di 5 s che è la sua conferma. -->
+              <button class="mi" role="menuitem" data-testid="menu-chiudi-senza-salvare" onclick={() => { ctx = null; const n = s.name; later(t.undoClose(n), () => onClose(n, false)) }}>
+                <svg viewBox="0 0 24 24" width="22" height="22"><path d={HOLD_ICON.logout} /></svg>
+                <span><span class="mt">{t.closeNoSave}</span><span class="msub">{t.menuNoSaveSub}</span></span>
               </button>
             {/if}
           {/each}
+          <!-- app-tieni-premuto-28-11: in fondo i tasti da tenere premuto, gli stessi del ⋮ della sessione (Header.svelte): ripartire 1 s,
+               chiudere 1,2 s, che salva e chiude dove si può; con Franz al PC su questa sessione il motivo al posto del tasto. -->
+          {#if (menuHas(s, 'restart_clean') && onRestart) || menuHas(s, 'exit')}
+            <div class="holds">
+              {#if menuHas(s, 'restart_clean') && onRestart}<HoldButton tone="ink" ms={holdMs('riparti')} icon={MENU_ICON.restart_clean} label={t.holdRestart} said={t.holdSaidRestart(s.name)} testid="tieni-ripartire" onDone={() => { ctx = null; onRestart?.(s.name) }} />{/if}
+              {#if menuHas(s, 'exit')}
+                {#if closeOk(s)}<HoldButton tone="red" ms={holdMs('chiudi')} icon={HOLD_ICON.power} label={t.holdClose} said={t.holdSaidClose(s.name)} testid="tieni-chiudere" onDone={() => { ctx = null; onClose(s.name, closeSave && !s.master && s.name !== MASTER) }} />
+                {:else}<div class="ck-attached" data-testid="close-blocked"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2" /><path d="M8 20h8M12 16v4" /></svg><span><b>{t.closeBlockedAttached}</b><small>{t.closeBlockedLine}</small></span></div>{/if}
+              {/if}
+            </div>
+          {/if}
         </div>
       {/if}
       <!-- Il binario (stile «Studio e Diretta», 30/10): il glifo dello stato e, sotto, da quanto aspetta o lavora, o l'ora. -->
@@ -1736,25 +1750,25 @@
   .scrim { position: fixed; inset: 0; z-index: 60; cursor: default; background: transparent; }
   .cmenu { position: fixed; z-index: 61; width: min(360px, calc(100vw - 24px)); background: var(--surface); border-radius: 20px; padding: 8px; box-shadow: 0 12px 40px rgb(0 0 0 / .5); border: 1px solid var(--line); cursor: default; }
   .cmenu .ph { display: flex; gap: 10px; align-items: center; padding: 8px 12px 10px; }
-  .cmenu hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; }
   /* Il menu contestuale nella forma della v3 (app-menu-v3-30-10). */
   .cmenu { background: var(--s1); border: 1px solid var(--line); border-radius: 14px; padding: 0; overflow: hidden; }
   .cmenu .ph { min-height: 54px; padding: 0 12px 0 16px; border-bottom: 1px solid var(--line); font: 600 17px var(--display); }
-  .cmenu hr { display: none; }
   .cmenu .mi { align-items: center; gap: 8px; min-height: 58px; padding: 9px 12px 9px 0; border-radius: 0; border-top: 1px solid var(--line); }
   .cmenu .ph + .mi { border-top: 0; }
   .cmenu .mi:hover { background: var(--s2); }
   .cmenu .mi svg { margin: 0 15px; stroke: var(--tx2); }
+  /* app-tieni-premuto-28-11: i tasti da tenere premuto in fondo, col filo sopra; il menu scorre se lo schermo è basso. */
+  .cmenu { max-height: calc(100dvh - 16px); overflow-y: auto; }
+  .cmenu .holds { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px 16px; border-top: 1px solid var(--line); }
+  .cmenu .holds .ck-attached { margin-top: 0; }
   .cmenu .mt { font: 600 17px/1.2 var(--display); }
   .cmenu .msub { font-size: 14px; line-height: 1.3; color: var(--tx2); }
-  .cmenu .mi.danger .mt { color: var(--red); }
   .mi { display: flex; gap: 14px; align-items: flex-start; width: 100%; padding: 12px; border-radius: 14px; text-align: left; color: var(--text); text-decoration: none; }
   .mi:hover { background: var(--high); }
   .mi svg { flex: none; fill: none; stroke: var(--icon); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   .mi > span { display: flex; flex-direction: column; gap: 2px; }
   .mt { font-size: 15.5px; }
   .msub { font-size: 12.5px; color: var(--text2); }
-  .mi.danger svg { stroke: var(--b-alert); }
   .card { position: relative; -webkit-touch-callout: none; background: var(--low); border-radius: 20px; padding: 8px 10px 12px 14px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; transition: background .15s, box-shadow .15s; outline: none; }
   .card.waiting { background: color-mix(in srgb, var(--low) 94%, var(--b-warn)); }
   .card:hover, .card:focus-visible { box-shadow: inset 0 0 0 1px var(--line); }

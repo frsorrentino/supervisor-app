@@ -274,16 +274,13 @@
     <string name="open_in_claude_sub">Continue in the Claude app</string>
     <string name="terminal_sub">The PC screen, live</string>
     <string name="back_to_summary">Back to the summary</string>
-    <string name="menu_exit">Close the session</string>
-    <string name="menu_exit_sub">Sends /exit, after a confirmation</string>
+    <string name="menu_no_save_sub">No handoff, with 5 s to undo</string>
     <!-- The single session menu (app-menu-sessione-03-11). -->
     <string name="smenu_count">%1$s · %2$d</string>
     <string name="smenu_prove_sub">This session\'s tests</string>
     <string name="smenu_decidi_sub">The choices it is waiting on from you</string>
     <string name="smenu_guarda_sub">Its work you have not seen yet</string>
     <string name="smenu_seguiti_sub">What it left behind</string>
-    <string name="smenu_restart">Restart clean</string>
-    <string name="smenu_restart_sub">Writes the handoff, then /clear when the turn ends</string>
     <string name="ctx_short">ctx %1$d%%</string>
     <string name="quota_h5_short">5h %1$d%%</string>
     <string name="reading_now">READING</string>
@@ -418,7 +415,14 @@
     <string name="file_gone">The file is no longer on the phone: attach it again</string>
     <string name="stop">Stop</string>
     <string name="copied_word">Copied</string>
-    <string name="hold_to_approve">Hold: %1$s</string>
+    <string name="hold_close">Hold to close</string>
+    <string name="hold_restart">Hold to restart</string>
+    <string name="hold_publish">Hold to publish</string>
+    <string name="hold_early">Let go too early: nothing was sent</string>
+    <string name="hold_said_close">Closing %1$s</string>
+    <string name="hold_said_restart">%1$s: writing the handoff, then /clear</string>
+    <string name="hold_said_publish">Publishing started</string>
+    <string name="hold_said_ok">Sent</string>
     <plurals name="chat_new_count">
         <item quantity="one">1 new</item>
         <item quantity="other">%d new</item>
@@ -2178,7 +2182,7 @@ It starts at your last message to the master.</string>
     <string name="details_quota">5-hour quota</string>
     <!-- app-barra-stato-28-11: the status bar (variant C), for TalkBack, and the context row in Details. -->
     <string name="details_ctx">Context</string>
-    <string name="bar_quota_left">5-hour quota: %1$d%% left</string>
+    <string name="bar_quota_used">5-hour quota %1$d%% used</string>
     <string name="bar_ctx">context %1$d%%</string>
     <string name="bar_open_details">Open Details</string>
 </resources>

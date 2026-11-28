@@ -103,6 +103,13 @@ fun IconRow(
     onPick: (String) -> Unit,
     modifier: Modifier = Modifier,
     onEsc: (() -> Unit)? = null,
+    /** Alt+1…5 ed Esc della riga; false quando li gestisce chi la usa (app-barra-ibrida-28-11). */
+    keys: Boolean = true,
+    /**
+     * app-barra-ibrida-28-11 (H1): dentro la capsula, dopo le schede, lo stato della sessione. Il dito che parte da qui non trascina la
+     * pillola; i suoi tocchi sono suoi.
+     */
+    trailing: (@Composable () -> Unit)? = null,
 ) = BoxWithConstraints(modifier) {
     val off = animationsOff()
     val u = LocalDensity.current.density
@@ -184,10 +191,14 @@ fun IconRow(
                 )
             }
             .pointerInput(Unit) {
+                // Solo il dito che parte sulle schede trascina la pillola; dallo stato (trailing) no.
+                var fromTabs = true
                 detectHorizontalDragGestures(
-                    onDragEnd = { release(commit = true) },
-                    onDragCancel = { release(commit = false) },
+                    onDragStart = { o -> fromTabs = tabsNow.mapNotNull { t -> spans[t.key] }.maxOfOrNull { s -> s.right }?.let { r -> o.x <= r } ?: true },
+                    onDragEnd = { if (fromTabs) release(commit = true) },
+                    onDragCancel = { if (fromTabs) release(commit = false) },
                     onHorizontalDrag = move@{ change, dx ->
+                        if (!fromTabs) return@move
                         change.consume()
                         val list = tabsNow
                         val ss = list.map { spans[it.key] ?: return@move }
@@ -201,7 +212,7 @@ fun IconRow(
                     },
                 )
             }
-            .iconRowKeys(tabs.map { it.key }, onPick, onEsc)
+            .then(if (keys) Modifier.iconRowKeys(tabs.map { it.key }, onPick, onEsc) else Modifier)
             .selectableGroup()
             .testTag("riga-icone"),
         horizontalArrangement = Arrangement.spacedBy(2.dp),
@@ -216,6 +227,30 @@ fun IconRow(
                 )
             }
         }
+        trailing?.invoke()
+    }
+}
+
+/**
+ * app-barra-ibrida-28-11: quanto sono larghe le schede a riposo, in dp, col nome più lungo aperto (padding della capsula escluso): le
+ * parti fisse di ogni scheda (icona, margini, numero), il nome più largo con lo spazio davanti, gli spazi fra le schede. Serve a ridurre lo
+ * stato che sta nella stessa capsula (StatusBar.step) senza che cambi aprendo e chiudendo le schede. [tight]: come la riga, sotto i 400 dp.
+ */
+@Composable
+internal fun iconRowRest(tabs: List<IconTab>, tight: Boolean): Float {
+    val measurer = androidx.compose.ui.text.rememberTextMeasurer()
+    val density = LocalDensity.current
+    val pad = if (tight) 7f else 11f
+    val icon = if (tight) 20f else 22f
+    return with(density) {
+        var fixed = 0f
+        var name = 0f
+        tabs.forEach { t ->
+            val count = IconRowRules.badge(t.count, t.tone)?.let { b -> 5f + measurer.measure(b.text, CountStyle).size.width.toDp().value } ?: 0f
+            fixed += pad * 2f + icon + count
+            name = maxOf(name, measurer.measure(t.label, NameStyle).size.width.toDp().value)
+        }
+        fixed + name + IconRowRules.NAME_GAP + 2f * (tabs.size - 1).coerceAtLeast(0)
     }
 }
 

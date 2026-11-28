@@ -218,6 +218,8 @@ fun VoceRow(
     advice: String? = null, rec: Boolean = false,
     /** app-silenzio-assenso-23-11: «si chiude da sola gio 26/11», in blu in testa alla riga e al posto di da quanto aspetta. */
     silence: String? = null,
+    /** app-tieni-premuto-28-11 (correzione della master del 28/11): il tasto è un ok o un Va a un tocco, col finale del cerchio verde. */
+    tap: Boolean = false,
 ) {
     val hot = group == PerTe.Group.ASPETTA
     val shape = RoundedCornerShape(14.dp)
@@ -249,7 +251,11 @@ fun VoceRow(
                 style = V3.Small.copy(fontSize = 13.sp, lineHeight = 18.sp, color = tone ?: V3.Tx2), maxLines = 1, softWrap = false, overflow = TextOverflow.Clip,
             )
         }
-        if (main != null) VoceButton(main, hot || rec, tag?.let { "$it-tasto" }, onMain)
+        if (main != null && tap) HoldButton(
+            main, onDone = onMain, mode = it.pixelbox.cmwatch.rules.TieniPremuto.Mode.TAP, tone = if (hot || rec) HoldTone.AMBER else HoldTone.GREY,
+            form = HoldForm.MINI, said = stringResource(R.string.hold_said_ok), tag = tag?.let { t -> "$t-tasto" } ?: "voce-tasto",
+        )
+        else if (main != null) VoceButton(main, hot || rec, tag?.let { "$it-tasto" }, onMain)
         else Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3, modifier = Modifier.size(20.dp))
     }
 }
@@ -284,6 +290,7 @@ fun VoceListBody(items: List<it.pixelbox.cmwatch.contract.WaitItem>, now: Long, 
             VoceRow(
                 v.group, v.title, sub, if (v.group == PerTe.Group.ASPETTA) stringResource(R.string.ti_aspetta_since, age) else age, v.main?.label,
                 { onOpen(v.key) }, { val m = v.main; if (m == null || !m.direct) onOpen(v.key) else onMain(w, m.index) }, tag = "voce-${v.key}",
+                tap = v.main?.tap == true,
             )
         }
     }
@@ -396,7 +403,7 @@ fun VoceItem(v: PerTe.Voce, now: Long, onOpen: (PerTe.Voce) -> Unit, onMain: (Pe
     VoceRow(
         v.group, v.title, sub, if (v.group == PerTe.Group.ASPETTA) stringResource(R.string.ti_aspetta_since, age) else age,
         if (v.result != null) stringResource(R.string.watch_seen) else v.main?.label, { onOpen(v) }, { onMain(v) }, tag = "voce-${v.key}",
-        advice = adviceText(v.advice), rec = v.main?.recommended == true,
+        advice = adviceText(v.advice), rec = v.main?.recommended == true, tap = v.main?.tap == true && v.result == null,
         silence = v.wait?.silenceUntil?.takeIf { u -> it.pixelbox.cmwatch.rules.Silence.pending(u, now) }?.let { u ->
             stringResource(R.string.silence_row, it.pixelbox.cmwatch.rules.Silence.whenShort(u, java.time.ZoneId.systemDefault(), it.pixelbox.cmwatch.rules.Silence.localeOf(androidx.compose.ui.platform.LocalConfiguration.current.locales[0])))
         },

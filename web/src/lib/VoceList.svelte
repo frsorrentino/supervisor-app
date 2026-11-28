@@ -4,6 +4,7 @@
   import { voceOf } from './perTe'
   import { age } from './tiAspetta'
   import { answerWait } from './waitAct'
+  import { LEAVE_MS } from './tieniPremuto'
   import { t } from './t'
   import Voce from './Voce.svelte'
   // Le voci di `attese` in Dalla master, di tutte le sessioni (app-riall-1-dati-16-11, contratto 1.151; Franz 16/11: le voci per
@@ -18,14 +19,15 @@
   function main(v: ReturnType<typeof voceOf>) {
     const w = v.wait
     if (!w || !v.main?.direct) { onOpenWait(v.key); return }
-    void answerWait(run, w, v.main.index).then(ok => { if (ok) onAnswered(w) })
+    // app-tieni-premuto-28-11: dopo un ok o un Va a un tocco la riga esce a spunta disegnata.
+    void answerWait(run, w, v.main.index, null, v.main.tap ? LEAVE_MS : 0).then(ok => { if (ok) onAnswered(w) })
   }
 </script>
 
 {#if vs.length}
   <div class="vl" data-testid={testid}>
     {#each vs as v (v.key)}
-      <Voce group={v.group} title={v.title} sub={sub(v)} ago={v.group === 'aspetta' ? t.tiAspettaSince(age(now - v.since)) : age(now - v.since)} main={v.main?.label ?? null}
+      <Voce group={v.group} title={v.title} sub={sub(v)} ago={v.group === 'aspetta' ? t.tiAspettaSince(age(now - v.since)) : age(now - v.since)} main={v.main?.label ?? null} tap={!!v.main?.tap}
         testid="voce-{v.key}" onOpen={() => onOpenWait(v.key)} onMain={() => main(v)} />
     {/each}
   </div>

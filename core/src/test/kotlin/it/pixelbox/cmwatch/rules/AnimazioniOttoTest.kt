@@ -1,8 +1,5 @@
 package it.pixelbox.cmwatch.rules
 
-import it.pixelbox.cmwatch.contract.Approval
-import it.pixelbox.cmwatch.contract.WaitCard
-import it.pixelbox.cmwatch.contract.WaitItem
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -20,14 +17,7 @@ class AnimazioniOttoTest {
         assertEquals(1600, Animazioni.CYCLE_MS)
     }
 
-    // 6: tenere premuto solo per la produzione.
-    @Test fun holdOnlyForProduction() {
-        assertTrue(Animazioni.needsHold(Approval(task = "t", title = "Release 5 su Play", deploy = true)))
-        assertFalse(Animazioni.needsHold(Approval(task = "t", title = "Pre-release")))
-        assertFalse(Animazioni.needsHold(null as Approval?))
-        assertTrue(Animazioni.needsHold(WaitItem(id = "w", card = WaitCard(deploy = true))))
-        assertFalse(Animazioni.needsHold(WaitItem(id = "w")))
-    }
+    // 6, tenere premuto: i casi stanno in TieniPremutoTest (app-tieni-premuto-28-11).
 
     // 4: la cifra scorre solo per un gesto di Franz.
     @Test fun digitRollsOnlyForAGesture() {

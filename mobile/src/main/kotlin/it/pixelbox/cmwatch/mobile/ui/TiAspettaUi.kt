@@ -32,6 +32,7 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material.icons.outlined.RocketLaunch
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -55,6 +56,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.TiAspetta
+import it.pixelbox.cmwatch.rules.TieniPremuto
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -232,6 +234,9 @@ fun WaitCardBody(
     var failed by remember(item.id) { mutableStateOf<String?>(null) }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val actions = item.actions.orEmpty()
+    // app-tieni-premuto-28-11: l'ok di una carta che pubblica (TieniPremuto.holdIndex) lascia l'elenco e diventa il tasto ambra da tenere
+    // premuto 1,5 s, in fondo alla carta; gli altri tasti restano com'erano.
+    val hold = remember(item) { TieniPremuto.holdIndex(item) }
     fun go(i: Int, a: it.pixelbox.cmwatch.contract.WaitAction) {
         if (sent != null || busy) return
         if (a.textField != null && writing != i) { writing = i; written = ""; files = emptyList(); failed = null; return }
@@ -286,6 +291,7 @@ fun WaitCardBody(
         actions.forEachIndexed { i, a ->
             if (TiAspetta.lookOf(a) != TiAspetta.Look.OPTION) return@forEachIndexed
             n += 1
+            if (i == hold) return@forEachIndexed
             val num = n
             val rec = a.recommended
             val on = sent == i
@@ -310,17 +316,31 @@ fun WaitCardBody(
                 }
             }
         }
-        val pills = actions.withIndex().filter { (_, a) -> TiAspetta.lookOf(a) != TiAspetta.Look.OPTION }
+        val pills = actions.withIndex().filter { (i, a) -> TiAspetta.lookOf(a) != TiAspetta.Look.OPTION && i != hold }
         if (pills.isNotEmpty()) androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             pills.forEach { (i, a) ->
                 Box(Modifier.graphicsLayer { alpha = if (sent != null && sent != i) 0.45f else 1f }.testTag("ti-aspetta-tasto-$i")) {
-                    // Voce 6 di app-animazioni-otto-26-11: l'ok di una carta di produzione si tiene premuto.
-                    if (TiAspetta.lookOf(a) == TiAspetta.Look.MAIN && sent == null && it.pixelbox.cmwatch.rules.Animazioni.needsHold(item)) HoldButton(stringResource(R.string.hold_to_approve, a.label), onDone = { go(i, a) })
+                    // app-tieni-premuto-28-11 (correzione della master del 28/11): ogni altro ok e ogni Va restano un tocco, col finale del
+                    // cerchio verde; se il PC rifiuta la voce torna com'era.
+                    val place = TieniPremuto.placeOf(item, i)
+                    if (place != null && TieniPremuto.modeOf(place) == TieniPremuto.Mode.TAP && a.textField == null) HoldButton(
+                        a.label, onDone = { go(i, a) }, mode = TieniPremuto.Mode.TAP, tone = if (TiAspetta.lookOf(a) == TiAspetta.Look.MAIN) HoldTone.AMBER else HoldTone.GREY,
+                        form = HoldForm.KEY, said = stringResource(R.string.hold_said_ok), on = sent == i, enabled = sent == null,
+                    )
                     else V3Pill(a.label, filled = TiAspetta.lookOf(a) == TiAspetta.Look.MAIN, confirmed = sent == i) { go(i, a) }
                 }
             }
             // Il silenzio assenso accanto ai tasti; a 360 dp va sotto, intero. La riga con la data prende la fila intera.
             if (onSilence != null) SilenceBlock(item, ops, now, sent == null, onSilence)
+        }
+        hold?.let { h ->
+            val a = actions[h]
+            HoldButton(
+                stringResource(R.string.hold_publish), onDone = { go(h, a) }, modifier = Modifier.padding(top = 4.dp),
+                holdMs = TieniPremuto.holdMs(TieniPremuto.Place.PUBBLICA), tone = HoldTone.AMBER, icon = Icons.Outlined.RocketLaunch,
+                a11y = stringResource(R.string.hold_publish) + ": " + a.label, said = stringResource(R.string.hold_said_publish),
+                enabled = sent == null || sent == h, tag = "ti-aspetta-pubblica",
+            )
         }
         writing?.let { i ->
             val a = actions.getOrNull(i) ?: return@let

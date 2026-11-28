@@ -12,6 +12,9 @@
   import { t } from './t'
   import { adviceLine, adviceOf } from './tiAspetta'
   import CardAttach from './CardAttach.svelte'
+  import HoldButton from './HoldButton.svelte'
+  import { holdIndex, holdMs, placeOf } from './tieniPremuto'
+  import { HOLD_ICON } from './icons'
   import { revoke, type Allegato } from './allegatiCarta'
   // app-anteprime-webp-27-11: l'immagine animata di un'opzione con la sua bozza HTML fra i file dell'opzione apre la bozza dal vivo.
   import { draftIn } from './anteprimeAnimate'
@@ -39,6 +42,9 @@
   const hasPics = $derived(c.options.some(o => o.images.length > 0))
   const ar = $derived(frameRatio(c.options.flatMap(o => o.images).map(f => imageRatios[waitFileKey(f)])))
   const ask = (f: WaitFile) => onFile(f, 'preview')
+  // app-tieni-premuto-28-11: la scelta consigliata di una carta che pubblica si tiene premuta 1,5 s; ogni altra scelta che è un ok resta
+  // a un tocco, col finale del cerchio verde (correzione della master del 28/11).
+  const hold = $derived(holdIndex(item))
 
   // Il campo di un tasto che vuole un testo: il motivo di «Nessuna, rifare» (obbligatorio, fino a 300 caratteri) o le parole di un
   // altro tasto (per `text` possono mancare, come nella carta di prima). Mentre si scrive il tasto pieno è «Manda»: quello
@@ -124,7 +130,11 @@
         <div class="row" data-testid="scelta-opzione-{o.letter}">
           <span class="lt" aria-hidden="true">{o.letter}</span>
           <div class="nm">{#if o.name}<div class="nmb"><LongText text={o.name} /></div>{/if}{#if o.recommended}<span class="rec">{t.tiAspettaRecommended}</span>{/if}</div>
-          {#if o.action != null}
+          {#if o.action != null && o.action === hold}
+            <div class="pubrow"><HoldButton tone="amber" ms={holdMs('pubblica')} icon={HOLD_ICON.rocket} label={t.holdPublish} aria={`${t.holdPublish}: ${t.sceltaPickAria(o.letter, o.name)}`} said={t.holdSaidPublish} disabled={sent != null && sent !== o.action} testid="scelta-scegli-{o.letter}" onDone={() => tap(o.action!)} /></div>
+          {:else if o.action != null && placeOf(item, o.action) === 'approva' && !acts[o.action]?.text_field}
+            <div class="gow"><HoldButton mode="tap" size="key" tone={o.recommended && writing == null ? 'amber' : 'grey'} label={t.sceltaPick(o.letter)} aria={t.sceltaPickAria(o.letter, o.name)} said={t.holdSaidOk} on={sent === o.action} disabled={sent != null && sent !== o.action} testid="scelta-scegli-{o.letter}" onDone={() => tap(o.action!)} /></div>
+          {:else if o.action != null}
             <button class="go" class:filled={o.recommended && writing == null} class:done={sent === o.action} disabled={sent != null} aria-label={t.sceltaPickAria(o.letter, o.name)} data-testid="scelta-scegli-{o.letter}" onclick={() => tap(o.action!)}>{t.sceltaPick(o.letter)}</button>
           {:else if chosen}
             <span class="got"><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M4.5 10.5 8.5 14.5 15.5 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" /></svg>{t.sceltaPicked}</span>
@@ -233,6 +243,9 @@
   .txt { min-height: 44px; padding: 0 12px; border-radius: 999px; color: var(--tx2); font: 600 15px var(--display); letter-spacing: .01em; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
   .out:disabled, .txt:disabled { opacity: .45; cursor: default; }
   .txt.done:disabled { opacity: 1; color: var(--good); }
+  /* app-tieni-premuto-28-11: il tasto a un tocco col cerchio verde sta dove stava «Scegli»; quello da tenere premuto prende la riga intera, in fondo. */
+  .gow :global(.hold) { min-height: 44px; padding: 0 18px; }
+  .pubrow { grid-column: 1 / -1; order: 1; padding-top: 8px; }
   .go:focus-visible, .out:focus-visible, .txt:focus-visible, .doc:focus-visible, .more:focus-visible { outline: 2px solid var(--tx); outline-offset: 2px; }
 
   .form { display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); transition: opacity 180ms ease-out, transform 180ms cubic-bezier(0.23, 1, 0.32, 1); }
@@ -279,8 +292,8 @@
     .sc.c2 .pics.none { display: block; }
     .sc.c2 .row .lt { padding-top: 0; }
     .sc.c2 .nm { min-height: 0; }
-    .sc.c2 .go, .sc.c2 .got { grid-column: 1 / -1; grid-row: 4; align-self: end; margin-top: 14px; }
-    .sc.c2 .go { width: 100%; }
+    .sc.c2 .go, .sc.c2 .got, .sc.c2 .gow, .sc.c2 .pubrow { grid-column: 1 / -1; grid-row: 4; align-self: end; margin-top: 14px; }
+    .sc.c2 .go, .sc.c2 .gow :global(.hold) { width: 100%; }
   }
   @container (min-width: 780px) {
     .sc.c3 .opts { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: auto 1fr; gap: 0 20px; }
@@ -289,8 +302,8 @@
     .sc.c3 .pics.none { display: block; }
     .sc.c3 .row .lt { padding-top: 0; }
     .sc.c3 .nm { min-height: 0; }
-    .sc.c3 .go, .sc.c3 .got { grid-column: 1 / -1; grid-row: 4; align-self: end; margin-top: 14px; }
-    .sc.c3 .go { width: 100%; }
+    .sc.c3 .go, .sc.c3 .got, .sc.c3 .gow, .sc.c3 .pubrow { grid-column: 1 / -1; grid-row: 4; align-self: end; margin-top: 14px; }
+    .sc.c3 .go, .sc.c3 .gow :global(.hold) { width: 100%; }
   }
   @container (min-width: 980px) {
     .sc.c4 .opts { grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: auto 1fr; gap: 0 16px; }
@@ -299,8 +312,8 @@
     .sc.c4 .pics.none { display: block; }
     .sc.c4 .row .lt { padding-top: 0; }
     .sc.c4 .nm { min-height: 0; }
-    .sc.c4 .go, .sc.c4 .got { grid-column: 1 / -1; grid-row: 4; align-self: end; margin-top: 14px; }
-    .sc.c4 .go { width: 100%; }
+    .sc.c4 .go, .sc.c4 .got, .sc.c4 .gow, .sc.c4 .pubrow { grid-column: 1 / -1; grid-row: 4; align-self: end; margin-top: 14px; }
+    .sc.c4 .go, .sc.c4 .gow :global(.hold) { width: 100%; }
   }
   @media (prefers-reduced-motion: reduce) { .go, .out, .form { transition: none; } }
 </style>

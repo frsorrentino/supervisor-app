@@ -3,7 +3,8 @@
 // subito da ogni vista (attese.svelte.ts); se il PC rifiuta, torna.
 import type { CmdResult, WaitItem } from './contract'
 import { newCmd } from './transport'
-import { markAnswered } from './attese.svelte'
+import { answeredLater } from './attese.svelte'
+import { LEAVE_MS } from './tieniPremuto'
 import { age, cmdOf } from './tiAspetta'
 import { t } from './t'
 import { lang } from './lang'
@@ -30,13 +31,14 @@ export async function actVoce(run: Run, v: Voce, h: { open: (v: Voce) => void; r
   const w = v.wait, a = w && v.main ? w.actions?.[v.main.index] : null
   if (!w || !a || !v.main?.direct) { h.open(v); return }
   const c = cmdOf(a, null)
-  if (await fire(run, v.key, { ...newCmd(c.op as Parameters<typeof newCmd>[0], c.session ?? null, c.arg ?? null), ...c } as ReturnType<typeof newCmd>, h.reread)) h.onAnswered(w)
+  // app-tieni-premuto-28-11: dopo un ok o un Va a un tocco la riga esce a spunta disegnata, non subito.
+  if (await fire(run, v.key, { ...newCmd(c.op as Parameters<typeof newCmd>[0], c.session ?? null, c.arg ?? null), ...c } as ReturnType<typeof newCmd>, h.reread, v.main.tap ? LEAVE_MS : 0)) h.onAnswered(w)
 }
 
-async function fire(run: Run, key: string, c: ReturnType<typeof newCmd>, reread: () => void): Promise<boolean> {
-  markAnswered(key)
+async function fire(run: Run, key: string, c: ReturnType<typeof newCmd>, reread: () => void, wait = 0): Promise<boolean> {
+  const out = answeredLater(key, wait)
   const r = await run(c)
   if (r?.ok) { reread(); return true }
-  markAnswered(key, false)
+  out.undo()
   return false
 }

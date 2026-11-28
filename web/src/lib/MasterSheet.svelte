@@ -4,7 +4,7 @@
   import { locale } from './lang'
   import type { Session } from './contract'
   import { hero as heroOf, type Entry } from './masterHome'
-  import { anchors, corner, cues, freezeAt, progress, ROW_PX, rubber, settleAt, snap, STIFFNESS, tap, toRow, up, type Anchors, type Stop } from './masterSheet'
+  import { anchors, corner, cues, freezeAt, lift, progress, ROW_PX, rubber, settleAt, snap, STIFFNESS, tap, toRow, up, type Anchors, type Stop } from './masterSheet'
   import { DRAG_PX, landSpring, velocity } from './gesture'
   import { ridotto } from './molla'
   import { OPENING_MS } from './arrivo'
@@ -91,7 +91,11 @@
     // La conversazione rigida: da fermo quanto si vede; in movimento ferma, e cresce solo se il foglio la supera (un trascinamento oltre).
     const vis = visOf(h)
     if (frozen != null && vis > frozen) frozen = vis
-    const c = Math.round(frozen ?? vis)
+    // app-barra-ibrida-28-11: aperto, la riga del titolo si stringe (masterSheet.lift) e la parte che si muove sale di tanto sotto di lei:
+    // la conversazione si vede per altrettanto in più.
+    const ov = lift(a, h)
+    el.style.setProperty('--ov', `${ov.toFixed(1)}px`)
+    const c = Math.round((frozen ?? vis) + ov)
     if (c !== conv) { conv = c; body?.style.setProperty('--conv-h', `${c}px`) }
     // Ferma e in fondo, la conversazione mostra già quello che si vedrà all'arrivo: le voci fuori schermo hanno un'altezza stimata, e
     // disegnate cambiano la misura; tenerla in fondo a ogni fotogramma non la sposta rispetto alla riga, perché la sua altezza non cambia.
@@ -393,7 +397,9 @@
   .grab:hover .gr i { background: var(--tx2); }
   .gr:focus-visible { outline: none; }
   .gr:focus-visible i { outline: 2px solid var(--tx2); outline-offset: 3px; }
-  .mh { display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 4px 0 16px; }
+  /* app-barra-ibrida-28-11 (Franz 16:41): aperto, il contenuto della riga sta negli alti 52 − --ov px, una riga sola al centro («Master», ▶ e
+     ⋮); la riga resta alta 52, così la misura «riga» del foglio non cambia, e la parte che si muove le sale sotto di --ov. */
+  .mh { display: flex; align-items: center; gap: 10px; box-sizing: border-box; height: 52px; padding: 0 4px var(--ov, 0px) 16px; }
   .tt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
   .l1 { display: flex; align-items: center; gap: 8px; min-width: 0; }
   .l1 b { font: 700 15.5px/1.2 var(--display); color: var(--tx); }
@@ -403,10 +409,9 @@
   .st .mono { font: 400 12.5px var(--mono); letter-spacing: 0; }
   /* app-barra-stato-28-11 (Franz 14:01): l'ultimo esito sotto il titolo solo col foglio alla riga; aperto (o diretto a metà o all'intera),
      al suo posto c'è la barra di stato, e «Master» va al centro della riga. La riga resta alta 52: la misura «riga» del foglio non cambia. */
-  .l1, .st { transition: transform .18s cubic-bezier(.4, 0, .2, 1), opacity .18s; }
-  .msheet.open .st { opacity: 0; }
-  .msheet.open .l1 { transform: translateY(9px); }
-  @media (prefers-reduced-motion: reduce) { .l1, .st { transition: none; } }
+  .st { max-height: 20px; transition: max-height .18s cubic-bezier(.4, 0, .2, 1), opacity .18s; }
+  .msheet.open .st { max-height: 0; opacity: 0; }
+  @media (prefers-reduced-motion: reduce) { .st { transition: none; } }
   .nd { flex: none; width: 8px; height: 8px; border-radius: 4px; background: var(--wait); animation: nd-in var(--spring-bounce-t) var(--spring-bounce) both; }
   @keyframes nd-in { from { transform: scale(.4); opacity: 0; } }
   .ib { flex: none; width: 44px; height: 44px; border-radius: 22px; display: grid; place-items: center; color: var(--tx); position: relative; transition: transform 140ms cubic-bezier(.23, 1, .32, 1); }
@@ -421,7 +426,7 @@
   /* Prova 1447: la conversazione è appesa sotto la riga e sale con lei, alta `--conv-h` (quanto se ne vede, o ferma durante il movimento);
      i chip delle Azioni le stanno subito sotto e salgono con lei. Il campo e i suoi pezzi stanno fermi in fondo, opachi, e la coprono; il
      resto lo taglia il bordo. Niente dissolvenze: il foglio è opaco a ogni misura. */
-  .sbody { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+  .sbody { position: relative; flex: 1; min-height: 0; overflow: hidden; margin-top: calc(-1 * var(--ov, 0px)); }
   .sbody :global(section.chat) { position: absolute; inset: 0; height: auto; justify-content: flex-end; background: transparent; }
   /* app-barra-stato-28-11: aperto, la barra di stato sta subito sotto la riga, in cima alla parte che si muove, e la conversazione sotto di
      lei; le tendine scendono dalla barra e restano sotto il campo (la conversazione è un piano suo, sotto il campo). */

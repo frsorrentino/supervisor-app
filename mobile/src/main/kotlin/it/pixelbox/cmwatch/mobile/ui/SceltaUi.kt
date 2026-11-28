@@ -34,6 +34,7 @@ import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.PictureAsPdf
+import androidx.compose.material.icons.outlined.RocketLaunch
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -81,6 +82,7 @@ import androidx.compose.ui.unit.sp
 import it.pixelbox.cmwatch.contract.WaitFile
 import it.pixelbox.cmwatch.contract.WaitItem
 import it.pixelbox.cmwatch.mobile.R
+import it.pixelbox.cmwatch.rules.TieniPremuto
 import it.pixelbox.cmwatch.rules.AnteprimeAnimate
 import it.pixelbox.cmwatch.rules.Scelta
 import kotlinx.coroutines.Dispatchers
@@ -292,6 +294,9 @@ fun SceltaAperta(
     var failed by remember(item.id) { mutableStateOf<String?>(null) }
     val sendScope = rememberCoroutineScope()
     val acts = item.actions.orEmpty()
+    // app-tieni-premuto-28-11: la scelta consigliata di una carta che pubblica si tiene premuta 1,5 s; ogni altra scelta che è un ok resta a
+    // un tocco, col finale del cerchio verde (correzione della master del 28/11).
+    val hold = remember(item) { TieniPremuto.holdIndex(item) }
     val c = remember(item) { Scelta.choiceOf(item) }
     val out = remember(item) { Scelta.outcomeOf(item) }
     val rounds = remember(item) { Scelta.roundsOf(item) }
@@ -382,7 +387,19 @@ fun SceltaAperta(
         @Composable fun button(o: Scelta.Opt, modifier: Modifier = Modifier) {
             val chosen = out.state == Scelta.State.CHOSEN && out.letter == o.letter
             val act = o.action
-            if (act != null) Box(modifier.testTag("scelta-scegli-${o.letter}")) {
+            if (act != null && act == hold) Box(modifier.testTag("scelta-scegli-${o.letter}")) {
+                HoldButton(
+                    stringResource(R.string.hold_publish), onDone = { tap(act) }, holdMs = TieniPremuto.holdMs(TieniPremuto.Place.PUBBLICA), tone = HoldTone.AMBER,
+                    icon = Icons.Outlined.RocketLaunch, a11y = stringResource(R.string.hold_publish) + ": " + listOf(o.letter, o.name).filter { x -> x.isNotEmpty() }.joinToString(" "),
+                    said = stringResource(R.string.hold_said_publish), enabled = sent == null || sent == act,
+                )
+            } else if (act != null && TieniPremuto.placeOf(item, act) == TieniPremuto.Place.APPROVA && acts.getOrNull(act)?.textField == null) Box(modifier.testTag("scelta-scegli-${o.letter}")) {
+                HoldButton(
+                    stringResource(R.string.scelta_pick, o.letter), onDone = { tap(act) }, modifier = modifier, mode = TieniPremuto.Mode.TAP,
+                    tone = if (o.recommended && writing == null) HoldTone.AMBER else HoldTone.GREY, form = HoldForm.KEY,
+                    said = stringResource(R.string.hold_said_ok), on = sent == act, enabled = sent == null,
+                )
+            } else if (act != null) Box(modifier.testTag("scelta-scegli-${o.letter}")) {
                 ChoiceButton(stringResource(R.string.scelta_pick, o.letter), filled = o.recommended && writing == null, done = sent == act, enabled = sent == null, modifier = modifier) { tap(act) }
             } else if (chosen) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Icon(Icons.Rounded.Check, null, tint = V3.Good, modifier = Modifier.size(18.dp))
@@ -435,9 +452,11 @@ fun SceltaAperta(
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             Text(o.letter, style = TextStyle(fontFamily = V3.Display, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = V3.Tx2), modifier = Modifier.width(26.dp))
                             nameOf(o, dim, Modifier.weight(1f))
-                            button(o)
+                            // La pillola da tenere premuto non sta accanto al nome: prende la riga intera sotto.
+                            if (o.action == null || o.action != hold) button(o)
                         }
                         o.line?.let { LongText(it, Modifier.padding(start = 36.dp, top = 2.dp), style = V3.Body.copy(fontSize = 15.sp, color = V3.Tx2)) }
+                        if (o.action != null && o.action == hold) button(o, Modifier.fillMaxWidth().padding(top = 10.dp))
                         o.docs.forEach { f -> WaitDoc(f, Modifier.padding(start = 36.dp)) }
                     }
                 }

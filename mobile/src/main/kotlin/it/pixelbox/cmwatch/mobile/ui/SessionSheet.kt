@@ -125,6 +125,7 @@ import androidx.compose.ui.res.pluralStringResource
 import it.pixelbox.cmwatch.rules.ModelText
 import it.pixelbox.cmwatch.rules.PhonePrimary
 import it.pixelbox.cmwatch.rules.QuestionRules
+import it.pixelbox.cmwatch.rules.TieniPremuto
 import it.pixelbox.cmwatch.rules.QuotaWarning
 import it.pixelbox.cmwatch.rules.Sent
 import it.pixelbox.cmwatch.rules.SessionMeters
@@ -132,7 +133,6 @@ import it.pixelbox.cmwatch.rules.SessionsText
 import it.pixelbox.cmwatch.rules.SessionTabs
 import it.pixelbox.cmwatch.rules.SessionBottom
 import it.pixelbox.cmwatch.rules.MasterSheet
-import it.pixelbox.cmwatch.rules.StatusBar
 import it.pixelbox.cmwatch.rules.ToolText
 import java.time.Instant
 import kotlinx.coroutines.flow.first
@@ -610,7 +610,7 @@ fun SessionSheet(
             if (header && barOn) StatusBarRow(
                 tabCounts, tab, pickTab, model = ModelText.short(model) ?: stringResource(R.string.model_title), effort = effort, quota = accountQuota,
                 ctx = s.context?.takeIf { s.state != SessionState.GONE }, bg = if (inSheet) MasterHigh else LocalPageBg.current ?: Cm.bg,
-                more = if (appBar == null) moreMenu else null, pad = if (inSheet) StatusBar.PAD_SHEET else StatusBar.PAD,
+                more = if (appBar == null) moreMenu else null,
             )
             else if (header && !inSheet) androidx.compose.animation.AnimatedVisibility(
                 visible = home == null || follow,
@@ -2598,7 +2598,6 @@ private fun SessionMoreMenu(
     changes: it.pixelbox.cmwatch.contract.ChangesCount?, changesMenu: Boolean, onChanges: (() -> Unit)?,
 ) {
     var menu by remember { mutableStateOf(false) }
-    var exitAsk by remember { mutableStateOf(false) }
     Box {
         IconButton(onClick = { menu = true }, modifier = Modifier.size(40.dp)) { Icon(Icons.Rounded.MoreVert, stringResource(R.string.more), tint = Cm.text2) }
         if (changesMenu) Box(Modifier.align(Alignment.TopEnd).padding(top = 7.dp, end = 7.dp).size(10.dp).background(bg, CircleShape).padding(2.dp).background(Cm.actionIcon, CircleShape))
@@ -2607,7 +2606,7 @@ private fun SessionMoreMenu(
             // Un menu solo, lo stesso dalla home e dalla plancia (app-menu-sessione-03-11): le voci da SessionMenu.
             val st0 = actions.menuState ?: it.pixelbox.cmwatch.contract.State(v = 1, ts = 0, host = "", sessions = (actions.sessions + s).distinctBy { x -> x.name })
             val items = it.pixelbox.cmwatch.rules.SessionMenu.entries(s, st0, actions.mine, changes = changes != null && changesMenu, terminal = showTerminal, canExit = canExit)
-            val (entries, footer) = sessionMenuEntries(s, items, SessionMenuActions(
+            val acts = closeActions(s, actions, SessionMenuActions(
                 changes = { onChanges?.invoke() },
                 changesTitle = changes?.let { c -> DiffRules.menuLine(stringResource(R.string.changes_title), pluralStringResource(R.plurals.changes_files, c.files, c.files), c) },
                 changesSub = stringResource(R.string.changes_open),
@@ -2617,10 +2616,8 @@ private fun SessionMoreMenu(
                 seguiti = actions.openMine?.let { o -> { o(it.pixelbox.cmwatch.rules.SessionMenu.Kind.SEGUITI) } },
                 follow = actions.follow, askMaster = actions.askMaster, openInClaude = actions.openInClaude, terminal = actions.terminal,
                 restartClean = actions.handoff,
-                // Franz, 03/10 16:02: chiudere la sessione dal menu, con la stessa conferma di /exit scritto nel campo.
-                exit = { exitAsk = true },
             ))
-            MenuPanel(onDismiss = { menu = false }, entries = entries, footer = footer) {
+            MenuPanel(onDismiss = { menu = false }, entries = sessionMenuEntries(s, items, acts), bottom = { close -> SessionMenuHolds(s, items, acts, close) }) {
                 SessionBadge(s, 20.dp)
                 Text(
                     s.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold), color = Cm.text,
@@ -2629,7 +2626,25 @@ private fun SessionMoreMenu(
             }
         }
     }
-    if (exitAsk) CloseDialog(s, onDismiss = { exitAsk = false }, onConfirm = { exitAsk = false; actions.slash("exit", null) }, onSave = actions.closeSave?.let { save -> { exitAsk = false; save() } })
+}
+
+/**
+ * app-tieni-premuto-28-11 (Franz 28/11 16:22): il tasto rosso del menu fa quello che faceva «Salva e chiudi» della carta «Chiudere X?»
+ * (handoff, poi /exit), o /exit dove il salvataggio non c'è (la master, un relay senza «close»); «Chiudi senza salvare» resta una voce,
+ * con l'Annulla di 5 s che è la sua conferma (voce 4 di app-animazioni-seconde-26-11).
+ */
+@Composable
+private fun closeActions(s: Session, actions: SheetActions, a: SessionMenuActions): SessionMenuActions {
+    val undo = stringResource(R.string.undo_close, s.name)
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val exit: () -> Unit = { actions.slash("exit", null) }
+    return SessionMenuActions(
+        changes = a.changes, changesTitle = a.changesTitle, changesSub = a.changesSub, prove = a.prove, decidi = a.decidi, guarda = a.guarda,
+        seguiti = a.seguiti, follow = a.follow, askMaster = a.askMaster, openInClaude = a.openInClaude, terminal = a.terminal,
+        restartClean = a.restartClean,
+        exit = actions.closeSave ?: exit,
+        exitNoSave = actions.closeSave?.let { _ -> { Undo.later(scope, undo, exit) } },
+    )
 }
 
 /**
@@ -2641,21 +2656,20 @@ private fun SessionMoreMenu(
 @Composable
 private fun MasterSheetMore(s: Session, actions: SheetActions, showTerminal: Boolean, canExit: Boolean) {
     var menu by remember { mutableStateOf(false) }
-    var exitAsk by remember { mutableStateOf(false) }
     Box {
         IconButton(onClick = { menu = true }, modifier = Modifier.size(44.dp).testTag("foglio-altro")) { Icon(Icons.Rounded.MoreVert, stringResource(R.string.more), tint = Cm.text2) }
         if (menu) {
             val st0 = actions.menuState ?: it.pixelbox.cmwatch.contract.State(v = 1, ts = 0, host = "", sessions = (actions.sessions + s).distinctBy { x -> x.name })
             val items = it.pixelbox.cmwatch.rules.SessionMenu.entries(s, st0, actions.mine, changes = false, terminal = showTerminal, canExit = canExit)
-            val (entries, footer) = sessionMenuEntries(s, items, SessionMenuActions(
+            val acts = closeActions(s, actions, SessionMenuActions(
                 prove = actions.openMine?.let { o -> { o(it.pixelbox.cmwatch.rules.SessionMenu.Kind.PROVE) } },
                 decidi = actions.openMine?.let { o -> { o(it.pixelbox.cmwatch.rules.SessionMenu.Kind.DECIDI) } },
                 guarda = actions.openMine?.let { o -> { o(it.pixelbox.cmwatch.rules.SessionMenu.Kind.GUARDA) } },
                 seguiti = actions.openMine?.let { o -> { o(it.pixelbox.cmwatch.rules.SessionMenu.Kind.SEGUITI) } },
                 follow = actions.follow, askMaster = actions.askMaster, openInClaude = actions.openInClaude, terminal = actions.terminal,
                 restartClean = actions.handoff,
-                exit = { exitAsk = true },
             ))
+            val entries = sessionMenuEntries(s, items, acts)
             PanelShell(onDismiss = { menu = false }, header = {
                 SessionBadge(s, 20.dp)
                 Text(
@@ -2664,11 +2678,11 @@ private fun MasterSheetMore(s: Session, actions: SheetActions, showTerminal: Boo
                 )
             }, tag = "foglio-menu") { close ->
                 entries.forEachIndexed { i, e -> SheetMoreRow(e.icon, e.title, e.sub, first = i == 0) { close(); e.onClick() } }
-                footer?.let { f -> SheetMoreRow(f.icon, f.title, f.sub, first = entries.isEmpty(), destructive = f.destructive) { close(); f.onClick() } }
+                // app-tieni-premuto-28-11: in fondo i tasti da tenere premuto, gli stessi del ⋮ di ogni sessione.
+                SessionMenuHolds(s, items, acts, close)
             }
         }
     }
-    if (exitAsk) CloseDialog(s, onDismiss = { exitAsk = false }, onConfirm = { exitAsk = false; actions.slash("exit", null) }, onSave = actions.closeSave?.let { save -> { exitAsk = false; save() } })
 }
 
 /** Una voce del ⋮ del foglio della master (gruppo 4), nella forma delle voci dei menu a pannello (MenuItem): icona, titolo, una riga. */
@@ -2837,14 +2851,25 @@ internal fun QuestionOptions(
             number = if (v3) o.n else null, outlined = v3 && i == primary,
         )
     }
+    // app-tieni-premuto-28-11: l'opzione consigliata di una domanda che pubblica («Deploy now?») lascia l'elenco e diventa il tasto ambra da
+    // tenere premuto 1,5 s, sotto le altre; le altre restano com'erano.
+    val hold = remember(q) { TieniPremuto.holdOption(q) }
+    val shown = q.options.filter { o -> o.n != hold }
     if (inline) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-        val last = q.options.lastIndex
-        q.options.forEachIndexed { i, o ->
-            val start = if (i == 0) 22.dp else 6.dp
-            val end = if (i == last) 22.dp else 6.dp
-            button(i, o, Modifier.weight(1f), RoundedCornerShape(topStart = start, bottomStart = start, topEnd = end, bottomEnd = end))
+        val last = shown.lastIndex
+        shown.forEachIndexed { k, o ->
+            val start = if (k == 0) 22.dp else 6.dp
+            val end = if (k == last) 22.dp else 6.dp
+            button(q.options.indexOf(o), o, Modifier.weight(1f), RoundedCornerShape(topStart = start, bottomStart = start, topEnd = end, bottomEnd = end))
         }
-    } else q.options.forEachIndexed { i, o -> button(i, o, Modifier.fillMaxWidth(), CircleShape) }
+    } else shown.forEach { o -> button(q.options.indexOf(o), o, Modifier.fillMaxWidth(), CircleShape) }
+    q.options.firstOrNull { o -> o.n == hold }?.let { o ->
+        HoldButton(
+            stringResource(R.string.hold_publish), onDone = { onAnswer(o.n) }, holdMs = TieniPremuto.holdMs(TieniPremuto.Place.PUBBLICA), tone = HoldTone.AMBER,
+            icon = Icons.Outlined.RocketLaunch, a11y = stringResource(R.string.hold_publish) + ": " + QuestionRules.optionLabel(o), said = stringResource(R.string.hold_said_publish),
+            tag = "domanda-pubblica",
+        )
+    }
 }
 
 /**

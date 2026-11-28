@@ -38,7 +38,8 @@ export class DemoTransport implements Transport {
     this.waitDone.set(task, { state, answered })
     this.set({ ...this.st, ts: this.now(), approvals: (this.st.approvals ?? []).filter(a => a.task !== task) })
   }
-  private waitOf(task: string | null | undefined): WaitItem | undefined { return task ? waitsDemo(this.now()).find(w => w.task === task && w.type === 'carta' && w.kind === 'choice') : undefined }
+  // app-tieni-premuto-28-11: anche la carta del deploy (un ok con le sue scelte) va in archivio con la risposta.
+  private waitOf(task: string | null | undefined): WaitItem | undefined { return task ? waitsDemo(this.now()).find(w => w.task === task && w.type === 'carta' && (w.kind === 'choice' || w.kind === 'ok')) : undefined }
 
   constructor(private readonly clock: () => number = () => Math.floor(Date.now() / 1000)) {
     this.world = world(clock())

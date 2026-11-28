@@ -61,6 +61,21 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.nativeKeyEvent
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.stateDescription
+import it.pixelbox.cmwatch.rules.TieniPremuto
 import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.rules.Animazioni
 import it.pixelbox.cmwatch.rules.PassiProva
@@ -266,106 +281,220 @@ internal fun RollNumber(value: String, roll: Boolean, content: @Composable (Stri
     }
 }
 
+/** Il colore del tasto «tieni premuto» (app-tieni-premuto-28-11): rosso per chiudere, il colore del testo, l'ambra dei tasti principali, un tonale grigio. */
+internal enum class HoldTone { RED, INK, AMBER, GREY }
+
+/** La forma del tasto: la pillola da 52 larga quanto il posto, un tasto della carta, il tasto di una riga. */
+internal enum class HoldForm { PILL, KEY, MINI }
+
 /**
- * Voce 6, fedele all'originale (Hold Button; app-animazioni-fedeli-26-11). Il dito giù schiaccia il tasto a 0,96 (molla 520 20) e lo
- * riempie da sinistra in [Animazioni.HOLD_MS], lineare; la scritta si inverte esattamente sotto il riempimento. Lasciato prima, il
- * riempimento torna con la molla 260 14 e il tasto fa «no» con una scossa (molla 700 9, spinta 260·min(1, 2p + 0,3) dp/s). Pieno:
- * il tasto diventa un cerchio verde (larghezza con la molla 320 20, pop +2,5 sulla scala), la scritta sfuma e si sfoca di 4 dp in
- * 200 ms, la spunta compare dopo 120 ms e si disegna in 450 ms dopo 160 ms. L'ok parte a spunta disegnata; dopo 1,7 s il tasto torna
- * (molla 256 20). Colori dell'app: rosso della produzione per il riempimento, scritta scura sopra. Con le animazioni spente niente
- * movimento, ma il tempo da tenere resta.
+ * Il tasto «tieni premuto» (app-tieni-premuto-28-11, Franz 28/11 16:22, «Tutti e tre»; mockup tieni-premuto-28-11.html), fedele al Hold to
+ * publish di designbookmark (hold.js e le molle di motion.js) coi colori, i font e i raggi dell'app; gemello di HoldButton.svelte. Le regole
+ * (il tempo di ogni posto, il pieno, lasciato prima o fatto, la scossa) stanno in [TieniPremuto].
+ *
+ * Tenere premuto ([mode] HOLD): il dito, o Spazio e Invio da una tastiera, schiaccia la pillola a 0,96 (molla 520 20) e la riempie da
+ * sinistra, lineare in [holdMs] ([TieniPremuto.progress] del tempo tenuto); la scritta si inverte sotto il pieno. Lasciata prima: il pieno
+ * torna con la molla 260 14, appena oltre lo zero, e la pillola fa «no» (molla 700 9, spinta [TieniPremuto.kick]); non parte niente. In
+ * fondo: la pillola diventa un cerchio senza cambiare il posto che occupa (molla 320 20), verde, la scritta sfuma e si sfoca, la spunta si
+ * disegna (450 ms con (.65, 0, .35, 1) dopo 160 ms); poi parte [onDone].
+ *
+ * Toccare ([mode] TAP, correzione della master del 28/11): ogni altro «Approva» e ogni «Va» restano a un tocco col finale dello stesso tasto;
+ * [onDone] parte al tocco e chi ospita il tasto fa uscire la carta o la riga come prima. Con [on] è lui a dire se il tasto è fatto: se il PC
+ * rifiuta lo spegne e la pillola torna.
+ *
+ * TalkBack legge [a11y] («Tieni premuto per …», se no [label]) e poi l'esito: [said], o «lasciato prima». Animazioni spente: niente
+ * schiacciata né scossa, il cerchio senza rimbalzo; il pieno cresce lo stesso, perché dice quanto manca, e la spunta compare senza
+ * disegnarsi. [pinned] ferma il pieno (da 0 a 1; 1 = fatto) per le immagini di prova.
  */
 @Composable
-internal fun HoldButton(label: String, onDone: () -> Unit, modifier: Modifier = Modifier) {
+internal fun HoldButton(
+    label: String,
+    onDone: () -> Unit,
+    modifier: Modifier = Modifier,
+    mode: TieniPremuto.Mode = TieniPremuto.Mode.HOLD,
+    holdMs: Long = TieniPremuto.holdMs(TieniPremuto.Place.CHIUDI),
+    tone: HoldTone = HoldTone.AMBER,
+    form: HoldForm = HoldForm.PILL,
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    a11y: String? = null,
+    said: String? = null,
+    on: Boolean? = null,
+    pinned: Float? = null,
+    enabled: Boolean = true,
+    tag: String = "tieni-premuto",
+) {
     val off = animationsOff()
     val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val fire by androidx.compose.runtime.rememberUpdatedState(onDone)
+    val onNow by androidx.compose.runtime.rememberUpdatedState(on)
     val p = remember { androidx.compose.animation.core.Animatable(0f) }
     val sc = remember { androidx.compose.animation.core.Animatable(1f) }
     val shake = remember { androidx.compose.animation.core.Animatable(0f) }
     val morph = remember { androidx.compose.animation.core.Animatable(0f) }
-    var done by remember { androidx.compose.runtime.mutableStateOf(false) }
-    val labelA = animateFloatAsState(if (done) 0f else 1f, if (off) snap() else tween(200), label = "tieni-scritta").value
-    val checkA = animateFloatAsState(if (done) 1f else 0f, if (off || !done) snap() else tween(100, delayMillis = 120), label = "tieni-spunta").value
-    val draw = animateFloatAsState(
+    var mine by remember { androidx.compose.runtime.mutableStateOf(false) }
+    var news by remember { androidx.compose.runtime.mutableStateOf("") }
+    val holding = remember { arrayOfNulls<kotlinx.coroutines.Job>(1) }
+    val touch = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    val done = if (pinned != null) pinned >= 1f else on ?: mine
+    val early = stringResource(R.string.hold_early)
+    // Il cerchio segue lo stato «fatto», di qui o di chi ospita il tasto: avanti con la molla 320 20, indietro con 0,8 della rigidità.
+    LaunchedEffect(done, off) {
+        val k = if (done) TieniPremuto.MORPH_K else TieniPremuto.MORPH_K * 0.8f
+        if (!done && holding[0]?.isActive != true) launch { p.animateTo(0f, Molla.of(TieniPremuto.RELEASE_K, TieniPremuto.damping(TieniPremuto.RELEASE_K, TieniPremuto.RELEASE_C, off))) }
+        if (off) morph.snapTo(if (done) 1f else 0f) else morph.animateTo(if (done) 1f else 0f, Molla.of(k, TieniPremuto.damping(k, TieniPremuto.MORPH_C, false)))
+    }
+    fun finish() {
+        mine = true
+        news = said.orEmpty()
+        if (!off) scope.launch { sc.animateTo(1f, Molla.of(TieniPremuto.PRESS_K, TieniPremuto.PRESS_C), initialVelocity = sc.velocity + 2.5f) }
+        scope.launch {
+            kotlinx.coroutines.delay(TieniPremuto.FIRE_MS)
+            fire()
+            kotlinx.coroutines.delay(TieniPremuto.DONE_MS - TieniPremuto.FIRE_MS)
+            // Il tasto torna pillola se nessuno l'ha tolto (l'originale dopo 1,7 s).
+            if (onNow == null) mine = false
+        }
+    }
+    fun press() {
+        if (mode != TieniPremuto.Mode.HOLD || done || !enabled || pinned != null || holding[0]?.isActive == true) return
+        news = ""
+        if (!off) scope.launch { sc.animateTo(TieniPremuto.SQUASH, Molla.of(TieniPremuto.PRESS_K, TieniPremuto.PRESS_C)) }
+        holding[0] = scope.launch {
+            // Lineare mentre si tiene, da dove era il pieno: è una barra di avanzamento; la molla riprende quando si lascia.
+            val from = p.value.coerceIn(0f, 1f)
+            val need = ((1f - from) * holdMs).toLong()
+            val t0 = android.os.SystemClock.uptimeMillis()
+            while (true) {
+                val e = android.os.SystemClock.uptimeMillis() - t0
+                p.snapTo(from + (1f - from) * TieniPremuto.progress(e, need))
+                if (TieniPremuto.release(e, need) == TieniPremuto.Release.COMPLETE) break
+                androidx.compose.runtime.withFrameMillis { }
+            }
+            holding[0] = null
+            finish()
+        }
+    }
+    fun lift() {
+        val j = holding[0] ?: return
+        j.cancel()
+        holding[0] = null
+        val kick = TieniPremuto.kick(p.value, off)
+        news = early
+        scope.launch { if (off) sc.snapTo(1f) else sc.animateTo(1f, Molla.of(TieniPremuto.PRESS_K, TieniPremuto.PRESS_C)) }
+        scope.launch { p.animateTo(0f, Molla.of(TieniPremuto.RELEASE_K, TieniPremuto.damping(TieniPremuto.RELEASE_K, TieniPremuto.RELEASE_C, off))) }
+        if (kick > 0f) scope.launch { shake.animateTo(0f, Molla.of(TieniPremuto.SHAKE_K, TieniPremuto.SHAKE_C), initialVelocity = shake.velocity + kick) }
+    }
+    fun tap() {
+        if (mode != TieniPremuto.Mode.TAP || done || !enabled || pinned != null) return
+        mine = true
+        news = said.orEmpty()
+        if (!off) scope.launch { sc.animateTo(1f, Molla.of(TieniPremuto.PRESS_K, TieniPremuto.PRESS_C), initialVelocity = sc.velocity + 2.5f) }
+        fire()
+        scope.launch { kotlinx.coroutines.delay(TieniPremuto.DONE_MS); if (onNow == null) mine = false }
+    }
+    val labelA0 = animateFloatAsState(if (done) 0f else 1f, if (off) snap() else tween(200), label = "tieni-scritta").value
+    val checkA0 = animateFloatAsState(if (done) 1f else 0f, if (off || !done) snap() else tween(100, delayMillis = 120), label = "tieni-spunta").value
+    val draw0 = animateFloatAsState(
         if (done) 1f else 0f,
-        if (off || !done) snap() else tween(450, delayMillis = 160, easing = androidx.compose.animation.core.CubicBezierEasing(0.65f, 0f, 0.35f, 1f)),
+        if (off || !done) snap() else tween(TieniPremuto.CHECK_DRAW_MS.toInt(), delayMillis = TieniPremuto.CHECK_DELAY_MS.toInt(), easing = androidx.compose.animation.core.CubicBezierEasing(0.65f, 0f, 0.35f, 1f)),
         label = "tieni-traccia",
     ).value
-    val prod = Cm.prod
+    val still = pinned != null
+    val pv = pinned?.coerceIn(0f, 1f) ?: p.value
+    val mv = if (still) (if (done) 1f else 0f) else morph.value
+    val labelA = if (still) (if (done) 0f else 1f) else labelA0
+    val checkA = if (still) (if (done) 1f else 0f) else checkA0
+    val draw = if (still) (if (done) 1f else 0f) else draw0
+    val fg = when (tone) { HoldTone.RED -> V3.Red; HoldTone.INK -> V3.Tx; HoldTone.AMBER -> V3.Wait; HoldTone.GREY -> V3.Tx }
+    val fillTone = when (tone) { HoldTone.RED -> V3.Red; HoldTone.AMBER -> V3.Wait; else -> V3.Tx }
+    val bg = when (tone) { HoldTone.AMBER -> V3.Wait.copy(alpha = 0.12f); HoldTone.GREY -> V3.S3; else -> V3.S2 }
+    val rim: Color? = when (tone) { HoldTone.AMBER -> V3.Wait.copy(alpha = 0.5f); HoldTone.GREY -> null; else -> V3.Line }
     val good = V3.Good
     val ink = V3.Bg
-    val style = TextStyle(fontFamily = V3.Display, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
-    val pad = 18.dp
-    androidx.compose.foundation.layout.Box(
+    val pad = when (form) { HoldForm.PILL -> 20.dp; HoldForm.KEY -> 16.dp; HoldForm.MINI -> 14.dp }
+    val checkSize = if (form == HoldForm.MINI) 22.dp else 26.dp
+    // Barlow Semi Condensed 600 15, anche nella forma della riga: la stessa del tasto di una voce (VoceButton).
+    val style = TextStyle(fontFamily = V3.Display, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, lineHeight = 20.sp)
+    val gestures = if (mode == TieniPremuto.Mode.HOLD) Modifier
+        .pointerInput(enabled, done, pinned, holdMs) { detectTapGestures(onPress = { press(); tryAwaitRelease(); lift() }) }
+        .onKeyEvent { e ->
+            val k = e.key == Key.Spacebar || e.key == Key.Enter || e.key == Key.NumPadEnter
+            if (!k) false
+            else if (e.type == KeyEventType.KeyDown) { if (e.nativeKeyEvent.repeatCount == 0) press(); true }
+            else if (e.type == KeyEventType.KeyUp) { lift(); true }
+            else false
+        }
+        .focusable(enabled = enabled && !done)
+    else Modifier.clickable(touch, indication = null, enabled = enabled && !done && !still) { tap() }
+    Box(
         modifier
-            .graphicsLayer { translationX = shake.value * density; scaleX = sc.value; scaleY = sc.value }
-            .clip(CircleShape)
-            .background(if (done) good else V3.S3)
+            .then(if (form == HoldForm.PILL) Modifier.fillMaxWidth().height(52.dp) else Modifier.heightIn(min = if (form == HoldForm.KEY) 42.dp else 36.dp))
+            .graphicsLayer { translationX = shake.value * density; scaleX = sc.value; scaleY = sc.value; alpha = if (enabled || done) 1f else 0.45f }
             .drawWithContent {
-                if (!done && !off) drawRect(prod, size = size.copy(width = size.width * p.value.coerceAtLeast(0f)))
-                drawContent()
+                val w = size.width
+                val h = size.height
+                val r = h / 2f
+                // La pillola diventa cerchio senza cambiare il posto che occupa: si taglia dai due lati verso il centro, coi bordi tondi.
+                val cut = ((w - h) / 2f * mv).coerceIn(0f, (w / 2f - 1f).coerceAtLeast(0f))
+                val shape = androidx.compose.ui.graphics.Path().apply {
+                    addRoundRect(androidx.compose.ui.geometry.RoundRect(cut, 0f, w - cut, h, androidx.compose.ui.geometry.CornerRadius(r, r)))
+                }
+                clipPath(shape) {
+                    drawRect(if (done) good else bg)
+                    if (!done && mode == TieniPremuto.Mode.HOLD && pv > 0f) drawRect(fillTone, size = size.copy(width = w * pv))
+                    val line = rim
+                    if (!done && line != null) {
+                        val sw = 1.dp.toPx()
+                        drawRoundRect(
+                            line, topLeft = androidx.compose.ui.geometry.Offset(cut + sw / 2f, sw / 2f), size = androidx.compose.ui.geometry.Size(w - 2f * cut - sw, h - sw),
+                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(r - sw / 2f, r - sw / 2f), style = androidx.compose.ui.graphics.drawscope.Stroke(sw),
+                        )
+                    }
+                    this@drawWithContent.drawContent()
+                }
                 if (checkA > 0f) {
-                    val u = 26.dp.toPx() / 24f
-                    val o = center - androidx.compose.ui.geometry.Offset(13.dp.toPx(), 13.dp.toPx())
+                    val u = checkSize.toPx() / 24f
+                    val o = center - androidx.compose.ui.geometry.Offset(12f * u, 12f * u)
                     val path = androidx.compose.ui.graphics.Path().apply {
                         moveTo(o.x + 5f * u, o.y + 12.5f * u); lineTo(o.x + 9.5f * u, o.y + 17f * u); lineTo(o.x + 19f * u, o.y + 7.5f * u)
                     }
                     val pm = androidx.compose.ui.graphics.PathMeasure().apply { setPath(path, false) }
                     val part = androidx.compose.ui.graphics.Path()
                     pm.getSegment(0f, pm.length * draw, part, true)
-                    drawPath(part, ink.copy(alpha = checkA), style = androidx.compose.ui.graphics.drawscope.Stroke(2.4f * u, cap = androidx.compose.ui.graphics.StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round))
+                    drawPath(part, ink.copy(alpha = checkA), style = androidx.compose.ui.graphics.drawscope.Stroke(2.6f * u, cap = androidx.compose.ui.graphics.StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round))
                 }
             }
-            .layout { m, c ->
-                val pl = m.measure(c)
-                val w = (pl.width + (pl.height - pl.width) * morph.value).roundToInt().coerceAtLeast(pl.height)
-                layout(w, pl.height) { pl.place((w - pl.width) / 2, 0) }
+            .handCursor()
+            .then(gestures)
+            .semantics {
+                contentDescription = a11y ?: label
+                role = Role.Button
+                if (news.isNotEmpty()) { liveRegion = LiveRegionMode.Polite; stateDescription = news }
             }
-            .pointerInput(off) {
-                detectTapGestures(onPress = {
-                    if (done) return@detectTapGestures
-                    scope.launch { if (!off) sc.animateTo(0.96f, Molla.of(520f, 20f)) }
-                    val job = scope.launch {
-                        if (off) kotlinx.coroutines.delay(Animazioni.HOLD_MS)
-                        else p.animateTo(1f, tween(((1f - p.value.coerceIn(0f, 1f)) * Animazioni.HOLD_MS).toInt(), easing = androidx.compose.animation.core.LinearEasing))
-                        done = true
-                        if (!off) {
-                            launch { morph.animateTo(1f, Molla.of(320f, 20f)) }
-                            launch { sc.animateTo(1f, Molla.of(520f, 20f), initialVelocity = sc.velocity + 2.5f) }
-                        }
-                        kotlinx.coroutines.delay(if (off) 0L else 610L)
-                        onDone()
-                        kotlinx.coroutines.delay(if (off) 0L else 1700L - 610L)
-                        done = false
-                        p.snapTo(0f)
-                        if (!off) morph.animateTo(0f, Molla.of(256f, 20f)) else morph.snapTo(0f)
-                    }
-                    tryAwaitRelease()
-                    if (!done && job.isActive) {
-                        job.cancel()
-                        val kick = 260f * minOf(1f, p.value * 2f + 0.3f)
-                        scope.launch { if (!off) sc.animateTo(1f, Molla.of(520f, 20f)) else sc.snapTo(1f) }
-                        scope.launch { if (!off) p.animateTo(0f, Molla.of(260f, 14f)) else p.snapTo(0f) }
-                        if (!off) scope.launch { shake.animateTo(0f, Molla.of(700f, 9f), initialVelocity = shake.velocity + kick) }
-                    } else if (!done) scope.launch { sc.animateTo(1f, Molla.of(520f, 20f)) }
-                })
-            }
-            .padding(horizontal = pad, vertical = 10.dp)
-            .testTag("tieni-premuto"),
+            .padding(horizontal = pad)
+            .testTag(tag),
         contentAlignment = Alignment.Center,
     ) {
-        androidx.compose.foundation.layout.Box(Modifier.graphicsLayer { alpha = labelA }.blur(((1f - labelA) * 4f).dp), contentAlignment = Alignment.Center) {
-            Text(label, style = style, color = V3.Tx, maxLines = 1)
-            Text(
-                label, style = style, color = ink, maxLines = 1,
-                modifier = Modifier.drawWithContent {
-                    val right = (p.value.coerceAtLeast(0f) * (size.width + 2 * pad.toPx()) - pad.toPx())
-                    if (!off && right > 0f) clipRect(right = right) { this@drawWithContent.drawContent() }
+        Box(Modifier.then(if (form == HoldForm.PILL) Modifier.fillMaxWidth() else Modifier).graphicsLayer { alpha = labelA }.blur(((1f - labelA) * 4f).dp), contentAlignment = Alignment.Center) {
+            HoldLabel(label, icon, fg, style)
+            // La scritta scura sopra il pieno, tagliata alla sua larghezza: si inverte esattamente sotto il pieno.
+            if (mode == TieniPremuto.Mode.HOLD) Box(
+                Modifier.matchParentSize().drawWithContent {
+                    val right = pv * (size.width + 2f * pad.toPx()) - pad.toPx()
+                    if (right > 0f) clipRect(right = right) { this@drawWithContent.drawContent() }
                 },
-            )
+                contentAlignment = Alignment.Center,
+            ) { HoldLabel(label, icon, ink, style) }
         }
     }
 }
+
+@Composable
+private fun HoldLabel(text: String, icon: androidx.compose.ui.graphics.vector.ImageVector?, color: Color, style: TextStyle) =
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+        if (icon != null) Icon(icon, null, tint = color, modifier = Modifier.size(20.dp))
+        Text(text, style = style, color = color, maxLines = 1, softWrap = false)
+    }
 
 /**
  * Voce 7 di app-animazioni-seconde-26-11 (Limite ad anello): un anello piccolo si riempie mentre scrivi; negli ultimi 20 caratteri

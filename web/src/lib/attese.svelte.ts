@@ -23,6 +23,17 @@ export function markAnswered(id: string, on = true) {
   waits.answered = s
 }
 
+/**
+ * app-tieni-premuto-28-11: dopo un ok a un tocco la voce esce a spunta disegnata (`wait` ms), non subito, così il cerchio verde del tasto
+ * si vede; senza attesa esce subito come prima. `undo` la rimette (il PC ha rifiutato), anche prima che sia uscita.
+ */
+export function answeredLater(id: string, wait: number): { undo: () => void } {
+  let off = false
+  const timer = wait > 0 ? setTimeout(() => { if (!off) markAnswered(id) }, wait) : null
+  if (!timer) markAnswered(id)
+  return { undo: () => { off = true; if (timer) clearTimeout(timer); markAnswered(id, false) } }
+}
+
 export function applyClosed(ids: readonly string[]) {
   if (ids.every(i => waits.answered.has(i))) return
   waits.answered = new Set([...waits.answered, ...ids])

@@ -38,3 +38,10 @@ export const ICON = {
   diff: ['M12 5v14', 'M5 12h14'],
 } satisfies Record<string, string[]>
 export type IconName = keyof typeof ICON
+
+/** app-tieni-premuto-28-11: le icone dei tasti da tenere premuto e della voce «Chiudi senza salvare», a tratto come le altre del menu. */
+export const HOLD_ICON = {
+  power: 'M12 2v10M18.4 6.6a9 9 0 1 1-12.8 0',
+  rocket: 'M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09zM12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2zM9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5',
+  logout: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9',
+}

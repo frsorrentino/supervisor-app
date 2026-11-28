@@ -71,10 +71,13 @@ data class MenuEntry(
 fun MenuPanel(
     onDismiss: () -> Unit, entries: List<MenuEntry>, footer: MenuEntry? = null, tag: String? = null,
     origin: androidx.compose.ui.graphics.TransformOrigin = androidx.compose.ui.graphics.TransformOrigin(1f, 0f),
+    /** app-tieni-premuto-28-11: sotto le voci, i tasti da tenere premuto del menu della sessione ([SessionMenuHolds]). */
+    bottom: @Composable androidx.compose.foundation.layout.ColumnScope.(close: () -> Unit) -> Unit = {},
     header: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit,
 ) = PanelShell(onDismiss, header, origin, tag) { close ->
     entries.forEachIndexed { i, e -> MenuItem(e.icon, e.title, e.sub, i > 0) { close(); e.onClick() } }
     footer?.let { f -> MenuItem(f.icon, f.title, f.sub, true, f.destructive) { close(); f.onClick() } }
+    bottom(close)
 }
 
 /**

@@ -278,16 +278,14 @@
     <string name="open_in_claude_sub">Continua nell\'app Claude</string>
     <string name="terminal_sub">Lo schermo del PC, dal vivo</string>
     <string name="back_to_summary">Torna al riepilogo</string>
-    <string name="menu_exit">Chiudi la sessione</string>
-    <string name="menu_exit_sub">Manda /exit, dopo una conferma</string>
+    <!-- app-tieni-premuto-28-11: «Chiudi la sessione» e «Riparti pulito» si tengono premuti in fondo al menu; «Chiudi senza salvare» resta una voce. -->
+    <string name="menu_no_save_sub">Senza handoff, con 5 s per annullare</string>
     <!-- Il menu unico della sessione (app-menu-sessione-03-11): le voci di Tocca a te che la riguardano, col numero, e Riparti pulito. -->
     <string name="smenu_count">%1$s · %2$d</string>
     <string name="smenu_prove_sub">Le prove di questa sessione</string>
     <string name="smenu_decidi_sub">Le scelte che aspetta da te</string>
     <string name="smenu_guarda_sub">I suoi lavori che non hai ancora visto</string>
     <string name="smenu_seguiti_sub">Quello che ha lasciato indietro</string>
-    <string name="smenu_restart">Riparti pulito</string>
-    <string name="smenu_restart_sub">Scrive l\'handoff, poi /clear a turno finito</string>
     <string name="ctx_short">ctx %1$d%%</string>
     <string name="quota_h5_short">5h %1$d%%</string>
     <string name="reading_now">IN LETTURA</string>
@@ -431,7 +429,15 @@
     <string name="file_gone">Il file non c\'è più sul telefono: allegalo di nuovo</string>
     <string name="stop">Ferma</string>
     <string name="copied_word">Copiato</string>
-    <string name="hold_to_approve">Tieni premuto: %1$s</string>
+    <!-- app-tieni-premuto-28-11 (Franz 28/11 16:22): il tasto da tenere premuto; l'esito lo legge TalkBack. -->
+    <string name="hold_close">Tieni premuto per chiudere</string>
+    <string name="hold_restart">Tieni premuto per ripartire</string>
+    <string name="hold_publish">Tieni premuto per pubblicare</string>
+    <string name="hold_early">Lasciato prima: non parte niente</string>
+    <string name="hold_said_close">Chiusura di %1$s partita</string>
+    <string name="hold_said_restart">%1$s: handoff in scrittura, poi /clear</string>
+    <string name="hold_said_publish">Pubblicazione partita</string>
+    <string name="hold_said_ok">Mandato</string>
     <plurals name="chat_new_count">
         <item quantity="one">1 nuovo</item>
         <item quantity="other">%d nuovi</item>
@@ -2227,7 +2233,7 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="details_quota">Quota delle 5 ore</string>
     <!-- app-barra-stato-28-11: la barra di stato (variante C), per TalkBack, e la riga del contesto in Dettagli. -->
     <string name="details_ctx">Contesto</string>
-    <string name="bar_quota_left">quota delle 5 ore: resta il %1$d%%</string>
+    <string name="bar_quota_used">quota delle 5 ore usata al %1$d%%</string>
     <string name="bar_ctx">contesto %1$d%%</string>
     <string name="bar_open_details">Apri Dettagli</string>
 </resources>

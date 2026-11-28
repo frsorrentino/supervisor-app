@@ -1,8 +1,5 @@
 package it.pixelbox.cmwatch.rules
 
-import it.pixelbox.cmwatch.contract.Approval
-import it.pixelbox.cmwatch.contract.WaitItem
-
 /**
  * Le regole delle otto animazioni scelte da Franz il 26/11 alle 11:50 (app-animazioni-otto-26-11, proposta in
  * docs/proposte/2026-11-26-animazioni/proposta.md): i tempi comuni e le decisioni che non sono disegno, uguali sul web
@@ -12,16 +9,13 @@ object Animazioni {
     /** 1, Copia che risponde: quanto resta la spunta «Copiato» prima di tornare Copia. */
     const val COPY_HOLD_MS = 1800L
 
-    /** 6, Tieni premuto: quanto si tiene il dito sul tasto di un'approvazione di produzione. */
+    /** 6, Tieni premuto: il tempo del componente; ogni posto ha il suo in [TieniPremuto.holdMs] (app-tieni-premuto-28-11). */
     const val HOLD_MS = 1200L
 
     /** 3, Al lavoro: il ciclo del riflesso, lo stesso della linea del lavoro in corso (voce 1 del 31/10). */
     const val CYCLE_MS = 1600
 
-    /** 6: solo le approvazioni che escono in produzione chiedono di tenere premuto; le altre restano a un tocco. */
-    fun needsHold(a: Approval?): Boolean = a?.deploy == true
-
-    fun needsHold(w: WaitItem?): Boolean = w?.card?.deploy == true
+    // 6: quale ok si tiene premuto lo dice [TieniPremuto] (app-tieni-premuto-28-11): ogni carta che pubblica, non solo la produzione.
 
     /**
      * 4, Cifra che scorre: la cifra scorre solo quando cambia per un gesto di Franz (una risposta appena data), mai per un

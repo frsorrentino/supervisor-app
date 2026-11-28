@@ -1,6 +1,7 @@
 <script lang="ts">
   import HoldButton from './HoldButton.svelte'
-  import { needsHoldWait } from './animazioni'
+  import { holdIndex, holdMs, LEAVE_MS, modeOf, placeOf } from './tieniPremuto'
+  import { HOLD_ICON } from './icons'
   import TiAspetta from './TiAspetta.svelte'
   import { waitGone } from './waitGone'
   import CinqueMinuti from './CinqueMinuti.svelte'
@@ -87,14 +88,14 @@
   function go(i: number, a: WaitAction) {
     if (sent != null || busy) return
     if (a.text_field && writing !== i) { writing = i; written = ''; revoke(picked); picked = []; upErr = null; return }
-    void send(i, a.text_field ? written : null, a.text_field ? picked.map(f => f.file) : []).then(why => { if (why) upErr = why })
+    void send(i, a.text_field ? written : null, a.text_field ? picked.map(f => f.file) : [], item ? waitOf(item, i) : 0).then(why => { if (why) upErr = why })
   }
   /**
    * Manda il comando del tasto `i`, col testo scritto nel suo campo, e chiude la scheda. Con degli allegati (app-allegati-carta-27-11)
    * prima partono loro, in un `report` alla sessione del compito; se non arrivano la risposta non parte, il campo tiene testo e
    * allegati e torna il motivo. Una scheda cambiata nel frattempo non riceve la risposta.
    */
-  async function send(i: number, text: string | null, files: File[] = []): Promise<string | null> {
+  async function send(i: number, text: string | null, files: File[] = [], wait = 0): Promise<string | null> {
     const w = item, a = w?.actions?.[i]
     if (sent != null || busy || !w || !a) return null
     if (files.length && onFiles) {
@@ -111,9 +112,14 @@
     // La voce esce subito da ogni vista (app-riall-1-dati-16-11); se il PC rifiuta, torna.
     markAnswered(w.id)
     void run({ ...newCmd(c.op as Parameters<typeof newCmd>[0], c.session ?? null, c.arg ?? null), ...c } as ReturnType<typeof newCmd>).then(r => { if (!r?.ok && !waitGone(r?.text)) markAnswered(w.id, false); onAnswered(w) })
-    onSent(w, sentWhat(a.label, a.text_field ? text : null), typeof c.session === 'string' ? c.session : null)
+    const what = sentWhat(a.label, a.text_field ? text : null), to = typeof c.session === 'string' ? c.session : null
+    // app-tieni-premuto-28-11: dopo un ok a un tocco la carta esce a spunta disegnata, non subito, così il cerchio verde si vede.
+    if (wait > 0) setTimeout(() => onSent(w, what, to), wait); else onSent(w, what, to)
     return null
   }
+  /** Un tasto a un tocco col finale del cerchio verde (ogni ok e ogni Va): la carta aspetta la spunta prima di uscire. */
+  const tapOf = (w: WaitItem, i: number): boolean => { const p = placeOf(w, i); return p != null && modeOf(p) === 'tap' }
+  const waitOf = (w: WaitItem, i: number): number => (tapOf(w, i) ? LEAVE_MS : 0)
   // Una scheda che non aspetta più (dall'archivio): la testata dice com'è finita e quando, non da quanto aspetta.
   const out = $derived(item ? outcomeOf(item) : null)
   const choice = $derived(!!item && !legacy && isChoice(item))
@@ -160,9 +166,12 @@
       {:else if legacy && w.type === 'carta'}
         <CinqueMinuti rows allOpen only={(g) => g.items.some(i => i.wid === w.id)} {st} {run} onApprove={(task, note, choice) => { onApprove(task, note, choice); onSent(w, sentWhat(choice || t.approve, note), null) }} onDone={(i) => { onDone(i); onSent(w, t.tiAspettaDone, null) }} {onAsk} />
       {:else if choice}
-        <SceltaAperta item={w} rows={rows(w)} {sent} onSend={send} {onFile} {share} />
+        <SceltaAperta item={w} rows={rows(w)} {sent} onSend={(i, text, files) => send(i, text, files, waitOf(w, i))} {onFile} {share} />
       {:else}
         {@const acts = w.actions ?? []}
+        <!-- app-tieni-premuto-28-11: l'ok di una carta che pubblica (tieniPremuto.holdIndex) lascia l'elenco e diventa il tasto ambra da
+             tenere premuto 1,5 s, in fondo alla carta; gli altri tasti restano com'erano. -->
+        {@const hold = holdIndex(w)}
         <div class="wc" data-testid="ti-aspetta-carta">
           <p class="k">{w.label_text}{#if w.card?.deploy}<span class="tag">{t.tiAspettaProduction}</span>{/if}</p>
           <!-- app-play-lettura-ovunque-27-11: titolo, domanda, consiglio, ogni riga della carta ed esito col ▶ accanto, se vanno oltre una riga. -->
@@ -172,23 +181,28 @@
           {#if adviceOf(w.advice)}<div class="adv" data-testid="ti-aspetta-consiglio"><LongText text={adviceLine(adviceOf(w.advice)!, t.tiAspettaAdvice, t.tiAspettaAdviceYes, t.tiAspettaAdviceNo)} /></div>{/if}
           {#if rows(w).length}<dl>{#each rows(w) as [k, v]}<dt>{k}</dt><dd><LongText text={v} /></dd>{/each}</dl>{/if}
           {#if w.files?.length}<AttesaFiles files={w.files} {onFile} />{/if}
-          {#if acts.some(a => lookOf(a) === 'option')}
+          {#if acts.some((a, i) => lookOf(a) === 'option' && i !== hold)}
             <div class="opts">
-              {#each acts as a, i}{#if lookOf(a) === 'option'}{@const num = acts.slice(0, i + 1).filter(x => lookOf(x) === 'option').length}
+              {#each acts as a, i}{#if lookOf(a) === 'option' && i !== hold}{@const num = acts.slice(0, i + 1).filter(x => lookOf(x) === 'option').length}
                 <button class="opt" class:rec={a.recommended} class:done={sent === i} disabled={sent != null} data-testid="ti-aspetta-scelta-{num}" onclick={() => go(i, a)}>
                   <span class="num">{num}</span><span class="tx"><b>{a.label}</b>{#if a.recommended}<small>{t.tiAspettaRecommended}</small>{/if}</span>
                 </button>
               {/if}{/each}
             </div>
           {/if}
-          {#if acts.some(a => lookOf(a) !== 'option')}
+          {#if acts.some((a, i) => lookOf(a) !== 'option' && i !== hold)}
             <div class="pills">
-              {#each acts as a, i}{#if lookOf(a) !== 'option'}
-                {#if lookOf(a) === 'main' && needsHoldWait(w) && sent == null}<HoldButton cls="pill main" label={t.holdToApprove(a.label)} onDone={() => go(i, a)} />
+              {#each acts as a, i}{#if lookOf(a) !== 'option' && i !== hold}
+                <!-- Ogni altro ok e ogni Va: un tocco, col finale del cerchio verde; se il PC rifiuta la voce torna com'era. -->
+                {#if tapOf(w, i) && !a.text_field}<HoldButton mode="tap" size="key" tone={lookOf(a) === 'main' ? 'amber' : 'grey'} label={a.label} said={t.holdSaidOk} on={sent === i} disabled={sent != null && sent !== i} testid="ti-aspetta-tasto-{i}" onDone={() => go(i, a)} />
                 {:else}<button class="pill" class:main={lookOf(a) === 'main'} class:done={sent === i} class:off={sent != null && sent !== i} disabled={sent != null} data-testid="ti-aspetta-tasto-{i}" onclick={() => go(i, a)}>{a.label}</button>{/if}
               {/if}{/each}
               {#if silenceKey}<button class="pill sil" disabled={silenceBusy} data-testid="ti-aspetta-silenzio" onclick={() => silence(true)}><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2" /><path d="M12 7.5V12l3 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>{silenceBusy ? t.silenceSending : t.silenceKey}</button>{/if}
             </div>
+          {/if}
+          {#if hold != null}
+            <!-- Tenuto 1,5 s parte l'ok (la scelta consigliata o il pieno), poi la carta esce; il lettore di schermo sente anche cosa sceglie. -->
+            <div class="pub"><HoldButton tone="amber" ms={holdMs('pubblica')} icon={HOLD_ICON.rocket} label={t.holdPublish} aria={`${t.holdPublish}: ${acts[hold].label}`} said={t.holdSaidPublish} disabled={sent != null && sent !== hold} testid="ti-aspetta-pubblica" onDone={() => go(hold!, acts[hold!])} /></div>
           {/if}
           {#if silenceShown && silenceUntil != null && sent == null}
             <div class="due" role="status" data-testid="ti-aspetta-silenzio-data"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2" /><path d="M12 7.5V12l3 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
@@ -239,8 +253,8 @@
   dl { display: grid; grid-template-columns: 96px 1fr; gap: 3px 10px; font-size: 14px; line-height: 20px; }
   dt { color: var(--tx3); }
   .pills { display: flex; flex-wrap: wrap; gap: 8px; }
-  /* Voce 6: il tasto da tenere premuto è un componente suo, con le stesse forme. */
-  .pills :global(.hold.pill) { font: 600 15px var(--display); padding: 9px 16px; border-radius: 999px; color: var(--wait); background: color-mix(in srgb, var(--wait) 14%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--red) 60%, transparent); }
+  /* app-tieni-premuto-28-11: il tasto da tenere premuto in fondo alla carta, largo quanto lei. */
+  .pub { padding-top: 4px; }
   .pill { font: 600 15px var(--display); padding: 9px 16px; border-radius: 999px; background: var(--s3); color: var(--tx); }
   .pill.main { color: var(--wait); background: color-mix(in srgb, var(--wait) 14%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--wait) 60%, transparent); }
   .pill.done { box-shadow: inset 0 0 0 1px var(--good); }

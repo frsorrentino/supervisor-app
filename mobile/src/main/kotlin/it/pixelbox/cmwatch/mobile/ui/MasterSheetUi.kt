@@ -43,6 +43,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -102,6 +104,12 @@ internal val LocalSheetRoom = androidx.compose.runtime.compositionLocalOf { 0.dp
 internal val LocalSheetTop = androidx.compose.runtime.staticCompositionLocalOf<((Float?) -> Unit)?> { null }
 
 /**
+ * app-barra-ibrida-28-11 (Franz 16:41): quanto si stringe la riga del titolo col foglio aperto, in px (MasterSheet.lift), letto nella
+ * misura; null fuori dal foglio. [MasterSheetHead] centra lì «Master», ▶ e ⋮ su una riga sola.
+ */
+internal val LocalSheetLift = androidx.compose.runtime.staticCompositionLocalOf<(() -> Float)?> { null }
+
+/**
  * La riga della master nel suo foglio (app-posizioni-sistema-27-11 gruppo 4, al posto della barra di prima): il glifo dello stato, «Master»
  * col punto ambra quando arriva una risposta a foglio chiuso ([closed]), l'ora dell'ultima risposta che scorre e il suo titolo su una
  * riga, ▶ per ascoltarla (■ mentre legge, con la velocità accanto), e il ⋮ della master (LocalHeadMore). I gesti sono del foglio
@@ -128,9 +136,19 @@ fun MasterSheetHead(master: Session, hero: MasterHome.Hero?, onSpeak: (String) -
         if (isNew && roll && !off) { headA.snapTo(0f); headA.animateTo(1f, tween(150)) }
         if (isNew) { fresh = true; delay(Animazioni.DOCK_PEEK_MS); fresh = false }
     }
+    val lift = LocalSheetLift.current
     Row(
         // app-foglio-master-testata-28-11: il titolo e l'ultimo esito a 16 dp dal bordo, come le schede dell'app; a destra ▶ e ⋮ coi loro 44 dp.
-        Modifier.fillMaxWidth().height(52.dp).padding(start = 16.dp, end = 4.dp),
+        // app-barra-ibrida-28-11 (Franz 16:41): aperto, senza l'ultimo esito, il contenuto sta negli alti 52 dp meno la stretta del foglio
+        // (LocalSheetLift), una riga sola al centro; la riga resta alta 52, così la misura «riga» del foglio non cambia.
+        Modifier.fillMaxWidth().height(52.dp)
+            .layout { m, c ->
+                val l = lift?.invoke()?.roundToInt() ?: 0
+                val h = (c.maxHeight - l).coerceAtLeast(0)
+                val p = m.measure(c.copy(minHeight = h, maxHeight = h))
+                layout(c.maxWidth, c.maxHeight) { p.place(0, 0) }
+            }
+            .padding(start = 16.dp, end = 4.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         StateGlyph(Rail.glyph(master), master.context, size = 20.dp, square = !Accounts.personal(master.account, master.accountKind), label = label)
@@ -304,6 +322,9 @@ internal fun MasterSheetBox(
         // Un valore derivato: chi lo legge nel disegno (la forma, il bordo della master) si ridisegna solo quando l'angolo cambia.
         val cornerPx = with(density) { MasterSheet.CORNER_DP.dp.toPx() }
         val cornerNow by remember(cornerPx) { derivedStateOf { MasterSheet.corner(aNow, px(), cornerPx) } }
+        // app-barra-ibrida-28-11: quanto si stringe la riga del titolo col foglio aperto (MasterSheet.lift), letto nella misura.
+        val liftMax = with(density) { MasterSheet.LIFT_DP.dp.toPx() }
+        val liftNow: () -> Float = { MasterSheet.lift(aNow, px(), liftMax) }
         Column(
             Modifier.align(Alignment.BottomCenter).fillMaxWidth()
                 .layout { m, c ->
@@ -332,17 +353,20 @@ internal fun MasterSheetBox(
                     .testTag("foglio-maniglia"),
             ) {
                 SheetGrip()
-                head()
+                androidx.compose.runtime.CompositionLocalProvider(LocalSheetLift provides liftNow) { head() }
             }
             // Prova 1447: appesa sotto la riga e opaca, alta quanto si vede o, durante il movimento, ferma; la taglia il bordo del campo.
+            // app-barra-ibrida-28-11: aperto sale di quanto si stringe la riga del titolo (liftNow) e si vede per altrettanto in più; si
+            // taglia lì, non sul suo bordo: sopra c'è la parte vuota della riga.
             if (bodyOn) Column(
                 Modifier.weight(1f).fillMaxWidth()
-                    .graphicsLayer { clip = true }
+                    .drawWithContent { val l = liftNow(); clipRect(top = -l, bottom = size.height) { this@drawWithContent.drawContent() } }
                     .layout { m, c ->
                         val f = frozen.floatValue
-                        val h = if (f >= 0f) maxOf(c.maxHeight, f.roundToInt()) else c.maxHeight
+                        val l = liftNow().roundToInt()
+                        val h = (if (f >= 0f) maxOf(c.maxHeight, f.roundToInt()) else c.maxHeight) + l
                         val p = m.measure(Constraints.fixed(c.maxWidth, h))
-                        layout(c.maxWidth, c.maxHeight) { p.place(0, 0) }
+                        layout(c.maxWidth, c.maxHeight) { p.place(0, -l) }
                     },
                 content = body,
             )
