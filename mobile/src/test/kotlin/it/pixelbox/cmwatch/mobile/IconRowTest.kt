@@ -30,8 +30,12 @@ import org.junit.Test
  * Per te, verde Risultati, grigio Modifiche); un conteggio a zero, che toglie il numero e lascia l'icona al suo posto. Golden da CI.
  */
 class IconRowTest {
+    // Più larga che alta: senza LANDSCAPE Paparazzi scambia i lati e la riga esce larga 120 dp, tagliata (prima run, 2fd2de64).
     @get:Rule val paparazzi = Paparazzi(
-        deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenWidth = (360 * 2.75).toInt(), screenHeight = (120 * 2.75).toInt()),
+        deviceConfig = DeviceConfig.PIXEL_5.copy(
+            locale = "it", orientation = com.android.resources.ScreenOrientation.LANDSCAPE,
+            screenWidth = (360 * 2.75).toInt(), screenHeight = (120 * 2.75).toInt(),
+        ),
         theme = "android:Theme.Material.NoActionBar",
     )
 
