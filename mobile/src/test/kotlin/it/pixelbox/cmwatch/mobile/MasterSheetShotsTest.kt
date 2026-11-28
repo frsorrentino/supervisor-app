@@ -2,12 +2,14 @@ package it.pixelbox.cmwatch.mobile
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import app.cash.paparazzi.DeviceConfig
 import app.cash.paparazzi.Paparazzi
 import it.pixelbox.cmwatch.contract.ContractJson
 import it.pixelbox.cmwatch.contract.SessionState
 import it.pixelbox.cmwatch.contract.TranscriptEntry
 import it.pixelbox.cmwatch.mobile.ui.CmPhoneTheme
+import it.pixelbox.cmwatch.mobile.ui.LocalBordoFermo
 import it.pixelbox.cmwatch.mobile.ui.MasterSheetHead
 import it.pixelbox.cmwatch.mobile.ui.MenuActions
 import it.pixelbox.cmwatch.mobile.ui.PageHeader
@@ -62,4 +64,26 @@ class MasterSheetShotsTest {
 
     @Test fun riga() = paparazzi.snapshot { home(MasterSheet.Stop.ROW) }
     @Test fun meta() = paparazzi.snapshot { home(MasterSheet.Stop.HALF) }
+
+    // app-bordo-master-27-11: il campo della master in una striscia di 360 × 220 dp, col foglio alla riga sopra una home vuota. Da ferma
+    // l'anello di 1,5 dp; al lavoro il raggio fermo a 12 s del giro (LocalBordoFermo: un quinto del bordo, a metà del lato di sopra), così
+    // l'immagine non dipende dall'ora. Il giro vero si vede dal vivo.
+    private fun campo(lavora: Boolean) {
+        paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenWidth = (360 * 2.75).toInt(), screenHeight = (220 * 2.75).toInt()))
+        val m = if (lavora) master.copy(state = SessionState.BUSY) else master
+        paparazzi.snapshot {
+            CmPhoneTheme(still = true) {
+                CompositionLocalProvider(LocalBordoFermo provides 12_000L) {
+                    SessionSheet(
+                        m, st.ts, emptyList(), 120, none, grid = true, canAttach = true,
+                        home = { _, _ -> }, homeOpen = true, sheetAt = MasterSheet.Stop.ROW,
+                        dock = { MasterSheetHead(m, MasterHome.hero(entries, m), {}, closed = true) },
+                        feed = ChatFeed.merge(entries, emptyList()),
+                    )
+                }
+            }
+        }
+    }
+    @Test fun campoAnello() = campo(lavora = false)
+    @Test fun campoRaggio() = campo(lavora = true)
 }

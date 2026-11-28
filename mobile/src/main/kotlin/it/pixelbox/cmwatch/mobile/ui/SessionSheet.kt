@@ -1178,12 +1178,16 @@ private fun Composer(
         val tookOff = animationsOff()
         val take = { x: String -> onDraft(x); if (!tookOff) hop = x }
         val baseStyle = androidx.compose.material3.LocalTextStyle.current
+        // app-bordo-master-27-11: il campo della master ha il suo bordo (bordoMaster); lavora quando il suo glifo dice «al lavoro», come
+        // nella riga del foglio.
+        val lavora = toMaster && it.pixelbox.cmwatch.rules.Rail.glyph(s) == it.pixelbox.cmwatch.rules.Rail.Glyph.BUSY
         // Il suggerimento attenuato resta un'indicazione: un tocco nel campo vuoto ci entra e basta, lo mette nel campo solo
         // «Usa» (sugg-focus, Franz 26/10 19:56: la superficie che lo accettava al tocco copriva tutto il campo vuoto).
         OutlinedTextField(
             state = fieldState, lineLimits = androidx.compose.foundation.text.input.TextFieldLineLimits.MultiLine(maxHeightInLines = 5),
             textStyle = if (hop != null) baseStyle.copy(color = androidx.compose.ui.graphics.Color.Transparent) else baseStyle,
-            modifier = Modifier.fillMaxWidth().promptHeight().onSizeChanged { if (lineH == 0 || it.height < lineH) lineH = it.height; fieldW = it.width }
+            modifier = Modifier.fillMaxWidth().promptHeight().then(if (toMaster) Modifier.bordoMaster(lavora) else Modifier)
+                .onSizeChanged { if (lineH == 0 || it.height < lineH) lineH = it.height; fieldW = it.width }
                 .ghostHop(
                     hop, baseStyle.copy(color = Cm.text), Cm.stale, Cm.text,
                     // La posizione del testo nel campo Material 3: 16 dp senza icona davanti, dopo l'icona (almeno 48 dp) più 4; a destra
@@ -1221,7 +1225,8 @@ private fun Composer(
                     maxLines = if (ring != null) 1 else 2, softWrap = ring == null, overflow = androidx.compose.ui.text.style.TextOverflow.Clip,
                 )
             },
-            shape = MaterialTheme.shapes.extraLarge,
+            // app-bordo-master-27-11: una pillola con gli angoli da 24 dp, per la master e per le sessioni, come nel mockup.
+            shape = RoundedCornerShape(it.pixelbox.cmwatch.rules.BordoMaster.ANGOLO_DP.dp),
             // Il campo della master sul suo fondo velato di celeste, piatto e senza bordo; scrivendo, il bordo chiaro (Franz, 06/10 21:23).
             colors = if (toMaster)
                 androidx.compose.material3.OutlinedTextFieldDefaults.colors(
