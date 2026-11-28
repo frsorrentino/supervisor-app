@@ -23,7 +23,8 @@ class RigaSenzaManiglieTest {
 
     @Test fun whatStaysIsStillThere() {
         // Il tiro in su della riga e una presa sola in testa (scelta del 13/11). Dal 28/11 (app-posizioni-sistema-27-11, gruppo 6) la riga
-        // della master è il foglio anche sul tablet: la presa è la sua maniglia, e maniglia e testata si trascinano.
+        // della master è il foglio anche sul tablet: la presa è la sua maniglia, e maniglia e testata si trascinano. Dal 28/11 sera
+        // (app-maniglia-28-11) la maniglia è il chevron in fondo alla riga del titolo, col suo segno «foglio-maniglia»; la riga si trascina.
         assertTrue(sheet.contains("testTag(\"foglio-maniglia\")"))
         assertTrue(sheet.contains("detectVerticalDragGestures("))
         assertFalse(frame.contains("master-maniglia-lato"))

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { anchors, band, CORNER, corner, cues, DIM_MAX, freezeAt, GAP_PX, lift, LIFT, HALF_SHARE, nearest, progress, project, RATE, readStop, RECEDE, rubber, settleAt, SHADE_MAX, SHADE_MIN, snap, tap, toRow, up } from './masterSheet'
+import { anchors, band, chevron, CORNER, corner, cues, DIM_MAX, freezeAt, GAP_PX, lift, LIFT, HALF_SHARE, nearest, progress, project, RATE, readStop, RECEDE, rubber, settleAt, SHADE_MAX, SHADE_MIN, snap, tap, toRow, up } from './masterSheet'
 import { landSpring } from './gesture'
 
 // Il foglio della master (app-posizioni-sistema-27-11 gruppo 4). Gli stessi casi di MasterSheetTest in Kotlin.
@@ -17,6 +17,18 @@ describe('foglio della master', () => {
     const col = anchors(736, 170)
     expect(col.half).toBeCloseTo(456.32, 6)
     expect(col.full).toBe(736)
+  })
+
+  it("il chevron guarda dove porta un tocco: su alla riga e a metà, giù all'intera, e gira in mezzo", () => {
+    expect(chevron(a, a.row)).toBe(0)
+    expect(chevron(a, a.half)).toBe(0)
+    expect(chevron(a, (a.half + a.full) / 2)).toBeCloseTo(90, 6)
+    expect(chevron(a, a.full)).toBe(180)
+    expect(chevron(a, a.full + 40)).toBe(180)
+    // In un posto basso la metà e l'intera coincidono: giù solo all'intera.
+    const basso = anchors(250, 170)
+    expect(chevron(basso, basso.row)).toBe(0)
+    expect(chevron(basso, basso.full)).toBe(180)
   })
 
   it('aperto, la riga del titolo si stringe di 12 px; alla riga no, e cresce coi primi 12 px di corsa', () => {

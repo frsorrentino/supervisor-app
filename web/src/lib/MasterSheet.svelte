@@ -4,7 +4,7 @@
   import { locale } from './lang'
   import type { Session } from './contract'
   import { hero as heroOf, type Entry } from './masterHome'
-  import { anchors, corner, cues, freezeAt, lift, progress, ROW_PX, rubber, settleAt, snap, STIFFNESS, tap, toRow, up, type Anchors, type Stop } from './masterSheet'
+  import { anchors, chevron, corner, cues, freezeAt, lift, progress, ROW_PX, rubber, settleAt, snap, STIFFNESS, tap, toRow, up, type Anchors, type Stop } from './masterSheet'
   import { DRAG_PX, landSpring, velocity } from './gesture'
   import { ridotto } from './molla'
   import { OPENING_MS } from './arrivo'
@@ -106,6 +106,8 @@
     el.style.setProperty('--shade', k.shade.toFixed(3))
     // app-foglio-master-testata-28-11: all'intera il foglio tocca la barra dell'app e gli angoli in alto si squadrano (masterSheet.corner).
     el.style.setProperty('--corner', `${corner(a, h).toFixed(1)}px`)
+    // app-maniglia-28-11: il chevron in fondo alla riga del titolo guarda dove porta un tocco e gira con l'altezza (masterSheet.chevron).
+    el.style.setProperty('--chev', `${chevron(a, h).toFixed(1)}deg`)
     if (host) {
       const key = `${k.dim.toFixed(3)}|${k.scale.toFixed(4)}`
       if (key !== cueKey) {
@@ -222,7 +224,8 @@
   function down(e: PointerEvent) {
     if (!e.isPrimary || e.button !== 0) return
     // Il ▶ e il ⋮ col suo menu tengono i loro tocchi.
-    if ((e.target as Element | null)?.closest?.('button:not(.gr), .more')) return
+    // app-maniglia-28-11: anche il chevron, che fa da solo il suo tocco.
+    if ((e.target as Element | null)?.closest?.('button, .more')) return
     cancelAnimationFrame(raf); anim = null
     // Il puntatore resta alla riga anche se esce subito di lì (un mouse veloce): i tasti dentro sono già fuori da qui.
     try { grab?.setPointerCapture(e.pointerId) } catch { /* il puntatore è già andato */ }
@@ -339,8 +342,6 @@
   <!-- Il dito sulla maniglia e sulla riga; dalla tastiera fa lo stesso il tasto della maniglia. -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="grab" bind:this={grab} onpointerdown={down} onpointermove={move} onpointerup={(e) => release(e)} onpointercancel={(e) => release(e, true)}>
-    <button class="gr" type="button" aria-label={t.sheetTap[shown]} title={t.sheetGrip} aria-expanded={shown !== 'row'} data-testid="foglio-maniglia"
-      onclick={(e) => { if (e.detail === 0) go(tap(shown)) }}><i aria-hidden="true"></i></button>
     <div class="mh">
       <StateGlyph kind={glyphOf(master)} ctx={master.context} size={20} square={!personal(master.account, master.account_kind)} label={attention ? master.state : label} />
       <span class="tt">
@@ -354,6 +355,12 @@
         </button>
       {/if}
       {#if more}<span class="more" data-testid="foglio-altro">{@render more()}</span>{/if}
+      <!-- app-maniglia-28-11 (Franz 17:09, «ok, chevron nella riga del titolo»): al posto della maniglia, l'ultimo tasto della riga. Un tocco
+           (Invio e spazio dalla tastiera) porta alla misura dopo, riga → metà → intera → riga; guarda dove porta. -->
+      <button class="ib chev" type="button" aria-label={t.sheetTap[shown]} title={t.sheetGrip} aria-expanded={shown !== 'row'} data-testid="foglio-maniglia"
+        onclick={() => go(tap(shown))}>
+        <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M7.41 15.41 12 10.83l4.59 4.58L18 14l-6-6-6 6z" fill="currentColor" /></svg>
+      </button>
     </div>
   </div>
   <div class="sbody" bind:this={body}>{@render chat()}</div>
@@ -389,14 +396,13 @@
   /* La maniglia e la riga della master: si trascinano insieme, e un tocco passa alla misura dopo. */
   .grab { flex: none; touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; }
   .msheet.moving .grab { cursor: grabbing; }
-  /* app-foglio-master-testata-28-11 (Franz 14:37, «la barra in alto e il padding esiguo tra testo e bordo la rendono poco equilibrata»): la
-     maniglia ha una fascia sua, 8 sopra e 12 sotto, staccata dal titolo; titolo, ultimo esito e barra di stato a 16 dal bordo, come le
-     schede dell'app. */
-  .gr { display: grid; place-items: center; width: 100%; height: 24px; padding: 8px 0 12px; border-radius: var(--corner, 22px) var(--corner, 22px) 0 0; cursor: inherit; }
-  .gr i { display: block; width: 40px; height: 4px; border-radius: 2px; background: var(--tx3); transition: background-color .15s; }
-  .grab:hover .gr i { background: var(--tx2); }
-  .gr:focus-visible { outline: none; }
-  .gr:focus-visible i { outline: 2px solid var(--tx2); outline-offset: 3px; }
+  /* app-foglio-master-testata-28-11 (Franz 14:37, «il padding esiguo tra testo e bordo»): titolo, ultimo esito e barra a 16 dal bordo, come
+     le schede dell'app. */
+  /* app-maniglia-28-11: niente più maniglia né la sua fascia da 24 px; la riga del titolo sta in cima al foglio e si trascina tutta. Il chevron
+     da 40, grigio come i testi secondari, gira con l'altezza (--chev). */
+  .ib.chev { width: 40px; height: 40px; border-radius: 20px; color: var(--tx2); }
+  .chev svg { transform: rotate(var(--chev, 0deg)); }
+  .chev:focus-visible { outline: 2px solid var(--tx2); outline-offset: -2px; }
   /* app-barra-ibrida-28-11 (Franz 16:41): aperto, il contenuto della riga sta negli alti 52 − --ov px, una riga sola al centro («Master», ▶ e
      ⋮); la riga resta alta 52, così la misura «riga» del foglio non cambia, e la parte che si muove le sale sotto di --ov. */
   .mh { display: flex; align-items: center; gap: 10px; box-sizing: border-box; height: 52px; padding: 0 4px var(--ov, 0px) 16px; }

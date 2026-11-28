@@ -18,8 +18,8 @@ import kotlin.math.min
 object MasterSheet {
     enum class Stop(val id: String) { ROW("row"), HALF("half"), FULL("full") }
 
-    /** La riga prima di misurarla: maniglia, la riga della master e il campo. */
-    const val ROW_DP = 170f
+    /** La riga prima di misurarla: la riga della master e il campo (app-maniglia-28-11: senza la fascia della maniglia, 24 dp in meno). */
+    const val ROW_DP = 146f
     /**
      * app-foglio-master-testata-28-11 (Franz 28/11 14:37, «tra la master e l'header supervisor c'è un po' di spazio che non dovrebbe
      * esserci»): all'intera il foglio arriva alla barra dell'app, senza stacco; prima restavano 8 dp e sotto si vedeva una riga della home.
@@ -105,6 +105,14 @@ object MasterSheet {
      * e la capsula sale sotto di lei. Cresce coi primi [max] di corsa dalla riga, così niente salta; la misura «riga» non cambia. In px.
      */
     const val LIFT_DP = 12f
+
+    /**
+     * app-maniglia-28-11 (Franz 17:09, «ok, chevron nella riga del titolo»): al posto della maniglia, in fondo alla riga del titolo, un
+     * chevron che guarda dove porta un tocco: su alla riga e a metà, giù all'intera; mentre il foglio si muove gira con l'altezza, di 180
+     * gradi fra la metà e l'intera. In gradi.
+     */
+    fun chevron(a: Anchors, h: Float): Float =
+        if (a.full <= a.half) (if (h >= a.full) 180f else 0f) else 180f * ((h - a.half) / (a.full - a.half)).coerceIn(0f, 1f)
     fun lift(a: Anchors, h: Float, max: Float): Float = (h - a.row).coerceIn(0f, max)
 
     /** Quanto è salito il foglio: 0 alla riga, 1 all'intera. Guida il velo, l'arretramento della home e l'ombra sopra il bordo. */

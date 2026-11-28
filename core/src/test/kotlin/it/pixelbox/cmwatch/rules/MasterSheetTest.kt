@@ -177,4 +177,15 @@ class MasterSheetTest {
         assertEquals(12f, MasterSheet.lift(a, a.half, m), 0f)
         assertEquals(12f, MasterSheet.lift(a, a.full, m), 0f)
     }
+
+    @Test fun `il chevron guarda dove porta un tocco, su alla riga e a metà, giù all'intera, e gira in mezzo`() {
+        assertEquals(0f, MasterSheet.chevron(a, a.row), 0f)
+        assertEquals(0f, MasterSheet.chevron(a, a.half), 0f)
+        assertEquals(90f, MasterSheet.chevron(a, (a.half + a.full) / 2f), 0.01f)
+        assertEquals(180f, MasterSheet.chevron(a, a.full), 0f)
+        assertEquals(180f, MasterSheet.chevron(a, a.full + 40f), 0f)
+        val basso = MasterSheet.anchors(250f, 170f)
+        assertEquals(0f, MasterSheet.chevron(basso, basso.row), 0f)
+        assertEquals(180f, MasterSheet.chevron(basso, basso.full), 0f)
+    }
 }

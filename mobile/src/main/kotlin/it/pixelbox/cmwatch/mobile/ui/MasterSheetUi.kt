@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material3.Icon
@@ -110,6 +111,14 @@ internal val LocalSheetTop = androidx.compose.runtime.staticCompositionLocalOf<(
 internal val LocalSheetLift = androidx.compose.runtime.staticCompositionLocalOf<(() -> Float)?> { null }
 
 /**
+ * app-maniglia-28-11 (Franz 17:09, «ok, chevron nella riga del titolo»): il chevron del foglio, al posto della maniglia, che
+ * [MasterSheetHead] mette in fondo alla sua riga: l'angolo ([MasterSheet.chevron], letto nel disegno), il nome del tocco (i testi
+ * master_sheet_tap_*) e il tocco, che porta alla misura dopo. Null fuori dal foglio.
+ */
+internal class SheetChevron(val angle: () -> Float, val label: String, val onTap: () -> Unit)
+internal val LocalSheetChevron = androidx.compose.runtime.staticCompositionLocalOf<SheetChevron?> { null }
+
+/**
  * La riga della master nel suo foglio (app-posizioni-sistema-27-11 gruppo 4, al posto della barra di prima): il glifo dello stato, «Master»
  * col punto ambra quando arriva una risposta a foglio chiuso ([closed]), l'ora dell'ultima risposta che scorre e il suo titolo su una
  * riga, ▶ per ascoltarla (■ mentre legge, con la velocità accanto), e il ⋮ della master (LocalHeadMore). I gesti sono del foglio
@@ -137,6 +146,7 @@ fun MasterSheetHead(master: Session, hero: MasterHome.Hero?, onSpeak: (String) -
         if (isNew) { fresh = true; delay(Animazioni.DOCK_PEEK_MS); fresh = false }
     }
     val lift = LocalSheetLift.current
+    val chevron = LocalSheetChevron.current
     Row(
         // app-foglio-master-testata-28-11: il titolo e l'ultimo esito a 16 dp dal bordo, come le schede dell'app; a destra ▶ e ⋮ coi loro 44 dp.
         // app-barra-ibrida-28-11 (Franz 16:41): aperto, senza l'ultimo esito, il contenuto sta negli alti 52 dp meno la stretta del foglio
@@ -176,17 +186,13 @@ fun MasterSheetHead(master: Session, hero: MasterHome.Hero?, onSpeak: (String) -
         }
         // Il ⋮ della master (gruppo 4): quello della riga dei dati, che nel foglio non c'è; lo passa SessionSheet (MasterSheetMore).
         LocalHeadMore.current?.invoke()
-    }
-}
-
-/**
- * La maniglia del foglio: 40 × 4 dp al centro, come i fogli del sistema. app-foglio-master-testata-28-11 (Franz 14:37, «la barra in alto e il
- * padding esiguo tra testo e bordo la rendono poco equilibrata»): una fascia sua, 8 dp sopra e 12 sotto, staccata dal titolo.
- */
-@Composable
-private fun SheetGrip() {
-    Box(Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 12.dp), contentAlignment = Alignment.Center) {
-        Box(Modifier.width(40.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(V3.Tx3))
+        // app-maniglia-28-11: l'ultimo tasto della riga, il chevron da 40 dp grigio come i testi secondari, che guarda dove porta un tocco
+        // (su alla riga e a metà, giù all'intera) e gira con l'altezza del foglio.
+        chevron?.let { c ->
+            IconButton(onClick = c.onTap, modifier = Modifier.size(40.dp).testTag("foglio-maniglia")) {
+                Icon(Icons.Rounded.ExpandLess, c.label, tint = V3.Tx2, modifier = Modifier.size(26.dp).graphicsLayer { rotationZ = c.angle() })
+            }
+        }
     }
 }
 
@@ -227,8 +233,8 @@ internal fun MasterSheetBox(
     BoxWithConstraints(modifier.clipToBounds()) {
         val boxPx = constraints.maxHeight.toFloat()
         var headPx by remember { mutableIntStateOf(0) }
-        // Prima della misura, la riga di [MasterSheetHead]: maniglia 24 dp (app-foglio-master-testata-28-11) e riga 52.
-        val rowPx = if (headPx > 0) headPx.toFloat() else with(density) { 76.dp.toPx() }
+        // Prima della misura, la riga di [MasterSheetHead]: 52 dp (app-maniglia-28-11: senza più la fascia della maniglia, 24 in meno).
+        val rowPx = if (headPx > 0) headPx.toFloat() else with(density) { 52.dp.toPx() }
         val a = MasterSheet.anchors(boxPx, rowPx, with(density) { MasterSheet.GAP_DP.dp.toPx() })
         val target = a.of(stop)
         val height = remember { Animatable(target) }
@@ -325,6 +331,8 @@ internal fun MasterSheetBox(
         // app-barra-ibrida-28-11: quanto si stringe la riga del titolo col foglio aperto (MasterSheet.lift), letto nella misura.
         val liftMax = with(density) { MasterSheet.LIFT_DP.dp.toPx() }
         val liftNow: () -> Float = { MasterSheet.lift(aNow, px(), liftMax) }
+        // app-maniglia-28-11: l'angolo del chevron della riga del titolo, letto nel disegno.
+        val chevNow: () -> Float = { MasterSheet.chevron(aNow, px()) }
         Column(
             Modifier.align(Alignment.BottomCenter).fillMaxWidth()
                 .layout { m, c ->
@@ -349,11 +357,14 @@ internal fun MasterSheetBox(
             // La riga tiene sempre la sua altezza, anche col foglio tirato sotto la riga: la sua misura fa la misura «riga».
             Column(
                 Modifier.fillMaxWidth().wrapContentHeight(Alignment.Top, unbounded = true).onSizeChanged { s -> headPx = s.height }.then(drag).handCursor()
-                    .clickable(onClickLabel = tapLabel, role = Role.Button) { onStopNow(MasterSheet.tap(stopNow)) }
-                    .testTag("foglio-maniglia"),
+                    // app-maniglia-28-11: niente più maniglia; la riga del titolo si trascina tutta e un tocco su di lei fa come prima. Il
+                    // segno «foglio-maniglia» è passato al chevron.
+                    .clickable(onClickLabel = tapLabel, role = Role.Button) { onStopNow(MasterSheet.tap(stopNow)) },
             ) {
-                SheetGrip()
-                androidx.compose.runtime.CompositionLocalProvider(LocalSheetLift provides liftNow) { head() }
+                androidx.compose.runtime.CompositionLocalProvider(
+                    LocalSheetLift provides liftNow,
+                    LocalSheetChevron provides SheetChevron(chevNow, tapLabel) { onStopNow(MasterSheet.tap(stopNow)) },
+                ) { head() }
             }
             // Prova 1447: appesa sotto la riga e opaca, alta quanto si vede o, durante il movimento, ferma; la taglia il bordo del campo.
             // app-barra-ibrida-28-11: aperto sale di quanto si stringe la riga del titolo (liftNow) e si vede per altrettanto in più; si

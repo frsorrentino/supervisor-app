@@ -10,8 +10,8 @@
 export type Stop = 'row' | 'half' | 'full'
 export const STOPS: readonly Stop[] = ['row', 'half', 'full']
 
-/** La riga prima di misurarla: maniglia, la riga della master e il campo. */
-export const ROW_PX = 170
+/** La riga prima di misurarla: la riga della master e il campo (app-maniglia-28-11: senza la fascia della maniglia, 24 px in meno). */
+export const ROW_PX = 146
 /**
  * app-foglio-master-testata-28-11 (Franz 28/11 14:37, «tra la master e l'header supervisor c'è un po' di spazio che non dovrebbe esserci»):
  * all'intera il foglio arriva alla barra dell'app, senza stacco; prima restavano 8 px e sotto si vedeva una riga della home.
@@ -96,6 +96,12 @@ export const corner = (a: Anchors, h: number): number => Math.min(CORNER, Math.m
  * capsula sale sotto di lei. Cresce coi primi LIFT px di corsa dalla riga, così niente salta; la misura «riga» del foglio non cambia.
  */
 export const LIFT = 12
+/**
+ * app-maniglia-28-11 (Franz 17:09, «ok, chevron nella riga del titolo»): al posto della maniglia, in fondo alla riga del titolo, un chevron
+ * che guarda dove porta un tocco: su alla riga e a metà, giù all'intera; mentre il foglio si muove gira con l'altezza, di 180 gradi fra la
+ * metà e l'intera.
+ */
+export const chevron = (a: Anchors, h: number): number => (a.full <= a.half ? (h >= a.full ? 180 : 0) : 180 * Math.min(1, Math.max(0, (h - a.half) / (a.full - a.half))))
 export const lift = (a: Anchors, h: number): number => Math.min(LIFT, Math.max(0, h - a.row))
 
 /** Quanto è salito il foglio: 0 alla riga, 1 all'intera. Guida il velo, l'arretramento della home e l'ombra sopra il bordo. */
