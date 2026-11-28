@@ -190,7 +190,8 @@ jobs:
           if [ -n "$prev" ] && git rev-parse -q --verify "refs/tags/$prev" >/dev/null; then range="$prev..$GITHUB_SHA"; else range="-n 10 $GITHUB_SHA"; fi
           # app-changelog-aggiornamento-26-11: in testa «## Novità», le righe `Novita:` dei commit del salto, in italiano e per Franz;
           # la scheda dell'aggiornamento le legge (Novita.kt). Sotto, come prima, i titoli dei commit.
-          git log --no-merges --format='%(trailers:key=Novita,valueonly,separator=%x0A)' $range | sed -e 's/^[[:space:]]*//' -e '/^$/d' | awk '!seen[$0]++' | head -12 > novita.txt || true
+          # app-novita-cosa-cambia-28-11: anche le righe `Novita:` fuori dal trailer, con un avviso (tools/novita.sh, test tools/novita-test.sh).
+          bash tools/novita.sh $range 3>&1 > novita.txt || true
           : > notes.md
           if [ -s novita.txt ]; then { echo '## Novità'; sed 's/^/- /' novita.txt; echo; } > notes.md; fi
           git log --no-merges --format='- %s' $range | head -40 >> notes.md
