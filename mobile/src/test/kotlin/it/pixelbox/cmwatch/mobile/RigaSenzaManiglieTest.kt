@@ -13,6 +13,7 @@ import java.io.File
 class RigaSenzaManiglieTest {
     private fun src(p: String) = listOf(File(p), File("mobile/$p")).first { it.exists() }.readText()
     private val frame = src("src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/DeskColumns.kt")
+    private val sheet = src("src/main/kotlin/it/pixelbox/cmwatch/mobile/ui/MasterSheetUi.kt")
 
     @Test fun theClosedRowHasNoHandles() {
         assertFalse(frame.contains("master-maniglia-riga"))
@@ -21,8 +22,10 @@ class RigaSenzaManiglieTest {
     }
 
     @Test fun whatStaysIsStillThere() {
-        // Il tiro in su della riga, e la presa in testa al pannello aperto (scelta del 13/11).
-        assertTrue(frame.contains("Modifier.grip(\"bar\")"))
-        assertTrue(frame.contains("master-maniglia-lato"))
+        // Il tiro in su della riga e una presa sola in testa (scelta del 13/11). Dal 28/11 (app-posizioni-sistema-27-11, gruppo 6) la riga
+        // della master è il foglio anche sul tablet: la presa è la sua maniglia, e maniglia e testata si trascinano.
+        assertTrue(sheet.contains("testTag(\"foglio-maniglia\")"))
+        assertTrue(sheet.contains("detectVerticalDragGestures("))
+        assertFalse(frame.contains("master-maniglia-lato"))
     }
 }
