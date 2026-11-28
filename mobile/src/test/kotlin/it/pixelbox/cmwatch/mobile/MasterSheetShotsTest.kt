@@ -71,25 +71,27 @@ class MasterSheetShotsTest {
     // aperto, sotto la riga la barra di stato al posto dell'ultimo esito.
     @Test fun intera() = paparazzi.snapshot { home(MasterSheet.Stop.FULL) }
 
-    // app-bordo-master-27-11: il campo della master in una striscia di 360 × 220 dp, col foglio alla riga sopra una home vuota. Da ferma
-    // l'anello di 1,5 dp; al lavoro il raggio fermo a 12 s del giro (LocalBordoFermo: un quinto del bordo, a metà del lato di sopra), così
-    // l'immagine non dipende dall'ora. Il giro vero si vede dal vivo.
-    private fun campo(lavora: Boolean) {
-        paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenWidth = (360 * 2.75).toInt(), screenHeight = (220 * 2.75).toInt()))
+    // app-bordo-foglio-28-11 (variante B): l'anello e il raggio della master attorno a tutto il foglio, qui a metà sopra la home, a 360 dp.
+    // Da ferma l'anello di 1,5 dp; al lavoro il raggio fermo a 12 s del giro (LocalBordoFermo: un quinto del bordo da dove comincia, verso
+    // antiorario), così l'immagine non dipende dall'ora. Il campo è la pillola delle sessioni. Il giro vero si vede dal vivo.
+    private fun foglio(lavora: Boolean) {
         val m = if (lavora) master.copy(state = SessionState.BUSY) else master
+        val summary = Summary.build(st, emptyList(), emptyList(), st.ts, ZoneId.of("Europe/Rome"), emptySet())
         paparazzi.snapshot {
             CmPhoneTheme(still = true) {
                 CompositionLocalProvider(LocalBordoFermo provides 12_000L) {
                     SessionSheet(
                         m, st.ts, emptyList(), 120, none, grid = true, canAttach = true,
-                        home = { _, _ -> }, homeOpen = true, sheetAt = MasterSheet.Stop.ROW,
-                        dock = { MasterSheetHead(m, MasterHome.hero(entries, m), {}, closed = true) },
+                        home = { _, _ -> Column { SummaryList(summary, {}, { _, _ -> }, { _, _ -> }, {}, {}, startOpen = setOf("sessions")) } },
+                        homeOpen = false, sheetAt = MasterSheet.Stop.HALF,
+                        appBar = { PageHeader(null, st.sessions, 3, st.ts, {}, {}, menu) },
+                        dock = { MasterSheetHead(m, MasterHome.hero(entries, m), {}, closed = false) },
                         feed = ChatFeed.merge(entries, emptyList()),
                     )
                 }
             }
         }
     }
-    @Test fun campoAnello() = campo(lavora = false)
-    @Test fun campoRaggio() = campo(lavora = true)
+    @Test fun foglioAnello() = foglio(lavora = false)
+    @Test fun foglioRaggio() = foglio(lavora = true)
 }

@@ -199,6 +199,8 @@ internal fun MasterSheetBox(
     body: @Composable ColumnScope.() -> Unit,
     /** A foglio fermo dopo un movimento: l'ultimo messaggio appena sopra il campo, con una corsa breve, se la si seguiva (prova 1447). */
     onSettled: () -> Unit = {},
+    /** La master al lavoro (il suo glifo): il raggio del suo bordo gira attorno al foglio (app-bordo-foglio-28-11). */
+    lavora: Boolean = false,
 ) {
     val density = LocalDensity.current
     val off = animationsOff()
@@ -299,7 +301,9 @@ internal fun MasterSheetBox(
         )
         val bodyOn by remember { derivedStateOf { pullNow != null || height.value > aNow.row + 0.5f } }
         // app-foglio-master-testata-28-11: all'intera il foglio tocca la barra dell'app e gli angoli in alto si squadrano (MasterSheet.corner).
+        // Un valore derivato: chi lo legge nel disegno (la forma, il bordo della master) si ridisegna solo quando l'angolo cambia.
         val cornerPx = with(density) { MasterSheet.CORNER_DP.dp.toPx() }
+        val cornerNow by remember(cornerPx) { derivedStateOf { MasterSheet.corner(aNow, px(), cornerPx) } }
         Column(
             Modifier.align(Alignment.BottomCenter).fillMaxWidth()
                 .layout { m, c ->
@@ -308,11 +312,14 @@ internal fun MasterSheetBox(
                     layout(p.width, h) { p.place(0, 0) }
                 }
                 .graphicsLayer {
-                    val r = MasterSheet.corner(aNow, px(), cornerPx)
+                    val r = cornerNow
                     shape = RoundedCornerShape(topStart = r, topEnd = r)
                     clip = true
                 }
-                .background(MasterHigh).testTag("foglio-master")
+                .background(MasterHigh)
+                // app-bordo-foglio-28-11: l'anello e il raggio della master attorno a tutto il foglio, sopra il suo contenuto.
+                .bordoMaster(lavora) { cornerNow }
+                .testTag("foglio-master")
                 .then(if (sheetTop != null) Modifier.onGloballyPositioned { c -> sheetTop(c.boundsInRoot().top) } else Modifier),
         ) {
             val tapLabel = stringResource(

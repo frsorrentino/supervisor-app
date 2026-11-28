@@ -7,19 +7,22 @@ package it.pixelbox.cmwatch.rules
  * la master lavora (lo stesso «al lavoro» del suo glifo, [Rail.glyph]) un raggio di 220 dp corre lungo il bordo, un giro ogni 15 s, lineare,
  * verso antiorario, e si accende e si spegne in 240 ms. Con le animazioni ridotte niente giro: mentre lavora l'anello sale al 35 %.
  * Le stesse regole sul web (web/src/lib/bordoMaster.ts).
+ * app-bordo-foglio-28-11 (Franz 28/11, variante B di dalla-master/bordo-foglio-28-11.html): anello e raggio corrono attorno a tutto il foglio
+ * della master, alla riga, a metà e intero, invece che sul campo, che torna una pillola semplice come quello delle sessioni. Il bordo è più
+ * lungo: il raggio da 320 dp. Il disegno sta in BordoMasterUi.kt, sul foglio (MasterSheetBox).
  */
 object BordoMaster {
     /** Il colore del bordo: 20 % del verde dell'app (#71D083) e 80 % del grigio dei testi (#9B9B9B). */
     const val COLORE = 0xFF93A696L
     /** L'anello: 1,5 dp, sempre acceso e fermo. */
     const val SPESSORE_DP = 1.5f
-    /** Il raggio degli angoli del campo, che è una pillola anche per le sessioni. */
+    /** Il raggio degli angoli del campo, che è una pillola per la master e per le sessioni (il bordo del foglio segue i suoi angoli). */
     const val ANGOLO_DP = 24f
     /** L'anello da fermo, e mentre lavora con le animazioni ridotte. */
     const val ANELLO_FERMO = 0.12f
     const val ANELLO_RIDOTTO = 0.35f
-    /** Il raggio: una fascia diritta di 220 × 24 dp lungo il bordo, come la luce del mockup, che colora solo l'anello. */
-    const val RAGGIO_DP = 220f
+    /** Il raggio: una fascia diritta di 320 × 24 dp lungo il bordo del foglio (era 220 sul campo), come la luce del mockup, che colora solo l'anello. */
+    const val RAGGIO_DP = 320f
     const val FASCIA_DP = 24f
     /** Il punto più acceso del raggio, a un terzo della sua lunghezza da davanti: il punto che sta sul bordo a [posizione]. */
     const val CAPO = 0.35f

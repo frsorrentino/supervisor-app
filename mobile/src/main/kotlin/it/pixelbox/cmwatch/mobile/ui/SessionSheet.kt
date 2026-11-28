@@ -927,6 +927,8 @@ fun SessionSheet(
                 // app-posizioni-sistema-27-11, prova 1447: a foglio fermo l'ultimo messaggio torna appena sopra il campo con una corsa breve,
                 // se la si seguiva.
                 onSettled = { if (follow) jumpScope.launch { list.scrollToEnd(animate = true) } },
+                // app-bordo-foglio-28-11: il raggio del bordo gira attorno al foglio mentre la master lavora (il suo glifo «al lavoro»).
+                lavora = it.pixelbox.cmwatch.rules.Rail.glyph(s) == it.pixelbox.cmwatch.rules.Rail.Glyph.BUSY,
             )
         }
         // Il posto del mini-controller sopra il campo, come il mini-player delle app di musica (Franz, 03/10 23:00); il
@@ -1170,15 +1172,13 @@ private fun Composer(
         val tookOff = animationsOff()
         val take = { x: String -> onDraft(x); if (!tookOff) hop = x }
         val baseStyle = androidx.compose.material3.LocalTextStyle.current
-        // app-bordo-master-27-11: il campo della master ha il suo bordo (bordoMaster); lavora quando il suo glifo dice «al lavoro», come
-        // nella riga del foglio.
-        val lavora = toMaster && it.pixelbox.cmwatch.rules.Rail.glyph(s) == it.pixelbox.cmwatch.rules.Rail.Glyph.BUSY
         // Il suggerimento attenuato resta un'indicazione: un tocco nel campo vuoto ci entra e basta, lo mette nel campo solo
         // «Usa» (sugg-focus, Franz 26/10 19:56: la superficie che lo accettava al tocco copriva tutto il campo vuoto).
         OutlinedTextField(
             state = fieldState, lineLimits = androidx.compose.foundation.text.input.TextFieldLineLimits.MultiLine(maxHeightInLines = 5),
             textStyle = if (hop != null) baseStyle.copy(color = androidx.compose.ui.graphics.Color.Transparent) else baseStyle,
-            modifier = Modifier.fillMaxWidth().promptHeight().then(if (toMaster) Modifier.bordoMaster(lavora) else Modifier)
+            // app-bordo-foglio-28-11: il bordo della master non sta più qui ma attorno al suo foglio (MasterSheetBox).
+            modifier = Modifier.fillMaxWidth().promptHeight()
                 .onSizeChanged { if (lineH == 0 || it.height < lineH) lineH = it.height; fieldW = it.width }
                 .ghostHop(
                     hop, baseStyle.copy(color = Cm.text), Cm.stale, Cm.text,
@@ -1219,12 +1219,9 @@ private fun Composer(
             },
             // app-bordo-master-27-11: una pillola con gli angoli da 24 dp, per la master e per le sessioni, come nel mockup.
             shape = RoundedCornerShape(it.pixelbox.cmwatch.rules.BordoMaster.ANGOLO_DP.dp),
-            // Il campo della master sul suo fondo velato di celeste, piatto e senza bordo; scrivendo, il bordo chiaro (Franz, 06/10 21:23).
-            colors = if (toMaster)
-                androidx.compose.material3.OutlinedTextFieldDefaults.colors(
-                    unfocusedBorderColor = androidx.compose.ui.graphics.Color.Transparent, focusedBorderColor = Cm.text2,
-                    unfocusedContainerColor = MasterContainer, focusedContainerColor = MasterContainer, cursorColor = Cm.modelOpus,
-                )
+            // app-bordo-foglio-28-11: il campo della master è la pillola delle sessioni (l'anello e il raggio corrono attorno al suo foglio);
+            // resta il cursore nel corallo di Claude.
+            colors = if (toMaster) androidx.compose.material3.OutlinedTextFieldDefaults.colors(cursorColor = Cm.modelOpus)
             else androidx.compose.material3.OutlinedTextFieldDefaults.colors(),
             // Le azioni ricorrenti della master stanno nel menu del + (Franz, 05/10 07:27: il ⟳ nel campo stringeva troppo).
             leadingIcon = if (canAttach || onRecurring != null || onMine != null) ({

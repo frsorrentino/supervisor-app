@@ -7,7 +7,8 @@ describe('bordo della master', () => {
     expect(COLORE).toBe('#93A696')
     expect(SPESSORE_PX).toBe(1.5)
     expect(ANGOLO_PX).toBe(24)
-    expect(RAGGIO_PX).toBe(220)
+    // app-bordo-foglio-28-11: attorno a tutto il foglio, il raggio è lungo 320.
+    expect(RAGGIO_PX).toBe(320)
     expect(GIRO_MS).toBe(15_000)
     expect(SFUMA_MS).toBe(240)
     expect([ANELLO_FERMO, ANELLO_RIDOTTO]).toEqual([0.12, 0.35])

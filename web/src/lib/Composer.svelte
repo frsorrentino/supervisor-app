@@ -16,10 +16,6 @@
   import { crescita, invio, saltaLettere } from './molla'
   import { lang } from './lang'
   import { dictate, dictLang, speechCtor, type Dictation, type DictError } from './dictation'
-  import { prefersReducedMotion } from 'svelte/motion'
-  import { glyphOf } from './rail'
-  import { anello, gira, GIRO_MS, posizione, SFUMA_MS } from './bordoMaster'
-  import { reflowAt } from './director'
 
   // La barra di scrittura (Composer dell'app): + per allegati (e le azioni ricorrenti nella master), il suggerimento
   // attenuato nel campo vuoto con «Usa», i comandi slash scrivendo «/», a destra Invia, Invia tonale o Stop.
@@ -164,15 +160,6 @@
   const inField = $derived(narrow ? null : field)
   const placeholder = $derived(inField ?? (s.question ? t.answerFree : toMaster ? t.masterPlaceholder : t.writeTo(s.name)))
   // app-posizioni-sistema-27-11 gruppo 4: con l'anellino del contesto (le sessioni, e la master nel suo foglio) il segnaposto sta su una riga.
-
-  // app-bordo-master-27-11: il bordo della master sul suo campo (le regole in bordoMaster.ts, il disegno solo CSS, come il mockup). Lavora
-  // quando il suo glifo dice «al lavoro», come nella riga del foglio; «riduci movimento» si segue anche se cambia a pagina aperta.
-  const lavora = $derived(toMaster && glyphOf(s) === 'busy')
-  const ridotto = $derived(prefersReducedMotion.current)
-  // Il raggio parte dal punto del giro che dice l'orologio (posizione), con l'animazione del mockup al contrario («reverse»): il ritardo
-  // negativo è la parte di giro già fatta. Si accende e si spegne in 240 ms con la curva cubic-bezier(.23, 1, .32, 1); spegnendosi gira ancora.
-  const giroDa = () => -Math.round((1 - posizione(Date.now())) * GIRO_MS)
-  const sfuma = (_: Element) => ({ duration: SFUMA_MS, easing: reflowAt, css: (k: number) => `opacity: ${k}` })
 </script>
 
   <div class="bar" class:sess={!toMaster} bind:clientWidth={barW}>
@@ -206,12 +193,6 @@
       <button type="button" class="sugrow" onclick={() => { draft = field ?? ''; area?.focus(); took() }}><i>{field}</i><span>{t.use}</span></button>
     {/if}
     <form class="field" class:master={toMaster} onsubmit={(e) => { e.preventDefault(); send() }}>
-      {#if toMaster}
-        <!-- app-bordo-master-27-11: l'anello fermo della master; la luce che gira c'è solo mentre lavora, e mai con «riduci movimento». -->
-        <span class="bordo" style:--anello="{Math.round(anello(lavora, ridotto) * 100)}%" aria-hidden="true" data-testid="bordo-master">
-          {#if gira(lavora, ridotto)}<i style:animation-delay="{giroDa()}ms" transition:sfuma></i>{/if}
-        </span>
-      {/if}
       <span class="anchor">
         <button type="button" class="plus" bind:this={plus} aria-label={t.attach} aria-expanded={menu} onclick={() => (menu = !menu)}>
           <svg viewBox="0 0 24 24" width="24" height="24"><path d="M12 5v14M5 12h14" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round" /></svg>
@@ -312,23 +293,9 @@
   .field { display: flex; align-items: center; gap: 4px; border: 1px solid rgb(255 255 255 / .25); border-radius: 24px; padding: 0 8px 0 4px; min-height: 56px; }
   .field:focus-within { border-color: var(--icon); border-width: 2px; padding: 0 7px 0 3px; }
   /* Il campo della master nel corallo di Claude, come il filo della sua barra (Franz, 06/10 09:45). */
-  /* Il campo della master sul suo fondo velato di celeste, piatto e senza bordo; scrivendo, un anello chiaro (Franz, 06/10 21:23). */
-  .field.master { position: relative; background: var(--master-container); border: 0; padding: 0 8px 0 4px; caret-color: var(--opus); }
-  .field.master:focus-within { box-shadow: inset 0 0 0 2px var(--text2); }
-  .field.master .round:not(.filled) { background: var(--master-highest); }
-  /* app-bordo-master-27-11, il bordo della master come nel mockup (bordo-master.html, proposta A; i valori in bordoMaster.ts). L'anello di
-     1,5 px è l'identità della master, sempre acceso e fermo: --anello è la sua opacità (12 %, 35 % mentre lavora con «riduci movimento»).
-     Il raggio, come Border Beam di Magic UI: una luce di 220 × 24 px che corre su offset-path rect() verso antiorario («reverse»), un giro
-     in 15 s, e il mascheramento la lascia vedere solo sull'anello; da 0 sale al 50 % in un terzo della lunghezza e torna a 0 negli altri due. */
-  .bordo { position: absolute; inset: 0; border-radius: inherit; padding: 1.5px; pointer-events: none;
-    background: color-mix(in srgb, #93A696 var(--anello, 12%), transparent); transition: background-color 240ms cubic-bezier(.23, 1, .32, 1);
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor; mask-composite: exclude; }
-  .bordo i { position: absolute; width: 220px; height: 24px; offset-path: rect(0 auto auto 0 round 24px); offset-anchor: 35% 50%;
-    background: linear-gradient(to right, transparent, color-mix(in srgb, #93A696 22%, transparent) 18%, color-mix(in srgb, #93A696 50%, transparent) 35%,
-      color-mix(in srgb, #93A696 22%, transparent) 62%, transparent);
-    animation: bordo-giro 15s linear infinite reverse; }
-  @keyframes bordo-giro { from { offset-distance: 0%; } to { offset-distance: 100%; } }
+  /* app-bordo-foglio-28-11: il campo della master è la pillola delle sessioni; l'anello e il raggio della master corrono attorno al suo foglio
+     (MasterSheet.svelte). Resta il cursore nel corallo di Claude. */
+  .field.master { caret-color: var(--opus); }
   .anchor { position: relative; flex: none; }
   .plus { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; }
   .plus:hover { background: var(--surface); }

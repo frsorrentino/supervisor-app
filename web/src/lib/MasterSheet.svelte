@@ -12,6 +12,9 @@
   import RollTime from './RollTime.svelte'
   import StateGlyph from './StateGlyph.svelte'
   import { glyphOf } from './rail'
+  import { prefersReducedMotion } from 'svelte/motion'
+  import { anello, gira, GIRO_MS, posizione, SFUMA_MS } from './bordoMaster'
+  import { reflowAt } from './director'
   import { personal } from './badge'
   import { speech } from './speech.svelte'
   import { heads } from './headMore.svelte'
@@ -71,6 +74,14 @@
   let host: HTMLElement | null = null
   let cueKey = ''
   let pinRO: ResizeObserver | null = null
+  // app-bordo-foglio-28-11 (Franz, variante B): l'anello e il raggio della master attorno a tutto il foglio, alla riga, a metà e intero, con
+  // gli angoli che si squadrano all'intera (il percorso segue --corner). Le regole in bordoMaster.ts: anello di 1,5 px al 12 %; mentre la
+  // master lavora (il suo glifo «al lavoro») un raggio di 320 px fa il giro in 15 s verso antiorario, partendo dal punto che dice l'orologio
+  // (il ritardo negativo è la parte di giro già fatta), e si accende e si spegne in 240 ms; con «riduci movimento» niente giro, anello al 35 %.
+  const lavora = $derived(glyphOf(master) === 'busy')
+  const fermo = $derived(prefersReducedMotion.current)
+  const giroDa = () => -Math.round((1 - posizione(Date.now())) * GIRO_MS)
+  const sfuma = (_: Element) => ({ duration: SFUMA_MS, easing: reflowAt, css: (k: number) => `opacity: ${k}` })
 
   // Quanta conversazione si vede con il foglio alto `hh`, o a una misura.
   const visOf = (hh: number) => Math.max(0, hh - grabH - fieldH)
@@ -342,13 +353,30 @@
     </div>
   </div>
   <div class="sbody" bind:this={body}>{@render chat()}</div>
+  <span class="bordo" style:--anello="{Math.round(anello(lavora, fermo) * 100)}%" aria-hidden="true" data-testid="bordo-master">
+    {#if gira(lavora, fermo)}<i style:animation-delay="{giroDa()}ms" transition:sfuma></i>{/if}
+  </span>
 </section>
 
 <style>
   /* Il foglio sta sopra la pagina, ancorato in fondo al posto che lo contiene; cambia altezza, mai posto: niente transform, così i
      menu e la scelta di «Cita» dentro la conversazione restano dove li mette il dito. */
   .msheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 6; display: flex; flex-direction: column; min-height: 0;
-    height: 170px; background: var(--s1); border-radius: var(--corner, 22px) var(--corner, 22px) 0 0; box-shadow: 0 -1px 0 var(--line); }
+    height: 170px; background: var(--s1); border-radius: var(--corner, 22px) var(--corner, 22px) 0 0; }
+  /* app-bordo-foglio-28-11, il bordo della master attorno al foglio (bordo-foglio-28-11.html, variante B; i valori in bordoMaster.ts), al posto
+     della riga sottile in cima. L'anello di 1,5 px, sempre acceso e fermo, è l'identità della master: --anello è la sua opacità (12 %, 35 %
+     mentre lavora con «riduci movimento»). Il raggio, come Border Beam di Magic UI: una luce di 320 × 24 px che corre su offset-path rect()
+     verso antiorario («reverse»), un giro in 15 s, coi raggi degli angoli del foglio, e il mascheramento la lascia vedere solo sull'anello;
+     da 0 sale al 50 % in un terzo della lunghezza e torna a 0 negli altri due. Sopra tutto il contenuto, senza prendere tocchi. */
+  .bordo { position: absolute; inset: 0; z-index: 3; border-radius: inherit; padding: 1.5px; pointer-events: none;
+    background: color-mix(in srgb, #93A696 var(--anello, 12%), transparent); transition: background-color 240ms cubic-bezier(.23, 1, .32, 1);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude; }
+  .bordo i { position: absolute; width: 320px; height: 24px; offset-path: rect(0 auto auto 0 round var(--corner, 22px) var(--corner, 22px) 0 0); offset-anchor: 35% 50%;
+    background: linear-gradient(to right, transparent, color-mix(in srgb, #93A696 22%, transparent) 18%, color-mix(in srgb, #93A696 50%, transparent) 35%,
+      color-mix(in srgb, #93A696 22%, transparent) 62%, transparent);
+    animation: bordo-giro 15s linear infinite reverse; }
+  @keyframes bordo-giro { from { offset-distance: 0%; } to { offset-distance: 100%; } }
   /* Prova 1447: sopra il bordo un'ombra che sfuma verso il nero, più scura mentre il foglio sale (masterSheet.cues, `--shade`). */
   .msheet::before { content: ''; position: absolute; left: 0; right: 0; bottom: 100%; height: 40px; pointer-events: none; border-radius: 22px 22px 0 0;
     background: linear-gradient(to top, rgb(0 0 0 / var(--shade, .3)), rgb(0 0 0 / 0)); }

@@ -40,16 +40,19 @@ private val BordoCurva = CubicBezierEasing(0.23f, 1f, 0.32f, 1f)
 private val BordoLuce: Array<Pair<Float, Color>> = BordoMaster.LUCE.map { (x, a) -> x to BordoColore.copy(alpha = a) }.toTypedArray()
 
 /**
- * app-bordo-master-27-11: il bordo della master sul suo campo, come nel mockup (dalla-master/bordo-master-2026-11-27/bordo-master.html,
- * proposta A; le regole in [BordoMaster], le stesse del web). Un anello fermo di 1,5 dp, sempre; mentre la master lavora ([lavora]: il suo
- * glifo «al lavoro») un raggio corre lungo il bordo verso antiorario, un giro ogni 15 s, e si accende e si spegne in 240 ms con la curva
- * cubic-bezier(.23, 1, .32, 1); spegnendosi gira ancora. Il raggio è quello del Border Beam del web: una fascia diritta di 220 × 24 dp lungo
- * la tangente del bordo nel punto del giro, con la sfumatura lineare dal davanti al dietro, che colora solo l'anello. Un solo valore che si
- * muove, il tempo nel giro, letto nel disegno: la transizione infinita c'è solo mentre il raggio gira e le animazioni non sono spente, così
- * da ferma la master non tiene lo schermo a 120 Hz. Con le animazioni spente niente giro: mentre lavora l'anello sale al 35 %.
+ * app-bordo-master-27-11: il bordo della master, come nel mockup (dalla-master/bordo-master-2026-11-27/bordo-master.html; le regole in
+ * [BordoMaster], le stesse del web). Un anello fermo di 1,5 dp, sempre; mentre la master lavora ([lavora]: il suo glifo «al lavoro») un
+ * raggio corre lungo il bordo verso antiorario, un giro ogni 15 s, e si accende e si spegne in 240 ms con la curva cubic-bezier(.23, 1, .32,
+ * 1); spegnendosi gira ancora. Il raggio è quello del Border Beam del web: una fascia diritta di 320 × 24 dp lungo la tangente del bordo nel
+ * punto del giro, con la sfumatura lineare dal davanti al dietro, che colora solo l'anello. Un solo valore che si muove, il tempo nel giro,
+ * letto nel disegno: la transizione infinita c'è solo mentre il raggio gira e le animazioni non sono spente, così da ferma la master non
+ * tiene lo schermo a 120 Hz. Con le animazioni spente niente giro: mentre lavora l'anello sale al 35 %.
+ * app-bordo-foglio-28-11 (Franz, variante B di dalla-master/bordo-foglio-28-11.html): non più sul campo ma attorno a tutto il foglio della
+ * master ([MasterSheetBox]), alla riga, a metà e intero: gli angoli in alto tondi di [angolo] px (letto qui, così il percorso segue gli
+ * angoli che si squadrano all'intera), il lato di sotto diritto sul bordo dello schermo.
  */
 @Composable
-internal fun Modifier.bordoMaster(lavora: Boolean): Modifier {
+internal fun Modifier.bordoMaster(lavora: Boolean, angolo: () -> Float): Modifier {
     val fermo = LocalBordoFermo.current
     // Nei provini col raggio fermo ([LocalBordoFermo]) il raggio si disegna anche con le animazioni spente, fermo in quel punto.
     val ridotto = animationsOff() && fermo == null
@@ -70,7 +73,7 @@ internal fun Modifier.bordoMaster(lavora: Boolean): Modifier {
     ) else null
     return drawWithCache {
         val w = BordoMaster.SPESSORE_DP.dp.toPx()
-        val bordo = pillola(size, w / 2f, BordoMaster.ANGOLO_DP.dp.toPx())
+        val bordo = foglio(size, w / 2f, angolo())
         val misura = PathMeasure().apply { setPath(bordo, false) }
         val tratto = Stroke(width = w)
         val lungo = BordoMaster.RAGGIO_DP.dp.toPx()
@@ -108,11 +111,11 @@ internal fun Modifier.bordoMaster(lavora: Boolean): Modifier {
 }
 
 /**
- * Il bordo del campo come percorso chiuso, sulla linea a metà dell'anello ([i] dal bordo, angoli di [raggio] all'esterno): parte
- * dall'estremo sinistro del lato di sopra e gira in senso orario, come `rect()` in CSS, così [BordoMaster.posizione] è lo stesso punto
- * sul web e qui.
+ * Il contorno del foglio come percorso chiuso, sulla linea a metà dell'anello ([i] dal bordo): gli angoli in alto tondi di [raggio]
+ * all'esterno, quelli in basso diritti. Parte dall'estremo sinistro del lato di sopra e gira in senso orario, come `rect()` in CSS, così
+ * [BordoMaster.posizione] è lo stesso punto sul web e qui. Con [raggio] 0 (il foglio intero) è un rettangolo.
  */
-private fun pillola(s: Size, i: Float, raggio: Float): Path {
+private fun foglio(s: Size, i: Float, raggio: Float): Path {
     val r = minOf(raggio - i, (s.height - 2f * i) / 2f, (s.width - 2f * i) / 2f).coerceAtLeast(0f)
     val sx = i
     val su = i
@@ -121,13 +124,11 @@ private fun pillola(s: Size, i: Float, raggio: Float): Path {
     return Path().apply {
         moveTo(sx + r, su)
         lineTo(dx - r, su)
-        arcTo(Rect(dx - 2f * r, su, dx, su + 2f * r), -90f, 90f, false)
-        lineTo(dx, giu - r)
-        arcTo(Rect(dx - 2f * r, giu - 2f * r, dx, giu), 0f, 90f, false)
-        lineTo(sx + r, giu)
-        arcTo(Rect(sx, giu - 2f * r, sx + 2f * r, giu), 90f, 90f, false)
+        if (r > 0f) arcTo(Rect(dx - 2f * r, su, dx, su + 2f * r), -90f, 90f, false)
+        lineTo(dx, giu)
+        lineTo(sx, giu)
         lineTo(sx, su + r)
-        arcTo(Rect(sx, su, sx + 2f * r, su + 2f * r), 180f, 90f, false)
+        if (r > 0f) arcTo(Rect(sx, su, sx + 2f * r, su + 2f * r), 180f, 90f, false)
         close()
     }
 }

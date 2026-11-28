@@ -14,7 +14,8 @@ class BordoMasterTest {
         assertEquals(0xFF93A696L, BordoMaster.COLORE)
         assertEquals(1.5f, BordoMaster.SPESSORE_DP, 0f)
         assertEquals(24f, BordoMaster.ANGOLO_DP, 0f)
-        assertEquals(220f, BordoMaster.RAGGIO_DP, 0f)
+        // app-bordo-foglio-28-11: attorno a tutto il foglio, il raggio è lungo 320.
+        assertEquals(320f, BordoMaster.RAGGIO_DP, 0f)
         assertEquals(15_000L, BordoMaster.GIRO_MS)
         assertEquals(240, BordoMaster.SFUMA_MS)
         // La luce sale al 50 % in un terzo della lunghezza e torna a 0 negli altri due, nulla alle estremità.
