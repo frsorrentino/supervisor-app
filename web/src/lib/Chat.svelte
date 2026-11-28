@@ -43,14 +43,14 @@
   import { turns } from './chatTurns'
   import { cut, type Quote } from './quotes'
   import { dragHold } from './dragHold'
-  import IconRow from './IconRow.svelte'
+  import StatusBar from './StatusBar.svelte'
   import Tendina from './Tendina.svelte'
   import SessionDetails from './SessionDetails.svelte'
-  import type { IconTab } from './iconRow'
-  import { countOf, notesCount, pick as pickTab, TABS, tabCounts, toneOf, type SessionTab } from './sessionTabs'
+  import { notesCount, pick as pickTab, tabCounts, type SessionTab } from './sessionTabs'
   import { MINUS, pill as changesOf } from './diff'
   import RigaAzioni from './RigaAzioni.svelte'
-  import { ctxChip, ringPct, rowShown } from './sessionBottom'
+  import { ctxChip, rowShown } from './sessionBottom'
+  import type { Snippet } from 'svelte'
   let { onNewer = null, onLatest = null, focus = null, onFocused = () => {}, resultsRow = null, perTe = null, onHeadsUp = null, onTask = null, st, s, entries, mine, onSend, onBack, onPick, onAnswer, onCmd, wide, events, sent, read, onRead, onPromptTo, slots, onAttach, onFile, onFiles = () => {}, onHandoff, elsewhere = null, elsewhereAway = null, onElsewhere = () => {}, onElsewhereDismiss = () => {}, waitingSince = null, updating = false, onSendAt = null, onSendTo = null, inject = null, onInjected = () => {}, onUsage = () => {}, onOlder = null, onGo = null, onReopen = null, appMenu = null, onDiff = null, onChanges = null, onMine = null, sheet = false }: {
     /**
      * app-posizioni-sistema-27-11 gruppo 4: la master nel suo foglio (MasterSheet). Tiene solo la conversazione: in fondo le Azioni in chip
@@ -192,12 +192,15 @@
   // scheda aperta o Chat, tirandola su, con Esc. I numeri dalla regola di sessionTabs.ts; Per te e Risultati restano montati nella
   // tendina chiusa e dicono quanti sono.
   const tabsOn = $derived(s.name !== MASTER && !s.master)
+  // app-barra-stato-28-11 (variante C): la riga di icone lascia il posto alla barra di stato, a sinistra Per te, Risultati e Modifiche
+  // coi numeri, a destra modello · effort, quota e contesto, che aprono Dettagli; le schede Chat e Dettagli spariscono (si torna alla chat
+  // toccando di nuovo l'icona aperta, tirando su la tendina, con Esc o con Indietro). Anche nel foglio aperto della master, sotto il titolo,
+  // coi numeri dalle stesse regole: il suo Per te con gli Avvisi, i Risultati, le Modifiche; le stesse tendine.
+  const barOn = $derived(tabsOn || sheet)
   // app-posizioni-sistema-27-11 gruppo 4 (B «Foglio»: «la master tiene solo la conversazione, così niente compare due volte»): nel foglio la
-  // master ha in fondo quello delle sessioni (gruppo 3: le Azioni in chip sopra il campo, nascoste scrivendo; l'anellino del contesto nel
-  // campo, ambra dal 70 %; il chip «Contesto N% · Handoff» alle stesse condizioni, quindi solo con un comando di handoff). In cima niente
-  // riga dei dati né pillole: modello ed effort, quota delle 5 ore, contesto, obiettivo, Modifiche, gli Avvisi e le voci del ⋮ di prima
-  // stanno nel ⋮ della riga del foglio (Header `inSheet`, prestato con headMore); Per te e Risultati della master sono nel Per te della
-  // home, subito sopra, e le altre sessioni nel suo tabellone.
+  // master ha in fondo quello delle sessioni (gruppo 3: le Azioni in chip sopra il campo, nascoste scrivendo; il chip «Contesto N% ·
+  // Handoff» dal 70 %, solo con un comando di handoff). In cima niente riga dei dati né pillole: dal 28/11 la barra di stato (sopra), e le
+  // voci del ⋮ di prima nel ⋮ della riga del foglio (Header `inSheet`, prestato con headMore); le altre sessioni nel tabellone della home.
   const bottomOn = $derived(tabsOn || sheet)
   let tab = $state<SessionTab>('chat')
   // La sezione nella tendina, anche mentre si richiude; `opened` conta le aperture, così Modifiche si rilegge a ogni apertura.
@@ -207,8 +210,6 @@
   const changesNow = $derived(changesOf(s))
   const counts = $derived(tabCounts(perTeN, notesN, resNew, changesNow?.files))
   const tabLabel: Record<SessionTab, string> = { chat: t.tabChat, perte: t.forYou, risultati: t.watchResults, modifiche: t.changesTitle, dettagli: t.tabDetails }
-  const tabIcon: Record<SessionTab, string> = { chat: 'svg:chat', perte: 'svg:hand', risultati: 'svg:eye', modifiche: 'svg:diff', dettagli: 'svg:info' }
-  const iconTabs = $derived<IconTab[]>(TABS.map((k) => ({ key: k, icon: tabIcon[k], label: tabLabel[k], count: countOf(k, counts), tone: toneOf(k) })))
   function choose(key: string) {
     const next = pickTab(tab, key)
     if (next !== 'chat' && next !== tab) { lastTab = next; opened++ }
@@ -231,7 +232,6 @@
   const azioni = $derived(bottomOn && !home ? [...(sheetSug ? [{ text: sheetSug, blocking: false, terminal: true }] : []), ...stepsBox.rows.map(x => ({ text: x, blocking: stepsBlocking.has(x) }))] : [])
   const chipCtx = $derived(bottomOn ? ctxChip(s.context, s.state === 'idle', handoffPrompt(st, s, () => '') != null) : null)
   const azioniOn = $derived(bottomOn && rowShown(azioni.length, chipCtx != null, draft))
-  const ring = $derived(bottomOn && s.state !== 'gone' ? ringPct(s.context) : null)
   // File trascinati sulla colonna: vanno nel campo come quelli scelti con il +.
   let dragging = $state(false)
   let dragN = $state(0)
@@ -375,11 +375,13 @@
 
 <!-- tabindex -1: un tocco dentro la sessione le dà il fuoco, così Alt+1…5 ed Esc della riga di icone valgono per lei (gruppo 2). -->
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-<section class="chat" class:dragging class:master={s.name === MASTER} class:reading={s.name === MASTER && !atEnd} aria-label={s.name} bind:this={section} tabindex={tabsOn ? -1 : undefined}
+<section class="chat" class:dragging class:master={s.name === MASTER} class:reading={s.name === MASTER && !atEnd} aria-label={s.name} bind:this={section} tabindex={barOn ? -1 : undefined}
   ondragover={(e) => { if (hasFiles(e)) { e.preventDefault(); dragN = e.dataTransfer?.items?.length ?? 0; hold.over() } }} ondragleave={(e) => hold.leave(leftColumn(e))} ondrop={onDrop}>
   {#if dragging}<DropZone n={dragN} to={s.name} />{/if}
   <Header bind:this={header} {st} {s} wide={wide} {onBack} {onCmd} onPrompt={onSend} {onHandoff} {onUsage} {onGo} {onReopen} {appMenu} {onMine} onChanges={onChanges ? () => (changesOpen = true) : null} tabs={tabsOn ? tabsRow : null}
-    inSheet={sheet} sheetNotes={sheet && notesN ? notesBody : null} />
+    inSheet={sheet} />
+  <!-- app-barra-stato-28-11: nel foglio aperto della master la barra di stato sta subito sotto la riga del foglio, al posto dell'ultimo esito. -->
+  {#if sheet}{@render tabsRow(null)}{/if}
   <!-- Franz 24/10 18:58: la riga «Home» sopra la conversazione della master è tolta: l'intestazione resta più bassa. -->
 
   <!-- Contratto 1.146: l'avviso su /logout nelle sessioni lanciate con --bg, fisso sotto l'intestazione. -->
@@ -446,7 +448,7 @@
       </button></div>
     {/if}
   </div>
-  {#if tabsOn}
+  {#if barOn}
     <!-- La tendina: il contenitore è Tendina, il contenuto di ogni sezione è quello di prima (pillole e riga dei dati). -->
     <Tendina open={tab !== 'chat'} key={lastTab} label={tabLabel[lastTab]} onClose={closeTab}>
       <div class="sec" hidden={lastTab !== 'perte'} data-testid="tendina-per-te">
@@ -470,7 +472,8 @@
       {/if}
       {#if lastTab === 'dettagli'}
         <div class="sec" data-testid="tendina-dettagli">
-          <SessionDetails {s} {st} tune={header?.tuneView() ?? null} onTune={(el) => header?.openTune(el)} {onUsage} />
+          <SessionDetails {s} {st} tune={header?.tuneView() ?? null} onTune={(el) => header?.openTune(el)} {onUsage}
+            onCtx={st.choices && s.state !== 'gone' ? () => header?.openCtx() : null} />
         </div>
       {/if}
     </Tendina>
@@ -516,7 +519,7 @@
     onReopen={() => onCmd('reopen')} {onAttach} onCloseSave={s.name !== MASTER && st.ops?.includes('close') ? () => onCmd('close', 'save') : null}
     onRecurring={recurringRows.length ? () => { recurringOpen = !recurringOpen; save('cm.recurring_open', recurringOpen) } : null}
     onMineJump={stops.length && !home ? () => { jumping = true; jumpAt = null; jump(-1) } : null}
-    {onSendAt} {onSendTo} bind:quotes ctx={ring} onCtx={st.choices && s.state !== 'gone' ? () => header?.openCtx() : null} />
+    {onSendAt} {onSendTo} bind:quotes oneLine={sheet} />
   {/if}
   {#if qsel}{@const p = qsel}
     <div class="qpick" role="toolbar" style="left:{p.x}px;top:{p.y}px">
@@ -531,10 +534,13 @@
 </section>
 
 
-<!-- Gruppo 4: gli Avvisi della master nel suo foglio, in cima al ⋮ della riga del foglio. -->
-{#snippet notesBody()}<div class="inbox"><BgNote {s} />{#if onHeadsUp}<HeadsUpNote {s} now={st.ts} onPropose={onHeadsUp} />{/if}</div>{/snippet}
-
-{#snippet tabsRow()}<IconRow tabs={iconTabs} active={tab} onPick={choose} onEsc={tab !== 'chat' ? closeTab : undefined} label={t.tabsLabel} keyScope={section ?? null} />{/snippet}
+<!-- app-barra-stato-28-11: la barra di stato della sessione o del foglio della master; `more`, il ⋮ quando nessuna testata lo prende. -->
+{#snippet tabsRow(more: Snippet | null)}
+  {@const tv = header?.tuneView()}
+  <StatusBar {counts} active={tab} onPick={choose} onEsc={tab !== 'chat' ? closeTab : undefined} model={tv?.model ?? null} effort={tv?.effort ?? null}
+    quota={st.quota[s.account]?.h5 != null ? { h5: st.quota[s.account]!.h5!, stale: st.quota[s.account]?.stale } : null} ctx={s.state !== 'gone' ? s.context ?? null : null}
+    label={t.tabsLabel} sheet={sheet} {more} keyScope={section ?? null} />
+{/snippet}
 
 <style>
   .chgwrap { position: absolute; inset: 0; z-index: 16; }

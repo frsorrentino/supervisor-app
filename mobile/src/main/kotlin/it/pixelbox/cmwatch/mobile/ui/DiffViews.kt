@@ -300,6 +300,8 @@ internal fun ChangesPanel(
 internal fun ChangesBody(
     s: Session, load: suspend (String?) -> DiffRules.Load<ChangesView>, modifier: Modifier = Modifier,
     start: DiffRules.Load<ChangesView>? = null, startOpen: Map<String, DiffRules.Load<ChangesView>> = emptyMap(),
+    /** Tutta l'altezza (la vista Modifiche a pagina intera); false nella tendina, alta quanto il suo contenuto (app-barra-stato-28-11). */
+    fill: Boolean = true,
 ) {
     var got by remember(s.name) { mutableStateOf(start) }
     var asked by remember(s.name) { mutableIntStateOf(if (start == null) 1 else 0) }
@@ -312,7 +314,7 @@ internal fun ChangesBody(
     }
     val v = (got as? DiffRules.Load.Ok)?.value
     val src = v?.let { x -> DiffRules.source(x) }
-    Column(modifier.fillMaxSize().testTag("modifiche")) {
+    Column(modifier.then(if (fill) Modifier.fillMaxSize() else Modifier.fillMaxWidth()).testTag("modifiche")) {
         Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(start = 16.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             val line = when {
                 got == null -> stringResource(R.string.changes_loading)
@@ -330,18 +332,18 @@ internal fun ChangesBody(
         when (val g = got) {
             null -> Unit
             is DiffRules.Load.Failed -> Box(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) { DiffFailed(g) { asked++ } }
-            is DiffRules.Load.Ok -> ChangesList(g.value, load, asked, startOpen, source = false)
+            is DiffRules.Load.Ok -> ChangesList(g.value, load, asked, startOpen, source = false, fill = fill)
         }
     }
 }
 
 @Composable
-private fun ChangesList(v: ChangesView, load: suspend (String?) -> DiffRules.Load<ChangesView>, asked: Int, startOpen: Map<String, DiffRules.Load<ChangesView>>, source: Boolean = true) {
+private fun ChangesList(v: ChangesView, load: suspend (String?) -> DiffRules.Load<ChangesView>, asked: Int, startOpen: Map<String, DiffRules.Load<ChangesView>>, source: Boolean = true, fill: Boolean = true) {
     // Revisione finale (16/10): i file letti con `file=` restano qui, fuori dalla LazyColumn: un file che esce di vista e torna
     // non si richiede al PC. Aggiorna (asked) ricomincia da capo.
     val read = remember(asked) { mutableMapOf<String, DiffRules.Load<ChangesView>>() }
     val src = DiffRules.source(v)
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    LazyColumn(if (fill) Modifier.fillMaxSize() else Modifier.fillMaxWidth(), contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (source) item(key = "source") {
             val line = when (src) {
                 DiffRules.Source.GIT -> stringResource(R.string.changes_base, v.base.orEmpty())

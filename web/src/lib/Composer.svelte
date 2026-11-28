@@ -16,7 +16,6 @@
   import { crescita, invio, saltaLettere } from './molla'
   import { lang } from './lang'
   import { dictate, dictLang, speechCtor, type Dictation, type DictError } from './dictation'
-  import { ringDash, ringHigh } from './sessionBottom'
   import { prefersReducedMotion } from 'svelte/motion'
   import { glyphOf } from './rail'
   import { anello, gira, GIRO_MS, posizione, SFUMA_MS } from './bordoMaster'
@@ -26,7 +25,7 @@
   // attenuato nel campo vuoto con «Usa», i comandi slash scrivendo «/», a destra Invia, Invia tonale o Stop.
   // app-posizioni-sistema-27-11 gruppo 3: in una sessione l'anellino del contesto nel campo, accanto al microfono; il promemoria dei
   // tasti sotto il campo non c'è più, resta come suggerimento del tasto Invia.
-  let { st, s, draft = $bindable(), field, toMaster, onSend, onAnswerText, onSlash, onStop, onReopen, onAttach, onRecurring, onMineJump = null, onSendAt = null, onSendTo = null, onCloseSave = null, quotes = $bindable([]), ctx = null, onCtx = null }: {
+  let { st, s, draft = $bindable(), field, toMaster, onSend, onAnswerText, onSlash, onStop, onReopen, onAttach, onRecurring, onMineJump = null, onSendAt = null, onSendTo = null, onCloseSave = null, quotes = $bindable([]), oneLine = false }: {
     st: State; s: Session; draft: string; field: string | null; toMaster: boolean
     onSend: (text: string) => void; onAnswerText: (arg: string) => void; onSlash: (cmd: string, args: string | null) => void
     onStop: () => void; onReopen: () => void; onAttach: (files: File[], text: string) => void; onRecurring: (() => void) | null
@@ -41,10 +40,11 @@
     onSendTo?: ((name: string, text: string) => void) | null
     /** I pezzi citati dalla trascrizione, sopra il campo; partono con la risposta in Markdown (app-citazione-trascrizione-07-11). */
     quotes?: Quote[]
-    /** Gruppo 3: la percentuale dell'anellino del contesto nel campo (`ringPct`); null = niente anellino (la master). */
-    ctx?: number | null
-    /** Il tocco sull'anellino apre il foglio del contesto; null = anellino spento (nessuna scelta dal relay, sessione chiusa). */
-    onCtx?: (() => void) | null
+    /**
+     * Il suggerimento su una riga sola anche verso la master (il foglio della master). app-barra-stato-28-11: l'anellino del contesto del
+     * gruppo 3 è uscito dal campo, sta nella barra di stato; il campo torna largo per scrivere.
+     */
+    oneLine?: boolean
   } = $props()
   let picking = $state(false)
   let when = $state(`${String((new Date().getHours() + 1) % 24).padStart(2, '0')}:00`)
@@ -160,12 +160,7 @@
   // In un campo stretto (le colonne della plancia) il suggerimento accanto a «Usa» e all'invio andava a frammenti: lì sta
   // su una riga sua sopra il campo, intero, e il clic lo mette nel campo (come l'app sotto i 320 dp).
   let barW = $state(0)
-  // Gruppo 3: con l'anellino del contesto il suggerimento sta nel campo solo se accanto a «Usa» gli restano circa 200 px (la barra da 480);
-  // più stretto va sulla riga sopra il campo, intero, invece di andare a frammenti.
-  const narrow = $derived(barW > 0 && barW < (ctx != null ? 480 : 320))
-  // Scrivendo in un campo stretto, con «Manda alle» accanto a Invia, l'anellino tiene l'arco e lascia il numero al suo nome: al testo restano
-  // circa 110 px a 360 invece di 80.
-  const ringTight = $derived(!!draft.trim() && barW > 0 && barW < 420)
+  const narrow = $derived(barW > 0 && barW < 320)
   const inField = $derived(narrow ? null : field)
   const placeholder = $derived(inField ?? (s.question ? t.answerFree : toMaster ? t.masterPlaceholder : t.writeTo(s.name)))
   // app-posizioni-sistema-27-11 gruppo 4: con l'anellino del contesto (le sessioni, e la master nel suo foglio) il segnaposto sta su una riga.
@@ -244,14 +239,7 @@
       <input bind:this={images} type="file" accept="image/*" multiple hidden onchange={picked} />
       <input bind:this={camera} type="file" accept="image/*" capture="environment" hidden onchange={picked} />
       <input bind:this={any} type="file" multiple hidden onchange={picked} />
-      <textarea bind:this={area} use:crescita={draft} data-fix="sugg-focus" rows="1" class:sug={!!inField} class:one={(!toMaster || ctx != null) && !draft && !inField} bind:value={draft} onkeydown={key} onpaste={paste} {placeholder}></textarea>
-      {#if ctx != null}
-        <!-- Gruppo 3: quanto contesto resta mentre scrivi, ambra dal 70 %; il tocco apre il foglio del contesto (handoff, compatta, finestra). -->
-        <button type="button" class="ctxr" class:hi={ringHigh(ctx)} class:tight={ringTight} aria-label={t.ctxTitle(ctx)} title={t.ctxTitle(ctx)} disabled={!onCtx} data-testid="campo-contesto" onclick={() => onCtx?.()}>
-          <svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><circle class="trk" cx="9" cy="9" r="7.5" />{#if ctx > 0}<circle class="arc" cx="9" cy="9" r="7.5" stroke-dasharray={ringDash(ctx)} />{/if}</svg>
-          {#if !ringTight}<span>{ctx}%</span>{/if}
-        </button>
-      {/if}
+      <textarea bind:this={area} use:crescita={draft} data-fix="sugg-focus" rows="1" class:sug={!!inField} class:one={(!toMaster || oneLine) && !draft && !inField} bind:value={draft} onkeydown={key} onpaste={paste} {placeholder}></textarea>
       {#if Speech && md !== 'reopen'}
         <button type="button" class="round mic" class:on={!!dictation} aria-label={t.micStart} aria-pressed={!!dictation} title={dictation ? t.micStop : t.micStart} onclick={mic}>
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></svg>
@@ -386,16 +374,6 @@
   /* Gruppo 3: senza il promemoria dei tasti il campo di una sessione tiene sotto lo stesso margine a ogni larghezza; la master com'era. */
   @media (max-width: 760px) { .bar { padding-bottom: 12px; } }
   .bar.sess { padding-bottom: 12px; }
-  /* L'anellino del contesto (mockup m/a-regia.html, `.ctx`): 18 px, binario e arco da 3, la percentuale in mono da 12; ambra dal 70 %. */
-  .ctxr { flex: none; display: flex; align-items: center; gap: 4px; height: 30px; padding: 0 6px; border-radius: 15px; font: 500 12px var(--mono); color: var(--tx2); font-variant-numeric: tabular-nums; }
-  .ctxr svg { flex: none; transform: rotate(-90deg); }
-  .ctxr .trk { fill: none; stroke: var(--s3); stroke-width: 3; }
-  .ctxr .arc { fill: none; stroke: var(--tx2); stroke-width: 3; stroke-linecap: round; }
-  .ctxr.hi { color: var(--wait); }
-  .ctxr.hi .arc { stroke: var(--wait); }
-  .ctxr.tight { padding: 0 4px; }
-  .ctxr:not(:disabled):hover { background: var(--surface); }
-  .ctxr:disabled { cursor: default; }
   dialog { margin: auto; border: 0; color: var(--text); background: var(--surface); padding: 20px 22px; width: min(400px, 92vw); border-radius: 28px; }
   dialog::backdrop { background: rgb(0 0 0 / .55); }
   dialog h3 { font-size: 22px; font-weight: 600; margin-bottom: 8px; }

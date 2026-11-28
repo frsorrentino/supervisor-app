@@ -16,6 +16,9 @@ function nightShort(s: number): string {
 const it = {
   // app-posizioni-sistema-27-11, gruppo 2: le schede della sessione e la tendina.
   tabChat: 'Chat', tabDetails: 'Dettagli', tabsLabel: 'Sezioni della sessione', shadeClose: 'Chiudi e torna alla chat',
+  // app-barra-stato-28-11: la parte destra della barra di stato, per i lettori di schermo e al passaggio del puntatore; la riga del contesto in Dettagli.
+  barState: (m: string, left: number | null, ctx: number | null) => [m, left != null ? `quota delle 5 ore: resta il ${left}%` : null, ctx != null ? `contesto ${ctx}%` : null].filter(Boolean).join(', ') + '. Apri Dettagli',
+  detailsCtx: 'Contesto',
   perTeNone: 'Niente ti aspetta in questa sessione.', resultsNone: 'Questa sessione non ha ancora consegnato risultati.',
   changesNoneHere: 'Nessuna modifica da mostrare.', detailsModel: 'Modello ed effort', detailsQuota: 'Quota delle 5 ore',
   // app-posizioni-sistema-27-11, gruppo 4: il foglio della master; la maniglia dice cosa fa il tocco.
@@ -532,6 +535,8 @@ function nightLongEn(s: number): string {
 // In inglese: le parole di mobile/src/main/res/values-en dove ci sono, il resto nello stesso stile.
 const en: typeof it = {
   tabChat: 'Chat', tabDetails: 'Details', tabsLabel: 'Session sections', shadeClose: 'Close and go back to the chat',
+  barState: (m: string, left: number | null, ctx: number | null) => [m, left != null ? `5-hour quota: ${left}% left` : null, ctx != null ? `context ${ctx}%` : null].filter(Boolean).join(', ') + '. Open Details',
+  detailsCtx: 'Context',
   perTeNone: 'Nothing is waiting for you in this session.', resultsNone: 'This session has not delivered any results yet.',
   changesNoneHere: 'No changes to show.', detailsModel: 'Model and effort', detailsQuota: '5-hour quota',
   sheetTap: { row: 'Open the master to half', half: 'Open the master to full height', full: 'Shrink the master to its row' },

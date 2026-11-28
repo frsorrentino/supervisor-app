@@ -589,7 +589,6 @@
     <string name="tts_code">Code</string>
     <string name="quota_reset_desc">5-hour quota at %1$d%%, resets %2$s</string>
     <string name="ctx_title">Context %1$d%%</string>
-    <string name="ctx_ring">%1$d%%</string>
     <string name="ctx_chip">Context %1$d%% · Handoff</string>
     <string name="ctx_handoff">Write the handoff and restart clean</string>
     <string name="ctx_handoff_prompt">Write the handoff with %1$s, then I send /clear.</string>
@@ -2177,4 +2176,9 @@ It starts at your last message to the master.</string>
     <string name="changes_none_here">No changes to show.</string>
     <string name="details_model">Model and effort</string>
     <string name="details_quota">5-hour quota</string>
+    <!-- app-barra-stato-28-11: the status bar (variant C), for TalkBack, and the context row in Details. -->
+    <string name="details_ctx">Context</string>
+    <string name="bar_quota_left">5-hour quota: %1$d%% left</string>
+    <string name="bar_ctx">context %1$d%%</string>
+    <string name="bar_open_details">Open Details</string>
 </resources>

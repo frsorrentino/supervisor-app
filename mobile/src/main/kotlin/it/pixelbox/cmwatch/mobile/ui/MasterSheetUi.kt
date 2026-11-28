@@ -104,8 +104,9 @@ internal val LocalSheetTop = androidx.compose.runtime.staticCompositionLocalOf<(
 /**
  * La riga della master nel suo foglio (app-posizioni-sistema-27-11 gruppo 4, al posto della barra di prima): il glifo dello stato, «Master»
  * col punto ambra quando arriva una risposta a foglio chiuso ([closed]), l'ora dell'ultima risposta che scorre e il suo titolo su una
- * riga, ▶ per ascoltarla (■ mentre legge, con la velocità accanto), e il ⋮ della master (LocalHeadMore) con quello che stava nella riga
- * dei dati. I gesti sono del foglio ([MasterSheetBox]): qui toccano solo ▶ e ⋮.
+ * riga, ▶ per ascoltarla (■ mentre legge, con la velocità accanto), e il ⋮ della master (LocalHeadMore). I gesti sono del foglio
+ * ([MasterSheetBox]): qui toccano solo ▶ e ⋮. app-barra-stato-28-11 (Franz 14:01): l'ultimo esito sotto il titolo solo col foglio alla
+ * riga ([closed]); aperto, al suo posto c'è la barra di stato, subito sotto, e «Master» va al centro della riga, che resta alta 52 dp.
  */
 @Composable
 fun MasterSheetHead(master: Session, hero: MasterHome.Hero?, onSpeak: (String) -> Unit, closed: Boolean = true) {
@@ -128,7 +129,8 @@ fun MasterSheetHead(master: Session, hero: MasterHome.Hero?, onSpeak: (String) -
         if (isNew) { fresh = true; delay(Animazioni.DOCK_PEEK_MS); fresh = false }
     }
     Row(
-        Modifier.fillMaxWidth().height(52.dp).padding(start = 14.dp, end = 6.dp),
+        // app-foglio-master-testata-28-11: il titolo e l'ultimo esito a 16 dp dal bordo, come le schede dell'app; a destra ▶ e ⋮ coi loro 44 dp.
+        Modifier.fillMaxWidth().height(52.dp).padding(start = 16.dp, end = 4.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         StateGlyph(Rail.glyph(master), master.context, size = 20.dp, square = !Accounts.personal(master.account, master.accountKind), label = label)
@@ -137,12 +139,16 @@ fun MasterSheetHead(master: Session, hero: MasterHome.Hero?, onSpeak: (String) -
                 Text(stringResource(R.string.dock_master).lowercase().replaceFirstChar { c -> c.titlecase() }, style = V3.Name.copy(fontSize = 15.5.sp, fontWeight = FontWeight.Bold), maxLines = 1)
                 if (fresh && closed) Box(Modifier.size(8.dp).clip(CircleShape).background(V3.Wait).testTag("master-nuova"))
             }
-            if (time != null || hero != null) Row(verticalAlignment = Alignment.CenterVertically) {
+            androidx.compose.animation.AnimatedVisibility(
+                visible = closed && (time != null || hero != null),
+                enter = androidx.compose.animation.fadeIn(tween(180)) + androidx.compose.animation.expandVertically(tween(180)),
+                exit = androidx.compose.animation.fadeOut(tween(180)) + androidx.compose.animation.shrinkVertically(tween(180)),
+            ) { Row(verticalAlignment = Alignment.CenterVertically) {
                 time?.let { tm -> RollTime(tm, roll, V3.Meter) }
                 if (time != null && hero != null) Text(" · ", style = V3.Small, maxLines = 1)
                 // Una riga sola: quello che non ci sta si taglia sul bordo, senza puntini.
                 hero?.let { h -> Text(linked(h.headline), style = V3.Small, maxLines = 1, softWrap = false, overflow = TextOverflow.Clip, modifier = Modifier.graphicsLayer { alpha = headA.value }) }
-            }
+            } }
         }
         val spoken = hero?.let { h -> listOf(h.headline, h.body).filter { x -> x.isNotBlank() }.joinToString("\n") }
         val reading = spoken != null && LocalSpeaking.current == spoken
@@ -155,10 +161,13 @@ fun MasterSheetHead(master: Session, hero: MasterHome.Hero?, onSpeak: (String) -
     }
 }
 
-/** La maniglia del foglio: 40 × 4 dp al centro, come i fogli del sistema. */
+/**
+ * La maniglia del foglio: 40 × 4 dp al centro, come i fogli del sistema. app-foglio-master-testata-28-11 (Franz 14:37, «la barra in alto e il
+ * padding esiguo tra testo e bordo la rendono poco equilibrata»): una fascia sua, 8 dp sopra e 12 sotto, staccata dal titolo.
+ */
 @Composable
 private fun SheetGrip() {
-    Box(Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 2.dp), contentAlignment = Alignment.Center) {
+    Box(Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 12.dp), contentAlignment = Alignment.Center) {
         Box(Modifier.width(40.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(V3.Tx3))
     }
 }
@@ -198,8 +207,8 @@ internal fun MasterSheetBox(
     BoxWithConstraints(modifier.clipToBounds()) {
         val boxPx = constraints.maxHeight.toFloat()
         var headPx by remember { mutableIntStateOf(0) }
-        // Prima della misura, la riga di [MasterSheetHead]: maniglia 14 dp e riga 52.
-        val rowPx = if (headPx > 0) headPx.toFloat() else with(density) { 66.dp.toPx() }
+        // Prima della misura, la riga di [MasterSheetHead]: maniglia 24 dp (app-foglio-master-testata-28-11) e riga 52.
+        val rowPx = if (headPx > 0) headPx.toFloat() else with(density) { 76.dp.toPx() }
         val a = MasterSheet.anchors(boxPx, rowPx, with(density) { MasterSheet.GAP_DP.dp.toPx() })
         val target = a.of(stop)
         val height = remember { Animatable(target) }
@@ -289,7 +298,8 @@ internal fun MasterSheetBox(
             },
         )
         val bodyOn by remember { derivedStateOf { pullNow != null || height.value > aNow.row + 0.5f } }
-        val sh = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp)
+        // app-foglio-master-testata-28-11: all'intera il foglio tocca la barra dell'app e gli angoli in alto si squadrano (MasterSheet.corner).
+        val cornerPx = with(density) { MasterSheet.CORNER_DP.dp.toPx() }
         Column(
             Modifier.align(Alignment.BottomCenter).fillMaxWidth()
                 .layout { m, c ->
@@ -297,7 +307,12 @@ internal fun MasterSheetBox(
                     val p = m.measure(c.copy(minHeight = h, maxHeight = h))
                     layout(p.width, h) { p.place(0, 0) }
                 }
-                .clip(sh).background(MasterHigh).testTag("foglio-master")
+                .graphicsLayer {
+                    val r = MasterSheet.corner(aNow, px(), cornerPx)
+                    shape = RoundedCornerShape(topStart = r, topEnd = r)
+                    clip = true
+                }
+                .background(MasterHigh).testTag("foglio-master")
                 .then(if (sheetTop != null) Modifier.onGloballyPositioned { c -> sheetTop(c.boundsInRoot().top) } else Modifier),
         ) {
             val tapLabel = stringResource(

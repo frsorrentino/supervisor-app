@@ -4,8 +4,10 @@
   import { closesOnDrag, dragOffset, fastOutSlowIn, rowDelay, SHADE_MS } from './sessionTabs'
   import { t } from './t'
 
-  // La tendina della sessione (app-posizioni-sistema-27-11, gruppo 2): scende dalla riga di icone sopra la chat, fino al campo, che
-  // resta sempre in vista e usabile. È solo il contenitore: il contenuto lo passa chi la usa, e il centro notifiche
+  // La tendina della sessione (app-posizioni-sistema-27-11, gruppo 2): scende dalla barra di stato sopra la chat, e il campo resta sempre
+  // in vista e usabile. app-barra-stato-28-11 (Franz 14:11, «serve che si apra fino dove c'è contenuto»): è alta quanto il suo contenuto
+  // più la maniglia, e arriva al campo, col contenuto che scorre dentro, solo quando non ci sta (sessionTabs.shadeHeight: qui lo fa il
+  // max-height); sotto una tendina corta la chat resta in vista, con l'ombra sotto il bordo. È solo il contenitore: il contenuto lo passa chi la usa, e il centro notifiche
   // (app-centro-notifiche-26-11) cambierà il contenuto, non il posto. Scende e sale in 360 ms con FAST_OUT_SLOW_IN; le righe del
   // contenuto (i figli degli elementi segnati `data-rows`, quelli in vista) compaiono a 32 ms l'una dall'altra. Si chiude tirandola
   // su dalla maniglia in fondo, o col tocco sulla maniglia. Moto ridotto: niente discesa, compare al suo posto.
@@ -121,12 +123,12 @@
 </div>
 
 <style>
-  /* Sopra la chat e sotto la riga di icone: quello che sale oltre il bordo in alto non si vede. */
+  /* Sopra la chat e sotto la barra di stato: quello che sale oltre il bordo in alto non si vede. */
   .tdw { position: absolute; inset: 0; z-index: 6; overflow: hidden; pointer-events: none; visibility: hidden; }
   .tdw.on { visibility: visible; }
-  .td { position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--bg); border-bottom: 1px solid var(--line);
+  .td { position: absolute; left: 0; right: 0; top: 0; max-height: 100%; display: flex; flex-direction: column; background: var(--bg); border-bottom: 1px solid var(--line);
     border-radius: 0 0 18px 18px; box-shadow: 0 10px 24px rgb(0 0 0 / .45); pointer-events: auto; transform: translateY(-100%); will-change: transform; }
-  .tdc { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 10px 12px 12px; }
+  .tdc { flex: 0 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 10px 12px 12px; }
   .grip { flex: none; height: 26px; display: grid; place-items: center; touch-action: none; cursor: grab; border-radius: 0 0 18px 18px; }
   .grip:active { cursor: grabbing; }
   .grip i { width: 36px; height: 4px; border-radius: 2px; background: var(--tx3); }

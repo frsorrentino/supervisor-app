@@ -67,6 +67,9 @@ class MasterSheetShotsTest {
 
     @Test fun riga() = paparazzi.snapshot { home(MasterSheet.Stop.ROW) }
     @Test fun meta() = paparazzi.snapshot { home(MasterSheet.Stop.HALF) }
+    // app-foglio-master-testata-28-11: all'intera il foglio tocca la barra dell'app, con gli angoli in alto squadrati; app-barra-stato-28-11:
+    // aperto, sotto la riga la barra di stato al posto dell'ultimo esito.
+    @Test fun intera() = paparazzi.snapshot { home(MasterSheet.Stop.FULL) }
 
     // app-bordo-master-27-11: il campo della master in una striscia di 360 × 220 dp, col foglio alla riga sopra una home vuota. Da ferma
     // l'anello di 1,5 dp; al lavoro il raggio fermo a 12 s del giro (LocalBordoFermo: un quinto del bordo, a metà del lato di sopra), così

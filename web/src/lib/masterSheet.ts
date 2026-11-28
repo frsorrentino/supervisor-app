@@ -12,13 +12,19 @@ export const STOPS: readonly Stop[] = ['row', 'half', 'full']
 
 /** La riga prima di misurarla: maniglia, la riga della master e il campo. */
 export const ROW_PX = 170
-/** A tutta altezza resta uno stacco sopra il foglio: si vede che è un foglio, e sotto c'è la pagina. */
-export const GAP_PX = 8
 /**
- * Metà come nel mockup approvato (m/b-foglio.html, `meta: H * .42`): il bordo del foglio al 42 % del posto, cioè il foglio alto il 58 %.
- * Così alla conversazione della master restano almeno 200 px a 360 × 780, fra la sua riga, i chip delle Azioni e il campo.
+ * app-foglio-master-testata-28-11 (Franz 28/11 14:37, «tra la master e l'header supervisor c'è un po' di spazio che non dovrebbe esserci»):
+ * all'intera il foglio arriva alla barra dell'app, senza stacco; prima restavano 8 px e sotto si vedeva una riga della home.
  */
-export const HALF_SHARE = 0.58
+export const GAP_PX = 0
+/** Il raggio degli angoli in alto del foglio. */
+export const CORNER = 22
+/**
+ * Metà: il foglio alto il 62 % del posto. Era il 58 % del mockup approvato (m/b-foglio.html, `meta: H * .42`); con la barra di stato
+ * (app-barra-stato-28-11) e la maniglia nella sua fascia (app-foglio-master-testata-28-11) la testata aperta è cresciuta di 39 px, e al
+ * 62 % alla conversazione della master tornano circa 200 px a 360 × 780, fra la barra, i chip delle Azioni e il campo.
+ */
+export const HALF_SHARE = 0.62
 /** La decelerazione di iOS per millisecondo (UIScrollView.DecelerationRate.normal). */
 export const RATE = 0.998
 /** L'elastico oltre la riga e oltre l'intera: la costante di UIScrollView. */
@@ -33,7 +39,7 @@ export type Anchors = Record<Stop, number>
 
 /**
  * Le tre altezze dentro `avail` (l'altezza del posto, sotto la barra in alto): la riga è `row`, misurata; l'intera tutto meno lo
- * stacco; la metà il 58 % del posto (HALF_SHARE), mai sotto la riga né sopra l'intera. In un posto troppo basso coincidono con la riga.
+ * stacco; la metà il 62 % del posto (HALF_SHARE), mai sotto la riga né sopra l'intera. In un posto troppo basso coincidono con la riga.
  */
 export function anchors(avail: number, row: number, gap = GAP_PX): Anchors {
   const r = Math.max(0, row)
@@ -77,6 +83,12 @@ export const readStop = (raw: string | null | undefined): Stop => (raw === 'half
 // app-posizioni-sistema-27-11, prova 1447 (Franz: «sembra quasi che si sta alzando solo l'header»; «una sfumatura verso il nero tra il
 // bordo della master superiore e la home e qualche animazione di movimento che fa comprendere bene l'azione di sovrapposizione»): il
 // foglio è un blocco solo, testata e conversazione insieme; la home dietro si vela e arretra mentre lui sale, e sopra il bordo c'è un'ombra.
+
+/**
+ * app-foglio-master-testata-28-11: gli angoli in alto, tondi (CORNER), si squadrano negli ultimi CORNER px prima dell'intera: lì il foglio
+ * tocca la barra dell'app e dietro un angolo tondo si vedrebbe la home.
+ */
+export const corner = (a: Anchors, h: number): number => Math.min(CORNER, Math.max(0, a.full - h))
 
 /** Quanto è salito il foglio: 0 alla riga, 1 all'intera. Guida il velo, l'arretramento della home e l'ombra sopra il bordo. */
 export function progress(a: Anchors, h: number): number {

@@ -603,7 +603,6 @@
     <string name="quota_reset_desc">Quota delle 5 ore al %1$d%%, si azzera %2$s</string>
     <string name="ctx_title">Contesto %1$d%%</string>
     <!-- app-posizioni-sistema-27-11 gruppo 3: l'anellino del contesto nel campo e il chip ambra della riga delle Azioni, dal 70 %. -->
-    <string name="ctx_ring">%1$d%%</string>
     <string name="ctx_chip">Contesto %1$d%% · Handoff</string>
     <string name="ctx_handoff">Scrivi l\'handoff e riparti pulita</string>
     <string name="ctx_handoff_prompt">Scrivi l\'handoff con %1$s, poi io mando /clear.</string>
@@ -2226,4 +2225,9 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="changes_none_here">Nessuna modifica da mostrare.</string>
     <string name="details_model">Modello ed effort</string>
     <string name="details_quota">Quota delle 5 ore</string>
+    <!-- app-barra-stato-28-11: la barra di stato (variante C), per TalkBack, e la riga del contesto in Dettagli. -->
+    <string name="details_ctx">Contesto</string>
+    <string name="bar_quota_left">quota delle 5 ore: resta il %1$d%%</string>
+    <string name="bar_ctx">contesto %1$d%%</string>
+    <string name="bar_open_details">Apri Dettagli</string>
 </resources>

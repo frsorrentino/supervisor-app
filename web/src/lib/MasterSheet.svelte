@@ -4,7 +4,7 @@
   import { locale } from './lang'
   import type { Session } from './contract'
   import { hero as heroOf, type Entry } from './masterHome'
-  import { anchors, cues, freezeAt, progress, ROW_PX, rubber, settleAt, snap, STIFFNESS, tap, toRow, up, type Anchors, type Stop } from './masterSheet'
+  import { anchors, corner, cues, freezeAt, progress, ROW_PX, rubber, settleAt, snap, STIFFNESS, tap, toRow, up, type Anchors, type Stop } from './masterSheet'
   import { DRAG_PX, landSpring, velocity } from './gesture'
   import { ridotto } from './molla'
   import { OPENING_MS } from './arrivo'
@@ -63,7 +63,7 @@
   let anim: { from: number; v: number; w: number; t0: number } | null = null
   // Prova 1447: le parti misurate (la riga in alto, il campo coi suoi pezzi fermi, i chip), la conversazione rigida durante il movimento
   // (`frozen`, null da fermo), la misura da cui il movimento è partito, se la chat era in fondo; il posto dove velare la home.
-  let grabH = 0, fieldH = 0, azH = 0
+  let grabH = 0, fieldH = 0, azH = 0, barH = 0
   let frozen: number | null = null
   let base: Stop = untrack(() => stop)
   let wasEnd = true
@@ -89,6 +89,8 @@
     // diventa il riferimento dei suoi menu fissi.
     const k = cues(progress(a, h), ridotto())
     el.style.setProperty('--shade', k.shade.toFixed(3))
+    // app-foglio-master-testata-28-11: all'intera il foglio tocca la barra dell'app e gli angoli in alto si squadrano (masterSheet.corner).
+    el.style.setProperty('--corner', `${corner(a, h).toFixed(1)}px`)
     if (host) {
       const key = `${k.dim.toFixed(3)}|${k.scale.toFixed(4)}`
       if (key !== cueKey) {
@@ -145,12 +147,14 @@
     const sec = body?.querySelector<HTMLElement>('section.chat')
     // Prova 1447: fermi in fondo il campo e i suoi pezzi (le ricorrenti aperte, la lettura, la barra dei miei messaggi); i chip delle
     // Azioni stanno col blocco che si muove, sotto la conversazione.
-    let block = 0, chips = 0, jumping = false
+    let block = 0, chips = 0, bar = 0, jumping = false
     if (sec) for (const c of sec.children) {
       if (!(c instanceof HTMLElement)) continue
       const cs = getComputedStyle(c)
       if (cs.display === 'none' || cs.position === 'fixed' || c.matches('.stage, dialog')) continue
       const outer = c.offsetHeight + (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0)
+      // app-barra-stato-28-11: la barra di stato in cima alla parte che si muove, subito sotto la riga; la conversazione sotto di lei.
+      if (c.classList.contains('sbar')) { bar = outer; continue }
       if (c.classList.contains('az')) { chips = outer; continue }
       if (cs.position === 'absolute') continue
       block += outer
@@ -159,6 +163,7 @@
     grabH = grab?.offsetHeight ?? 0
     fieldH = block || ROW_PX - grabH
     if (Math.abs(chips - azH) > 0.5) { azH = chips; body?.style.setProperty('--az-h', `${Math.round(chips)}px`) }
+    if (Math.abs(bar - barH) > 0.5) { barH = bar; body?.style.setProperty('--bar-h', `${Math.round(bar)}px`) }
     const row = grabH + fieldH
     if (Math.abs(row - rowH) > 0.5) rowH = row
     a = anchors(avail, row)
@@ -315,7 +320,7 @@
 <svelte:window onkeydown={windowKeys} />
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-<section class="msheet v3" class:inset class:moving data-at={moving ? 'move' : shown} bind:this={el} aria-label={t.summaryTitle} onkeydown={keys}>
+<section class="msheet v3" class:inset class:moving class:open={shown !== 'row'} data-at={moving ? 'move' : shown} bind:this={el} aria-label={t.summaryTitle} onkeydown={keys}>
   <!-- Il dito sulla maniglia e sulla riga; dalla tastiera fa lo stesso il tasto della maniglia. -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="grab" bind:this={grab} onpointerdown={down} onpointermove={move} onpointerup={(e) => release(e)} onpointercancel={(e) => release(e, true)}>
@@ -343,7 +348,7 @@
   /* Il foglio sta sopra la pagina, ancorato in fondo al posto che lo contiene; cambia altezza, mai posto: niente transform, così i
      menu e la scelta di «Cita» dentro la conversazione restano dove li mette il dito. */
   .msheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 6; display: flex; flex-direction: column; min-height: 0;
-    height: 170px; background: var(--s1); border-radius: 22px 22px 0 0; box-shadow: 0 -1px 0 var(--line); }
+    height: 170px; background: var(--s1); border-radius: var(--corner, 22px) var(--corner, 22px) 0 0; box-shadow: 0 -1px 0 var(--line); }
   /* Prova 1447: sopra il bordo un'ombra che sfuma verso il nero, più scura mentre il foglio sale (masterSheet.cues, `--shade`). */
   .msheet::before { content: ''; position: absolute; left: 0; right: 0; bottom: 100%; height: 40px; pointer-events: none; border-radius: 22px 22px 0 0;
     background: linear-gradient(to top, rgb(0 0 0 / var(--shade, .3)), rgb(0 0 0 / 0)); }
@@ -352,12 +357,15 @@
   /* La maniglia e la riga della master: si trascinano insieme, e un tocco passa alla misura dopo. */
   .grab { flex: none; touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; }
   .msheet.moving .grab { cursor: grabbing; }
-  .gr { display: grid; place-items: center; width: 100%; height: 14px; padding-top: 6px; border-radius: 22px 22px 0 0; cursor: inherit; }
+  /* app-foglio-master-testata-28-11 (Franz 14:37, «la barra in alto e il padding esiguo tra testo e bordo la rendono poco equilibrata»): la
+     maniglia ha una fascia sua, 8 sopra e 12 sotto, staccata dal titolo; titolo, ultimo esito e barra di stato a 16 dal bordo, come le
+     schede dell'app. */
+  .gr { display: grid; place-items: center; width: 100%; height: 24px; padding: 8px 0 12px; border-radius: var(--corner, 22px) var(--corner, 22px) 0 0; cursor: inherit; }
   .gr i { display: block; width: 40px; height: 4px; border-radius: 2px; background: var(--tx3); transition: background-color .15s; }
   .grab:hover .gr i { background: var(--tx2); }
   .gr:focus-visible { outline: none; }
   .gr:focus-visible i { outline: 2px solid var(--tx2); outline-offset: 3px; }
-  .mh { display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 8px 0 14px; }
+  .mh { display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 4px 0 16px; }
   .tt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
   .l1 { display: flex; align-items: center; gap: 8px; min-width: 0; }
   .l1 b { font: 700 15.5px/1.2 var(--display); color: var(--tx); }
@@ -365,6 +373,12 @@
   .st { display: block; white-space: nowrap; overflow: hidden; font-size: 13px; line-height: 1.3; color: var(--tx2);
     -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent); }
   .st .mono { font: 400 12.5px var(--mono); letter-spacing: 0; }
+  /* app-barra-stato-28-11 (Franz 14:01): l'ultimo esito sotto il titolo solo col foglio alla riga; aperto (o diretto a metà o all'intera),
+     al suo posto c'è la barra di stato, e «Master» va al centro della riga. La riga resta alta 52: la misura «riga» del foglio non cambia. */
+  .l1, .st { transition: transform .18s cubic-bezier(.4, 0, .2, 1), opacity .18s; }
+  .msheet.open .st { opacity: 0; }
+  .msheet.open .l1 { transform: translateY(9px); }
+  @media (prefers-reduced-motion: reduce) { .l1, .st { transition: none; } }
   .nd { flex: none; width: 8px; height: 8px; border-radius: 4px; background: var(--wait); animation: nd-in var(--spring-bounce-t) var(--spring-bounce) both; }
   @keyframes nd-in { from { transform: scale(.4); opacity: 0; } }
   .ib { flex: none; width: 44px; height: 44px; border-radius: 22px; display: grid; place-items: center; color: var(--tx); position: relative; transition: transform 140ms cubic-bezier(.23, 1, .32, 1); }
@@ -381,7 +395,12 @@
      resto lo taglia il bordo. Niente dissolvenze: il foglio è opaco a ogni misura. */
   .sbody { position: relative; flex: 1; min-height: 0; overflow: hidden; }
   .sbody :global(section.chat) { position: absolute; inset: 0; height: auto; justify-content: flex-end; background: transparent; }
-  .sbody :global(section.chat > .stage) { position: absolute; left: 0; right: 0; top: 0; flex: none; height: max(0px, calc(var(--conv-h, 0px) - var(--az-h, 0px))); }
+  /* app-barra-stato-28-11: aperto, la barra di stato sta subito sotto la riga, in cima alla parte che si muove, e la conversazione sotto di
+     lei; le tendine scendono dalla barra e restano sotto il campo (la conversazione è un piano suo, sotto il campo). */
+  .sbody :global(section.chat > .sbar) { position: absolute; left: 0; right: 0; top: 0; z-index: 1; }
+  .sbody :global(section.chat > .stage .td) { background: var(--s1); }
+  .sbody :global(section.chat > .stage) { position: absolute; left: 0; right: 0; top: var(--bar-h, 0px); z-index: 0; flex: none;
+    height: max(0px, calc(var(--conv-h, 0px) - var(--az-h, 0px) - var(--bar-h, 0px))); }
   .sbody :global(section.chat > .az) { position: absolute; left: 0; right: 0; top: calc(var(--conv-h, 0px) - var(--az-h, 0px)); }
   .sbody :global(section.chat > :is(.bar, .mjbar, .blk.box, .pill)) { position: relative; z-index: 1; background: var(--s1); }
   .sbody :global(section.chat.master > .bar) { margin-top: 0; border-radius: 0; }

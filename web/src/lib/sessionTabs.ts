@@ -57,6 +57,14 @@ export const MAX_STAGGER = 8
 /** Il ritardo della riga `i` (da 0) mentre la tendina scende. */
 export const rowDelay = (i: number): number => Math.min(Math.max(0, Math.floor(i)), MAX_STAGGER) * ROW_MS
 
+/**
+ * app-barra-stato-28-11 (Franz 28/11 14:11, «quando selezioni per te non è necessario che la tendina arrivi fino in fondo, serve che si
+ * apra fino dove c'è contenuto»): la tendina è alta quanto il suo contenuto più la maniglia, mai oltre il posto fino al campo (`room`);
+ * solo allora arriva al campo e il contenuto scorre dentro. Sotto una tendina corta la chat resta in vista.
+ */
+export const shadeHeight = (content: number, grip: number, room: number): number =>
+  Math.max(0, Math.min(Math.max(0, content) + Math.max(0, grip), room))
+
 /** Tirata su oltre questa parte della sua altezza, la tendina si chiude. */
 export const DRAG_CLOSE = 0.25
 /** O con uno slancio verso l'alto oltre questa velocità (px CSS al secondo sul web, dp al secondo sul telefono). */

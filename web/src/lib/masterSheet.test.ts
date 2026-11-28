@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { anchors, band, cues, DIM_MAX, freezeAt, GAP_PX, HALF_SHARE, nearest, progress, project, RATE, readStop, RECEDE, rubber, settleAt, SHADE_MAX, SHADE_MIN, snap, tap, toRow, up } from './masterSheet'
+import { anchors, band, CORNER, corner, cues, DIM_MAX, freezeAt, GAP_PX, HALF_SHARE, nearest, progress, project, RATE, readStop, RECEDE, rubber, settleAt, SHADE_MAX, SHADE_MIN, snap, tap, toRow, up } from './masterSheet'
 import { landSpring } from './gesture'
 
 // Il foglio della master (app-posizioni-sistema-27-11 gruppo 4). Gli stessi casi di MasterSheetTest in Kotlin.
@@ -7,19 +7,29 @@ describe('foglio della master', () => {
   // Un telefono da 780: sotto la barra in alto restano 700 px; la riga misura 170.
   const a = anchors(700, 170)
 
-  it('le tre misure: la riga misurata, la metà al 58 % del posto come nel mockup, tutto meno lo stacco', () => {
-    expect(HALF_SHARE).toBe(0.58)
+  it("le tre misure: la riga misurata, la metà al 62 % del posto, all'intera tutto il posto fino alla barra dell'app", () => {
+    expect(HALF_SHARE).toBe(0.62)
+    expect(GAP_PX).toBe(0)
     expect(a.row).toBe(170)
-    expect(a.half).toBeCloseTo(406, 6)
-    expect(a.full).toBe(700 - GAP_PX)
+    expect(a.half).toBeCloseTo(434, 6)
+    expect(a.full).toBe(700)
     // La colonna della home a 1280 (800 di schermo, 64 di barra).
     const col = anchors(736, 170)
-    expect(col.half).toBeCloseTo(426.88, 6)
-    expect(col.full).toBe(728)
+    expect(col.half).toBeCloseTo(456.32, 6)
+    expect(col.full).toBe(736)
+  })
+
+  it("all'intera gli angoli in alto sono squadrati, e tornano tondi negli ultimi 22 px", () => {
+    expect(corner(a, a.full)).toBe(0)
+    expect(corner(a, a.full - 11)).toBe(11)
+    expect(corner(a, a.full - CORNER)).toBe(CORNER)
+    expect(corner(a, a.half)).toBe(CORNER)
+    expect(corner(a, a.row)).toBe(CORNER)
+    expect(corner(a, a.full + 30)).toBe(0)
   })
 
   it('in un posto basso la metà non scende sotto la riga e le misure coincidono', () => {
-    expect(anchors(250, 170)).toEqual({ row: 170, half: 170, full: 242 })
+    expect(anchors(250, 170)).toEqual({ row: 170, half: 170, full: 250 })
     expect(anchors(150, 170)).toEqual({ row: 170, half: 170, full: 170 })
     expect(anchors(0, -4)).toEqual({ row: 0, half: 0, full: 0 })
   })
@@ -34,7 +44,7 @@ describe('foglio della master', () => {
 
   it('senza slancio scatta alla misura più vicina; a pari distanza la più bassa', () => {
     expect(nearest(a, 200)).toBe('row')
-    expect(nearest(a, 300)).toBe('half')
+    expect(nearest(a, 320)).toBe('half')
     expect(nearest(a, 600)).toBe('full')
     expect(nearest({ row: 170, half: 350, full: 692 }, 260)).toBe('row')
     expect(snap(a, 340, 0)).toBe('half')

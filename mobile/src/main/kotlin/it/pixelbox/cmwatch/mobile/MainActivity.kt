@@ -2277,6 +2277,8 @@ class MainActivity : ComponentActivity() {
                         // app-posizioni-sistema-27-11 gruppo 2: in una sessione, non nella master, «Per te» e «Risultati» stanno nella tendina delle
                         // schede e i loro numeri sulla riga di icone (SessionTabs); nella master restano le pillole (gruppo 4).
                         val tabsOn = home == null && session.master != true && session.name != it.pixelbox.cmwatch.rules.ContextActions.MASTER
+                        // app-barra-stato-28-11: anche il foglio aperto della master ha la barra di stato e le tendine, coi suoi numeri.
+                        val barOn = tabsOn || home != null
                         val perTeItems = if (attese) it.pixelbox.cmwatch.rules.PerTe.voci(waitOthers, resultsPage?.groups.orEmpty(), session.name).filterNot { v -> perTeSent[v.key] == true } else emptyList()
                         val resultsLine = it.pixelbox.cmwatch.rules.Guardare.ofSession(resultsPage, session.name)
                         val openResult: (String?) -> Unit = { id -> val r = id?.let { x -> resultsLine.groups.flatMap { g -> g.items }.firstOrNull { i -> i.id == x } }; if (r != null) resultOpen = r else { watchSession = session.name; watchOpen = true } }
@@ -2434,7 +2436,7 @@ class MainActivity : ComponentActivity() {
                             // app-posizioni-sistema-27-11 gruppo 6: il foglio della master anche sul tablet; lì senza i puntini dietro la home, come la web.
                             sheetAt = if (home != null) sheetStop else null, onSheet = setSheet,
                             headerLead = lead, draftState = drafts.state(session),
-                            results = if (tabsOn) resultsLine.takeIf { l -> l.groups.isNotEmpty() }?.let { l -> { it.pixelbox.cmwatch.mobile.ui.ResultsChatRows(l, onOpen = openResult) } }
+                            results = if (barOn) resultsLine.takeIf { l -> l.groups.isNotEmpty() }?.let { l -> { it.pixelbox.cmwatch.mobile.ui.ResultsChatRows(l, onOpen = openResult) } }
                             else it.pixelbox.cmwatch.rules.Guardare.ofSession(resultsPage, session.name).takeIf { l -> it.pixelbox.cmwatch.rules.Guardare.shown(l, resultsClosed[session.name]) }?.let { l -> {
                                 it.pixelbox.cmwatch.mobile.ui.ResultsChatRow(l, onClose = {
                                     it.pixelbox.cmwatch.rules.Guardare.lastKey(l)?.let { k -> resultsClosed[session.name] = k; resultsPrefs.edit().putString(session.name, k).apply() }
@@ -2442,7 +2444,7 @@ class MainActivity : ComponentActivity() {
                                     onToggle = { sessionBoxes.toggle(session.name, it.pixelbox.cmwatch.rules.Riquadri.Kind.RISULTATI) },
                                 ) { id -> val r = id?.let { x -> l.groups.flatMap { g -> g.items }.firstOrNull { i -> i.id == x } }; if (r != null) resultOpen = r else { watchSession = session.name; watchOpen = true } }
                             } },
-                            perTe = if (tabsOn) perTeItems.takeIf { l -> l.isNotEmpty() }?.let { items -> {
+                            perTe = if (barOn) perTeItems.takeIf { l -> l.isNotEmpty() }?.let { items -> {
                                 it.pixelbox.cmwatch.mobile.ui.PerTeRows(items, now, onOpen = perTeOpenVoce, onMain = perTeMain, onMaster = if (uItems != null) ({ toMaster(session.name) }) else null)
                             } }
                             else it.pixelbox.cmwatch.rules.PerTe.voci(waitOthers, resultsPage?.groups.orEmpty(), session.name).filterNot { v -> perTeSent[v.key] == true }.takeIf { l -> l.isNotEmpty() && attese }?.let { items -> {
@@ -2454,8 +2456,8 @@ class MainActivity : ComponentActivity() {
                                     onMaster = if (uItems != null) ({ toMaster(session.name) }) else null, numberOnly = wide && home != null && homeOpen,
                                 )
                             } },
-                            perTeCount = if (tabsOn) perTeItems.size else 0,
-                            newResults = if (tabsOn) it.pixelbox.cmwatch.rules.SessionTabs.newResults(resultsLine.groups.map { g -> g.unseen }) else 0,
+                            perTeCount = if (barOn) perTeItems.size else 0,
+                            newResults = if (barOn) it.pixelbox.cmwatch.rules.SessionTabs.newResults(resultsLine.groups.map { g -> g.unseen }) else 0,
                             // Con l'ispettore obiettivo e bassa priorità stanno lì: in testata non si ripetono (revisione della master, 04/10).
                             notesInHeader = lead == null || !inspectorOn,
                             canAttachFiles = state?.share?.any == true,

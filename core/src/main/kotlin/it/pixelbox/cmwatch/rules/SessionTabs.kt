@@ -77,6 +77,13 @@ object SessionTabs {
     /** Il ritardo della riga [i] (da 0) mentre la tendina scende. */
     fun rowDelay(i: Int): Int = min(max(0, i), MAX_STAGGER) * ROW_MS
 
+    /**
+     * app-barra-stato-28-11 (Franz 28/11 14:11, «quando selezioni per te non è necessario che la tendina arrivi fino in fondo, serve che
+     * si apra fino dove c'è contenuto»): la tendina è alta quanto il suo contenuto più la maniglia, mai oltre il posto fino al campo
+     * ([room]); solo allora arriva al campo e il contenuto scorre dentro. Sotto una tendina corta la chat resta in vista.
+     */
+    fun shadeHeight(content: Int, grip: Int, room: Int): Int = max(0, min(max(0, content) + max(0, grip), room))
+
     /** Tirata su oltre questa parte della sua altezza, la tendina si chiude. */
     const val DRAG_CLOSE = 0.25f
 

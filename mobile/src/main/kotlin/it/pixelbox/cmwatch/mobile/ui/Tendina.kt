@@ -13,7 +13,6 @@ import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
@@ -33,8 +32,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -51,15 +52,18 @@ private val ROWS_MS = (SessionTabs.rowDelay(SessionTabs.MAX_STAGGER) + SessionTa
 internal val LocalTendinaClock = compositionLocalOf<(() -> Float)?> { null }
 
 /**
- * La tendina della sessione (app-posizioni-sistema-27-11, gruppo 2), come Tendina.svelte: scende dalla riga di icone sopra la chat,
- * fino al campo, che resta sempre in vista e usabile. È solo il contenitore: il contenuto lo passa chi la usa (che si occupa anche di
+ * La tendina della sessione (app-posizioni-sistema-27-11, gruppo 2), come Tendina.svelte: scende dalla barra di stato sopra la chat, e il
+ * campo resta sempre in vista e usabile. app-barra-stato-28-11 (Franz 14:11, «serve che si apra fino dove c'è contenuto»): è alta quanto
+ * il suo contenuto più la maniglia ([SessionTabs.shadeHeight]) e arriva al campo, col contenuto che scorre dentro, solo quando non ci sta;
+ * sotto una tendina corta la chat resta in vista, coi suoi tocchi, con l'ombra sotto il bordo. [bg]: il fondo (quello del foglio della
+ * master, nel foglio). È solo il contenitore: il contenuto lo passa chi la usa (che si occupa anche di
  * scorrerlo), e il centro notifiche (app-centro-notifiche-26-11) cambierà il contenuto, non il posto. Scende e sale in 360 ms con
  * FastOutSlowInEasing; le righe del contenuto segnate con [tendinaRow] compaiono a 32 ms l'una dall'altra, a ogni apertura e a ogni
  * cambio di sezione ([key]). Si chiude tirandola su dalla maniglia in fondo (oltre un quarto o con uno slancio,
  * SessionTabs.closesOnDrag) o col tocco sulla maniglia. Con le animazioni spente, e nelle immagini di prova, compare al suo posto, ferma.
  */
 @Composable
-fun Tendina(open: Boolean, key: Any, onClose: () -> Unit, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+fun Tendina(open: Boolean, key: Any, onClose: () -> Unit, modifier: Modifier = Modifier, bg: Color = V3.Bg, content: @Composable () -> Unit) {
     val off = animationsOff()
     val p = remember { Animatable(if (open) 1f else 0f) }
     var dragPx by remember { mutableFloatStateOf(0f) }
@@ -79,16 +83,24 @@ fun Tendina(open: Boolean, key: Any, onClose: () -> Unit, modifier: Modifier = M
     if (!open && !down) return
     val density = LocalDensity.current
     val shape = RoundedCornerShape(bottomStart = 18.dp, bottomEnd = 18.dp)
-    Box(modifier.clipToBounds().onSizeChanged { heightPx = it.height }) {
+    val gripPx = with(density) { 26.dp.roundToPx() }
+    Box(modifier.clipToBounds()) {
         Column(
-            Modifier.fillMaxSize()
+            Modifier.fillMaxWidth()
+                // Alta quanto il contenuto più la maniglia, mai oltre il posto fino al campo: il contenuto ha già il suo massimo dal Column.
+                .layout { m, c ->
+                    val pl = m.measure(c.copy(minHeight = 0))
+                    val h = SessionTabs.shadeHeight(pl.height - gripPx, gripPx, c.maxHeight)
+                    layout(pl.width, h) { pl.place(0, 0) }
+                }
+                .onSizeChanged { heightPx = it.height }
                 .graphicsLayer { translationY = (p.value - 1f) * size.height + dragPx }
-                .shadow(10.dp, shape, clip = false).clip(shape).background(V3.Bg, shape)
+                .shadow(10.dp, shape, clip = false).clip(shape).background(bg, shape)
                 // I tocchi sul fondo della tendina restano suoi: non arrivano alla chat sotto.
                 .pointerInput(Unit) { detectTapGestures { } }
                 .testTag("tendina"),
         ) {
-            Box(Modifier.weight(1f).fillMaxWidth()) {
+            Box(Modifier.weight(1f, fill = false).fillMaxWidth()) {
                 CompositionLocalProvider(LocalTendinaClock provides { clock.value }) { content() }
             }
             val closeLabel = stringResource(R.string.shade_close)

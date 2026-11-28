@@ -17,17 +17,18 @@ class MasterSheetTest {
     private val a = MasterSheet.anchors(700f, 170f)
 
     @Test fun `le tre misure, la riga misurata, la metà al 58 per cento del posto come nel mockup, tutto meno lo stacco`() {
-        assertEquals(0.58f, MasterSheet.HALF_SHARE, 0f)
+        assertEquals(0.62f, MasterSheet.HALF_SHARE, 0f)
         assertEquals(170f, a.row, 0f)
-        assertEquals(406f, a.half, 0.01f)
-        assertEquals(700f - MasterSheet.GAP_DP, a.full, 0f)
+        assertEquals(434f, a.half, 0.01f)
+        assertEquals(0f, MasterSheet.GAP_DP, 0f)
+        assertEquals(700f, a.full, 0f)
         val col = MasterSheet.anchors(736f, 170f)
-        assertEquals(426.88f, col.half, 0.01f)
-        assertEquals(728f, col.full, 0f)
+        assertEquals(456.32f, col.half, 0.01f)
+        assertEquals(736f, col.full, 0f)
     }
 
     @Test fun `in un posto basso la metà non scende sotto la riga e le misure coincidono`() {
-        assertEquals(MasterSheet.Anchors(170f, 170f, 242f), MasterSheet.anchors(250f, 170f))
+        assertEquals(MasterSheet.Anchors(170f, 170f, 250f), MasterSheet.anchors(250f, 170f))
         assertEquals(MasterSheet.Anchors(170f, 170f, 170f), MasterSheet.anchors(150f, 170f))
         assertEquals(MasterSheet.Anchors(0f, 0f, 0f), MasterSheet.anchors(0f, -4f))
     }
@@ -41,7 +42,7 @@ class MasterSheetTest {
 
     @Test fun `senza slancio scatta alla misura più vicina, a pari distanza la più bassa`() {
         assertEquals(Stop.ROW, MasterSheet.nearest(a, 200f))
-        assertEquals(Stop.HALF, MasterSheet.nearest(a, 300f))
+        assertEquals(Stop.HALF, MasterSheet.nearest(a, 320f))
         assertEquals(Stop.FULL, MasterSheet.nearest(a, 600f))
         assertEquals(Stop.ROW, MasterSheet.nearest(MasterSheet.Anchors(170f, 350f, 692f), 260f))
         assertEquals(Stop.HALF, MasterSheet.snap(a, 340f, 0f))
@@ -155,5 +156,15 @@ class MasterSheetTest {
         val ws = sqrt(still.stiffness)
         assertEquals(0f, MasterSheet.settleAt(-300f, still.velocity, ws, 0f).v, 0.001f)
         assertTrue(abs(MasterSheet.settleAt(-300f, still.velocity, ws, 0.5f).x) < 3f)
+    }
+
+    @Test fun `all'intera gli angoli in alto sono squadrati, e tornano tondi negli ultimi 22 px`() {
+        val c = MasterSheet.CORNER_DP
+        assertEquals(0f, MasterSheet.corner(a, a.full, c), 0f)
+        assertEquals(11f, MasterSheet.corner(a, a.full - 11f, c), 0.001f)
+        assertEquals(c, MasterSheet.corner(a, a.full - c, c), 0.001f)
+        assertEquals(c, MasterSheet.corner(a, a.half, c), 0f)
+        assertEquals(c, MasterSheet.corner(a, a.row, c), 0f)
+        assertEquals(0f, MasterSheet.corner(a, a.full + 30f, c), 0f)
     }
 }

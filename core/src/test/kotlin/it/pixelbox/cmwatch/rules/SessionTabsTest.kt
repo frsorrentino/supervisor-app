@@ -109,4 +109,14 @@ class SessionTabsTest {
         assertFalse(SessionTabs.closesOnDrag(0f, -2000f, 500f))
         assertFalse(SessionTabs.closesOnDrag(80f, -2000f, 500f))
     }
+
+    @Test fun `la tendina è alta quanto il suo contenuto, e arriva al campo solo quando non ci sta`() {
+        // app-barra-stato-28-11: tre voci di Per te (180) e la maniglia (26) in un posto di 500 fino al campo.
+        assertEquals(206, SessionTabs.shadeHeight(180, 26, 500))
+        assertEquals(500, SessionTabs.shadeHeight(800, 26, 500))
+        assertEquals(500, SessionTabs.shadeHeight(474, 26, 500))
+        assertEquals(26, SessionTabs.shadeHeight(0, 26, 500))
+        assertEquals(0, SessionTabs.shadeHeight(180, 26, 0))
+        assertEquals(26, SessionTabs.shadeHeight(-40, 26, 500))
+    }
 }

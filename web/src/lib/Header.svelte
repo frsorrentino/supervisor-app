@@ -22,16 +22,18 @@
   // badge e nome, come la plancia del tablet.
   // app-posizioni-sistema-27-11 gruppo 2: con `tabs` (una sessione, non la master) la riga dei dati e le note vanno in Dettagli, e sotto
   // il nome c'è la riga di icone; il ⋮ resta accanto al nome (nella plancia lo prende la testata della colonna, headMore.svelte.ts).
-  let { st, s, wide, onBack, onCmd, onPrompt, onHandoff, onUsage = () => {}, onGo = null, onReopen = null, appMenu = null, onChanges = null, onMine = null, tabs = null, inSheet = false, sheetNotes = null }: {
+  let { st, s, wide, onBack, onCmd, onPrompt, onHandoff, onUsage = () => {}, onGo = null, onReopen = null, appMenu = null, onChanges = null, onMine = null, tabs = null, inSheet = false }: {
     /**
-     * app-posizioni-sistema-27-11 gruppo 4: la master nel suo foglio. Niente testata qui: il ⋮ va nella riga del foglio (headMore) e in cima
-     * porta quello che mostrava la riga dei dati (modello ed effort, quota delle 5 ore, contesto, obiettivo e note, Modifiche) e gli Avvisi.
+     * app-posizioni-sistema-27-11 gruppo 4: la master nel suo foglio. Niente testata qui: il ⋮ va nella riga del foglio (headMore).
+     * app-barra-stato-28-11: modello ed effort, quota, contesto e note stanno nella barra di stato del foglio e in Dettagli, gli Avvisi in
+     * Per te, le Modifiche nella loro tendina: il ⋮ non li ripete.
      */
     inSheet?: boolean
-    /** Gli Avvisi della master nel foglio, in cima al ⋮; null senza avvisi. */
-    sheetNotes?: Snippet | null
-    /** La riga di icone della sessione (gruppo 2); senza, la testata di prima con la riga dei dati (la master). */
-    tabs?: Snippet | null
+    /**
+     * La barra di stato della sessione (app-barra-stato-28-11, al posto della riga di icone del gruppo 2), col ⋮ dentro quando nessuna
+     * testata lo prende; senza, la testata di prima con la riga dei dati (la master fuori dal foglio).
+     */
+    tabs?: Snippet<[Snippet | null]> | null
 
     /** Sul telefono il menu delle sessioni («Vai a») sul nome e il ≡ dell'app, come la testata della sessione nell'app. */
     onGo?: ((name: string | null) => void) | null; onReopen?: ((name: string) => void) | null; appMenu?: import('svelte').Snippet | null
@@ -69,8 +71,9 @@
   const changes = $derived(changesOf(s))
   // Sul telefono la pillola è la prima voce del menu ⋮, col puntino sul ⋮: la testata resta su una riga (Franz, 16/10 13:08).
   let viewport = $state(typeof window === 'undefined' ? 1280 : window.innerWidth)
-  // Con la riga di icone le modifiche hanno la loro scheda, col numero dei file: niente voce nel menu né puntino sul ⋮.
-  const changesMenu = $derived((!tabs && !!changes && inMenu(viewport)) || (inSheet && !!changes))
+  // Con la barra di stato le modifiche hanno la loro tendina, col numero dei file: niente voce nel menu né puntino sul ⋮; così nel foglio
+  // della master (app-barra-stato-28-11).
+  const changesMenu = $derived(!tabs && !inSheet && !!changes && inMenu(viewport))
   // Un menu solo, lo stesso dalla home e dalla plancia (app-menu-sessione-03-11): le voci e l'ordine da sessionMenu.
   const items = $derived(sessionMenu(s, st, mineOf(st, s.name), { changes: changesMenu && !!changes, canExit }))
   const has = (k: MenuKind) => items.some(i => i.kind === k)
@@ -197,7 +200,11 @@
   export function openCtx() { ctx?.showModal() }
   /** Modello ed effort come li mostra la pillola, con la scelta appena fatta, il segno dei permessi e il puntino del consiglio. */
   export function tuneView() {
-    return { label: [shortModel(model) ?? t.modelTitle, effort].filter(Boolean).join(' · '), glyph: glyph(s.permission_mode), permTitle, tunable, dot: tunable && !!advice?.dot }
+    return {
+      label: [shortModel(model) ?? t.modelTitle, effort].filter(Boolean).join(' · '), glyph: glyph(s.permission_mode), permTitle, tunable, dot: tunable && !!advice?.dot,
+      // app-barra-stato-28-11: separati per la barra di stato, che toglie l'effort quando lo spazio non basta.
+      model: shortModel(model) ?? t.modelTitle, effort: effort ?? null,
+    }
   }
   // Nella plancia il ⋮ lo prende la testata della colonna; se nessuna lo prende resta accanto alla riga di icone.
   const lent = $derived(!!tabs && !top && (heads.claims[s.name] ?? 0) > 0)
@@ -217,8 +224,8 @@
     </div>
   {/if}
   {#if tabs}
-    <!-- app-posizioni-sistema-27-11 gruppo 2: sotto il nome la riga di icone, al centro; il ⋮ accanto solo se nessuna testata lo prende. -->
-    <div class="trow" data-testid="testata-schede"><span></span><div class="tmid">{@render tabs()}</div><span class="tend">{#if !top && !lent}{@render more()}{/if}</span></div>
+    <!-- app-barra-stato-28-11: sotto il nome la barra di stato, larga quanto la colonna; il ⋮ dentro solo se nessuna testata lo prende. -->
+    <div class="trow" data-testid="testata-schede">{@render tabs(!top && !lent ? more : null)}</div>
   {:else}
   <div class="row v3">
     {#if inRow}<button class="ib back" onclick={onBack} aria-label={t.back}><svg viewBox="0 0 24 24" width="22" height="22"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></button>{/if}
@@ -281,34 +288,12 @@
     <button class="ib trig" class:open={menu} aria-label={menu ? t.closeWord : t.more} aria-expanded={menu} onclick={() => (menu = !menu)}>
       {#if menu}<svg viewBox="0 0 24 24" width="22" height="22"><path d="M18 6 6 18M6 6l12 12" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round" /></svg>
       {:else}<svg viewBox="0 0 24 24" width="22" height="22"><g fill="var(--text2)"><circle cx="12" cy="5" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="12" cy="19" r="2" /></g></svg>{/if}
-      {#if changesMenu || (inSheet && sheetNotes)}<span class="mdot" aria-hidden="true"></span>{/if}
+      {#if changesMenu}<span class="mdot" aria-hidden="true"></span>{/if}
     </button>
     {#if menu}
       <button class="scrim" aria-label={t.closeWord} onclick={() => (menu = false)}></button>
       <div class="panel v3" transition:genie role="menu">
         <div class="ph"><Badge {s} size={20} /><b>{s.name}</b></div>
-        {#if inSheet}
-          <!-- Gruppo 4: nel foglio della master qui in cima gli Avvisi e quello che mostrava la riga dei dati, coi suoi stessi tocchi. -->
-          {#if sheetNotes}<div class="mnotes" data-testid="foglio-avvisi"><p class="msec">{t.boxNotes}</p>{@render sheetNotes()}</div>{/if}
-          <button class="mi" role="menuitem" disabled={!tunable} data-testid="foglio-modello" onclick={(e) => { const a = (e.currentTarget as HTMLElement).closest<HTMLElement>('.anchor'); menu = false; openTune(a) }}>
-            <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M7 7l2 2M15 15l2 2M17 7l-2 2M9 15l-2 2" /></svg>
-            <span><span class="mt">{[shortModel(model) ?? t.modelTitle, effort].filter(Boolean).join(' · ')}</span><span class="msub">{t.detailsModel}</span></span>
-          </button>
-          {#if quota?.h5 != null}
-            <button class="mi" role="menuitem" data-testid="foglio-quota" onclick={() => { menu = false; onUsage() }}>
-              <svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
-              <span><span class="mt" class:stale={quota.stale}>{quotaLabel('full', t.quota5h(quota.h5), reset)}</span><span class="msub">{t.detailsQuota}</span></span>
-            </button>
-          {/if}
-          {#if s.context != null}
-            <button class="mi" role="menuitem" disabled={!tunable} data-testid="foglio-contesto" onclick={() => { menu = false; ctx?.showModal() }}>
-              <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 3 2.5 8 12 13l9.5-5L12 3z" /><path d="M2.5 16 12 21l9.5-5M2.5 12 12 17l9.5-5" /></svg>
-              <span><span class="mt">{t.ctxTitle(s.context)}</span><span class="msub">{t.sheetCtxSub}</span></span>
-            </button>
-          {/if}
-          {#each notes as n}<div class="mnote"><LongText text={n} /></div>{/each}
-          <hr />
-        {/if}
         {#if has('changes') && changes}
           <button class="mi" role="menuitem" disabled={!onChanges} onclick={() => { menu = false; onChanges?.() }}>
             <Icon name="diff" size={22} color="var(--icon)" />
@@ -536,16 +521,10 @@
   .arc { stroke-linecap: round; transform: rotate(-90deg); transform-origin: center; }
   .note { padding: 0 16px; font-size: 12.5px; font-weight: 500; color: var(--b-label); letter-spacing: .03em; }
   /* Gruppo 4: le note (obiettivo, priorità, finestra) e gli Avvisi in cima al ⋮ del foglio della master. */
-  .mnote { padding: 8px 16px; font-size: 13px; font-weight: 500; color: var(--b-label); letter-spacing: .03em; border-top: 1px solid var(--line); }
-  .mnotes { padding: 0 0 6px; border-top: 1px solid var(--line); }
-  .msec { margin: 10px 16px 4px; font: 500 12.5px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--wait); }
-  .mt.stale { color: var(--wait); }
   .chrow { display: flex; padding: 4px 0 6px 16px; }
-  /* La riga di icone della sessione (app-posizioni-sistema-27-11 gruppo 2): al centro della testata; il ⋮ a destra solo se resta qui. */
-  header.tabs { padding: 0 0 6px; }
-  .trow { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 4px; padding: 6px 4px 0; }
-  .tmid { display: flex; justify-content: center; min-width: 0; }
-  .tend { display: flex; justify-content: flex-end; }
+  /* La barra di stato della sessione (app-barra-stato-28-11): sotto il nome, a tutta larghezza, con la sua riga sottile. */
+  header.tabs { padding: 0; border-bottom: 0; }
+  .trow { display: block; }
   .mdot { position: absolute; top: 9px; right: 9px; width: 9px; height: 9px; border-radius: 50%; background: var(--icon); border: 2px solid var(--bg); }
   .gname { font-size: 19px; font-weight: 600; white-space: nowrap; }
   .gl { font-size: 12.5px; font-weight: 500; white-space: pre; }

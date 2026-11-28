@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
-  closesOnDrag, countOf, dragOffset, fastOutSlowIn, MAX_STAGGER, newResults, notesCount, pick, ROW_MS, rowDelay, SHADE_MS, shadeOpen, TABS,
-  tabCounts, toneOf,
+  closesOnDrag, countOf, dragOffset, fastOutSlowIn, MAX_STAGGER, newResults, notesCount, pick, ROW_MS, rowDelay, SHADE_MS, shadeHeight,
+  shadeOpen, TABS, tabCounts, toneOf,
 } from './sessionTabs'
 
 // La testata della sessione con la riga di icone e la tendina (app-posizioni-sistema-27-11, gruppo 2). Gli stessi casi di
@@ -110,5 +110,15 @@ describe('schede della sessione', () => {
     expect(fastOutSlowIn(0.5)).toBeCloseTo(0.774, 2)
     let last = 0
     for (let k = 1; k <= 20; k++) { const v = fastOutSlowIn(k / 20); expect(v).toBeGreaterThanOrEqual(last); last = v }
+  })
+
+  it('la tendina è alta quanto il suo contenuto, e arriva al campo solo quando non ci sta', () => {
+    // app-barra-stato-28-11: tre voci di Per te (180) e la maniglia (26) in un posto di 500 fino al campo.
+    expect(shadeHeight(180, 26, 500)).toBe(206)
+    expect(shadeHeight(800, 26, 500)).toBe(500)
+    expect(shadeHeight(474, 26, 500)).toBe(500)
+    expect(shadeHeight(0, 26, 500)).toBe(26)
+    expect(shadeHeight(180, 26, 0)).toBe(0)
+    expect(shadeHeight(-40, 26, 500)).toBe(26)
   })
 })

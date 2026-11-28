@@ -1,17 +1,14 @@
 package it.pixelbox.cmwatch.mobile.ui
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -27,18 +24,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.compositeOver
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -105,32 +95,4 @@ private fun AzioneChipView(
     }
 }
 
-/**
- * L'anellino del contesto nel campo: quanto contesto resta mentre scrivi, l'arco da 3 dp su 18 e la percentuale in mono da 12, ambra dal 70 %
- * ([SessionBottom.ringHigh]). Il tocco apre il foglio del contesto di prima: handoff, compatta, finestra più grande.
- */
-@Composable
-internal fun ContextRing(pct: Int, enabled: Boolean, onClick: () -> Unit) {
-    val tone = if (SessionBottom.ringHigh(pct)) V3.Wait else V3.Tx2
-    val desc = stringResource(R.string.ctx_title, pct)
-    val frac = SessionBottom.ringFraction(pct)
-    val track = V3.S3
-    Row(
-        Modifier.clip(CircleShape).then(if (enabled) Modifier.handCursor().clickable(onClickLabel = desc, role = Role.Button, onClick = onClick) else Modifier)
-            .semantics(mergeDescendants = true) { contentDescription = desc }.testTag("campo-contesto")
-            .heightIn(min = 30.dp).padding(horizontal = 6.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        Canvas(Modifier.size(18.dp)) {
-            val w = 3.dp.toPx()
-            val corner = Offset(w / 2, w / 2)
-            val box = Size(size.width - w, size.height - w)
-            drawArc(track, -90f, 360f, false, topLeft = corner, size = box, style = Stroke(w))
-            if (frac > 0f) drawArc(tone, -90f, 360f * frac, false, topLeft = corner, size = box, style = Stroke(w, cap = StrokeCap.Round))
-        }
-        Text(stringResource(R.string.ctx_ring, pct), style = RingText.copy(color = tone), maxLines = 1, softWrap = false, modifier = Modifier.clearAndSetSemantics {})
-    }
-}
-
 private val ChipText get() = TextStyle(fontFamily = V3.Sans, fontWeight = FontWeight.Medium, fontSize = 13.5.sp, lineHeight = 16.sp)
-private val RingText get() = TextStyle(fontFamily = V3.Mono, fontWeight = FontWeight.Medium, fontSize = 12.sp, lineHeight = 14.sp)

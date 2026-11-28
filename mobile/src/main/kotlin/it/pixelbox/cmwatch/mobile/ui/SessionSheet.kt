@@ -132,6 +132,7 @@ import it.pixelbox.cmwatch.rules.SessionsText
 import it.pixelbox.cmwatch.rules.SessionTabs
 import it.pixelbox.cmwatch.rules.SessionBottom
 import it.pixelbox.cmwatch.rules.MasterSheet
+import it.pixelbox.cmwatch.rules.StatusBar
 import it.pixelbox.cmwatch.rules.ToolText
 import java.time.Instant
 import kotlinx.coroutines.flow.first
@@ -388,7 +389,12 @@ fun SessionSheet(
     val tabsOn = home == null && s.master != true && s.name != it.pixelbox.cmwatch.rules.ContextActions.MASTER
     // In fondo quello delle sessioni: nelle sessioni e nel foglio della master (gruppo 4).
     val bottomOn = tabsOn || inSheet
-    var tab by rememberSaveable(s.name) { mutableStateOf(tabStart ?: if (tabsOn && changesShown != null) SessionTabs.Key.MODIFICHE else SessionTabs.Key.CHAT) }
+    // app-barra-stato-28-11 (variante C): la riga di icone lascia il posto alla barra di stato, a sinistra Per te, Risultati e Modifiche coi
+    // numeri, a destra modello · effort, quota e contesto, che aprono Dettagli; le schede Chat e Dettagli spariscono (si torna alla chat
+    // toccando di nuovo l'icona aperta, tirando su la tendina, con Esc o con Indietro). Anche nel foglio aperto della master, sotto la sua
+    // riga, coi numeri dalle stesse regole: il suo Per te con gli Avvisi, i Risultati, le Modifiche; le stesse tendine.
+    val barOn = tabsOn || inSheet
+    var tab by rememberSaveable(s.name) { mutableStateOf(tabStart ?: if (barOn && changesShown != null) SessionTabs.Key.MODIFICHE else SessionTabs.Key.CHAT) }
     // La sezione nella tendina, anche mentre si richiude; `opened` conta le aperture, così Modifiche si rilegge a ogni apertura.
     var lastTab by remember(s.name) { mutableStateOf(if (tab == SessionTabs.Key.CHAT) SessionTabs.Key.PERTE else tab) }
     var opened by remember(s.name) { mutableIntStateOf(0) }
@@ -398,34 +404,13 @@ fun SessionSheet(
         tab = next
     }
     val closeTab: () -> Unit = { tab = SessionTabs.Key.CHAT }
-    val shadeOpen = tabsOn && SessionTabs.shadeOpen(tab)
+    val shadeOpen = barOn && SessionTabs.shadeOpen(tab)
     // Indietro chiude la tendina prima di lasciare la sessione: registrato all'apertura, è l'ultimo arrivato e passa davanti agli altri.
     // Solo a tendina aperta, e mai nelle immagini di prova, dove non c'è chi riceve Indietro.
     if (shadeOpen && !still) androidx.activity.compose.BackHandler(onBack = closeTab)
     val headsNow = LocalHeadsUp.current?.let { a -> it.pixelbox.cmwatch.rules.HeadsUpNote.visible(s, a.dismissed) }
     val tabNotes = SessionTabs.notes(it.pixelbox.cmwatch.rules.BgSession.warns(s), headsNow != null)
     val tabCounts = SessionTabs.counts(perTeCount, tabNotes, newResults, DiffRules.pill(s)?.files)
-    val handIcon = androidx.compose.ui.graphics.vector.ImageVector.vectorResource(R.drawable.ic_hand)
-    val sessionTabs = if (!tabsOn) emptyList() else SessionTabs.ORDER.map { k ->
-        IconTab(
-            key = k.id,
-            icon = when (k) {
-                SessionTabs.Key.CHAT -> Icons.Rounded.ChatBubbleOutline
-                SessionTabs.Key.PERTE -> handIcon
-                SessionTabs.Key.RISULTATI -> Icons.Outlined.Visibility
-                SessionTabs.Key.MODIFICHE -> Icons.Outlined.Difference
-                SessionTabs.Key.DETTAGLI -> Icons.Outlined.Info
-            },
-            label = stringResource(when (k) {
-                SessionTabs.Key.CHAT -> R.string.tab_chat
-                SessionTabs.Key.PERTE -> R.string.fy_title
-                SessionTabs.Key.RISULTATI -> R.string.watch_results
-                SessionTabs.Key.MODIFICHE -> R.string.changes_title
-                SessionTabs.Key.DETTAGLI -> R.string.tab_details
-            }),
-            count = SessionTabs.count(k, tabCounts), tone = SessionTabs.tone(k),
-        )
-    }
     // Il ⋮ resta in testata, accanto al nome: lo mostra la testata della pagina (PageHeader, TabletColumnHeader) con LocalHeadMore.
     val canExitNow = slash?.contains("exit") == true && s.state != SessionState.GONE
     val moreMenu: (@Composable () -> Unit)? = if (!tabsOn) null else ({
@@ -433,10 +418,7 @@ fun SessionSheet(
     })
     // Gruppo 4: il ⋮ della master nel suo foglio, nella riga del foglio accanto al ▶ (MasterSheetHead lo prende da LocalHeadMore).
     val sheetMore: (@Composable () -> Unit)? = if (!inSheet) null else ({
-        MasterSheetMore(
-            s, now, choices, canTune, actions, showTerminal = feed == null, canExit = canExitNow, model = model, effort = effort,
-            modelNext = modelNext, effortNext = effortNext, quota = accountQuota, onChanges = if (actions.changes != null) ({ changesOpen = true }) else null,
-        )
+        MasterSheetMore(s, actions, showTerminal = feed == null, canExit = canExitNow)
     })
     val recurring = LocalRecurring.current
     val recurringRows by remember(recurring, home == null, idle, draftHolder) {
@@ -602,7 +584,7 @@ fun SessionSheet(
     androidx.compose.runtime.CompositionLocalProvider(LocalQuoteDraft provides quoteDraft) {
     // Contratto 1.72: una scatola attorno alla scheda, perché la vista «Modifiche» le stia sopra (nella colonna, sul tablet).
     // Gruppo 2: Alt+1…5 sceglie la scheda ed Esc chiude la tendina, col fuoco in questa sessione (il campo, di solito).
-    Box(Modifier.fillMaxSize().then(if (tabsOn) Modifier.iconRowKeys(SessionTabs.ORDER.map { k -> k.id }, pickTab, if (shadeOpen) closeTab else null) else Modifier)) {
+    Box(Modifier.fillMaxSize().then(if (barOn) Modifier.iconRowKeys(SessionTabs.ORDER.map { k -> k.id }, pickTab, if (shadeOpen) closeTab else null) else Modifier)) {
     // Vola come pagina solo la sessione aperta, non la home (app-scorrimento-prima-sessione-09-11, video di Franz 10/11 09:37): con
     // la master la home del telefono è la sua scheda, con la stessa chiave della card della master in «Ti aspettano». Richiudendo
     // una sessione la home intera volava verso quella card: se ne vedeva solo la cima nel riquadro della card, il resto nero.
@@ -625,7 +607,11 @@ fun SessionSheet(
             bar?.invoke()
             // Nella chat della master, mentre rileggi più su, la testata rientra come le barre che si comprimono del Material 3
             // Expressive, e torna quando sei in fondo (Franz, 06/10 22:27).
-            if (header && tabsOn) SessionTabsHeader(sessionTabs, tab.id, pickTab, if (shadeOpen) closeTab else null, more = if (appBar == null) moreMenu else null)
+            if (header && barOn) StatusBarRow(
+                tabCounts, tab, pickTab, model = ModelText.short(model) ?: stringResource(R.string.model_title), effort = effort, quota = accountQuota,
+                ctx = s.context?.takeIf { s.state != SessionState.GONE }, bg = if (inSheet) MasterHigh else LocalPageBg.current ?: Cm.bg,
+                more = if (appBar == null) moreMenu else null, pad = if (inSheet) StatusBar.PAD_SHEET else StatusBar.PAD,
+            )
             else if (header && !inSheet) androidx.compose.animation.AnimatedVisibility(
                 visible = home == null || follow,
                 enter = androidx.compose.animation.expandVertically(MaterialTheme.motionScheme.defaultSpatialSpec()) + androidx.compose.animation.fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()),
@@ -859,17 +845,20 @@ fun SessionSheet(
             }
             // app-posizioni-sistema-27-11 gruppo 2: la tendina delle schede sopra la chat, fino alle Azioni e al campo, che restano in vista.
             // Il contenitore è Tendina; il contenuto di ogni sezione è quello di prima (pillole e riga dei dati).
-            if (tabsOn) Tendina(shadeOpen, lastTab, closeTab, Modifier.matchParentSize()) {
+            if (barOn) Tendina(shadeOpen, lastTab, closeTab, Modifier.matchParentSize(), bg = if (inSheet) MasterHigh else V3.Bg) {
                 when (lastTab) {
                     SessionTabs.Key.MODIFICHE -> {
                         val load = actions.changes
-                        if (load != null) androidx.compose.runtime.key(opened) { ChangesBody(s, load, start = changesShown) }
+                        if (load != null) androidx.compose.runtime.key(opened) { ChangesBody(s, load, start = changesShown, fill = false) }
                         else ShadeList {
                             val c = DiffRules.pill(s)
                             ShadeNone(if (c != null) pluralStringResource(R.plurals.changes_files, c.files, c.files) + " · " + DiffRules.counts(c.added, c.removed) else stringResource(R.string.changes_none_here))
                         }
                     }
-                    SessionTabs.Key.DETTAGLI -> SessionDetailsBody(s, now, choices, canTune, actions, model, effort, modelNext, effortNext, accountQuota, notesInHeader)
+                    SessionTabs.Key.DETTAGLI -> SessionDetailsBody(
+                        s, now, choices, canTune, actions, model, effort, modelNext, effortNext, accountQuota, notesInHeader,
+                        onCtx = if (canTune && choices != null && s.state != SessionState.GONE) ({ ctxOpen = true }) else null,
+                    )
                     SessionTabs.Key.RISULTATI -> ShadeList { if (results != null) results() else ShadeNone(stringResource(R.string.results_none)) }
                     else -> ShadeList {
                         perTe?.invoke()
@@ -974,16 +963,16 @@ fun SessionSheet(
             toMaster = home != null, canAttachFiles = canAttachFiles, fieldSuggestion = if (inSheet) null else stepsBox.field,
             onRecurring = if (recurringRows.isEmpty()) null else ({ boxes.recurring(!boxes.recurringOpen) }), recurringOpen = boxes.recurringOpen,
             onMine = if (stops.isNotEmpty() && feed != null) ({ jumping = true; jumpAt = null; jump(-1) }) else null,
-            ring = if (bottomOn && s.state != SessionState.GONE) SessionBottom.ringPct(s.context) else null,
-            onRing = if (bottomOn && canTune && choices != null && s.state != SessionState.GONE) ({ ctxOpen = true }) else null,
+            oneLine = bottomOn,
         )
     }
     // Contratto 1.72: la vista «Modifiche» sopra la sessione: sul telefono ne prende la pagina, sul tablet la colonna.
     val loadChanges = actions.changes
-    if (changesOpen && loadChanges != null && !tabsOn) ChangesPanel(
+    if (changesOpen && loadChanges != null && !barOn) ChangesPanel(
         s, loadChanges, onClose = { changesOpen = false }, modifier = Modifier.fillMaxSize(), start = changesShown,
     )
-    // Gruppo 3: il foglio del contesto di prima (handoff, compatta, finestra più grande), dall'anellino nel campo.
+    // Il foglio del contesto di prima (handoff, compatta, finestra più grande): dalla riga Contesto di Dettagli (app-barra-stato-28-11; prima
+    // dall'anellino nel campo, gruppo 3).
     if (ctxOpen) s.context?.let { pct -> ContextSheet(pct, it.pixelbox.cmwatch.rules.ContextActions.wider(s.copy(model = model), choices), actions) { ctxOpen = false } }
     }
     }
@@ -1028,10 +1017,11 @@ private fun Composer(
     onRecurring: (() -> Unit)? = null, recurringOpen: Boolean = false,
     /** «Vai ai tuoi messaggi», l'ultima voce del + (app-fumetto-menu-file-25-11); null senza messaggi miei nella chat. */
     onMine: (() -> Unit)? = null,
-    /** app-posizioni-sistema-27-11 gruppo 3: la percentuale dell'anellino del contesto nel campo ([SessionBottom.ringPct]); null = niente anellino (la master). */
-    ring: Int? = null,
-    /** Il tocco sull'anellino apre il foglio del contesto; null = anellino spento (nessuna scelta dal relay, sessione chiusa). */
-    onRing: (() -> Unit)? = null,
+    /**
+     * Il destinatario su una riga sola, tagliato senza puntini (le sessioni e il foglio della master). app-barra-stato-28-11: l'anellino del
+     * contesto del gruppo 3 è uscito dal campo, sta nella barra di stato; il campo torna largo per scrivere.
+     */
+    oneLine: Boolean = false,
     /** Contratto 1.37: «Salva una decisione» nel + della master. */
 ) {
     val draft = draftState.value
@@ -1149,9 +1139,8 @@ private fun Composer(
         var lineH by remember { mutableIntStateOf(0) }
         var fieldW by remember { mutableIntStateOf(0) }
         // In un campo stretto (le colonne del tablet col carattere grande) il suggerimento accanto a «Usa» e all'invio andava
-        // in frammenti di una parola: lì sta su una riga sua sopra il campo, intero, e il tocco lo mette nel campo. Gruppo 3: con l'anellino
-        // del contesto il suggerimento sta nel campo solo se accanto a «Usa» gli restano circa 200 dp (il campo da 420), come sul web.
-        val narrow = fieldW > 0 && with(density) { fieldW.toDp() } < (if (ring != null) 420.dp else 320.dp)
+        // in frammenti di una parola: lì sta su una riga sua sopra il campo, intero, e il tocco lo mette nel campo.
+        val narrow = fieldW > 0 && with(density) { fieldW.toDp() } < 320.dp
         if (narrow && sug != null) Row(
             Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium).handCursor().clickable { onDraft(sug) }.padding(horizontal = 12.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -1225,7 +1214,7 @@ private fun Composer(
                 // riga, tagliato senza puntini, invece di andare a capo.
                 else Text(
                     when { s.question != null -> stringResource(R.string.answer_free); toMaster -> stringResource(R.string.master_placeholder); else -> stringResource(if (it.pixelbox.cmwatch.rules.Preposition.ad(s.name)) R.string.write_to_ad else R.string.write_to, s.name) },
-                    maxLines = if (ring != null) 1 else 2, softWrap = ring == null, overflow = androidx.compose.ui.text.style.TextOverflow.Clip,
+                    maxLines = if (oneLine) 1 else 2, softWrap = !oneLine, overflow = androidx.compose.ui.text.style.TextOverflow.Clip,
                 )
             },
             // app-bordo-master-27-11: una pillola con gli angoli da 24 dp, per la master e per le sessioni, come nel mockup.
@@ -1242,9 +1231,7 @@ private fun Composer(
                 Box(Modifier.onSizeChanged { leadW = it.width }) { AttachButton(files = canAttachFiles, attach = canAttach, onRecurring = onRecurring, onMine = onMine) { picked -> images = (images + picked).distinct().take(MAX_IMAGES) } }
             }) else null,
             trailingIcon = { Row(Modifier.onSizeChanged { trailW = it.width }, verticalAlignment = Alignment.CenterVertically) {
-                // Gruppo 3: l'anellino del contesto accanto al testo, come sul web; il promemoria «Invio manda» con la tastiera fisica non c'è
-                // più (Invio manda sempre, Maiusc+Invio va a capo).
-                if (ring != null) ContextRing(ring, enabled = onRing != null) { onRing?.invoke() }
+                // Il promemoria «Invio manda» con la tastiera fisica non c'è più (Invio manda sempre, Maiusc+Invio va a capo).
                 if (inField != null && draft.isBlank()) TextButton(onClick = { take(inField) }) { Text(stringResource(R.string.suggestion_use), color = Cm.actionIcon) }
                 val filled = IconButtonDefaults.filledIconButtonColors(containerColor = Cm.primary, contentColor = Cm.onPrimary)
                 // Il cerchio concentrico all'estremità della barra (segnalazione 03/10 19:18, come ChatGPT): 40 dp nella barra da 56,
@@ -2626,40 +2613,21 @@ private fun SessionMoreMenu(
 }
 
 /**
- * Il ⋮ della master nel suo foglio sul telefono (app-posizioni-sistema-27-11 gruppo 4): la riga dei dati e le pillole non ci sono più e
- * qui ci sta tutto, coi suoi stessi tocchi. In cima gli Avvisi, se ci sono (il puntino ambra sul ⋮ lo dice); poi modello ed effort (il
- * pannello Modello ed effort), la quota delle 5 ore (Utilizzo), il contesto (il suo foglio: handoff, compatta, finestra più grande),
- * obiettivo, priorità e finestra; sotto le voci del ⋮ di prima (SessionMenu: Modifiche, Tocca a te, Segui, Apri in Claude, Ricomincia
- * pulita) e in fondo Chiudi, con la sua conferma.
+ * Il ⋮ della master nel suo foglio sul telefono (app-posizioni-sistema-27-11 gruppo 4): le voci del ⋮ di prima (SessionMenu: Tocca a te,
+ * Segui, Apri in Claude, Ricomincia pulita) e in fondo Chiudi, con la sua conferma. app-barra-stato-28-11: modello ed effort, quota,
+ * contesto e note stanno nella barra di stato del foglio e in Dettagli, gli Avvisi in Per te, le Modifiche nella loro tendina: qui non si
+ * ripetono.
  */
 @Composable
-private fun MasterSheetMore(
-    s: Session, now: Long, choices: Choices?, canTune: Boolean, actions: SheetActions, showTerminal: Boolean, canExit: Boolean,
-    model: it.pixelbox.cmwatch.contract.Model?, effort: String?, modelNext: Boolean, effortNext: Boolean,
-    quota: it.pixelbox.cmwatch.contract.QuotaAccount?, onChanges: (() -> Unit)?,
-) {
+private fun MasterSheetMore(s: Session, actions: SheetActions, showTerminal: Boolean, canExit: Boolean) {
     var menu by remember { mutableStateOf(false) }
-    var picker by remember { mutableStateOf(false) }
-    var ctxSheet by remember { mutableStateOf(false) }
     var exitAsk by remember { mutableStateOf(false) }
-    val tunable = canTune && choices != null && s.state != SessionState.GONE
-    val advice = it.pixelbox.cmwatch.rules.MasterService.advice(s, choices, now)
-    val changes = DiffRules.pill(s)
-    val headsUp = LocalHeadsUp.current?.let { a -> it.pixelbox.cmwatch.rules.HeadsUpNote.visible(s, a.dismissed) }
-    val notesOn = it.pixelbox.cmwatch.rules.BgSession.warns(s) || headsUp != null
     Box {
         IconButton(onClick = { menu = true }, modifier = Modifier.size(44.dp).testTag("foglio-altro")) { Icon(Icons.Rounded.MoreVert, stringResource(R.string.more), tint = Cm.text2) }
-        if (notesOn || changes != null) Box(
-            Modifier.align(Alignment.TopEnd).padding(top = 9.dp, end = 9.dp).size(10.dp).background(MasterHigh, CircleShape).padding(2.dp)
-                .background(if (notesOn) V3.Wait else Cm.actionIcon, CircleShape),
-        )
         if (menu) {
             val st0 = actions.menuState ?: it.pixelbox.cmwatch.contract.State(v = 1, ts = 0, host = "", sessions = (actions.sessions + s).distinctBy { x -> x.name })
-            val items = it.pixelbox.cmwatch.rules.SessionMenu.entries(s, st0, actions.mine, changes = changes != null, terminal = showTerminal, canExit = canExit)
+            val items = it.pixelbox.cmwatch.rules.SessionMenu.entries(s, st0, actions.mine, changes = false, terminal = showTerminal, canExit = canExit)
             val (entries, footer) = sessionMenuEntries(s, items, SessionMenuActions(
-                changes = { onChanges?.invoke() },
-                changesTitle = changes?.let { c -> DiffRules.menuLine(stringResource(R.string.changes_title), pluralStringResource(R.plurals.changes_files, c.files, c.files), c) },
-                changesSub = stringResource(R.string.changes_open),
                 prove = actions.openMine?.let { o -> { o(it.pixelbox.cmwatch.rules.SessionMenu.Kind.PROVE) } },
                 decidi = actions.openMine?.let { o -> { o(it.pixelbox.cmwatch.rules.SessionMenu.Kind.DECIDI) } },
                 guarda = actions.openMine?.let { o -> { o(it.pixelbox.cmwatch.rules.SessionMenu.Kind.GUARDA) } },
@@ -2668,22 +2636,6 @@ private fun MasterSheetMore(
                 restartClean = actions.handoff,
                 exit = { exitAsk = true },
             ))
-            val tune = listOfNotNull(ModelText.short(model) ?: stringResource(R.string.model_title), effort).joinToString(" · ")
-            val zone = ZoneId.systemDefault()
-            val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
-            val h5 = quota?.h5
-            val reset = quota?.resetH5?.takeIf { r -> r > now }?.let { r ->
-                java.time.format.DateTimeFormatter.ofPattern(if (SessionMeters.resetNeedsDay(r, now, zone)) "EEE HH:mm" else "HH:mm", locale)
-                    .format(Instant.ofEpochSecond(r).atZone(zone))
-            }
-            val quotaText = h5?.let { pct -> quotaLabel(QuotaForm.FULL, stringResource(R.string.quota_h5_short, pct), reset) }
-            val goalNote = SessionsText.goalLine(s, stringResource(R.string.goal))
-            val notes = listOfNotNull(
-                goalNote,
-                SessionsText.priority(s, stringResource(R.string.low_priority), stringResource(R.string.low_priority_offered)),
-                SessionsText.window(s, stringResource(R.string.no_window)),
-            )
-            val ctxSub = stringResource(R.string.master_sheet_ctx_sub)
             PanelShell(onDismiss = { menu = false }, header = {
                 SessionBadge(s, 20.dp)
                 Text(
@@ -2691,26 +2643,11 @@ private fun MasterSheetMore(
                     maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.weight(1f),
                 )
             }, tag = "foglio-menu") { close ->
-                if (notesOn) Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp).testTag("foglio-avvisi"), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(stringResource(R.string.box_notes), style = V3.Meter.copy(color = V3.Wait))
-                    BgNoteRow(s)
-                    HeadsUpNoteRow(s, now)
-                }
-                SheetMoreRow(Icons.Rounded.Tune, tune, stringResource(R.string.details_model), first = !notesOn, enabled = tunable) { close(); picker = true }
-                if (quotaText != null) SheetMoreRow(Icons.Rounded.Schedule, quotaText, stringResource(R.string.details_quota), first = false) { close(); actions.overview() }
-                s.context?.let { pct -> SheetMoreRow(Icons.Rounded.Layers, stringResource(R.string.ctx_title, pct), ctxSub, first = false, enabled = tunable) { close(); ctxSheet = true } }
-                notes.forEachIndexed { i, n ->
-                    HorizontalDivider(color = V3.Line)
-                    if (i == 0 && goalNote != null) LongText(n, Modifier.padding(horizontal = 16.dp, vertical = 10.dp), style = MaterialTheme.typography.labelMedium, color = Cm.briefLabel)
-                    else Text(n, style = MaterialTheme.typography.labelMedium, color = Cm.briefLabel, modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp))
-                }
-                entries.forEach { e -> SheetMoreRow(e.icon, e.title, e.sub, first = false) { close(); e.onClick() } }
-                footer?.let { f -> SheetMoreRow(f.icon, f.title, f.sub, first = false, destructive = f.destructive) { close(); f.onClick() } }
+                entries.forEachIndexed { i, e -> SheetMoreRow(e.icon, e.title, e.sub, first = i == 0) { close(); e.onClick() } }
+                footer?.let { f -> SheetMoreRow(f.icon, f.title, f.sub, first = entries.isEmpty(), destructive = f.destructive) { close(); f.onClick() } }
             }
         }
     }
-    if (picker && choices != null) TunePanel(choices, model?.id, effort, advice, onModel = actions.setModel, onEffort = actions.setEffort, onDismiss = { picker = false }, session = s, onPermission = actions.setPermission, modelNext = modelNext, effortNext = effortNext)
-    if (ctxSheet) s.context?.let { pct -> ContextSheet(pct, it.pixelbox.cmwatch.rules.ContextActions.wider(s.copy(model = model), choices), actions) { ctxSheet = false } }
     if (exitAsk) CloseDialog(s, onDismiss = { exitAsk = false }, onConfirm = { exitAsk = false; actions.slash("exit", null) }, onSave = actions.closeSave?.let { save -> { exitAsk = false; save() } })
 }
 
@@ -2726,38 +2663,11 @@ private fun SheetMoreRow(icon: androidx.compose.ui.graphics.vector.ImageVector, 
     }
 }
 
-/**
- * La testata della sessione con la riga di icone (app-posizioni-sistema-27-11, gruppo 2): al centro, sotto la testata col nome, Chat ·
- * Per te · Risultati · Modifiche · Dettagli. Il ⋮ sta nella testata col nome (LocalHeadMore); qui, a destra, solo se la pagina non ne ha
- * una ([more]). La riga resta al centro se ci sta accanto al ⋮, se no si sposta a sinistra.
- */
-@Composable
-private fun SessionTabsHeader(tabs: List<IconTab>, active: String, onPick: (String) -> Unit, onEsc: (() -> Unit)?, more: (@Composable () -> Unit)?) {
-    Column(Modifier.fillMaxWidth().background(LocalPageBg.current ?: Cm.bg)) {
-        androidx.compose.ui.layout.Layout(
-            content = {
-                IconRow(tabs, active, onPick, onEsc = onEsc)
-                Box { more?.invoke() }
-            },
-            modifier = Modifier.fillMaxWidth().padding(start = 8.dp, end = 4.dp, top = 6.dp, bottom = 8.dp).testTag("testata-schede"),
-        ) { ms, c ->
-            val moreP = ms[1].measure(c.copy(minWidth = 0, minHeight = 0))
-            val rowP = ms[0].measure(c.copy(minWidth = 0, minHeight = 0, maxWidth = (c.maxWidth - moreP.width).coerceAtLeast(0)))
-            val w = c.maxWidth
-            val h = maxOf(rowP.height, moreP.height)
-            layout(w, h) {
-                rowP.place(((w - rowP.width) / 2).coerceAtMost(w - moreP.width - rowP.width).coerceAtLeast(0), (h - rowP.height) / 2)
-                moreP.place(w - moreP.width, (h - moreP.height) / 2)
-            }
-        }
-        HorizontalDivider(color = Cm.line)
-    }
-}
-
 /** Una sezione della tendina che scorre (gruppo 2): le schede una sotto l'altra. */
 @Composable
 private fun ShadeList(content: @Composable ColumnScope.() -> Unit) = Column(
-    Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 10.dp),
+    // app-barra-stato-28-11: alta quanto il suo contenuto; scorre solo quando la tendina arriva al campo.
+    Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 10.dp),
     verticalArrangement = Arrangement.spacedBy(8.dp), content = content,
 )
 
@@ -2768,14 +2678,16 @@ private fun ShadeNone(text: String) = Text(text, style = MaterialTheme.typograph
 /**
  * La scheda Dettagli della sessione (app-posizioni-sistema-27-11, gruppo 2): quello che stava nella riga dei dati della testata e sotto,
  * con le stesse pillole e gli stessi tocchi. Modello ed effort aprono il pannello Modello ed effort (tenuta premuta, la scheda dei
- * permessi); la quota delle 5 ore porta a Utilizzo; poi obiettivo, priorità e finestra, a capo. Le modifiche hanno la loro scheda; il
- * contesto sta nel campo, come anellino che apre il suo foglio (gruppo 3), e qui non si ripete.
+ * permessi); la quota delle 5 ore porta a Utilizzo; il contesto apre il suo foglio (app-barra-stato-28-11: l'anellino è uscito dal campo, sta
+ * nella barra di stato); poi obiettivo, priorità e finestra, a capo. Le modifiche hanno la loro scheda.
  */
 @Composable
 private fun SessionDetailsBody(
     s: Session, now: Long, choices: Choices?, canTune: Boolean, actions: SheetActions,
     model: it.pixelbox.cmwatch.contract.Model?, effort: String?, modelNext: Boolean, effortNext: Boolean,
     quota: it.pixelbox.cmwatch.contract.QuotaAccount?, notesInHeader: Boolean,
+    /** Il foglio del contesto; null = spento (nessuna scelta dal relay, sessione chiusa). */
+    onCtx: (() -> Unit)? = null,
 ) {
     var picker by remember { mutableStateOf(false) }
     val tunable = canTune && choices != null && s.state != SessionState.GONE
@@ -2789,7 +2701,7 @@ private fun SessionDetailsBody(
     )
     val shape = RoundedCornerShape(14.dp)
     val h5 = quota?.h5
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 10.dp)) {
+    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 10.dp)) {
         Column(Modifier.fillMaxWidth().clip(shape).background(V3.S1).border(1.dp, V3.Line, shape).testTag("dettagli")) {
             DetailRow(stringResource(R.string.details_model), 0) {
                 TunePill(tune, tunable, dot = tunable && advice?.dot == true, mode = s.permissionMode) { picker = true }
@@ -2797,8 +2709,10 @@ private fun SessionDetailsBody(
             if (quota != null && h5 != null) DetailRow(stringResource(R.string.details_quota), 1) {
                 QuotaPill(h5, quota.resetH5, quota.stale, now, QuotaForm.FULL, onClick = actions.overview)
             }
+            val ctx = s.context?.takeIf { s.state != SessionState.GONE }
+            if (ctx != null) DetailRow(stringResource(R.string.details_ctx), 2) { ContextPill(ctx, enabled = onCtx != null) { onCtx?.invoke() } }
             notes.forEachIndexed { i, n ->
-                Column(Modifier.fillMaxWidth().tendinaRow(2 + i)) {
+                Column(Modifier.fillMaxWidth().tendinaRow((if (ctx != null) 3 else 2) + i)) {
                     HorizontalDivider(color = V3.Line)
                     if (i == 0 && goalNote != null) LongText(n, Modifier.padding(horizontal = 14.dp, vertical = 8.dp), style = MaterialTheme.typography.labelMedium, color = Cm.briefLabel)
                     else Text(n, style = MaterialTheme.typography.labelMedium, color = Cm.briefLabel, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp))
