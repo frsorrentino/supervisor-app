@@ -350,7 +350,8 @@ fun rateLabel(r: Float): String {
  * la barra di lettura e le impostazioni. `onDone` arriva al rilascio: la voce riparte una volta sola, dalla frase in corso.
  */
 /** La parte della traccia dopo il cursore, visibile sul fondo della barra (#292F3A) e delle impostazioni. */
-private val SLIDER_TRACK get() = V3.S3
+// app-player-grigio-chiaro-28-11: la traccia del cursore della velocità in bianco al 35 % (3,2:1), il pieno e il punto in bianco.
+private val SLIDER_TRACK get() = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.35f)
 
 @Composable
 fun RateSlider(
@@ -422,9 +423,9 @@ fun RateSlider(
             sim.PS.t = if (showBubble) 1.16f else 1f
             val tick = rememberJellyClock(sim, showBubble, off, sim.X.t)
             val lifted = showBubble || sim.DS.x > 0.52f || kotlin.math.abs(sim.DY.x) > with(dens) { 1.dp.toPx() }
-            val fillColor = Cm.actionIcon
+            val fillColor = androidx.compose.ui.graphics.Color.White
             val track = SLIDER_TRACK
-            val markOff = V3.S3; val markOn = V3.Tx2; val majorOff = V3.Tx3; val majorOn = V3.Tx
+            val markOff = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.35f); val markOn = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.8f); val majorOff = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.6f); val majorOn = androidx.compose.ui.graphics.Color.White
             androidx.compose.foundation.Canvas(Modifier.fillMaxWidth().height(28.dp)) {
                 tick
                 val cy = size.height / 2
@@ -453,7 +454,7 @@ fun RateSlider(
             }
         }
         Box(Modifier.fillMaxWidth()) {
-            val small = MaterialTheme.typography.labelSmall.copy(color = Cm.text2)
+            val small = MaterialTheme.typography.labelSmall.copy(color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.8f))
             Text(rateLabel(r.MIN), style = small, modifier = Modifier.align(Alignment.TopStart))
             Text(rateLabel(r.NORMAL), style = small, modifier = Modifier.align(androidx.compose.ui.BiasAlignment(2 * r.fraction(r.NORMAL) - 1, -1f)))
             Text(rateLabel(r.MAX), style = small, modifier = Modifier.align(Alignment.TopEnd))

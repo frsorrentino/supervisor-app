@@ -4,7 +4,7 @@
   import { scrubAt, scrubNearest } from './animazioni'
   import { t } from './t'
   // Voce 8 del terzo giro, fedele agli originali (Scrubber e Range slider; app-animazioni-terzo-c-26-11): sotto la pillola della
-  // lettura una barra con un segno per pezzo letto. La capsula del punto è spenta (0,15, scala 0,7) e si accende mentre trascini
+  // lettura una barra con un segno per pezzo letto. La capsula del punto è bianca all'80 % (scala 0,7) e piena mentre trascini (app-player-grigio-chiaro-28-11)
   // (0,8, 1) sulla molla di Scrubber (ζ 0,9, rigidità 1150); sopra il dito un'etichetta dice dove arrivi e si inclina con la velocità
   // come la bolla di Range slider (-0,02° per px/s, fino a 12°).
   // Dopo la prova 1391 (Franz, 27/11: «troppo a scatti e poco fluido»): il punto sta all'inizio del pezzo che la voce legge e quando
@@ -35,7 +35,7 @@
     if (capW) capW.style.transform = `translateX(${px}px)`
     if (lblW) lblW.style.transform = `translateX(${px}px)`
     if (lblEl) lblEl.style.rotate = `${tilt.toFixed(2)}deg`
-    if (capEl) { const c = clamp(C.x, 0, 1); capEl.style.opacity = (0.15 + 0.65 * c).toFixed(3); capEl.style.scale = (0.7 + 0.3 * c).toFixed(3) }
+    if (capEl) { const c = clamp(C.x, 0, 1); capEl.style.opacity = (0.8 + 0.2 * c).toFixed(3); capEl.style.scale = (0.7 + 0.3 * c).toFixed(3) }
     // Finite le molle, i salti della voce tornano a scorrere in 150 ms.
     if (!dragging && P.x === P.t && P.v === 0 && C.x === C.t && C.v === 0) bar?.classList.remove('live')
   }
@@ -119,12 +119,13 @@
 
 <style>
   .scrub { position: relative; flex: 1 0 100%; height: 24px; margin: 0 8px 2px; touch-action: none; cursor: pointer; }
-  .track { position: absolute; left: 0; right: 0; top: 8px; height: 8px; border-radius: 4px; background: var(--s3); overflow: hidden; }
-  .fill { position: absolute; inset: 0; border-radius: 4px; background: rgb(255 255 255 / .14); transform: translateX(-100%); }
-  .tk { position: absolute; top: 9px; width: 1px; height: 6px; border-radius: 999px; background: var(--tx3); translate: -50% 0; }
+  /* app-player-grigio-chiaro-28-11 (Franz 28/11 15:58, «più chiaro… o bianco»): bianco pieno il già letto e il punto, al 35 % la traccia (3,2:1 sullo sfondo), all'80 % comandi e segni accesi. */
+  .track { position: absolute; left: 0; right: 0; top: 8px; height: 8px; border-radius: 4px; background: rgb(255 255 255 / .35); overflow: hidden; }
+  .fill { position: absolute; inset: 0; border-radius: 4px; background: #fff; transform: translateX(-100%); }
+  .tk { position: absolute; top: 9px; width: 1px; height: 6px; border-radius: 999px; background: rgb(0 0 0 / .45); translate: -50% 0; }
   .capw, .lblw { position: absolute; left: 0; width: 0; height: 0; will-change: transform; }
   .capw { top: 50%; }
-  .cap { position: absolute; left: -2px; top: -11px; width: 4px; height: 22px; border-radius: 999px; background: var(--tx); opacity: .15; scale: .7; }
+  .cap { position: absolute; left: -2px; top: -11px; width: 4px; height: 22px; border-radius: 999px; background: #fff; opacity: .8; scale: .7; }
   .lblw { bottom: 40px; visibility: hidden; }
   .lblw.on { visibility: visible; }
   .lbl { position: absolute; bottom: 0; left: 0; translate: -50% 0; transform-origin: 50% 100%; padding: 5px 10px; border-radius: 10px; background: var(--icon); color: var(--bg); font: 600 12.5px var(--sans, sans-serif); white-space: nowrap; pointer-events: none; }

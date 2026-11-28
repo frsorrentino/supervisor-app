@@ -99,13 +99,14 @@
   .jl { position: relative; height: 36px; }
   svg { position: absolute; left: 0; top: -24px; overflow: visible; pointer-events: none; }
   input { position: absolute; inset: 0; width: 100%; height: 36px; margin: 0; opacity: 0; cursor: pointer; }
-  .track { fill: var(--s3); }
-  .fill, .neck, .drop, .thumb { fill: var(--icon); }
+  /* app-player-grigio-chiaro-28-11 (Franz 28/11 15:58, «più chiaro… o bianco»): bianco pieno il già letto e il punto, al 35 % la traccia (3,2:1 sullo sfondo), all'80 % comandi e segni accesi. */
+  .track { fill: rgb(255 255 255 / .35); }
+  .fill, .neck, .drop, .thumb { fill: #fff; }
   .lbl { fill: var(--bg); font: 700 12px var(--sans, sans-serif); font-variant-numeric: tabular-nums; }
-  .mk { fill: var(--s3); transition: fill .2s ease; }
-  .mk.major { fill: var(--tx3); }
-  .mk.on { fill: var(--tx2); }
-  .mk.major.on { fill: var(--tx); }
-  .labs { position: relative; height: 14px; margin: 0 6px; font-size: 11px; color: var(--text2); }
+  .mk { fill: rgb(255 255 255 / .35); transition: fill .2s ease; }
+  .mk.major { fill: rgb(255 255 255 / .6); }
+  .mk.on { fill: rgb(255 255 255 / .8); }
+  .mk.major.on { fill: #fff; }
+  .labs { position: relative; height: 14px; margin: 0 6px; font-size: 11px; color: rgb(255 255 255 / .8); }
   .labs span { position: absolute; top: 0; white-space: nowrap; }
 </style>

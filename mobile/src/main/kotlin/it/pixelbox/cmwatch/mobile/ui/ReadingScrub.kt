@@ -100,7 +100,8 @@ internal fun ReadingScrub(blocks: Int, block: Int, onSeek: (Int) -> Unit) {
         val t = if (dragging) 1f else 0f
         if (off) cap.snapTo(t) else cap.animateTo(t, spring(dampingRatio = 0.9f, stiffness = 1150f))
     }
-    val track = V3.S3; val ink = V3.Tx; val tick = V3.Tx3
+    // app-player-grigio-chiaro-28-11 (Franz 28/11 15:58, «più chiaro… o bianco»): bianco il già letto e il punto, traccia al 35 % (3,2:1).
+    val track = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.35f); val ink = androidx.compose.ui.graphics.Color.White; val tick = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.45f)
     val desc = stringResource(R.string.reading_seek, block + 1, blocks)
     // Dove sta la barra nella finestra: cambia solo se la barra si sposta, e lo legge la trasformazione dell'etichetta.
     val barLeft = remember { mutableFloatStateOf(0f) }
@@ -158,7 +159,7 @@ internal fun ReadingScrub(blocks: Int, block: Int, onSeek: (Int) -> Unit) {
             val cy = size.height / 2
             val th = 8.dp.toPx()
             drawRoundRect(track, Offset(0f, cy - th / 2), Size(size.width, th), CornerRadius(th / 2))
-            if (f > 0f) drawRoundRect(ink.copy(alpha = 0.14f), Offset(0f, cy - th / 2), Size(size.width * f, th), CornerRadius(th / 2))
+            if (f > 0f) drawRoundRect(ink, Offset(0f, cy - th / 2), Size(size.width * f, th), CornerRadius(th / 2))
             for (i in 1 until blocks) {
                 val x = size.width * i / blocks
                 drawRoundRect(tick, Offset(x - 0.5.dp.toPx(), cy - 3.dp.toPx()), Size(1.dp.toPx(), 6.dp.toPx()), CornerRadius(1.dp.toPx()))
@@ -166,7 +167,7 @@ internal fun ReadingScrub(blocks: Int, block: Int, onSeek: (Int) -> Unit) {
             val c = cap.value
             val k = 0.7f + 0.3f * c
             val cw = 4.dp.toPx() * k; val ch = 22.dp.toPx() * k
-            drawRoundRect(ink.copy(alpha = 0.15f + 0.65f * c), Offset(size.width * f - cw / 2, cy - ch / 2), Size(cw, ch), CornerRadius(cw / 2))
+            drawRoundRect(ink.copy(alpha = 0.8f + 0.2f * c), Offset(size.width * f - cw / 2, cy - ch / 2), Size(cw, ch), CornerRadius(cw / 2))
         }
         if (dragging) {
             val screen = LocalConfiguration.current.screenWidthDp.dp
