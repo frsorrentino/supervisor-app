@@ -61,6 +61,25 @@
   let closer: CloseDialog | undefined = $state()
   let exitArgs: string | null = null
   let menu = $state(false)
+  let plus: HTMLButtonElement | undefined = $state()
+  // app-posizioni-sistema-27-11: il menu del + esce dal foglio della master. Il foglio taglia quello che sporge (overflow: hidden) e alla
+  // riga il menu, che sale dal +, restava quasi tutto fuori, nella web e dentro Studio. Ora il suo strato (la tela che lo chiude e il menu)
+  // va nello strato in cima della pagina, come le finestre (Popover API): sopra il foglio e la pagina, a ogni misura del foglio. Il menu sta
+  // 8 px sopra il + e parte dal suo bordo sinistro, come prima; le misure si prendono dal riquadro dello strato, così valgono anche dove
+  // la Popover API manca e lo strato resta fisso sulla finestra. Si rifanno quando la finestra cambia: dentro Studio, con un menu aperto,
+  // il riquadro si allunga verso l'alto (DockEmbed).
+  function inCima(node: HTMLElement) {
+    const place = () => {
+      if (!plus) return
+      const r = plus.getBoundingClientRect(), box = node.getBoundingClientRect()
+      node.style.setProperty('--mx', `${Math.round(r.left - box.left)}px`)
+      node.style.setProperty('--my', `${Math.round(box.bottom - r.top + 8)}px`)
+    }
+    try { node.showPopover() } catch { /* senza Popover API lo strato resta fisso sulla finestra */ }
+    place()
+    addEventListener('resize', place)
+    return { destroy: () => removeEventListener('resize', place) }
+  }
   let images: HTMLInputElement | undefined = $state()
   let camera: HTMLInputElement | undefined = $state()
   let any: HTMLInputElement | undefined = $state()
@@ -180,23 +199,26 @@
     {/if}
     <form class="field" class:master={toMaster} onsubmit={(e) => { e.preventDefault(); send() }}>
       <span class="anchor">
-        <button type="button" class="plus" aria-label={t.attach} aria-expanded={menu} onclick={() => (menu = !menu)}>
+        <button type="button" class="plus" bind:this={plus} aria-label={t.attach} aria-expanded={menu} onclick={() => (menu = !menu)}>
           <svg viewBox="0 0 24 24" width="24" height="24"><path d="M12 5v14M5 12h14" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round" /></svg>
         </button>
         {#if menu}
-          <button type="button" class="scrim" aria-label={t.closeWord} onclick={() => (menu = false)}></button>
-          <div class="menu" transition:growFromPress role="menu">
-            <button type="button" role="menuitem" onclick={() => { menu = false; images?.click() }}><Icon name="image" color="var(--icon)" size={22} />{t.attachGallery}</button>
-            <button type="button" role="menuitem" onclick={() => { menu = false; camera?.click() }}><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z" /><circle cx="12" cy="13" r="3" /></svg>{t.attachCamera}</button>
-            {#if canFiles}<button type="button" role="menuitem" onclick={() => { menu = false; any?.click() }}><Icon name="file" color="var(--icon)" size={22} />{t.attachFile}</button>{/if}
-            {#if onRecurring}
-              <hr />
-              <button type="button" role="menuitem" onclick={() => { menu = false; onRecurring?.() }}><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8M3 3v5h5M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16M16 16h5v5" /></svg>{t.recurringOpen}</button>
-            {/if}
-            {#if onMineJump}
-              {#if !onRecurring}<hr />{/if}
-              <button type="button" role="menuitem" data-testid="chat-miei" onclick={() => { menu = false; onMineJump?.() }}><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v10H9l-5 4z" /></svg>{t.mineJumpOpen}</button>
-            {/if}
+          <!-- Lo strato in cima (inCima): fuori dal taglio del foglio della master, la tela copre tutta la finestra. -->
+          <div class="pop" popover="manual" use:inCima>
+            <button type="button" class="scrim" aria-label={t.closeWord} onclick={() => (menu = false)}></button>
+            <div class="menu" transition:growFromPress role="menu">
+              <button type="button" role="menuitem" onclick={() => { menu = false; images?.click() }}><Icon name="image" color="var(--icon)" size={22} />{t.attachGallery}</button>
+              <button type="button" role="menuitem" onclick={() => { menu = false; camera?.click() }}><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z" /><circle cx="12" cy="13" r="3" /></svg>{t.attachCamera}</button>
+              {#if canFiles}<button type="button" role="menuitem" onclick={() => { menu = false; any?.click() }}><Icon name="file" color="var(--icon)" size={22} />{t.attachFile}</button>{/if}
+              {#if onRecurring}
+                <hr />
+                <button type="button" role="menuitem" onclick={() => { menu = false; onRecurring?.() }}><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8M3 3v5h5M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16M16 16h5v5" /></svg>{t.recurringOpen}</button>
+              {/if}
+              {#if onMineJump}
+                {#if !onRecurring}<hr />{/if}
+                <button type="button" role="menuitem" data-testid="chat-miei" onclick={() => { menu = false; onMineJump?.() }}><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--icon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v10H9l-5 4z" /></svg>{t.mineJumpOpen}</button>
+              {/if}
+            </div>
           </div>
         {/if}
       </span>
@@ -289,8 +311,13 @@
   .anchor { position: relative; flex: none; }
   .plus { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; }
   .plus:hover { background: var(--surface); }
+  /* app-posizioni-sistema-27-11: lo strato del menu del + a tutta finestra, senza gli stili del popover del browser (bordo, fondo, misura
+     sul contenuto, margini) e visibile anche prima di showPopover. Il menu sta sopra il + (--mx, --my da inCima) e, se sopra non c'è posto,
+     scorre. */
+  .pop { position: fixed; inset: 0; z-index: 9; display: block; width: auto; height: auto; margin: 0; padding: 0; border: 0; background: none; color: inherit; overflow: visible; }
   .scrim { position: fixed; inset: 0; z-index: 9; cursor: default; }
-  .menu { position: absolute; bottom: 52px; left: 0; z-index: 10; min-width: 240px; background: var(--surface); border-radius: 12px; padding: 8px 0; box-shadow: 0 12px 40px rgb(0 0 0 / .5); border: 1px solid var(--line); }
+  .menu { position: absolute; left: var(--mx, 0px); bottom: var(--my, 0px); z-index: 10; max-height: calc(100% - var(--my, 0px) - 8px); overflow-y: auto; overscroll-behavior: contain;
+    min-width: 240px; background: var(--surface); border-radius: 12px; padding: 8px 0; box-shadow: 0 12px 40px rgb(0 0 0 / .5); border: 1px solid var(--line); }
   .menu button { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 16px; font-size: 15px; text-align: left; }
   .menu button:hover { background: var(--high); }
   .menu hr { border: 0; height: 1px; background: var(--line); margin: 4px 0; }

@@ -342,21 +342,6 @@ class SessionSheetTest {
         }
     }
 
-    // Il fondo della chat della master, stili fra cui scegliere (Franz, 04/10 23:36 e 23:48: più incisivi, anche col bordo).
-    private fun masterChat(style: it.pixelbox.cmwatch.mobile.ui.MasterChatStyle) = paparazzi.snapshot {
-        val m = st.sessions.first { it.state == SessionState.IDLE }.copy(name = "master", question = null, suggestion = null)
-        val t = st.ts - 600
-        val entries = listOf(
-            TranscriptEntry("u1.0", "user", text = "Come va la fase 2.2 di atlas-shop?", at = t, origin = "phone"),
-            TranscriptEntry("a1.0", "assistant", text = "Lanciata la fase 2.2 su atlas-shop: test verdi, 40 su 40. Solo commit locali: push e release con il tuo ok.\n\nEsito: fase 2.2 avviata su atlas-shop\nProssimi: fai il push · prova dal vivo", at = t + 40),
-        )
-        CmPhoneTheme(still = true) {
-            androidx.compose.runtime.CompositionLocalProvider(it.pixelbox.cmwatch.mobile.ui.LocalMasterChatStyle provides style) {
-                SessionSheet(m, st.ts, emptyList(), 120, none, grid = true, home = { _, _ -> }, homeOpen = false,
-                    feed = it.pixelbox.cmwatch.rules.ChatFeed.merge(entries, emptyList()))
-            }
-        }
-    }
     // Il segno della master in tutta l'app (Franz, 05/10 11:30): la barra in cima, la chat e il campo con firma, filo, voce.
     private fun masterLook(look: it.pixelbox.cmwatch.mobile.ui.MasterLook) = paparazzi.snapshot {
         val m = st.sessions.first { it.state == SessionState.IDLE }.copy(name = "master", question = null, suggestion = null)
@@ -419,13 +404,6 @@ class SessionSheetTest {
     @Test fun masterLookThread() = masterLook(it.pixelbox.cmwatch.mobile.ui.MasterLook(thread = true))
     @Test fun masterLookVoice() = masterLook(it.pixelbox.cmwatch.mobile.ui.MasterLook(voice = true))
     @Test fun masterLookAll() = masterLook(it.pixelbox.cmwatch.mobile.ui.MasterLook(signature = true, thread = true, voice = true))
-
-    @Test fun masterChatBlack() = masterChat(it.pixelbox.cmwatch.mobile.ui.MasterChatStyle.BLACK)
-    @Test fun masterChatFrame() = masterChat(it.pixelbox.cmwatch.mobile.ui.MasterChatStyle.FRAME)
-    @Test fun masterChatEdge() = masterChat(it.pixelbox.cmwatch.mobile.ui.MasterChatStyle.EDGE)
-    @Test fun masterChatViolet() = masterChat(it.pixelbox.cmwatch.mobile.ui.MasterChatStyle.VIOLET)
-    @Test fun masterChatAurora() = masterChat(it.pixelbox.cmwatch.mobile.ui.MasterChatStyle.AURORA)
-    @Test fun masterChatFrameField() = masterChat(it.pixelbox.cmwatch.mobile.ui.MasterChatStyle.FRAME_FIELD)
 
     // Stop al posto di Invia mentre la sessione lavora e il campo è vuoto (contratto 1.21).
     @Test fun sheetBusyStop() = paparazzi.snapshot {

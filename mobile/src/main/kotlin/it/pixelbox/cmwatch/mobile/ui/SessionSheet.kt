@@ -1395,13 +1395,6 @@ class PromptBoxes(stepsOpen: Boolean, recurringOpen: Boolean, private val save: 
 val LocalPromptBoxes = androidx.compose.runtime.staticCompositionLocalOf { PromptBoxes(false, false) { _, _ -> } }
 
 /**
- * Il fondo della chat della master (Franz, 04/10 23:36: «servirebbe la modifica del fondo della chat»; 23:48: i primi cinque
- * «poco incisivi, magari anche bordo»): nero com'è oggi, cornice lilla su fondo notte, bordo luminoso a sfumatura, viola
- * deciso, aurora, e cornice col campo lilla.
- */
-enum class MasterChatStyle { BLACK, FRAME, EDGE, VIOLET, AURORA, FRAME_FIELD, DEPTH }
-
-/**
  * Il segno della master in tutta l'app (Franz, 05/10 11:30: «una soluzione che si integri bene in tutta l'app»), tre
  * direzioni da scegliere: la firma (la sua icona con un anello corallo-lilla dove compare), il filo (una linea corallo-lilla
  * sotto la sua barra e sopra il suo campo), la voce (le sue risposte con una barra lilla a sinistra). Si combinano.
@@ -1417,29 +1410,6 @@ fun MasterThread(modifier: Modifier = Modifier) = Box(modifier.fillMaxWidth().he
 internal val LocalVoiceAccent = androidx.compose.runtime.staticCompositionLocalOf { false }
 /** Il fondo delle bolle di Franz: nella chat della master un passo sopra il suo celeste velato, come nella web app (06/10 21:23). */
 internal val LocalBubble = androidx.compose.runtime.staticCompositionLocalOf<androidx.compose.ui.graphics.Color?> { null }
-val LocalMasterChatStyle = androidx.compose.runtime.staticCompositionLocalOf { MasterChatStyle.DEPTH }
-
-internal val MasterNight = androidx.compose.ui.graphics.Color(0xFF0E0B18)
-internal val MasterLilac get() = androidx.compose.ui.graphics.Color(if (V3.day) 0xFF7445D6 else 0xFFC39BFF)
-private val MasterBlue = androidx.compose.ui.graphics.Color(0xFF4C7DFF)
-
-// Le varianti viola e bordate sono solo di notte: di giorno il fondo normale.
-fun Modifier.masterChat(style: MasterChatStyle, shape: androidx.compose.ui.graphics.Shape): Modifier = if (V3.day) background(V3.Bg) else when (style) {
-    MasterChatStyle.BLACK -> background(Cm.bg)
-    // La conversazione della master su un solo tono, il più scuro del suo celeste velato (Franz, 06/10 21:23).
-    MasterChatStyle.DEPTH -> background(MasterLow)
-    MasterChatStyle.FRAME, MasterChatStyle.FRAME_FIELD -> background(MasterNight).border(2.dp, MasterLilac.copy(alpha = 0.85f), shape)
-    MasterChatStyle.EDGE -> background(Cm.bg)
-        .drawBehind {
-            drawRect(androidx.compose.ui.graphics.Brush.verticalGradient(0f to MasterLilac.copy(alpha = 0.22f), 0.35f to androidx.compose.ui.graphics.Color.Transparent))
-        }
-        .border(androidx.compose.foundation.BorderStroke(2.dp, androidx.compose.ui.graphics.Brush.sweepGradient(listOf(MasterLilac, MasterBlue, MasterLilac, MasterBlue, MasterLilac))), shape)
-    MasterChatStyle.VIOLET -> background(androidx.compose.ui.graphics.Brush.verticalGradient(listOf(androidx.compose.ui.graphics.Color(0xFF2C1F52), androidx.compose.ui.graphics.Color(0xFF120D22))))
-    MasterChatStyle.AURORA -> background(Cm.bg).drawBehind {
-        drawRect(androidx.compose.ui.graphics.Brush.radialGradient(listOf(MasterLilac.copy(alpha = 0.38f), androidx.compose.ui.graphics.Color.Transparent), center = androidx.compose.ui.geometry.Offset(0f, 0f), radius = size.width * 1.1f))
-        drawRect(androidx.compose.ui.graphics.Brush.radialGradient(listOf(MasterBlue.copy(alpha = 0.28f), androidx.compose.ui.graphics.Color.Transparent), center = androidx.compose.ui.geometry.Offset(size.width, size.height), radius = size.width))
-    }
-}
 
 /** Contratto 1.33: le azioni ricorrenti della master, dallo stato (`state.recurring`). */
 val LocalRecurring = androidx.compose.runtime.compositionLocalOf { emptyList<Recurring>() }

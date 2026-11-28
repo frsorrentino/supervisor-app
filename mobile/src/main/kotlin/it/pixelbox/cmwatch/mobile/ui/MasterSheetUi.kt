@@ -82,7 +82,6 @@ private val SHEET_HM = DateTimeFormatter.ofPattern("HH:mm")
 internal val MasterHighest get() = V3.S2
 internal val MasterHigh get() = V3.S1
 internal val MasterContainer get() = V3.S1
-internal val MasterLow get() = V3.Bg
 
 /**
  * Il posto della riga del foglio della master in fondo a una lista che gli sta sotto e non si sposta: le colonne della plancia del tablet
