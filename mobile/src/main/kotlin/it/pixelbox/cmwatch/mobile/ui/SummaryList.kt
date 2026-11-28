@@ -966,7 +966,8 @@ fun SummaryList(
                 // Una sezione come le altre (Franz 30/10 17:33): titolo, numero, freccina; da chiusa resta il numero, la barra dei 7 giorni sta dentro.
                 dragPresent += "suggestions"
                 item(key = "sec-suggestions") { Box(moving()) { V3Section(sectionDrag("suggestions"), stringResource(R.string.sug_title), androidx.compose.material.icons.Icons.Outlined.AutoAwesome, sug.total.toString(), sugAt?.let { at -> if (suggestionsOpen) at else stringResource(R.string.home_last_at, at) }, "home-sez-suggerimenti", suggestionsOpen, hot = true) { suggestionsOpen = !suggestionsOpen; save("suggestions", suggestionsOpen) } } }
-                if (suggestionsOpen) item(key = "suggestions") { Column(moving(), verticalArrangement = Arrangement.spacedBy(8.dp)) { SuggestionsCard(sug, onSuggestion); kpiData?.suggestions7d?.let { Kpi13(it) } } }
+                // app-suggerimenti-push-27-11: «% accettati» dai numeri della push (contratto 1.164), se no dall'op kpi come prima.
+                if (suggestionsOpen) item(key = "suggestions") { Column(moving(), verticalArrangement = Arrangement.spacedBy(8.dp)) { SuggestionsCard(sug, onSuggestion); it.pixelbox.cmwatch.rules.Kpi.suggestions7d(kpiState, kpiData)?.let { Kpi13(it) } } }
             }
         }
         val renderNotte: () -> Unit = {
@@ -1148,7 +1149,7 @@ fun SummaryList(
             when (pin) {
                 "suggestions" -> if (sug != null) {
                     SlotInfoRow(slotDrag("suggestions"), stringResource(R.string.sug_title), icons.AutoAwesome, "home-sez-suggerimenti", count = sug.total.toString(), names = slotSuggestionNames(sug.all), open = suggestionsOpen) { suggestionsOpen = !suggestionsOpen; save("suggestions", suggestionsOpen) }
-                    FoldIn(suggestionsOpen) { Column(Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { SuggestionsCard(sug, onSuggestion); kpiData?.suggestions7d?.let { Kpi13(it) } } }
+                    FoldIn(suggestionsOpen) { Column(Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { SuggestionsCard(sug, onSuggestion); it.pixelbox.cmwatch.rules.Kpi.suggestions7d(kpiState, kpiData)?.let { Kpi13(it) } } }
                 }
                 "lavori" -> if (showLavori && lavoriInfo != null) LavoriSlotRow(lavoriInfo, now, slotDrag("lavori"), lavoriOpen) { lavoriOpen = !lavoriOpen; save("lavori", lavoriOpen) }
                 else if (showLavori && (foryou != null || outside.isNotEmpty())) SlotRow(slotDrag("lavori"), stringResource(R.string.lavori_title), icons.Checklist, lavoriCount?.toString(), right = if (lavoriOpen) null else lavoriLine, tag = "home-sez-lavori", open = lavoriOpen) { lavoriOpen = !lavoriOpen; save("lavori", lavoriOpen) }
