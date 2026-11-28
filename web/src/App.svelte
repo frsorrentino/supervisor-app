@@ -17,7 +17,8 @@
   import { ghostPreview, MOVE_MS, PLACES } from './lib/landingMorph'
   import { DRAG_PX, isDrag, masterTaps, springFrames, step, velocity } from './lib/gesture'
   import { morphBlob } from './lib/morphBlob'
-  import { coming, failed, media, missed, pages as pageSources, texts } from './lib/mediaCache.svelte'
+  import { coming, failed, media, missed, moving, pages as pageSources, texts } from './lib/mediaCache.svelte'
+  import { capable, moves } from './lib/anteprimeAnimate'
   import { FileQueue } from './lib/fileQueue'
   import { firstLines, previewKind } from './lib/media'
   import { firstPage } from './lib/pdfPreview'
@@ -2136,7 +2137,12 @@
     if (media[key] || texts[key] || failed[key]) return
     delete missed[key]
     coming[key] = Date.now()
-    const f = await getFile(name, path, key, true).finally(() => { delete coming[key] })
+    // app-anteprime-webp-27-11: un WebP o una GIF che si muovono davvero tengono i loro byte (mediaCache.moving), per il primo
+    // fotogramma fuori schermo e con «riduci movimento»; letti prima che l'anteprima compaia, così non gira nemmeno un istante.
+    const f = await getFile(name, path, key, true).then(async x => {
+      if (x && capable(x.mime, path)) await x.blob.arrayBuffer().then(b => { if (moves(new Uint8Array(b))) moving[key] = x.blob }).catch(() => {})
+      return x
+    }).finally(() => { delete coming[key] })
     // Non arrivata: resta «Mostra anteprima» per riprovare (app-web-anteprime-in-fila-12-11).
     if (!f) { if (!media[key] && !texts[key]) missed[key] = true; return }
     if (media[key] || texts[key]) return

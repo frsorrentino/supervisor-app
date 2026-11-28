@@ -508,6 +508,8 @@ const it = {
   silenceRow: (when: string) => `si chiude da sola ${when}`, silenceLabel: 'silenzio assenso', silenceSending: 'Lo dico al PC',
   sceltaAnswered: (when: string) => `risposta ${when}`, attesaLook: 'Cosa guardare', monitorOpenPage: 'Apri la pagina', monitorOpenPageOf: (x: string) => `Apri la pagina di ${x}`, sceltaOpenCard: 'Apri la scheda', sceltaCardLoading: 'La scheda sta arrivando dal PC',
   viewerAt: (i: number, n: number) => `${i} di ${n}`, viewerPrev: 'Immagine precedente', viewerNext: 'Immagine successiva',
+  // app-anteprime-webp-27-11: il tocco su un'anteprima animata ferma (animazioni ridotte) e su quella che ha accanto la sua bozza HTML.
+  animPlay: (what: string) => (what ? `Guarda l'animazione: ${what}` : "Guarda l'animazione"), animDraft: (what: string) => (what ? `Apri la bozza dal vivo: ${what}` : 'Apri la bozza dal vivo'),
   lavoriToVoce: 'aspetta il tuo ok ›', perTeAdviceApprove: 'consigliata: approvare', perTeAdviceReject: 'consigliata: non approvare', perTeAdviceOption: (o: string) => `consigliata: ${o}`, perTeAlsoMaster: 'anche in Bacheca', perTeNoSession: 'Senza sessione', perTeGroupOpen: 'apri', perTeGroupThis: 'questa', perTeBlocking: 'Bloccano un lavoro', perTeGroupN: (n: number) => (n === 1 ? '1 voce' : `${n} voci`), perTeGroup: { aspetta: 'Ti aspetta', decidi: 'Decidi', prova: 'Prova', verifica: 'Verifica' }, perTeHint: 'tocca una voce per i dettagli', perTeVersion: (n: number) => `versione ${n}`,
 }
 
@@ -989,6 +991,7 @@ const en: typeof it = {
   silenceRow: (when: string) => `closes by itself ${when}`, silenceLabel: 'silent consent', silenceSending: 'Telling the PC',
   sceltaAnswered: (when: string) => `answered ${when}`, attesaLook: 'What to look at', monitorOpenPage: 'Open the page', monitorOpenPageOf: (x: string) => `Open the page of ${x}`, sceltaOpenCard: 'Open the card', sceltaCardLoading: 'The card is on its way from the PC',
   viewerAt: (i: number, n: number) => `${i} of ${n}`, viewerPrev: 'Previous image', viewerNext: 'Next image',
+  animPlay: (what: string) => (what ? `Play the animation: ${what}` : 'Play the animation'), animDraft: (what: string) => (what ? `Open the live draft: ${what}` : 'Open the live draft'),
   lavoriToVoce: 'waits for your ok ›', perTeAdviceApprove: 'recommended: approve', perTeAdviceReject: "recommended: don't approve", perTeAdviceOption: (o: string) => `recommended: ${o}`, perTeAlsoMaster: 'also on the Board', perTeNoSession: 'No session', perTeGroupOpen: 'open', perTeGroupThis: 'this one', perTeBlocking: 'Holding up work', perTeGroupN: (n: number) => (n === 1 ? '1 item' : `${n} items`), perTeGroup: { aspetta: 'Waiting for you', decidi: 'Decide', prova: 'Test', verifica: 'Check' }, perTeHint: 'tap an item for the details', perTeVersion: (n: number) => `version ${n}`,
 }
 

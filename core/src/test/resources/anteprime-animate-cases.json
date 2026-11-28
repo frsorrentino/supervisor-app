@@ -1,0 +1,46 @@
+{
+  "_": "app-anteprime-webp-27-11: le anteprime che si muovono (WebP e GIF animati) e la bozza HTML che va con la loro immagine. Le leggono core AnteprimeAnimateTest.kt e web/src/lib/anteprimeAnimate.test.ts. I byte di «moves» sono file veri di 4×4 pixel fatti con ffmpeg 9.0.2 (libwebp_anim, libwebp, gif), in base64.",
+  "capable": [
+    {"name": "un WebP per tipo", "mime": "image/webp", "path": "/w/docs/entrata-home.webp", "out": true},
+    {"name": "una GIF per tipo, anche col parametro dopo il punto e virgola", "mime": "image/gif; charset=binary", "path": "/w/docs/giro", "out": true},
+    {"name": "un WebP senza tipo si riconosce dall'estensione, maiuscole comprese", "mime": null, "path": "/w/docs/Entrata-Home.WEBP", "out": true},
+    {"name": "una GIF col tipo generico si riconosce dall'estensione", "mime": "application/octet-stream", "path": "C:\\w\\giro.gif", "out": true},
+    {"name": "un PNG resta un'immagine ferma", "mime": "image/png", "path": "/w/docs/scheda-a.png", "out": false},
+    {"name": "il tipo vale più dell'estensione", "mime": "image/png", "path": "/w/docs/giro.gif", "out": false},
+    {"name": "un JPEG senza tipo", "mime": null, "path": "/w/foto.jpg", "out": false},
+    {"name": "un HTML non è un'immagine", "mime": "text/html", "path": "/w/docs/entrata-home.webp.html", "out": false}
+  ],
+  "draft": [
+    {"name": "il WebP e l'HTML con lo stesso nome nello stesso invio", "image": "/w/docs/entrata-home.webp", "mime": "image/webp", "files": ["/w/docs/entrata-home.webp", "/w/docs/entrata-home.html"], "out": "/w/docs/entrata-home.html"},
+    {"name": "anche .htm, in un'altra cartella", "image": "/w/anteprime/giro.gif", "mime": "image/gif", "files": ["/w/bozze/giro.htm", "/w/anteprime/giro.gif"], "out": "/w/bozze/giro.htm"},
+    {"name": "il nome senza badare alle maiuscole, e il WebP senza tipo", "image": "C:\\w\\Entrata-Home.webp", "mime": null, "files": ["/w/entrata-home.HTML"], "out": "/w/entrata-home.HTML"},
+    {"name": "un nome con più punti tiene tutto tranne l'ultima estensione", "image": "/w/home.v2.webp", "mime": "image/webp", "files": ["/w/home.html", "/w/home.v2.html"], "out": "/w/home.v2.html"},
+    {"name": "con due bozze dello stesso nome vale la prima dell'elenco", "image": "/w/a/giro.webp", "mime": "image/webp", "files": ["/w/a/giro.html", "/w/b/giro.htm"], "out": "/w/a/giro.html"},
+    {"name": "un altro nome non è la sua bozza", "image": "/w/a.webp", "mime": "image/webp", "files": ["/w/a.webp", "/w/b.html"], "out": null},
+    {"name": "senza la bozza nello stesso elenco niente", "image": "/w/a.webp", "mime": "image/webp", "files": ["/w/a.webp", "/w/a.md"], "out": null},
+    {"name": "un PNG con l'HTML accanto resta un'immagine: il tocco la ingrandisce", "image": "/w/scheda-a.png", "mime": "image/png", "files": ["/w/scheda-a.png", "/w/scheda-a.html"], "out": null}
+  ],
+  "preview": [
+    {"name": "l'HTML trova il suo WebP animato", "draft": "/w/docs/entrata-home.html", "files": [{"path": "/w/docs/entrata-home.html", "mime": "text/html"},{"path": "/w/docs/entrata-home.webp", "mime": "image/webp"}], "out": "/w/docs/entrata-home.webp"},
+    {"name": "anche una GIF senza tipo, dall'estensione", "draft": "/w/giro.htm", "files": [{"path": "/w/giro.gif", "mime": null}], "out": "/w/giro.gif"},
+    {"name": "un PNG con lo stesso nome non è la sua anteprima animata", "draft": "/w/scheda-a.html", "files": [{"path": "/w/scheda-a.png", "mime": "image/png"}], "out": null},
+    {"name": "un file che non è un HTML non ha anteprima animata", "draft": "/w/a.md", "files": [{"path": "/w/a.webp", "mime": "image/webp"}], "out": null}
+  ],
+  "plays": [
+    {"name": "a schermo gira", "visible": true, "reduced": false, "out": true},
+    {"name": "fuori schermo si ferma", "visible": false, "reduced": false, "out": false},
+    {"name": "con le animazioni ridotte resta al primo fotogramma", "visible": true, "reduced": true, "out": false},
+    {"name": "fuori schermo e con le animazioni ridotte", "visible": false, "reduced": true, "out": false}
+  ],
+  "moves": [
+    {"name": "un WebP animato di due fotogrammi", "b64": "UklGRsIAAABXRUJQVlA4WAoAAAASAAAAAwAAAwAAQU5JTQYAAAD/////AABBTk1GSgAAAAAAAAAAAAMAAAMAAMgAAAJWUDhMMQAAAC8DwAAARyAQSNofeg0BQdF1ywkIivwfbf4D2SAmMPEBWYBp1GL3XBKIJYci+h+NyAcAQU5NRkQAAAAAAAABAAADAAABAADIAAAAVlA4TCwAAAAvA0AAECcgECBoUuucINtm85vH/QkuICjyf7T5D6C7q7hBIJDilFY4ov9BAw==", "out": true},
+    {"name": "un WebP fermo (VP8L)", "b64": "UklGRl4AAABXRUJQVlA4TFEAAAAvB8ABAG9gkG2kHtm/+pGdBoGkjY/+5CMQoKhnnvPM/AfkBkgIcIPSLV618ViCYgBAo1cKvYPIIIEUUqgNYRg3x+wuhoj+h4q5ImdChn+pax8A", "out": false},
+    {"name": "un WebP fermo nel formato esteso, con la trasparenza e senza animazione", "b64": "UklGRmAAAABXRUJQVlA4WAoAAAAQAAAAAwAAAwAAQUxQSAoAAAABB9C/iAhERP8DVlA4IDAAAADQAQCdASoEAAQAAgA0JaACdLoB+AADsAD+8Oj3/yC5YXXI1/8gP+QH/ID/+PIAAAA=", "out": false},
+    {"name": "una GIF di due fotogrammi, con l'estensione del giro", "b64": "R0lGODlhBAAEAPcfMQAASGr+rYAA//U0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qCH/C05FVFNDQVBFMi4wAwEAAAAh+QQEFAAfACwAAAAABAAEAAAIEwABDAgQAECAAQIMChAwMICAgAAAIfkEBRQAAAAsAwADAAEAAQAACAQAAQQEADs=", "out": true},
+    {"name": "una GIF di un fotogramma", "b64": "R0lGODlhBAAEAPcfMQAASHD/rIAA//0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0sm/0smyH/C05FVFNDQVBFMi4wAwEAAAAh+QQEFAAfACwAAAAABAAEAAAIEwABDAgQAECAAQIMChAwMICAgAAAOw==", "out": false},
+    {"name": "una GIF tagliata prima del secondo fotogramma", "b64": "R0lGODlhBAAEAPcfMQAASGr+rYAA//U0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qPU0qCH/C05FVFNDQVBFMi4wAwEAAAAh+QQEFAAfACwAAAAABAAEAAAIEwABDAgQAECAAQIMChAwMICAgAAAIfkEBRQAAAA=", "out": false},
+    {"name": "solo l'inizio di una GIF", "b64": "R0lGODlhBAAEAPcfMQAASGr+rYAA//U0qPU0qPU0", "out": false},
+    {"name": "un PNG", "b64": "iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAACXBIWXMAAAABAAAAAQBPJcTWAAAARUlEQVR4nJ2OQQqAQAwDZ8CH7dPWn+nLsrSICOLFOaQpIRCBgGk1t99oYoTE0nYVmNTzQL0ab34EAU5nnSFhsNfO47OxADXAGBs8WC7EAAAAAElFTkSuQmCC", "out": false},
+    {"name": "niente byte", "b64": "", "out": false}
+  ]
+}

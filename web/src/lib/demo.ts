@@ -432,6 +432,8 @@ export function world(now: number): World {
       said('p1.0', 'Also run the gift card flow on staging', t0 + 158, 'phone'),
       tool('a8.0', 'Edit', '/home/dev/storefront/src/checkout/totals.ts', t0 + 160, { diff: stepOf(sample.files[0], 'edit') }),
       tool('a8.1', 'Write', '/home/dev/storefront/tests/checkout/totals.test.ts', t0 + 170, { diff: stepOf(sample.files[1], 'create') }),
+      // Un WebP animato da solo (app-anteprime-webp-27-11): gira finché è a schermo e il tocco lo apre nel visore.
+      tool('a8.2', 'SendUserFile', en ? 'The home entrance, animated' : "L'entrata della home, animata", t0 + 172, { files: [{ path: '/w/storefront/docs/entrata-home.webp', mime: 'image/webp', size: 128_816 }] }),
       // La scelta del carrello chiesta in chat (app-scheda-scelta-12-11): il link della richiesta diventa la sua scheda compatta.
       claude('demo-store-cart', `${cartChoice(now).msg!.text}
 
@@ -635,7 +637,12 @@ const cartProva = (now: number): WaitItem => ({
     { label: en ? 'Works' : 'Va', style: 'primary', cmd: { op: 'prova', session: null, arg: '1', result: 'ok' } },
     { label: en ? 'Does not work' : 'Non va', style: 'secondary', cmd: { op: 'prova', session: null, arg: '1', result: 'ko' }, text_field: 'text' },
   ],
-  files: [demoShot('checkout-before.png', 35449), { ...demoShot('checkout-tests.pdf', 1872), mime: 'application/pdf', kind: 'document' }],
+  // app-anteprime-webp-27-11: da guardare anche l'entrata della home, il WebP animato con la sua bozza HTML (lo stesso nome): l'anteprima
+  // gira nella carta e il tocco apre la bozza dal vivo.
+  files: [
+    { ...demoShot('entrata-home.webp', 128816), mime: 'image/webp' }, demoShot('checkout-before.png', 35449),
+    { ...demoShot('checkout-tests.pdf', 1872), mime: 'application/pdf', kind: 'document' }, { ...demoShot('entrata-home.html', 2744), mime: 'text/html', kind: 'document' },
+  ],
   description: null, card_id: 'w00000000d4', state: 'open', answered: null,
   // Contratto 1.160: una prova del carrello si può dare per risolta se tace, e blocca il compito finché non ha risposta.
   silence_ok: true, blocking: true,

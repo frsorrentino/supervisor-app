@@ -1,7 +1,10 @@
 <script lang="ts">
   import { untrack } from 'svelte'
   import type { WaitFile } from './contract'
-  import { coming, failed, imageRatios, media, missed } from './mediaCache.svelte'
+  import AnteprimaAnimata from './AnteprimaAnimata.svelte'
+  import PaginaIntera from './PaginaIntera.svelte'
+  import { coming, failed, imageRatios, media, missed, moving, pages } from './mediaCache.svelte'
+  import { movimento } from './riduciMovimento.svelte'
   import { waitFileKey } from './scelta'
   import { t } from './t'
   // Un'immagine di una richiesta nella sua cornice (app-scheda-scelta-12-11, Franz 12/11 15:03: «Un link a una sezione che non
@@ -11,9 +14,11 @@
   // `small`: la miniatura della scheda compatta e dei giri precedenti, senza parole, con la stessa fascia più bassa.
   // `strip` (scelta A di Franz, 12/11 17:50): nella scheda chiusa l'immagine tiene tutta la sua colonna, col nome dell'opzione nella
   // fascia; di una schermata alta si vede la parte in cima.
-  let { file, letter = null, name = '', label, small = false, strip = false, picked = false, onAsk, onOpen = null }: {
+  // app-anteprime-webp-27-11: un WebP o una GIF che si muovono girano finché sono a schermo (AnteprimaAnimata); con `draft`, la bozza
+  // HTML con lo stesso nome fra i file della carta, il tocco apre la bozza dal vivo a schermo intero invece del visore.
+  let { file, letter = null, name = '', label, small = false, strip = false, picked = false, onAsk, onOpen = null, draft = null }: {
     file: WaitFile; letter?: string | null; name?: string; label: string; small?: boolean; strip?: boolean; picked?: boolean
-    onAsk: (f: WaitFile) => void; onOpen?: (() => void) | null
+    onAsk: (f: WaitFile) => void; onOpen?: (() => void) | null; draft?: WaitFile | null
   } = $props()
   const key = $derived(waitFileKey(file))
   const url = $derived(media[key])
@@ -28,18 +33,26 @@
     return () => clearInterval(i)
   })
   // La forma dell'immagine arrivata: la cornice della scheda la prende (frameRatio).
-  const sized = (e: Event) => { const im = e.currentTarget as HTMLImageElement; if (im.naturalHeight > 0) imageRatios[key] = im.naturalWidth / im.naturalHeight }
+  const sized = (w: number, h: number) => { if (h > 0) imageRatios[key] = w / h }
   const waited = $derived(coming[key] ? Math.max(0, Math.floor((nowMs - coming[key]) / 1000)) : 0)
+  // La bozza dal vivo: si chiede al PC al tocco, se non c'è già; la pagina intera dice che è in arrivo finché non c'è.
+  const dkey = $derived(draft ? waitFileKey(draft) : null)
+  let live = $state(false)
+  function tap() {
+    if (draft && dkey) { live = true; if (!pages[dkey]) onAsk(draft); return }
+    onOpen?.()
+  }
+  const tapLabel = $derived(draft ? t.animDraft(label) : moving[key] && movimento.ridotto ? t.animPlay(label) : t.sceltaZoom(label))
 </script>
 
 <div class="fr" class:small class:strip class:picked data-testid="attesa-immagine">
   {#if letter}<span class="cap" aria-hidden="true">{letter}{#if name}<i>{name}</i>{/if}</span>{/if}
   <div class="area">
     {#if url}
-      {#if onOpen}
-        <button class="pic" aria-label={t.sceltaZoom(label)} onclick={(e) => { e.stopPropagation(); onOpen() }}><img src={url} alt="" draggable="false" onload={sized} /></button>
+      {#if onOpen || draft}
+        <button class="pic" aria-label={tapLabel} onclick={(e) => { e.stopPropagation(); tap() }}><AnteprimaAnimata src={url} blob={moving[key]} fit={strip ? 'cover' : 'contain'} pos={strip ? 'top center' : 'center'} {small} onsize={sized} /></button>
       {:else}
-        <span class="pic"><img src={url} alt={label} draggable="false" onload={sized} /></span>
+        <span class="pic"><AnteprimaAnimata src={url} blob={moving[key]} alt={label} fit={strip ? 'cover' : 'contain'} pos={strip ? 'top center' : 'center'} {small} onsize={sized} /></span>
       {/if}
     {:else if !small}
       <div class="wait" role="status">
@@ -56,6 +69,10 @@
   </div>
 </div>
 
+{#if live && draft && dkey}
+  <PaginaIntera name={draft.name || draft.path.split('/').pop() || ''} page={pages[dkey]} missed={!!missed[dkey] || !!failed[dkey]} onRetry={() => { if (draft) onAsk(draft) }} onClose={() => (live = false)} />
+{/if}
+
 <style>
   /* Il fondo neutro: un gradino sopra la superficie su cui sta, di notte e di giorno, senza bordo. La lettera dell'opzione sta in
      una fascia sopra l'immagine, sullo stesso fondo: l'immagine non è mai coperta. */
@@ -67,21 +84,19 @@
   .cap { gap: 6px; white-space: nowrap; overflow: hidden; }
   .cap i { font: 600 13.5px/1 var(--display); font-style: normal; color: var(--tx); }
   .strip .cap { height: 26px; padding: 0 8px; font-size: 14px; }
-  .strip .pic img { object-fit: cover; object-position: top center; }
   .picked .cap { color: var(--good); }
   /* La forma è quella delle immagini della scheda (`--ar`), ma mai più alta di due quinti della finestra: su una colonna larga
      una schermata di telefono resta intera a schermo, coi tasti delle opzioni sotto senza scorrere. */
   .area { position: relative; width: 100%; aspect-ratio: var(--ar, 4 / 3); max-height: min(var(--cap, 40dvh), 480px); transition: aspect-ratio 260ms cubic-bezier(0.23, 1, 0.32, 1); }
   .small .area { transition: none; max-height: none; }
-  /* Fuori dal flusso: l'area tiene la sua forma e l'immagine ci sta dentro, senza allungarla. */
+  /* Fuori dal flusso: l'area tiene la sua forma e l'immagine ci sta dentro, senza allungarla (AnteprimaAnimata la riempie). */
   .pic { position: absolute; inset: 0; display: block; width: 100%; height: 100%; padding: 0; }
   button.pic { cursor: zoom-in; touch-action: manipulation; -webkit-touch-callout: none; transition: transform 120ms ease-out; }
   button.pic:active { transform: scale(.985); }
   button.pic:focus-visible { outline: 2px solid var(--tx); outline-offset: -2px; }
-  .pic img { display: block; width: 100%; height: 100%; object-fit: contain; user-select: none; -webkit-user-select: none; }
   .wait { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 12px; text-align: center; font-size: 13.5px; line-height: 18px; color: var(--tx2); }
   .again { min-height: 36px; padding: 0 14px; border-radius: 999px; background: var(--s3); color: var(--tx); font: 600 14px var(--display); touch-action: manipulation; }
   .again:focus-visible { outline: 2px solid var(--tx); outline-offset: 2px; }
-  @media (hover: hover) and (pointer: fine) { button.pic:hover img { opacity: .92; } }
+  @media (hover: hover) and (pointer: fine) { button.pic:hover :global(img), button.pic:hover :global(canvas) { opacity: .92; } }
   @media (prefers-reduced-motion: reduce) { .area, button.pic { transition: none; } }
 </style>

@@ -13,6 +13,8 @@
   import { adviceLine, adviceOf } from './tiAspetta'
   import CardAttach from './CardAttach.svelte'
   import { revoke, type Allegato } from './allegatiCarta'
+  // app-anteprime-webp-27-11: l'immagine animata di un'opzione con la sua bozza HTML fra i file dell'opzione apre la bozza dal vivo.
+  import { draftIn } from './anteprimeAnimate'
   import type { State } from './contract'
   // La scheda di scelta aperta (app-scheda-scelta-12-11, descrizione approvata da Franz il 12/11 alle 15:10): la descrizione vera,
   // le opzioni una accanto all'altra, ognuna con la sua immagine, la riga di pro e contro e il suo tasto; le immagini si ingrandiscono
@@ -112,7 +114,7 @@
       <div class="o" class:dim={out.state === 'chosen' && !chosen}>
         {#if o.images.length}
           <div class="pics">
-            <AttesaImmagine file={o.images[0]} letter={o.letter} label={what} picked={chosen} onAsk={ask} onOpen={() => enlarge(shotsOf(c.options), waitFileKey(o.images[0]))} />
+            <AttesaImmagine file={o.images[0]} letter={o.letter} label={what} picked={chosen} draft={draftIn(o.images[0], [...o.images, ...o.docs])} onAsk={ask} onOpen={() => enlarge(shotsOf(c.options), waitFileKey(o.images[0]))} />
             {#if o.images.length > 1}<button class="more" aria-label={t.sceltaMoreImages(o.images.length - 1)} onclick={() => enlarge(shotsOf(c.options), waitFileKey(o.images[1]))}>+{o.images.length - 1}</button>{/if}
           </div>
         {:else if hasPics}
@@ -171,7 +173,7 @@
           <div class="rw"><LongText text={r.reason || roundWhy(r)}>{#snippet body()}<span>{roundWhy(r)}</span>{#if r.reason}{': '}{r.reason}{/if}{/snippet}</LongText></div>
           {#if r.description || r.text}<div class="rt"><LongText text={r.description || r.text} /></div>{/if}
           {#if r.options.some(o => o.images.length)}
-            <div class="rth">{#each r.options as o (o.n)}{#if o.images.length}<div class="rf" style:--ar={frameRatio([imageRatios[waitFileKey(o.images[0])]])}><AttesaImmagine small file={o.images[0]} letter={o.letter} label={[t.sceltaRound(r.n), o.letter, o.name].filter(Boolean).join(', ')} onAsk={ask} onOpen={() => enlarge(shots, waitFileKey(o.images[0]))} /></div>{/if}{/each}</div>
+            <div class="rth">{#each r.options as o (o.n)}{#if o.images.length}<div class="rf" style:--ar={frameRatio([imageRatios[waitFileKey(o.images[0])]])}><AttesaImmagine small file={o.images[0]} letter={o.letter} label={[t.sceltaRound(r.n), o.letter, o.name].filter(Boolean).join(', ')} draft={draftIn(o.images[0], [...o.images, ...o.docs])} onAsk={ask} onOpen={() => enlarge(shots, waitFileKey(o.images[0]))} /></div>{/if}{/each}</div>
           {/if}
           <p class="ro">{#each r.options as o, i (o.n)}{#if i}{' · '}{/if}<b>{o.letter}</b>{#if o.name}{' '}{o.name}{/if}{/each}</p>
         </div>

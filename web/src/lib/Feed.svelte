@@ -30,10 +30,14 @@
   import { t } from './t'
   import { canCopy, canShare, pageDoc, PAGE_SANDBOX, type FileAct } from './fileActions'
   import { autoPreview, canPreview, fileKey, isImage, isVideo, pageHeight, previewKind } from './media'
+  import AnteprimaAnimata from './AnteprimaAnimata.svelte'
+  import PaginaIntera from './PaginaIntera.svelte'
+  import { draftIn, previewOf } from './anteprimeAnimate'
+  import { movimento } from './riduciMovimento.svelte'
   // Franz 24/10 00:40 (anteprime in app): il riquadro di una pagina è alto il 60% della finestra; «Schermo intero» la apre a tutto schermo.
   let vh = $state(typeof window !== 'undefined' ? window.innerHeight : 800)
   $effect(() => { const on = () => (vh = window.innerHeight); window.addEventListener('resize', on); return () => window.removeEventListener('resize', on) })
-  let full = $state<{ key: string; name: string } | null>(null)
+  let full = $state<{ key: string; name: string; path: string } | null>(null)
   // L'immagine aperta nel visore con lo zoom (app-chat-zoom-02-11); prima si apriva in una scheda nuova.
   let zoomed = $state<{ src: string; name: string } | null>(null)
   // Da quanto un'anteprima è in arrivo, in secondi, dopo i primi COMING_SHOW_S: il relay può tenerla in fila oltre un minuto (12/11).
@@ -47,7 +51,7 @@
   })
   import { onDestroy } from 'svelte'
   import { firstNew, latest, readSeen, saveSeen } from './chatNews'
-  import { coming, failed, media, missed, pages, texts } from './mediaCache.svelte'
+  import { coming, failed, media, missed, moving, pages, texts } from './mediaCache.svelte'
   // Le pagine mostrate come sorgente col tasto «Codice», per chiave.
   let code = $state<Record<string, boolean>>({})
   import Md from './Md.svelte'
@@ -130,6 +134,19 @@
   function preview(_node: HTMLElement, { f, key }: { f: TranscriptFile; key: string }) {
     const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData === true
     if (!media[key] && !texts[key] && autoPreview(f.mime, f.size, !saveData, f.path)) onFile(f.path, 'preview', key)
+  }
+  // app-anteprime-webp-27-11: un WebP o una GIF con la sua bozza HTML nello stesso invio (lo stesso nome) aprono la bozza dal vivo a
+  // schermo intero, chiesta al PC se non c'è ancora; l'HTML che ha accanto la sua anteprima animata non apre il riquadro dal vivo in
+  // chat: la sua anteprima leggera è l'immagine che gira.
+  function draftOfFile(f: TranscriptFile, fs: { f: TranscriptFile; entry: string }[]) {
+    const d = draftIn(f, fs.map(x => x.f))
+    const x = d ? fs.find(y => y.f === d) : null
+    return x ? { path: x.f.path, key: fileKey(s.name, x.f, x.entry), name: x.f.path.split('/').pop() ?? '' } : null
+  }
+  const lightOf = (f: TranscriptFile, fs: { f: TranscriptFile; entry: string }[]) => previewOf(f.path, fs.map(x => x.f)) != null
+  function openDraft(d: { path: string; key: string; name: string }) {
+    full = d
+    if (!pages[d.key]) onFile(d.path, 'preview', d.key)
   }
 
   const hm = (at: number) => new Date(at * 1000).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
@@ -339,15 +356,18 @@
       {@const key = fileKey(s.name, f, entry)}
       {@const url = media[key]}
       {@const kind = previewKind(f.mime, f.path)}
+      {@const fname = f.path.split('/').pop() ?? ''}
+      {@const dr = kind === 'image' ? draftOfFile(f, fs) : null}
       <div class="fcard" role="group" aria-label={f.path.split('/').pop()} use:preview={{ f, key }} onpointerenter={() => onFile(f.path, 'prepare', key)} onfocusin={() => onFile(f.path, 'prepare', key)}>
         <button class="fchip" title={f.path} onclick={() => onFile(f.path, 'open', key)}><Icon name={fileIcon(f)} color="var(--icon)" /><span class="fname">{f.path.split('/').pop()}</span>{#if f.size != null}<span class="fsize">{size(f.size)}</span>{/if}</button>
-        <!-- L'anteprima tra il nome e i tasti, come nell'app (Franz, 13/10 07:16). -->
-        {#if url && (isImage(f.mime) || kind === 'pdf')}<button class="fthumb" class:pdf={kind === 'pdf'} aria-label={t.fileOpen} onclick={() => { if (kind === 'pdf') onFile(f.path, 'open', key); else { zoomed = { src: url, name: f.path.split('/').pop() ?? '' }; onFile(f.path, 'seen', key) } }}><img src={url} alt="" /></button>{/if}
+        <!-- L'anteprima tra il nome e i tasti, come nell'app (Franz, 13/10 07:16). Un WebP o una GIF animati girano finché sono a schermo,
+             fermi col ▶ con le animazioni ridotte (app-anteprime-webp-27-11); con la loro bozza accanto il tocco la apre dal vivo. -->
+        {#if url && (isImage(f.mime) || kind === 'pdf')}<button class="fthumb" class:pdf={kind === 'pdf'} aria-label={kind === 'pdf' ? t.fileOpen : dr ? t.animDraft(fname) : moving[key] && movimento.ridotto ? t.animPlay(fname) : t.fileOpen} onclick={() => { if (kind === 'pdf') onFile(f.path, 'open', key); else if (dr) { openDraft(dr); onFile(f.path, 'seen', key) } else { zoomed = { src: url, name: fname }; onFile(f.path, 'seen', key) } }}>{#if kind === 'pdf'}<img src={url} alt="" />{:else}<AnteprimaAnimata src={url} blob={moving[key]} fill={false} fit="cover" />{/if}</button>{/if}
         {#if pages[key] && !code[key]}
           <!-- Franz, 16/10 11:18: HTML e SVG come pagina, in un riquadro isolato (PAGE_SANDBOX: origine opaca, niente token). -->
-          <iframe class="fpage" style="height:{pageHeight(vh)}px" title={f.path.split('/').pop()} sandbox={PAGE_SANDBOX} referrerpolicy="no-referrer" srcdoc={pageDoc(pages[key].mime, pages[key].text)}></iframe>
+          {#if !(kind === 'page' && lightOf(f, fs))}<iframe class="fpage" style="height:{pageHeight(vh)}px" title={f.path.split('/').pop()} sandbox={PAGE_SANDBOX} referrerpolicy="no-referrer" srcdoc={pageDoc(pages[key].mime, pages[key].text)}></iframe>{/if}
         {:else if texts[key]}<button class="ftext" class:cut={texts[key].more} aria-label={t.fileOpen} onclick={() => onFile(f.path, 'open', key)}><pre>{texts[key].lines}</pre></button>{/if}
-        {#if pages[key]}<span class="fbtns"><button class="fshow" aria-pressed={!!code[key]} onclick={() => (code[key] = !code[key])}>{code[key] ? t.filePage : t.fileCode}</button><button class="fshow" onclick={() => (full = { key, name: f.path.split('/').pop() ?? '' })}>{t.filePageFull}</button></span>{/if}
+        {#if pages[key]}<span class="fbtns"><button class="fshow" aria-pressed={!!code[key]} onclick={() => (code[key] = !code[key])}>{code[key] ? t.filePage : t.fileCode}</button><button class="fshow" onclick={() => (full = { key, name: fname, path: f.path })}>{t.filePageFull}</button></span>{/if}
         {#if !url && !texts[key] && !failed[key] && !coming[key] && missed[key]}
           <!-- Non arrivata dal PC entro il limite, o rifiutata (Franz, 12/11: «se va in time out può segnalarlo con tasto che la richiede nuovamente?»). -->
           <span class="fmiss"><span>{t.previewMissed}</span><button class="fshow" onclick={() => onFile(f.path, 'preview', key)}>{t.previewRetry}</button></span>
@@ -468,20 +488,12 @@
 {/if}
 
 {#if zoomed}<ImageViewer src={zoomed.src} name={zoomed.name} onClose={() => (zoomed = null)} />{/if}
-{#if full && pages[full.key]}
-  <div class="pagefull" role="dialog" aria-modal="true" aria-label={full.name}>
-    <div class="pfbar"><span class="pfname">{full.name}</span><button class="pfclose" aria-label={t.closeWord} onclick={() => (full = null)}>✕</button></div>
-    <iframe class="pfframe" title={full.name} sandbox={PAGE_SANDBOX} referrerpolicy="no-referrer" srcdoc={pageDoc(pages[full.key].mime, pages[full.key].text)}></iframe>
-  </div>
-{/if}
+<!-- Una pagina a schermo intero (PaginaIntera): «Schermo intero» di un HTML, o la bozza dal vivo di un'anteprima animata, che dice
+     se sta ancora arrivando dal PC (app-anteprime-webp-27-11). -->
+{#if full}{@const fl = full}<PaginaIntera name={fl.name} page={pages[fl.key]} missed={!!missed[fl.key] || !!failed[fl.key]} onRetry={() => onFile(fl.path, 'preview', fl.key)} onClose={() => (full = null)} />{/if}
 
 <style>
   .fbtns { display: flex; gap: 6px; flex-wrap: wrap; }
-  .pagefull { position: fixed; inset: 0; z-index: 80; background: #000; display: flex; flex-direction: column; }
-  .pfbar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; color: var(--text2); font-size: 14px; }
-  .pfname { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; }
-  .pfclose { width: 40px; height: 40px; border-radius: 50%; background: var(--high); color: var(--text); font-size: 18px; }
-  .pfframe { flex: 1; width: 100%; border: 0; background: #fff; }
   p { white-space: pre-wrap; overflow-wrap: anywhere; }
   .it { display: flex; flex-direction: column; border-radius: 14px; }
   /* Il passaggio trovato da Cerca: un lampo giallo che si spegne (app-cerca-pagina-03-11). */
@@ -554,7 +566,8 @@
   .fcoming { align-self: flex-start; padding: 2px 2px 4px; font-size: 13.5px; color: var(--text2); font-variant-numeric: tabular-nums; }
   .fmiss { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; font-size: 13.5px; color: var(--text2); }
   .fshow { align-self: flex-start; padding: 8px 14px; border-radius: 999px; background: var(--high); color: var(--icon); font-size: 14px; font-weight: 500; }
-  .fthumb { padding: 0; border-radius: 14px; overflow: hidden; background: none; }
+  /* --am-max: l'altezza massima dell'immagine dentro AnteprimaAnimata, come quella di prima (app-anteprime-webp-27-11). */
+  .fthumb { padding: 0; border-radius: 14px; overflow: hidden; background: none; --am-max: 200cqw; }
   /* Con l'anteprima la scheda prende tutta la larghezza della chat, come nell'app (Franz, 12/10 12:27: «anteprime con width
      100%»); un verticale è alto al massimo il doppio della larghezza. Nome, anteprima e tasti stanno a 6 px, come nell'app. */
   .fcard:has(> .fthumb, > .fvideo) { width: 100%; container-type: inline-size; gap: 6px; }

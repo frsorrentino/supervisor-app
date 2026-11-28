@@ -11,7 +11,10 @@ import { NIGHT_TARGET } from './recapAgenda'
 // comandi cambiano lo stato come li cambierebbe il PC, con i testi del relay, di successo e di rifiuto. Niente rete.
 const MODES = new Set(['default', 'acceptEdits', 'plan', 'auto', 'bypassPermissions'])
 const VALID_NAME = /^[A-Za-z0-9._-]{1,64}$/
-const DEMO_FILES: Record<string, string> = { 'cart-a.png': 'image/png', 'cart-b.png': 'image/png', 'cart-round1.png': 'image/png', 'checkout-before.png': 'image/png', 'checkout-tests.pdf': 'application/pdf', 'edge-caching.md': 'text/markdown', 'bench-data.zip': 'application/zip', 'edge-caching-preview.html': 'text/html' }
+// app-anteprime-webp-27-11: l'entrata della home come WebP animato di 240 px (fatto da entrata-home-360-web-28-11.webp della master,
+// col fermo finale messo in testa: il giro è lo stesso e il primo fotogramma, quello delle animazioni ridotte, è la home intera) e la
+// sua bozza HTML dal vivo, con lo stesso nome.
+const DEMO_FILES: Record<string, string> = { 'cart-a.png': 'image/png', 'cart-b.png': 'image/png', 'cart-round1.png': 'image/png', 'checkout-before.png': 'image/png', 'checkout-tests.pdf': 'application/pdf', 'edge-caching.md': 'text/markdown', 'bench-data.zip': 'application/zip', 'edge-caching-preview.html': 'text/html', 'entrata-home.webp': 'image/webp', 'entrata-home.html': 'text/html' }
 
 export class DemoTransport implements Transport {
   readonly world: World

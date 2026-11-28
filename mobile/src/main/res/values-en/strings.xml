@@ -2186,4 +2186,6 @@ It starts at your last message to the master.</string>
     <string name="pagella_kind_test">tests</string>
     <string name="pagella_cases">%d cases</string>
     <string name="pagella_defects">%d%% with defects</string>
+    <string name="anim_play">Play the animation</string>
+    <string name="anim_draft_open">Open the live draft</string>
 </resources>

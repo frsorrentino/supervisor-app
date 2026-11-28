@@ -114,6 +114,7 @@ import it.pixelbox.cmwatch.mobile.R
 import it.pixelbox.cmwatch.contract.TranscriptEntry
 import it.pixelbox.cmwatch.contract.TranscriptFile
 import it.pixelbox.cmwatch.contract.TranscriptTurn
+import it.pixelbox.cmwatch.rules.AnteprimeAnimate
 import it.pixelbox.cmwatch.rules.ChatFeed
 import it.pixelbox.cmwatch.rules.ChatNews
 import it.pixelbox.cmwatch.rules.ChatRules
@@ -1727,7 +1728,7 @@ private fun ToolLine(e: TranscriptEntry, files: Boolean = true) {
         if (files) e.files?.takeIf { it.isNotEmpty() }?.let { fs ->
             Box(Modifier.padding(start = 28.dp)) { FilesGroup(fs.map { it to e.id }) }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(start = 28.dp)) {
-                fs.forEach { FileChip(it, e.id) }
+                fs.forEach { FileChip(it, e.id, siblings = fs.map { x -> x to e.id }) }
             }
         }
         // Contratto 1.72: la riga chiusa del diff sotto il passaggio; in un gruppo le righe stanno in fondo, come i file.
@@ -1780,9 +1781,12 @@ private fun FilesGroup(files: List<Pair<TranscriptFile, String>>, v3: Boolean = 
     }
 }
 
-/** Un file prodotto da Claude: icona per tipo, nome e peso. L'anteprima e l'apertura arrivano con il trasferimento dei file. */
+/**
+ * Un file prodotto da Claude: icona per tipo, nome e peso. L'anteprima e l'apertura arrivano con il trasferimento dei file.
+ * `siblings`: i file dello stesso invio, con la loro voce (app-anteprime-webp-27-11: un WebP o una GIF e la bozza HTML con lo stesso nome).
+ */
 @Composable
-private fun FileChip(f: TranscriptFile, entry: String, v3: Boolean = false) {
+private fun FileChip(f: TranscriptFile, entry: String, v3: Boolean = false, siblings: List<Pair<TranscriptFile, String>> = emptyList()) {
     val icon = when {
         f.mime?.startsWith("image/") == true -> Icons.Rounded.Image
         f.mime == "application/pdf" -> Icons.Rounded.PictureAsPdf
@@ -1802,6 +1806,12 @@ private fun FileChip(f: TranscriptFile, entry: String, v3: Boolean = false) {
     val autoPreview = it.pixelbox.cmwatch.rules.MediaPreview.auto(f.mime, f.size, opener.unmetered(), f.path)
     val gone = key in opener.gone
     LaunchedEffect(key, autoPreview) { if (autoPreview && opener.local[key] == null && key !in opener.loading && key !in opener.gone) opener.preview(key, f) }
+    // app-anteprime-webp-27-11: un WebP o una GIF con la sua bozza HTML nello stesso invio (lo stesso nome) aprono la bozza dal vivo a
+    // schermo intero, chiesta al PC se non c'è ancora; l'HTML con accanto la sua anteprima animata non apre il riquadro dal vivo in chat:
+    // la sua anteprima leggera è l'immagine che gira.
+    val draft = remember(f, siblings) { AnteprimeAnimate.draftOf(f.path, f.mime, siblings.map { s -> s.first.path })?.let { p -> siblings.firstOrNull { s -> s.first.path == p } } }
+    val light = remember(f, siblings) { kind == it.pixelbox.cmwatch.rules.MediaPreview.Kind.PAGE && AnteprimeAnimate.previewOf(f.path, siblings.map { s -> s.first.path to s.first.mime }) != null }
+    var draftOpen by rememberSaveable(key) { mutableStateOf(false) }
     // Ogni allegato a tutta larghezza della chat (Franz, 12/10 12:27 per immagini e video, 15/10 22:20 per tutti).
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Surface(color = if (v3) V3.S2 else Cm.surface, shape = MaterialTheme.shapes.medium, onClick = { opener.open(key, f) }, modifier = Modifier.fillMaxWidth()) {
@@ -1819,7 +1829,19 @@ private fun FileChip(f: TranscriptFile, entry: String, v3: Boolean = false) {
         // L'anteprima tra il nome e i tasti (Franz, 13/10 07:16: «l'anteprima del file dovrebbe stare tra nome file e tasti,
         // con i tasti sotto e nome sopra»).
         val seenPath = LocalSeenPath.current
-        if (local != null && kind == it.pixelbox.cmwatch.rules.MediaPreview.Kind.IMAGE) AttachmentThumb(local, fill = true) { seenPath(f.path) }
+        // Con la bozza accanto il tocco apre la bozza dal vivo (app-anteprime-webp-27-11); senza, il visore come prima.
+        fun openDraft(df: TranscriptFile, de: String) {
+            draftOpen = true
+            seenPath(f.path)
+            val dk = it.pixelbox.cmwatch.rules.FileCache.key(df, de)
+            if (opener.local[dk] == null) opener.preview(dk, df)
+        }
+        val toDraft: (() -> Unit)? = if (draft != null) ({ openDraft(draft.first, draft.second) }) else null
+        if (local != null && kind == it.pixelbox.cmwatch.rules.MediaPreview.Kind.IMAGE) AttachmentThumb(local, fill = true, mime = f.mime, onTap = toDraft) { seenPath(f.path) }
+        draft?.let { (df, de) ->
+            val dk = it.pixelbox.cmwatch.rules.FileCache.key(df, de)
+            if (draftOpen) PageFullDialog(opener.local[dk], df.mime, df.path.substringAfterLast('/'), missed = dk in opener.gone, onRetry = { opener.preview(dk, df) }) { draftOpen = false }
+        }
         if (local != null && kind == it.pixelbox.cmwatch.rules.MediaPreview.Kind.VIDEO) VideoPreview(local)
         if (local != null && kind == it.pixelbox.cmwatch.rules.MediaPreview.Kind.PDF) PdfFirstPage(local) { opener.open(key, f) }
         if (local != null && kind == it.pixelbox.cmwatch.rules.MediaPreview.Kind.TEXT) TextFirstLines(local) { opener.open(key, f) }
@@ -1827,7 +1849,7 @@ private fun FileChip(f: TranscriptFile, entry: String, v3: Boolean = false) {
         if (local != null && kind == it.pixelbox.cmwatch.rules.MediaPreview.Kind.PAGE) {
             var code by rememberSaveable(key) { mutableStateOf(false) }
             var full by rememberSaveable(key) { mutableStateOf(false) }
-            if (code) TextFirstLines(local) { opener.open(key, f) } else PagePreview(local, f.mime)
+            if (code) TextFirstLines(local) { opener.open(key, f) } else if (!light) PagePreview(local, f.mime)
             // Franz 24/10 00:40 (anteprime in app): «Schermo intero» apre la pagina a tutto schermo, scorrevole e cliccabile.
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 androidx.compose.material3.FilledTonalButton(onClick = { code = !code }) { Text(stringResource(if (code) R.string.file_page else R.string.file_code)) }
@@ -2021,7 +2043,7 @@ private fun StepsCard(g: ChatFeed.Item.Steps) = V3Theme {
             g.entries.flatMap { e -> e.files.orEmpty().map { it to e.id } }.takeIf { it.isNotEmpty() }?.let { files ->
                 FilesGroup(files, v3 = true)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    files.forEach { (f, id) -> FileChip(f, id, v3 = true) }
+                    files.forEach { (f, id) -> FileChip(f, id, v3 = true, siblings = files) }
                 }
             }
             // Contratto 1.72: le righe chiuse dei diff del gruppo, sempre in vista come i file.
@@ -2200,10 +2222,15 @@ private fun SmallAction(icon: androidx.compose.ui.graphics.vector.ImageVector, l
 
 /**
  * L'anteprima dell'immagine allegata, piccola nel fumetto e letta ridotta (con l'immagine intera il fumetto restava vuoto);
- * tocco = visore a tutto schermo con lo zoom. Niente se il file non c'è più.
+ * tocco = visore a tutto schermo con lo zoom. Niente se il file non c'è più. app-anteprime-webp-27-11: un WebP o una GIF (`mime`, o
+ * l'estensione) che si muovono girano a schermo, fermi col ▶ con le animazioni ridotte (MovingImage); `onTap` prende il posto del
+ * visore (la bozza dal vivo accanto all'immagine).
  */
 @Composable
-private fun AttachmentThumb(path: String, maxW: androidx.compose.ui.unit.Dp = 240.dp, maxH: androidx.compose.ui.unit.Dp = 180.dp, fill: Boolean = false, onFull: () -> Unit = {}) {
+private fun AttachmentThumb(
+    path: String, maxW: androidx.compose.ui.unit.Dp = 240.dp, maxH: androidx.compose.ui.unit.Dp = 180.dp, fill: Boolean = false,
+    mime: String? = null, onTap: (() -> Unit)? = null, onFull: () -> Unit = {},
+) {
     var full by remember { mutableStateOf(false) }
     // Aperta a tutto schermo: chi la mostra lo sa (un risultato con questo file diventa visto, app-risultati-visti-03-11).
     androidx.compose.runtime.LaunchedEffect(full) { if (full) onFull() }
@@ -2224,13 +2251,13 @@ private fun AttachmentThumb(path: String, maxW: androidx.compose.ui.unit.Dp = 24
     val images = LocalChatImages.current
     val me = remember { Any() }
     androidx.compose.runtime.DisposableEffect(images) { onDispose { images.remove(me) } }
-    androidx.compose.foundation.Image(
-        bmp, stringResource(R.string.attach_image), contentScale = ContentScale.Crop,
+    MovingImage(
+        path, AnteprimeAnimate.capable(mime, path), bmp, stringResource(R.string.attach_image), contentScale = ContentScale.Crop, max = if (fill) 1080 else 720,
         modifier = box.onGloballyPositioned { c ->
             thumb = androidx.compose.ui.geometry.Rect(c.localToScreen(androidx.compose.ui.geometry.Offset.Zero), c.size.toSize())
             images[me] = c.boundsInWindow().let { r -> it.pixelbox.cmwatch.rules.ChatZoom.Area(r.left, r.top, r.right, r.bottom) }
         }.graphicsLayer { alpha = if (pinch != null) 0f else 1f }
-            .clip(RoundedCornerShape(14.dp)).handCursor().clickable { start = null; full = true }.pointerInput(path) {
+            .clip(RoundedCornerShape(14.dp)).handCursor().clickable { if (onTap != null) onTap() else { start = null; full = true } }.pointerInput(path) {
                 awaitEachGesture {
                     awaitFirstDown(requireUnconsumed = false)
                     var p: ThumbPinch? = null
@@ -2370,14 +2397,20 @@ private fun ImageViewer(path: String, start: ViewerStart? = null, onShown: () ->
     val bmp = remember(path) { decodeScaled(path, 8192, 16_000_000L) }
     // Senza immagine niente visore, ma la finestra del pizzico va tolta lo stesso.
     if (bmp == null) { androidx.compose.runtime.SideEffect { onShown() }; return }
-    ImageViewer(bmp, start, onShown, onClose)
+    // app-anteprime-webp-27-11: un WebP o una GIF che si muovono girano nel visore, anche con le animazioni ridotte: il tocco li ha aperti apposta.
+    val moving = rememberMoving(path, 2048)
+    PlayWhile(moving, visible = true)
+    ImageViewer(bmp, start, onShown, onClose, moving)
 }
 
 /** Lo stesso visore per un file (Risultati, app-immagini-ingrandibili-03-11): decodifica fuori dal thread dell'interfaccia, poi a tutto schermo. */
 @Composable
 internal fun FileImageViewer(path: String, onClose: () -> Unit) {
     val bmp by androidx.compose.runtime.produceState<androidx.compose.ui.graphics.ImageBitmap?>(null, path) { value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { decodeScaled(path, 8192, 16_000_000L) } }
-    bmp?.let { ImageViewer(it, null, {}, onClose) }
+    // app-anteprime-webp-27-11: anche qui un WebP o una GIF animati girano.
+    val moving = rememberMoving(path, 2048)
+    PlayWhile(moving, visible = true)
+    bmp?.let { ImageViewer(it, null, {}, onClose, moving) }
 }
 
 /** Lo stesso visore per una bitmap già in memoria (le immagini di Funzioni, app-immagini-ingrandibili-03-11). */
@@ -2385,12 +2418,12 @@ internal fun FileImageViewer(path: String, onClose: () -> Unit) {
 internal fun BitmapImageViewer(bmp: androidx.compose.ui.graphics.ImageBitmap, onClose: () -> Unit) = ImageViewer(bmp, null, {}, onClose)
 
 @Composable
-private fun ImageViewer(bmp: androidx.compose.ui.graphics.ImageBitmap, start: ViewerStart?, onShown: () -> Unit, onClose: () -> Unit) {
+private fun ImageViewer(bmp: androidx.compose.ui.graphics.ImageBitmap, start: ViewerStart?, onShown: () -> Unit, onClose: () -> Unit, moving: androidx.compose.ui.graphics.painter.Painter? = null) {
     // A tutto schermo sotto le barre e senza l'animazione d'apertura del dialog: l'immagine compare dove il pizzico l'ha lasciata.
     androidx.compose.ui.window.Dialog(onDismissRequest = onClose, properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
         val dialogWindow = (androidx.compose.ui.platform.LocalView.current.parent as? androidx.compose.ui.window.DialogWindowProvider)?.window
         androidx.compose.runtime.SideEffect { dialogWindow?.setWindowAnimations(0); dialogWindow?.setDimAmount(0f) }
-        ZoomableImage(bmp, start, onShown) {
+        ZoomableImage(bmp, start, onShown, moving = moving) {
             IconButton(onClick = onClose, modifier = Modifier.align(Alignment.TopEnd).systemBarsPadding().padding(8.dp)) {
                 Icon(Icons.Rounded.Close, stringResource(R.string.close), tint = Cm.text)
             }
@@ -2401,11 +2434,13 @@ private fun ImageViewer(bmp: androidx.compose.ui.graphics.ImageBitmap, start: Vi
 /**
  * L'immagine che si ingrandisce e si sposta col dito, a tutta la scatola: il visore di una sola immagine e le pagine del visore delle
  * richieste (app-scheda-scelta-12-11). A 1x un dito solo non consuma niente, così la pagina scorre di lato; ingrandita, lo spostamento
- * è suo. `onZoom`: ingrandita o intera; `overlay` sta sopra l'immagine.
+ * è suo. `onZoom`: ingrandita o intera; `overlay` sta sopra l'immagine. `moving` (app-anteprime-webp-27-11): il WebP o la GIF che
+ * girano al posto della bitmap, che resta per le misure.
  */
 @Composable
 internal fun ZoomableImage(
     bmp: androidx.compose.ui.graphics.ImageBitmap, start: ViewerStart?, onShown: () -> Unit, onZoom: (Boolean) -> Unit = {},
+    moving: androidx.compose.ui.graphics.painter.Painter? = null,
     overlay: @Composable androidx.compose.foundation.layout.BoxScope.() -> Unit = {},
 ) {
     var view by remember { mutableStateOf(it.pixelbox.cmwatch.rules.ZoomPan.View()) }
@@ -2483,10 +2518,9 @@ internal fun ZoomableImage(
                 }
             },
     ) {
-        androidx.compose.foundation.Image(
-            bmp, stringResource(R.string.attach_image), contentScale = ContentScale.Fit,
-            modifier = Modifier.fillMaxSize().graphicsLayer { scaleX = view.scale; scaleY = view.scale; translationX = view.x; translationY = view.y },
-        )
+        val shown = Modifier.fillMaxSize().graphicsLayer { scaleX = view.scale; scaleY = view.scale; translationX = view.x; translationY = view.y }
+        if (moving != null) androidx.compose.foundation.Image(moving, stringResource(R.string.attach_image), contentScale = ContentScale.Fit, modifier = shown)
+        else androidx.compose.foundation.Image(bmp, stringResource(R.string.attach_image), contentScale = ContentScale.Fit, modifier = shown)
         overlay()
     }
 }
@@ -3216,7 +3250,7 @@ private fun ToolNode(e: TranscriptEntry, flashed: Boolean) {
         }
         e.files?.takeIf { it.isNotEmpty() }?.let { fs ->
             FilesGroup(fs.map { it to e.id })
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { fs.forEach { FileChip(it, e.id) } }
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { fs.forEach { FileChip(it, e.id, siblings = fs.map { x -> x to e.id }) } }
         }
     }
 }

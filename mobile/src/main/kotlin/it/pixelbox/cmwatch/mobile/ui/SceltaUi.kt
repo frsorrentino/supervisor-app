@@ -81,6 +81,7 @@ import androidx.compose.ui.unit.sp
 import it.pixelbox.cmwatch.contract.WaitFile
 import it.pixelbox.cmwatch.contract.WaitItem
 import it.pixelbox.cmwatch.mobile.R
+import it.pixelbox.cmwatch.rules.AnteprimeAnimate
 import it.pixelbox.cmwatch.rules.Scelta
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -138,17 +139,22 @@ private val Mat: Color @Composable get() = V3.Tx.copy(alpha = 0.07f).compositeOv
  * un tocco la ingrandisce. Si chiede al PC appena la cornice è in pagina; finché non arriva la cornice dice che è in arrivo, e se non
  * arriva lo dice col tasto per richiederla. `small`: le miniature, senza parole; `strip` (la scheda chiusa, scelta A di Franz del 12/11
  * alle 17:46): il nome dell'opzione nella fascia e di una schermata alta la parte in cima. `ratio` dà la forma dalla proporzione
- * dell'immagine (null finché non c'è).
+ * dell'immagine (null finché non c'è). app-anteprime-webp-27-11: un WebP o una GIF che si muovono girano a schermo (MovingImage), fermi
+ * col ▶ con le animazioni ridotte; con `draft`, la bozza HTML con lo stesso nome fra i file della carta, il tocco apre la bozza dal vivo
+ * a schermo intero invece del visore.
  */
 @Composable
 internal fun WaitImage(
     file: WaitFile, modifier: Modifier = Modifier, letter: String? = null, name: String = "", small: Boolean = false, strip: Boolean = false,
     picked: Boolean = false, ratio: (Float?) -> Float = { r -> Scelta.frameRatio(listOf(r)) }, maxHeight: Dp = Dp.Infinity,
-    onRatio: (Float) -> Unit = {}, onOpen: (() -> Unit)? = null,
+    onRatio: (Float) -> Unit = {}, onOpen: (() -> Unit)? = null, draft: WaitFile? = null,
 ) {
     val host = LocalWaitFiles.current
     val key = Scelta.fileKey(file)
     val local = host.local[key]
+    var live by remember(key) { mutableStateOf(false) }
+    // La bozza dal vivo: chiesta al PC al tocco, se non c'è già; la pagina intera dice che sta arrivando finché non c'è.
+    val tap: (() -> Unit)? = if (draft != null) ({ live = true; if (host.local[Scelta.fileKey(draft)] == null) host.ask(draft) }) else onOpen
     LaunchedEffect(key) { if (host.local[key] == null && key !in host.loading && key !in host.missed) host.ask(file) }
     // Negli snapshot (Paparazzi) l'immagine si legge subito: fuori dal thread dell'interfaccia arriverebbe dopo la foto.
     val bmp = if (host.decodeNow || androidx.compose.ui.platform.LocalInspectionMode.current) remember(local) { local?.let { p -> decodePlain(p, if (small) 720 else 1600) } }
@@ -170,10 +176,12 @@ internal fun WaitImage(
             val b = bmp
             if (b != null) {
                 val fill = Modifier.fillMaxSize()
-                androidx.compose.foundation.Image(
-                    b, if (onOpen == null) name.ifEmpty { file.name } else null,
+                val label = if (draft != null) stringResource(R.string.anim_draft_open) else stringResource(R.string.scelta_zoom, letter ?: file.name)
+                MovingImage(
+                    local, AnteprimeAnimate.capable(file.mime, file.path), b, if (tap == null) name.ifEmpty { file.name } else null,
+                    modifier = if (tap != null) fill.handCursor().clickable(onClickLabel = label) { tap() } else fill,
                     contentScale = if (strip) ContentScale.Crop else ContentScale.Fit, alignment = if (strip) Alignment.TopCenter else Alignment.Center,
-                    modifier = if (onOpen != null) fill.handCursor().clickable(onClickLabel = stringResource(R.string.scelta_zoom, letter ?: file.name)) { onOpen() } else fill,
+                    max = if (small) 720 else 1600, small = small,
                 )
             } else if (!small) Column(
                 Modifier.align(Alignment.Center).padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -189,7 +197,15 @@ internal fun WaitImage(
             }
         }
     }
+    if (live && draft != null) {
+        val dk = Scelta.fileKey(draft)
+        PageFullDialog(host.local[dk], draft.mime, draft.name.ifEmpty { draft.path.substringAfterLast('/') }, missed = dk in host.missed, onRetry = { host.ask(draft) }) { live = false }
+    }
 }
+
+/** app-anteprime-webp-27-11: la bozza HTML di un'immagine animata fra i file dello stesso elenco (AnteprimeAnimate.draftOf), o null. */
+private fun draftFor(f: WaitFile, all: List<WaitFile>): WaitFile? =
+    AnteprimeAnimate.draftOf(f.path, f.mime, all.map { it.path })?.let { p -> all.firstOrNull { it.path == p } }
 
 /**
  * La cornice di un'immagine: tutta la larghezza, alta quanto vuole la proporzione `ratio` ma non oltre `maxHeight`. A misura esplicita:
@@ -355,6 +371,7 @@ fun SceltaAperta(
                 WaitImage(
                     o.images[0], letter = o.letter, picked = chosen, ratio = { ar }, maxHeight = cap,
                     onRatio = { r -> ratios[Scelta.fileKey(o.images[0])] = r }, onOpen = { enlarge(c.options, o.images[0]) },
+                    draft = draftFor(o.images[0], o.images + o.docs),
                 )
                 if (o.images.size > 1) Box(
                     Modifier.align(Alignment.BottomEnd).padding(6.dp).clip(RoundedCornerShape(8.dp)).background(V3.S1.copy(alpha = 0.9f))
@@ -488,7 +505,7 @@ fun SceltaAperta(
                     (r.description ?: r.text).takeIf { it.isNotBlank() }?.let { LongText(it, style = V3.Small) }
                     val shown = r.options.filter { it.images.isNotEmpty() }
                     if (shown.isNotEmpty()) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        shown.forEach { o -> WaitImage(o.images[0], Modifier.width(96.dp), letter = o.letter, small = true, onOpen = { enlarge(r.options, o.images[0], roundName) }) }
+                        shown.forEach { o -> WaitImage(o.images[0], Modifier.width(96.dp), letter = o.letter, small = true, onOpen = { enlarge(r.options, o.images[0], roundName) }, draft = draftFor(o.images[0], o.images + o.docs)) }
                     }
                     Text(buildAnnotatedString {
                         r.options.forEachIndexed { i, o ->
@@ -523,12 +540,13 @@ fun WaitFilesBlock(files: List<WaitFile>) {
         if (start >= 0) zoom = ready.map { it.second to it.third } to start
     }
     Column(Modifier.fillMaxWidth().testTag("attesa-file"), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // app-anteprime-webp-27-11: un'immagine animata con la sua bozza HTML fra i file della carta apre la bozza dal vivo.
         if (parts.images.size == 1) {
             val f = parts.images[0]
-            WaitImage(f, Modifier.widthIn(max = 520.dp).fillMaxWidth(), ratio = { ar }, maxHeight = cap, onRatio = { r -> ratios[Scelta.fileKey(f)] = r }, onOpen = { enlarge(f) })
+            WaitImage(f, Modifier.widthIn(max = 520.dp).fillMaxWidth(), ratio = { ar }, maxHeight = cap, onRatio = { r -> ratios[Scelta.fileKey(f)] = r }, onOpen = { enlarge(f) }, draft = draftFor(f, files))
         } else parts.images.chunked(2).forEach { line ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                line.forEach { f -> WaitImage(f, Modifier.weight(1f), ratio = { ar }, maxHeight = cap, onRatio = { r -> ratios[Scelta.fileKey(f)] = r }, onOpen = { enlarge(f) }) }
+                line.forEach { f -> WaitImage(f, Modifier.weight(1f), ratio = { ar }, maxHeight = cap, onRatio = { r -> ratios[Scelta.fileKey(f)] = r }, onOpen = { enlarge(f) }, draft = draftFor(f, files)) }
                 if (line.size == 1) Spacer(Modifier.weight(1f))
             }
         }
@@ -554,7 +572,10 @@ fun WaitImagesViewer(items: List<Pair<String, String>>, start: Int, onClose: () 
             androidx.compose.foundation.pager.HorizontalPager(pager, userScrollEnabled = !zoomed, modifier = Modifier.fillMaxSize()) { page ->
                 val path = items[page].first
                 val bmp by produceState<ImageBitmap?>(null, path) { value = withContext(Dispatchers.IO) { decodeScaled(path, 4096, 12_000_000L) ?: decodePlain(path, 4096) } }
-                bmp?.let { b -> ZoomableImage(b, null, {}, onZoom = { z -> if (page == pager.currentPage) zoomed = z }) }
+                // app-anteprime-webp-27-11: un WebP o una GIF che si muovono girano qui anche con le animazioni ridotte, aperti apposta.
+                val moving = rememberMoving(path, 2048)
+                PlayWhile(moving, visible = true)
+                bmp?.let { b -> ZoomableImage(b, null, {}, onZoom = { z -> if (page == pager.currentPage) zoomed = z }, moving = moving) }
             }
             Row(
                 Modifier.fillMaxWidth().systemBarsPadding().padding(start = 16.dp, end = 8.dp, top = 8.dp),

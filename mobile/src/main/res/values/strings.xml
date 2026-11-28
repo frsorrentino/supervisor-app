@@ -2231,4 +2231,7 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="pagella_kind_test">test</string>
     <string name="pagella_cases">%d casi</string>
     <string name="pagella_defects">%d%% con difetti</string>
+    <!-- app-anteprime-webp-27-11: l'anteprima animata ferma col ▶ (animazioni ridotte) e il tocco su quella con accanto la sua bozza HTML. -->
+    <string name="anim_play">Guarda l\'animazione</string>
+    <string name="anim_draft_open">Apri la bozza dal vivo</string>
 </resources>

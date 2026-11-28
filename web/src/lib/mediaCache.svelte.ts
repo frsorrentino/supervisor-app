@@ -13,3 +13,5 @@ export const coming: Record<string, number> = $state({})
 export const pages: Record<string, { mime: string; text: string }> = $state({})
 /** Le proporzioni (larghezza / altezza) delle immagini già viste, con la stessa chiave: la cornice di una scheda di scelta prende la forma delle sue immagini (app-scheda-scelta-12-11). */
 export const imageRatios: Record<string, number> = $state({})
+/** app-anteprime-webp-27-11: i byte dei WebP e delle GIF che si muovono davvero, con la stessa chiave; il primo fotogramma si disegna da qui. */
+export const moving: Record<string, Blob> = $state({})

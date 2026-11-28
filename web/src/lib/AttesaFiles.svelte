@@ -5,6 +5,7 @@
   import ImageViewer from './ImageViewer.svelte'
   import { imageRatios, media } from './mediaCache.svelte'
   import { frameRatio, sizeText, splitFiles, waitFileKey } from './scelta'
+  import { draftIn } from './anteprimeAnimate'
   // I file di una richiesta che non stanno in un'opzione (app-scheda-scelta-12-11, contratto 1.137): le immagini di cosa guardare di
   // una verifica, gli allegati di un ok, i file in più di una scelta. Le immagini nelle loro cornici, affiancate quando sono più
   // d'una, e si ingrandiscono al tocco (nel visore si passa dall'una all'altra); i documenti una riga l'uno, un tocco li apre.
@@ -22,7 +23,8 @@
 <div class="af" data-testid="attesa-file">
   {#if parts.images.length}
     <div class="pics" class:one={parts.images.length === 1} class:many={parts.images.length > 2} style:--ar={ar}>
-      {#each parts.images as f (waitFileKey(f))}<AttesaImmagine file={f} label={f.name} onAsk={(x) => onFile(x, 'preview')} onOpen={() => enlarge(f)} />{/each}
+      <!-- app-anteprime-webp-27-11: un'immagine animata con la sua bozza HTML fra i file della carta apre la bozza dal vivo. -->
+      {#each parts.images as f (waitFileKey(f))}<AttesaImmagine file={f} label={f.name} draft={draftIn(f, files)} onAsk={(x) => onFile(x, 'preview')} onOpen={() => enlarge(f)} />{/each}
     </div>
   {/if}
   {#if parts.docs.length}

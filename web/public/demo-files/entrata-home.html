@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Entrata della home, bozza</title>
+<style>
+  /* Bozza dal vivo della demo (app-anteprime-webp-27-11): l'entrata della home, i blocchi uno dopo l'altro, in loop. Solo CSS. */
+  :root { color-scheme: dark; --bg: #0b0b0b; --s1: #161616; --s3: #262626; --tx: #ededed; --tx2: #a3a3a3; --wait: #ffb23f; --good: #6fcf8a; --busy: #6ea8ff; }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--tx); font: 15px/1.35 system-ui, sans-serif; }
+  header { display: flex; align-items: baseline; gap: 10px; padding: 18px 16px 10px; }
+  header b { font-size: 20px; }
+  header span { color: var(--tx2); font-size: 13px; }
+  main { display: grid; gap: 10px; padding: 6px 12px 16px; }
+  .b { background: var(--s1); border-radius: 18px; padding: 14px 16px; animation: entra 3.2s cubic-bezier(.34, 1.56, .64, 1) infinite both; }
+  .b:nth-child(1) { animation-delay: 70ms; } .b:nth-child(2) { animation-delay: 115ms; } .b:nth-child(3) { animation-delay: 160ms; } .b:nth-child(4) { animation-delay: 205ms; }
+  .b h2 { margin: 0 0 6px; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--tx2); font-weight: 600; }
+  .n { font-size: 30px; font-weight: 700; }
+  .w { color: var(--wait); } .g { color: var(--good); } .k { color: var(--busy); }
+  .bar { height: 8px; border-radius: 4px; background: var(--s3); overflow: hidden; margin-top: 8px; }
+  .bar i { display: block; height: 100%; width: 75%; background: var(--wait); border-radius: 4px; transform-origin: left; animation: barra 3.2s cubic-bezier(.34, 1.56, .64, 1) 425ms infinite both; }
+  @keyframes entra {
+    0% { opacity: 0; transform: translateY(24px) scale(.94); filter: blur(5px); }
+    14% { opacity: 1; filter: blur(0); }
+    22%, 88% { opacity: 1; transform: none; filter: blur(0); }
+    100% { opacity: 0; transform: none; filter: blur(0); }
+  }
+  @keyframes barra { 0%, 8% { transform: scaleX(0); } 32%, 88% { transform: scaleX(1); } 100% { transform: scaleX(1); } }
+  @media (prefers-reduced-motion: reduce) { .b, .bar i { animation: none; } }
+</style>
+</head>
+<body>
+<header><b>Supervisor</b><span>4 aperte</span></header>
+<main>
+  <section class="b"><h2>Ti aspettano</h2><div class="n w">3</div><div>domande e scelte da decidere</div></section>
+  <section class="b"><h2>Al lavoro</h2><div class="n k">1</div><div>storefront, fase 2.2</div></section>
+  <section class="b"><h2>Esiti di oggi</h2><div class="n g">7</div><div>tutti verdi</div></section>
+  <section class="b"><h2>Settimana</h2><div class="n">75 %</div><div class="bar"><i></i></div></section>
+</main>
+</body>
+</html>

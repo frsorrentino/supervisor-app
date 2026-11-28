@@ -22,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -80,9 +81,13 @@ internal fun PagePreview(path: String, mime: String?, fill: Boolean = false) {
     )
 }
 
-/** Franz 24/10 00:40: la pagina a schermo intero, scorrevole e cliccabile, con il nome del file e «Chiudi». */
+/**
+ * Franz 24/10 00:40: la pagina a schermo intero, scorrevole e cliccabile, con il nome del file e «Chiudi». Dal 27/11
+ * (app-anteprime-webp-27-11) anche la bozza dal vivo che il tocco su un'anteprima animata apre: senza `path` la bozza sta ancora
+ * arrivando dal PC e lo dice; `missed`, non è arrivata, col tasto per richiederla.
+ */
 @Composable
-internal fun PageFullDialog(path: String, mime: String?, name: String, onClose: () -> Unit) {
+internal fun PageFullDialog(path: String?, mime: String?, name: String, missed: Boolean = false, onRetry: (() -> Unit)? = null, onClose: () -> Unit) {
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
         Column(Modifier.fillMaxSize().background(Cm.bg).safeDrawingPadding()) {
             Row(
@@ -92,7 +97,17 @@ internal fun PageFullDialog(path: String, mime: String?, name: String, onClose: 
                 Text(name, style = MaterialTheme.typography.bodyMedium, color = Cm.text2, maxLines = 1, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f))
                 IconButton(onClick = onClose) { Icon(Icons.Rounded.Close, stringResource(R.string.close), tint = Cm.text) }
             }
-            PagePreview(path, mime, fill = true)
+            if (path != null) PagePreview(path, mime, fill = true)
+            else Column(
+                Modifier.fillMaxSize().padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically), horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    stringResource(if (missed) R.string.attesa_preview_missed else R.string.attesa_preview_coming),
+                    style = MaterialTheme.typography.bodyMedium, color = Cm.text2, textAlign = TextAlign.Center,
+                )
+                if (missed && onRetry != null) V3Pill(stringResource(R.string.attesa_preview_retry)) { onRetry() }
+            }
         }
     }
 }
