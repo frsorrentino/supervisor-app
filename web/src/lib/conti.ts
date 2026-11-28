@@ -12,7 +12,12 @@ export type ContiDettaglio = {
   releases: { tag: string; at: number }[]; git?: boolean
 }
 export type PagellaRow = { model: string; kind: string; n: number; enough: boolean; defects?: number | null; rate?: number | null; efforts?: Record<string, number> }
-export type Pagella = { since: number; min: number; rows: PagellaRow[]; advice?: string[]; unknown_model?: number }
+/**
+ * app-pagella-effort-28-11 (nota di win-supervisor, 28/11): dal contratto 1.103 un consiglio della pagella è un oggetto, cioè per un tipo
+ * di lavoro il modello che sbaglia meno e quello che sbaglia di più, coi tassi di difetti da 0 a 1. Una stringa resta testo.
+ */
+export type PagellaAdvice = { kind: string; better: string; worse: string; rate_better?: number | null; rate_worse?: number | null }
+export type Pagella = { since: number; min: number; rows: PagellaRow[]; advice?: (PagellaAdvice | string)[]; unknown_model?: number }
 export type ContiPage = { at: number; mese: string; mesi: string[]; clienti: ContiCliente[]; dettaglio?: ContiDettaglio | null; pagella?: Pagella | null }
 
 export function decodeConti(raw: string): ContiPage {
@@ -42,3 +47,11 @@ export function modelName(id: string): string {
 
 /** «14 %» dei casi con un difetto, arrotondato. */
 export const ratePct = (r: PagellaRow) => (r.rate == null ? null : Math.round(r.rate * 100))
+const pct = (r: number | null | undefined) => (r == null ? null : Math.round(r * 100))
+type AdviceWords = { pagellaKind: Record<string, string>; pagellaAdvice: (k: string, b: string, rb: number | null, w: string, rw: number | null) => string }
+/** Un consiglio della pagella detto come frase, nella lingua di [w]; una stringa com'è. */
+export function adviceText(a: PagellaAdvice | string, w: AdviceWords): string {
+  if (typeof a === 'string') return a
+  const k = w.pagellaKind[a.kind] ?? a.kind
+  return w.pagellaAdvice(k.charAt(0).toUpperCase() + k.slice(1), modelName(a.better), pct(a.rate_better), modelName(a.worse), pct(a.rate_worse))
+}

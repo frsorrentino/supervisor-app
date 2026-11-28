@@ -525,9 +525,24 @@ enum class CmdOp {
 @Serializable data class ContiCommit(val hash: String, val at: Long, val subject: String)
 @Serializable data class ContiRelease(val tag: String, val at: Long)
 @Serializable data class Pagella(
-    val since: Long, val min: Int = 10, val rows: List<PagellaRow> = emptyList(), val advice: List<String> = emptyList(),
+    val since: Long, val min: Int = 10, val rows: List<PagellaRow> = emptyList(),
+    val advice: List<@Serializable(with = PagellaAdviceSerializer::class) PagellaAdvice> = emptyList(),
     @SerialName("unknown_model") val unknownModel: Int = 0,
 )
+/**
+ * app-pagella-effort-28-11 (nota di win-supervisor, 28/11): dal contratto 1.103 un consiglio della pagella è un oggetto, cioè per un
+ * tipo di lavoro ([kind]) il modello che sbaglia meno ([better]) e quello che sbaglia di più ([worse]), coi tassi di difetti da 0 a 1.
+ * L'app lo leggeva come stringa: finché la lista era vuota non se ne accorgeva nessuno, col primo consiglio Rendiconti non si sarebbe
+ * più letto. Una stringa resta leggibile come [text] (PagellaAdviceSerializer).
+ */
+@Serializable data class PagellaAdvice(
+    val kind: String = "", val better: String = "", val worse: String = "",
+    @SerialName("rate_better") val rateBetter: Double? = null, @SerialName("rate_worse") val rateWorse: Double? = null, val text: String? = null,
+)
+object PagellaAdviceSerializer : kotlinx.serialization.json.JsonTransformingSerializer<PagellaAdvice>(PagellaAdvice.serializer()) {
+    override fun transformDeserialize(element: kotlinx.serialization.json.JsonElement): kotlinx.serialization.json.JsonElement =
+        if (element is kotlinx.serialization.json.JsonPrimitive && element.isString) kotlinx.serialization.json.JsonObject(mapOf("text" to element)) else element
+}
 @Serializable data class PagellaRow(
     val model: String, val kind: String, val n: Int, val enough: Boolean = false, val defects: Int? = null, val rate: Double? = null,
     val efforts: Map<String, Int> = emptyMap(),

@@ -142,7 +142,15 @@ fun PagellaBody(pagella: Pagella, zone: ZoneId = ZoneId.systemDefault()) {
             }
         }
         // app-play-lettura-ovunque-27-11: ogni consiglio col ▶ accanto se va oltre una riga.
-        pagella.advice.forEach { a -> LongText(a, Modifier.padding(start = 14.dp, end = 14.dp, top = 6.dp), style = V3.Small.copy(fontSize = 14.sp, color = V3.Wait)) }
+        // app-pagella-effort-28-11: il consiglio è un oggetto (contratto 1.103), detto come frase; una stringa vecchia resta com'è.
+        pagella.advice.forEach { a ->
+            val kind = (kinds[a.kind]?.let { stringResource(it) } ?: a.kind).replaceFirstChar { it.uppercase() }
+            val rb = ContiRules.pct(a.rateBetter)
+            val rw = ContiRules.pct(a.rateWorse)
+            val text = a.text ?: if (rb != null && rw != null) stringResource(R.string.pagella_advice, kind, ContiRules.modelName(a.better), rb, ContiRules.modelName(a.worse), rw)
+                else stringResource(R.string.pagella_advice_plain, kind, ContiRules.modelName(a.better), ContiRules.modelName(a.worse))
+            LongText(text, Modifier.padding(start = 14.dp, end = 14.dp, top = 6.dp), style = V3.Small.copy(fontSize = 14.sp, color = V3.Wait))
+        }
     }
 }
 

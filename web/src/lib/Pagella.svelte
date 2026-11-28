@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Pagella } from './conti'
-  import { modelName, pagellaRows, ratePct } from './conti'
+  import { adviceText, modelName, pagellaRows, ratePct } from './conti'
   import { locale } from './lang'
   import { t } from './t'
   import LongText from './LongText.svelte'
@@ -20,7 +20,7 @@
     </div>
   {/each}
   <!-- app-play-lettura-ovunque-27-11: ogni consiglio col ▶ accanto, se va oltre una riga. -->
-  {#each pagella.advice ?? [] as a}<div class="adv"><LongText text={a} /></div>{/each}
+  {#each pagella.advice ?? [] as a}<div class="adv"><LongText text={adviceText(a, t)} /></div>{/each}
 </div>
 
 <style>

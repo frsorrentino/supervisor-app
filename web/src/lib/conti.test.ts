@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { decodeConti, modelName, monthName, pagellaRows, ratePct } from './conti'
+import { adviceText, decodeConti, modelName, monthName, pagellaRows, ratePct } from './conti'
+import { t } from './t'
 
 // app-rendiconti-2-02-11: la pagina dei conti della fixture del relay (contratto 1.103, cmd-result-sample …0913).
 const sample = JSON.parse(readFileSync('../contract/cmd-result-sample.json', 'utf8')) as { result: { id: string; text: string }[] }
@@ -21,4 +22,12 @@ describe('rendiconti e pagella', () => {
     expect(pagellaRows({ since: 0, min: 10, rows: [{ model: 'claude-sonnet-5-5', kind: 'fix', n: 9, enough: false }] })).toEqual([])
     expect(pagellaRows(null)).toEqual([])
   })
+})
+
+// app-pagella-effort-28-11: dal contratto 1.103 il consiglio è un oggetto; una stringa resta testo.
+describe('consiglio della pagella', () => {
+  const a = { kind: 'fix', better: 'claude-opus-5-5', worse: 'claude-sonnet-5-5', rate_better: 0.08, rate_worse: 0.21 }
+  it('oggetto coi tassi', () => expect(adviceText(a, t)).toBe('Correzioni: meglio Opus 5.5 (8% con difetti) che Sonnet 5.5 (21%)'))
+  it('oggetto senza tassi', () => expect(adviceText({ ...a, rate_better: null }, t)).toBe('Correzioni: meglio Opus 5.5 che Sonnet 5.5'))
+  it('una stringa resta com’è', () => expect(adviceText('un consiglio scritto', t)).toBe('un consiglio scritto'))
 })

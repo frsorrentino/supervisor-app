@@ -2219,6 +2219,8 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="pagella_kind_test">test</string>
     <string name="pagella_cases">%d casi</string>
     <string name="pagella_defects">%d%% con difetti</string>
+    <string name="pagella_advice">%1$s: meglio %2$s (%3$d%% con difetti) che %4$s (%5$d%%)</string>
+    <string name="pagella_advice_plain">%1$s: meglio %2$s che %3$s</string>
     <!-- app-anteprime-webp-27-11: l'anteprima animata ferma col ▶ (animazioni ridotte) e il tocco su quella con accanto la sua bozza HTML. -->
     <string name="anim_play">Guarda l\'animazione</string>
     <string name="anim_draft_open">Apri la bozza dal vivo</string>

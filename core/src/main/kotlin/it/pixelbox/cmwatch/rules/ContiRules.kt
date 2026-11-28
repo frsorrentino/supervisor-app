@@ -21,6 +21,8 @@ object ContiRules {
 
     /** La percentuale dei casi con un difetto, arrotondata; null senza misura. */
     fun ratePct(r: PagellaRow): Int? = r.rate?.let { Math.round(it * 100).toInt() }
+    /** app-pagella-effort-28-11: un tasso di un consiglio della pagella (0..1) in percento, come le righe. */
+    fun pct(rate: Double?): Int? = rate?.let { Math.round(it * 100).toInt() }
 
     /** «settembre 2026» da «2026-09», nella lingua data. */
     fun monthName(mese: String, locale: java.util.Locale): String {

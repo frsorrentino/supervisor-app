@@ -34,4 +34,18 @@ class ContiRulesTest {
         assertEquals(emptyList<PagellaRow>(), ContiRules.pagellaRows(Pagella(0, 10, listOf(PagellaRow("claude-sonnet-5-5", "fix", 9)))))
         assertEquals(emptyList<PagellaRow>(), ContiRules.pagellaRows(null))
     }
+
+    // app-pagella-effort-28-11: dal contratto 1.103 il consiglio della pagella è un oggetto; una stringa resta leggibile come testo.
+    @Test fun pagella_consiglioOggettoOStringa() {
+        val p = ContractJson.json.decodeFromString(Pagella.serializer(),
+            """{"since":1,"advice":[{"kind":"fix","better":"claude-opus-5-5","worse":"claude-sonnet-5-5","rate_better":0.08,"rate_worse":0.21},"un consiglio scritto"]}""")
+        assertEquals(2, p.advice.size)
+        assertEquals("fix", p.advice[0].kind)
+        assertEquals("Opus 5.5", ContiRules.modelName(p.advice[0].better))
+        assertEquals(8, ContiRules.pct(p.advice[0].rateBetter))
+        assertEquals(21, ContiRules.pct(p.advice[0].rateWorse))
+        assertEquals(null, p.advice[0].text)
+        assertEquals("un consiglio scritto", p.advice[1].text)
+        assertEquals(null, ContiRules.pct(null))
+    }
 }

@@ -2170,6 +2170,8 @@ It starts at your last message to the master.</string>
     <string name="pagella_kind_test">tests</string>
     <string name="pagella_cases">%d cases</string>
     <string name="pagella_defects">%d%% with defects</string>
+    <string name="pagella_advice">%1$s: %2$s does better (%3$d%% with defects) than %4$s (%5$d%%)</string>
+    <string name="pagella_advice_plain">%1$s: %2$s does better than %3$s</string>
     <string name="anim_play">Play the animation</string>
     <string name="anim_draft_open">Open the live draft</string>
     <string name="tab_chat">Chat</string>
