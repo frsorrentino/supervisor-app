@@ -22,7 +22,14 @@
   // badge e nome, come la plancia del tablet.
   // app-posizioni-sistema-27-11 gruppo 2: con `tabs` (una sessione, non la master) la riga dei dati e le note vanno in Dettagli, e sotto
   // il nome c'è la riga di icone; il ⋮ resta accanto al nome (nella plancia lo prende la testata della colonna, headMore.svelte.ts).
-  let { st, s, wide, onBack, onCmd, onPrompt, onHandoff, onUsage = () => {}, onGo = null, onReopen = null, appMenu = null, onChanges = null, menuMove = null, onMine = null, tabs = null }: {
+  let { st, s, wide, onBack, onCmd, onPrompt, onHandoff, onUsage = () => {}, onGo = null, onReopen = null, appMenu = null, onChanges = null, menuMove = null, onMine = null, tabs = null, inSheet = false, sheetNotes = null }: {
+    /**
+     * app-posizioni-sistema-27-11 gruppo 4: la master nel suo foglio. Niente testata qui: il ⋮ va nella riga del foglio (headMore) e in cima
+     * porta quello che mostrava la riga dei dati (modello ed effort, quota delle 5 ore, contesto, obiettivo e note, Modifiche) e gli Avvisi.
+     */
+    inSheet?: boolean
+    /** Gli Avvisi della master nel foglio, in cima al ⋮; null senza avvisi. */
+    sheetNotes?: Snippet | null
     /** La riga di icone della sessione (gruppo 2); senza, la testata di prima con la riga dei dati (la master). */
     tabs?: Snippet | null
     /** La voce del menu ⋮ che sposta il pannello della master di lato, nella plancia (Franz 30/10 13:26). */
@@ -65,7 +72,7 @@
   // Sul telefono la pillola è la prima voce del menu ⋮, col puntino sul ⋮: la testata resta su una riga (Franz, 16/10 13:08).
   let viewport = $state(typeof window === 'undefined' ? 1280 : window.innerWidth)
   // Con la riga di icone le modifiche hanno la loro scheda, col numero dei file: niente voce nel menu né puntino sul ⋮.
-  const changesMenu = $derived(!tabs && !!changes && inMenu(viewport))
+  const changesMenu = $derived((!tabs && !!changes && inMenu(viewport)) || (inSheet && !!changes))
   // Un menu solo, lo stesso dalla home e dalla plancia (app-menu-sessione-03-11): le voci e l'ordine da sessionMenu.
   const items = $derived(sessionMenu(s, st, mineOf(st, s.name), { changes: changesMenu && !!changes, canExit }))
   const has = (k: MenuKind) => items.some(i => i.kind === k)
@@ -196,11 +203,12 @@
   }
   // Nella plancia il ⋮ lo prende la testata della colonna; se nessuna lo prende resta accanto alla riga di icone.
   const lent = $derived(!!tabs && !top && (heads.claims[s.name] ?? 0) > 0)
-  $effect(() => { if (tabs && !top) return lend(s.name, more) })
+  $effect(() => { if ((tabs && !top) || inSheet) return lend(s.name, more) })
 </script>
 
 <svelte:window bind:innerWidth={viewport} onkeydown={(e) => e.key === 'Escape' && (menu = false)} />
 
+{#if !inSheet}
 <header bind:clientWidth={width} class:bare={!tabs && !notes.length && (!changes || changesMenu || chInline)} class:tabs={!!tabs}>
   {#if top}
     <div class="row top">
@@ -266,6 +274,7 @@
   {#each notes as n}<div class="note"><LongText text={n} /></div>{/each}
   {/if}
 </header>
+{/if}
 
 <!-- Il menu ⋮ della sessione: nella riga dei dati, nella riga del nome o nella testata della colonna (gruppo 2). -->
 {#snippet more()}
@@ -274,12 +283,34 @@
     <button class="ib trig" class:open={menu} aria-label={menu ? t.closeWord : t.more} aria-expanded={menu} onclick={() => (menu = !menu)}>
       {#if menu}<svg viewBox="0 0 24 24" width="22" height="22"><path d="M18 6 6 18M6 6l12 12" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round" /></svg>
       {:else}<svg viewBox="0 0 24 24" width="22" height="22"><g fill="var(--text2)"><circle cx="12" cy="5" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="12" cy="19" r="2" /></g></svg>{/if}
-      {#if changesMenu}<span class="mdot" aria-hidden="true"></span>{/if}
+      {#if changesMenu || (inSheet && sheetNotes)}<span class="mdot" aria-hidden="true"></span>{/if}
     </button>
     {#if menu}
       <button class="scrim" aria-label={t.closeWord} onclick={() => (menu = false)}></button>
       <div class="panel v3" transition:genie role="menu">
         <div class="ph"><Badge {s} size={20} /><b>{s.name}</b></div>
+        {#if inSheet}
+          <!-- Gruppo 4: nel foglio della master qui in cima gli Avvisi e quello che mostrava la riga dei dati, coi suoi stessi tocchi. -->
+          {#if sheetNotes}<div class="mnotes" data-testid="foglio-avvisi"><p class="msec">{t.boxNotes}</p>{@render sheetNotes()}</div>{/if}
+          <button class="mi" role="menuitem" disabled={!tunable} data-testid="foglio-modello" onclick={(e) => { const a = (e.currentTarget as HTMLElement).closest<HTMLElement>('.anchor'); menu = false; openTune(a) }}>
+            <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M7 7l2 2M15 15l2 2M17 7l-2 2M9 15l-2 2" /></svg>
+            <span><span class="mt">{[shortModel(model) ?? t.modelTitle, effort].filter(Boolean).join(' · ')}</span><span class="msub">{t.detailsModel}</span></span>
+          </button>
+          {#if quota?.h5 != null}
+            <button class="mi" role="menuitem" data-testid="foglio-quota" onclick={() => { menu = false; onUsage() }}>
+              <svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+              <span><span class="mt" class:stale={quota.stale}>{quotaLabel('full', t.quota5h(quota.h5), reset)}</span><span class="msub">{t.detailsQuota}</span></span>
+            </button>
+          {/if}
+          {#if s.context != null}
+            <button class="mi" role="menuitem" disabled={!tunable} data-testid="foglio-contesto" onclick={() => { menu = false; ctx?.showModal() }}>
+              <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 3 2.5 8 12 13l9.5-5L12 3z" /><path d="M2.5 16 12 21l9.5-5M2.5 12 12 17l9.5-5" /></svg>
+              <span><span class="mt">{t.ctxTitle(s.context)}</span><span class="msub">{t.sheetCtxSub}</span></span>
+            </button>
+          {/if}
+          {#each notes as n}<div class="mnote"><LongText text={n} /></div>{/each}
+          <hr />
+        {/if}
         {#if has('changes') && changes}
           <button class="mi" role="menuitem" disabled={!onChanges} onclick={() => { menu = false; onChanges?.() }}>
             <Icon name="diff" size={22} color="var(--icon)" />
@@ -516,6 +547,11 @@
   .trk { stroke: var(--b-track); }
   .arc { stroke-linecap: round; transform: rotate(-90deg); transform-origin: center; }
   .note { padding: 0 16px; font-size: 12.5px; font-weight: 500; color: var(--b-label); letter-spacing: .03em; }
+  /* Gruppo 4: le note (obiettivo, priorità, finestra) e gli Avvisi in cima al ⋮ del foglio della master. */
+  .mnote { padding: 8px 16px; font-size: 13px; font-weight: 500; color: var(--b-label); letter-spacing: .03em; border-top: 1px solid var(--line); }
+  .mnotes { padding: 0 0 6px; border-top: 1px solid var(--line); }
+  .msec { margin: 10px 16px 4px; font: 500 12.5px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--wait); }
+  .mt.stale { color: var(--wait); }
   .chrow { display: flex; padding: 4px 0 6px 16px; }
   /* La riga di icone della sessione (app-posizioni-sistema-27-11 gruppo 2): al centro della testata; il ⋮ a destra solo se resta qui. */
   header.tabs { padding: 0 0 6px; }

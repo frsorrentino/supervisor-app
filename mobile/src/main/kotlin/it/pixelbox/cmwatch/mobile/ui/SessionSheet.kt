@@ -131,6 +131,7 @@ import it.pixelbox.cmwatch.rules.SessionMeters
 import it.pixelbox.cmwatch.rules.SessionsText
 import it.pixelbox.cmwatch.rules.SessionTabs
 import it.pixelbox.cmwatch.rules.SessionBottom
+import it.pixelbox.cmwatch.rules.MasterSheet
 import it.pixelbox.cmwatch.rules.ToolText
 import java.time.Instant
 import kotlinx.coroutines.flow.first
@@ -285,6 +286,11 @@ fun SessionSheet(
      * misura a metà, con la home sopra e la conversazione sotto. Sul telefono restano due: barra e tutto schermo.
      */
     halfStops: Boolean = false, half: Boolean = false,
+    /**
+     * app-posizioni-sistema-27-11 gruppo 4: sul telefono, con `home`, la misura del foglio della master (riga, metà, intera) e chi la
+     * cambia col dito o col tocco; null = da `homeOpen` (la home è la riga, la conversazione l'intera).
+     */
+    sheetAt: MasterSheet.Stop? = null, onSheet: (MasterSheet.Stop) -> Unit = {},
     /** La testata della pagina (`PageHeader`), in cima e dentro la parte che vola: scorre e vola con la sessione. */
     appBar: (@Composable () -> Unit)? = null,
     /** Contratto 1.28: nel «+» anche «File», di qualunque formato. */
@@ -335,9 +341,16 @@ fun SessionSheet(
         val c = groupedFeed?.lastOrNull { x -> x !is ChatFeed.Item.Tool && x !is ChatFeed.Item.Steps } as? ChatFeed.Item.Claude
         NextSteps.parse(c?.entry?.text.orEmpty()).blocking + s.nextSteps.orEmpty().filter { it.blocking }.map { it.text }
     }
+    // app-posizioni-sistema-27-11 gruppo 4 (B «Foglio»: «la master tiene solo la conversazione, così niente compare due volte»): sul telefono
+    // la master nel suo foglio (la home col foglio, non il tablet). Come sul web (Chat `sheet`): in fondo quello delle sessioni (gruppo 3:
+    // le Azioni in chip sopra il campo, l'anellino del contesto nel campo, il chip dell'handoff alle stesse condizioni); in cima niente riga
+    // dei dati né pillole. Modello ed effort, quota, contesto, obiettivo, gli Avvisi e le voci del ⋮ di prima stanno nel ⋮ della riga del
+    // foglio (MasterSheetMore, con LocalHeadMore); Per te e Risultati della master sono nel Per te della home, sopra; le altre nel tabellone.
+    val inSheet = home != null && !halfStops
     val stepsBox by remember(steps, s.suggestion, idle, draftHolder) {
-        // app-riall-3-doppioni-16-11 (direzione A): in una sessione i Prossimi stanno solo sopra il campo, non nel campo né nel turno.
-        derivedStateOf { if (idle) NextSteps.box(steps, s.suggestion, draftHolder.value, unite = s.name != it.pixelbox.cmwatch.rules.ContextActions.MASTER) else NextSteps.Box(null, emptyList()) }
+        // app-riall-3-doppioni-16-11 (direzione A): in una sessione i Prossimi stanno solo sopra il campo, non nel campo né nel turno; dal
+        // gruppo 4 anche nel foglio della master.
+        derivedStateOf { if (idle) NextSteps.box(steps, s.suggestion, draftHolder.value, unite = inSheet || s.name != it.pixelbox.cmwatch.rules.ContextActions.MASTER) else NextSteps.Box(null, emptyList()) }
     }
     // Le azioni tolte a mano e quelle vecchie (Franz, 08/10 20:50): le tolte non tornano per questa sessione, quelle ripetute
     // in tre risposte di fila vanno in fondo, chiuse in una riga.
@@ -376,6 +389,8 @@ fun SessionSheet(
     // tendina sopra la chat, fino al campo, col contenuto di oggi di quella sezione (Avvisi dentro Per te). Si chiude toccando di nuovo la
     // scheda aperta o Chat, tirandola su, con Esc e con Indietro, prima di lasciare la sessione. I numeri da SessionTabs.counts.
     val tabsOn = home == null && s.master != true && s.name != it.pixelbox.cmwatch.rules.ContextActions.MASTER
+    // In fondo quello delle sessioni: nelle sessioni e nel foglio della master (gruppo 4).
+    val bottomOn = tabsOn || inSheet
     var tab by rememberSaveable(s.name) { mutableStateOf(tabStart ?: if (tabsOn && changesShown != null) SessionTabs.Key.MODIFICHE else SessionTabs.Key.CHAT) }
     // La sezione nella tendina, anche mentre si richiude; `opened` conta le aperture, così Modifiche si rilegge a ogni apertura.
     var lastTab by remember(s.name) { mutableStateOf(if (tab == SessionTabs.Key.CHAT) SessionTabs.Key.PERTE else tab) }
@@ -419,6 +434,13 @@ fun SessionSheet(
     val moreMenu: (@Composable () -> Unit)? = if (!tabsOn) null else ({
         SessionMoreMenu(s, actions, showTerminal = feed == null, canExit = canExitNow, bg = LocalPageBg.current ?: Cm.bg, changes = null, changesMenu = false, onChanges = null)
     })
+    // Gruppo 4: il ⋮ della master nel suo foglio, nella riga del foglio accanto al ▶ (MasterSheetHead lo prende da LocalHeadMore).
+    val sheetMore: (@Composable () -> Unit)? = if (!inSheet) null else ({
+        MasterSheetMore(
+            s, now, choices, canTune, actions, showTerminal = feed == null, canExit = canExitNow, model = model, effort = effort,
+            modelNext = modelNext, effortNext = effortNext, quota = accountQuota, onChanges = if (actions.changes != null) ({ changesOpen = true }) else null,
+        )
+    })
     val recurring = LocalRecurring.current
     val recurringRows by remember(recurring, home == null, idle, draftHolder) {
         derivedStateOf {
@@ -429,16 +451,20 @@ fun SessionSheet(
     // app-posizioni-sistema-27-11 gruppo 3 (in basso si scrive): in una sessione le Azioni sono una riga di chip sopra il campo, nascosta
     // appena si scrive; il contesto è un anellino nel campo che apre il suo foglio, e dal 70 % il chip «Contesto 72% · Handoff» è il primo
     // della riga. Le regole in SessionBottom; la master resta com'è fino al suo foglio (gruppo 4).
-    val chipCtx = if (tabsOn) SessionBottom.ctxChip(s.context, s.state == SessionState.IDLE, actions.handoff != null) else null
-    val azioni = remember(stepsSplit, stepsBlocking) {
-        stepsSplit.fresh.map { x -> AzioneChip(x, blocking = x in stepsBlocking) } + stepsSplit.old.map { x -> AzioneChip(x, blocking = x in stepsBlocking, old = true) }
+    val chipCtx = if (bottomOn) SessionBottom.ctxChip(s.context, s.state == SessionState.IDLE, actions.handoff != null) else null
+    // Gruppo 4: nel foglio della master il suggerito del terminale è il primo chip (riempie il campo come «Usa»), invece di una riga sua sopra
+    // il campo stretto: alla conversazione restano almeno 200 dp a metà, a 360 × 780.
+    val sheetSug = if (inSheet) stepsBox.field else null
+    val azioni = remember(stepsSplit, stepsBlocking, sheetSug) {
+        listOfNotNull(sheetSug?.let { x -> AzioneChip(x, terminal = true) }) +
+            stepsSplit.fresh.map { x -> AzioneChip(x, blocking = x in stepsBlocking) } + stepsSplit.old.map { x -> AzioneChip(x, blocking = x in stepsBlocking, old = true) }
     }
     var ctxOpen by remember(s.name) { mutableStateOf(false) }
     // La nicchia del controller (Franz, 10/10 08:19: «una nicchia vuota sotto così non nasconde informazioni»): con un box
     // sopra il campo (Prossimi o Ricorrenti) il controller si posa su uno spazio vuoto suo fra il box e il campo, invece di
     // coprirne le righe; senza box resta sopra la fine della conversazione, che gli lascia posto in fondo. Nella sessione conta la riga
     // delle Azioni anche mentre si scrive, così la nicchia non cambia a ogni lettera.
-    val niche = (if (tabsOn) azioni.isNotEmpty() || chipCtx != null else stepsSplit.fresh.isNotEmpty() || stepsSplit.old.isNotEmpty()) ||
+    val niche = (if (bottomOn) azioni.isNotEmpty() || chipCtx != null else stepsSplit.fresh.isNotEmpty() || stepsSplit.old.isNotEmpty()) ||
         (boxes.recurringOpen && recurringRows.isNotEmpty())
     // La chat segue l'ultimo testo finché non la si sposta a mano per rileggere (Franz, 01/10 06:52). «Segui» si decide
     // solo quando lo scorrimento si ferma: letto dopo l'arrivo di un testo nuovo, il fondo era già più giù e la chat
@@ -584,25 +610,10 @@ fun SessionSheet(
     // la master la home del telefono è la sua scheda, con la stessa chiave della card della master in «Ti aspettano». Richiudendo
     // una sessione la home intera volava verso quella card: se ne vedeva solo la cima nel riquadro della card, il resto nero.
     Column((if (home == null) Modifier.fly("card-${s.id}", page = true) else Modifier).fillMaxSize().background(LocalPageBg.current ?: Cm.bg).then(if (grid) Modifier.dotGrid() else Modifier)) {
-        // Sul telefono la frazione guida tutta l'apertura: 0 la home, 1 la conversazione. La tiene la pagina e non la barra, perché
-        // col dito si muove tutto il pannello e la barra non è che la sua cima (Franz, 01/11).
-        val masterAt = remember { androidx.compose.animation.core.Animatable(homePull ?: if (homeOpen) 0f else 1f) }
-        val appBarPx = remember { intArrayOf(0) }
-        // La testata della home rientra in proporzione: il pannello resta rigido e nessuno lo rimisura mentre si muove.
-        fun headerShown(): Int = kotlin.math.round(appBarPx[0] * (1f - masterAt.value)).toInt()
-        // A tutto schermo la master ha una testata sola, la sua (Franz, 08/10 18:15): quella della home rientra mentre il pannello sale.
         if (home == null) androidx.compose.runtime.CompositionLocalProvider(LocalHeadMore provides moreMenu) { appBar?.invoke() }
-        else if (!halfStops) appBar?.let { ab ->
-            val covered by remember { androidx.compose.runtime.derivedStateOf { masterAt.value >= 1f } }
-            if (!covered) Box(
-                Modifier.clipToBounds().layout { m, c ->
-                    val p = m.measure(c.copy(minHeight = 0, maxHeight = androidx.compose.ui.unit.Constraints.Infinity))
-                    appBarPx[0] = p.height
-                    val h = headerShown()
-                    layout(p.width, h) { p.place(0, h - p.height) }
-                }.graphicsLayer { alpha = 1f - masterAt.value },
-            ) { ab() }
-        }
+        // app-posizioni-sistema-27-11 gruppo 4: sul telefono la testata della home resta, col menu ≡, anche col foglio della master a tutta
+        // altezza (prima rientrava mentre la master saliva a tutto schermo).
+        else if (!halfStops) appBar?.invoke()
         else appBar?.let { ab ->
             androidx.compose.animation.AnimatedVisibility(
                 visible = homeOpen || (halfStops && half),
@@ -625,7 +636,7 @@ fun SessionSheet(
             // Nella chat della master, mentre rileggi più su, la testata rientra come le barre che si comprimono del Material 3
             // Expressive, e torna quando sei in fondo (Franz, 06/10 22:27).
             if (header && tabsOn) SessionTabsHeader(sessionTabs, tab.id, pickTab, if (shadeOpen) closeTab else null, more = if (appBar == null) moreMenu else null)
-            else if (header) androidx.compose.animation.AnimatedVisibility(
+            else if (header && !inSheet) androidx.compose.animation.AnimatedVisibility(
                 visible = home == null || follow,
                 enter = androidx.compose.animation.expandVertically(MaterialTheme.motionScheme.defaultSpatialSpec()) + androidx.compose.animation.fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()),
                 exit = androidx.compose.animation.shrinkVertically(MaterialTheme.motionScheme.defaultSpatialSpec()) + androidx.compose.animation.fadeOut(MaterialTheme.motionScheme.defaultEffectsSpec()),
@@ -642,7 +653,7 @@ fun SessionSheet(
             val sb = LocalSessionBoxes.current
             val heads = LocalHeadsUp.current?.let { a -> it.pixelbox.cmwatch.rules.HeadsUpNote.visible(s, a.dismissed) }
             val notesN = (if (it.pixelbox.cmwatch.rules.BgSession.warns(s)) 1 else 0) + (if (heads != null) 1 else 0)
-            if (!tabsOn && (perTe != null || results != null || elsewhere != null || notesN > 0)) RiquadriRow(Modifier.padding(top = 6.dp)) {
+            if (!tabsOn && !inSheet && (perTe != null || results != null || elsewhere != null || notesN > 0)) RiquadriRow(Modifier.padding(top = 6.dp)) {
                 perTe?.invoke()
                 if (notesN > 0) ChatBlock(
                     BlockIcon.WARN, stringResource(R.string.box_notes), notesN, null, sb.isOpen(s.name, it.pixelbox.cmwatch.rules.Riquadri.Kind.AVVISI),
@@ -892,7 +903,7 @@ fun SessionSheet(
             // ricordate per sessione.
             val stepsOn = stepsSplit.fresh.isNotEmpty() || stepsSplit.old.isNotEmpty()
             val nudgeOn = nudge != null && goHandoff != null
-            if (tabsOn) {
+            if (bottomOn) {
                 // Gruppo 3: le Azioni in chip sopra il campo, solo a campo vuoto, il chip del contesto per primo; mai mentre si salta fra i
                 // miei messaggi. La bozza si legge in un derivato: la riga si ricompone solo quando compare o sparisce.
                 val rowOn by remember(draftHolder, azioni.size, chipCtx) { derivedStateOf { SessionBottom.rowShown(azioni.size, chipCtx != null, draftHolder.value) } }
@@ -968,81 +979,23 @@ fun SessionSheet(
                 }
             }
         } else {
-            // Nella home della master (Franz, 03/10 17:10) si anima solo la parte sopra il campo: la lista con la barra in
-            // basso lascia il posto, salendo dal basso, a barra in cima, intestazione e conversazione. Il campo resta fermo,
-            // con la bozza.
+            // app-posizioni-sistema-27-11 gruppo 4 (B «Foglio»): sul telefono la master è un foglio sopra la home (MasterSheetBox), riga ·
+            // metà · intera; alla riga prende il posto della barra (MasterDock) con la sua riga (`dock`), e il campo qui sotto resta fermo,
+            // con la bozza. La home sta ferma sotto il foglio e lascia in fondo il posto della riga; alla riga il controller della lettura
+            // si posa sopra il foglio. La conversazione (`chatArea`) è il corpo del foglio.
             val h = home
-            val off = animationsOff()
-            // L'altezza della barra ridotta: il pannello si ferma lì, così la sua barra in cima parte e arriva esattamente
-            // al posto di quella in basso (dal vivo 03/10 19:01: scendeva sotto il campo di testo e poi «risaliva»).
-            var dockPx by remember { mutableIntStateOf(0) }
-            // Il tragitto della barra in pixel: tutta l'altezza, testata della home compresa, meno la barra stessa.
-            val openPx = remember { intArrayOf(0) }
-            var settled by remember { mutableIntStateOf(0) }
-            val fling = remember { floatArrayOf(0f) }
-            LaunchedEffect(homeOpen, settled, off) {
-                if (homePull != null) return@LaunchedEffect
-                val to = if (homeOpen) 0f else 1f
-                // Supera di poco l'arresto e torna; in basso un solo rimbalzo (app-effetti-movimenti-04-11, punto 3).
-                if (off) masterAt.snapTo(to) else masterAt.animateTo(to, Fx.spring(), fling[0])
-                fling[0] = 0f
-            }
-            val pullScope = androidx.compose.runtime.rememberCoroutineScope()
-            val pull = remember(off) {
-                MasterPull(
-                    by = { dy ->
-                        val travel = (openPx[0] - dockPx).coerceAtLeast(1)
-                        if (!off) pullScope.launch { masterAt.snapTo((masterAt.value - dy / travel).coerceIn(0f, 1f)) }
-                    },
-                    release = { v -> fling[0] = -v / (openPx[0] - dockPx).coerceAtLeast(1); settled++ },
-                )
-            }
-            val showList by remember { androidx.compose.runtime.derivedStateOf { masterAt.value < 1f } }
-            val showPanel by remember { androidx.compose.runtime.derivedStateOf { masterAt.value > 0f } }
-            androidx.compose.runtime.CompositionLocalProvider(LocalMasterPull provides pull) {
-            Box(
-                Modifier.weight(1f).fillMaxWidth().clipToBounds().layout { m, c ->
-                    openPx[0] = c.maxHeight + headerShown()
-                    val p = m.measure(c)
-                    layout(p.width, p.height) { p.place(0, 0) }
-                },
-            ) {
-                // La home sta sotto e arretra in proporzione (dissolvenza e scala 0,96); la sua barra resta al posto suo, così il
-                // dito che l'ha presa continua a guidare il pannello che ora la copre.
-                if (showList || homeOpen) Column(Modifier.fillMaxSize()) {
-                    // Il contenuto della home scorre da sé: il riepilogo è una lista «pigra» (transizione 4). Sopra la barra della master
-                    // sfuma come nella pila del tablet, finché sotto c'è altro (homeFadeEnd; app-sfumatura-master-home-06-11, Franz 06/11
-                    // 12:52: prima il testo delle schede si interrompeva di netto sul bordo della barra).
-                    Column(
-                        Modifier.weight(1f).fillMaxWidth().graphicsLayer {
-                            val q = masterAt.value
-                            alpha = 1f - q; scaleX = 1f - .04f * q; scaleY = 1f - .04f * q
-                        }.then(if (home != null) Modifier.homeFadeEnd() else Modifier),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                    ) {
+            MasterSheetBox(
+                sheetAt ?: if (homeOpen) MasterSheet.Stop.ROW else MasterSheet.Stop.FULL, onSheet, Modifier.weight(1f).fillMaxWidth(), pull = homePull,
+                under = {
+                    // Il contenuto della home scorre da sé: il riepilogo è una lista «pigra» (transizione 4).
+                    Column(Modifier.weight(1f).fillMaxWidth().homeFadeEnd(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         h({ draft = it }, { t -> actions.send(PhonePrimary.Target.PROMPT, t) })
                     }
-                    // Il controller della lettura si posa sopra la barra, così la barra resta da toccare (09/10 16:50).
-                    ReadingSlot(s.name, overlay = true)
-                    Box(Modifier.onSizeChanged { dockPx = it.height }) { dock?.invoke() }
-                }
-                // Il pannello della conversazione è opaco e ha gli angoli in alto, come un foglio: rigido, alto come sarà da aperto,
-                // scorre sopra la home con la sua barra in cima.
-                if (showPanel || !homeOpen) {
-                    val sh = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
-                    Column(
-                        Modifier.layout { m, c ->
-                            val open = c.maxHeight + headerShown()
-                            val p = m.measure(androidx.compose.ui.unit.Constraints.fixed(c.maxWidth, open))
-                            layout(c.maxWidth, c.maxHeight) {
-                                val q = 1f - masterAt.value
-                                p.place(0, kotlin.math.round((open - dockPx - appBarPx[0]) * q).toInt())
-                            }
-                        }.clip(sh).masterChat(LocalMasterChatStyle.current, sh),
-                    ) { chatArea() }
-                }
-            }
-            }
+                    if (homeOpen) ReadingSlot(s.name, overlay = true)
+                },
+                head = { androidx.compose.runtime.CompositionLocalProvider(LocalHeadMore provides sheetMore) { dock?.invoke() } },
+                body = { chatArea() },
+            )
         }
         // Il posto del mini-controller sopra il campo, come il mini-player delle app di musica (Franz, 03/10 23:00); il
         // controller lo disegna `ReadingOverlayHost` sopra tutte le pagine. Con la tastiera aperta no: il campo ha la precedenza.
@@ -1075,11 +1028,11 @@ fun SessionSheet(
             onUp = { jump(-1) }, onDown = { jump(+1) }, onClose = { jumping = false; jumpAt = null; jumpOlder = false; follow = true; jumpScope.launch { list.scrollToEnd(animate = true) } },
         ) else Composer(
             s, draftHolder, onDraft = { draft = it }, ops, canAttach, actions, onSent = { draft = ""; follow = true }, quota, phrases, canTonight, slash,
-            toMaster = home != null, canAttachFiles = canAttachFiles, fieldSuggestion = stepsBox.field,
+            toMaster = home != null, canAttachFiles = canAttachFiles, fieldSuggestion = if (inSheet) null else stepsBox.field,
             onRecurring = if (recurringRows.isEmpty()) null else ({ boxes.recurring(!boxes.recurringOpen) }), recurringOpen = boxes.recurringOpen,
             onMine = if (stops.isNotEmpty() && feed != null) ({ jumping = true; jumpAt = null; jump(-1) }) else null,
-            ring = if (tabsOn && s.state != SessionState.GONE) SessionBottom.ringPct(s.context) else null,
-            onRing = if (tabsOn && canTune && choices != null && s.state != SessionState.GONE) ({ ctxOpen = true }) else null,
+            ring = if (bottomOn && s.state != SessionState.GONE) SessionBottom.ringPct(s.context) else null,
+            onRing = if (bottomOn && canTune && choices != null && s.state != SessionState.GONE) ({ ctxOpen = true }) else null,
         )
     }
     // Contratto 1.72: la vista «Modifiche» sopra la sessione: sul telefono ne prende la pagina, sul tablet la colonna.
@@ -2755,6 +2708,107 @@ private fun SessionMoreMenu(
         }
     }
     if (exitAsk) CloseDialog(s, onDismiss = { exitAsk = false }, onConfirm = { exitAsk = false; actions.slash("exit", null) }, onSave = actions.closeSave?.let { save -> { exitAsk = false; save() } })
+}
+
+/**
+ * Il ⋮ della master nel suo foglio sul telefono (app-posizioni-sistema-27-11 gruppo 4): la riga dei dati e le pillole non ci sono più e
+ * qui ci sta tutto, coi suoi stessi tocchi. In cima gli Avvisi, se ci sono (il puntino ambra sul ⋮ lo dice); poi modello ed effort (il
+ * pannello Modello ed effort), la quota delle 5 ore (Utilizzo), il contesto (il suo foglio: handoff, compatta, finestra più grande),
+ * obiettivo, priorità e finestra; sotto le voci del ⋮ di prima (SessionMenu: Modifiche, Tocca a te, Segui, Apri in Claude, Ricomincia
+ * pulita) e in fondo Chiudi, con la sua conferma.
+ */
+@Composable
+private fun MasterSheetMore(
+    s: Session, now: Long, choices: Choices?, canTune: Boolean, actions: SheetActions, showTerminal: Boolean, canExit: Boolean,
+    model: it.pixelbox.cmwatch.contract.Model?, effort: String?, modelNext: Boolean, effortNext: Boolean,
+    quota: it.pixelbox.cmwatch.contract.QuotaAccount?, onChanges: (() -> Unit)?,
+) {
+    var menu by remember { mutableStateOf(false) }
+    var picker by remember { mutableStateOf(false) }
+    var ctxSheet by remember { mutableStateOf(false) }
+    var exitAsk by remember { mutableStateOf(false) }
+    val tunable = canTune && choices != null && s.state != SessionState.GONE
+    val advice = it.pixelbox.cmwatch.rules.MasterService.advice(s, choices, now)
+    val changes = DiffRules.pill(s)
+    val headsUp = LocalHeadsUp.current?.let { a -> it.pixelbox.cmwatch.rules.HeadsUpNote.visible(s, a.dismissed) }
+    val notesOn = it.pixelbox.cmwatch.rules.BgSession.warns(s) || headsUp != null
+    Box {
+        IconButton(onClick = { menu = true }, modifier = Modifier.size(44.dp).testTag("foglio-altro")) { Icon(Icons.Rounded.MoreVert, stringResource(R.string.more), tint = Cm.text2) }
+        if (notesOn || changes != null) Box(
+            Modifier.align(Alignment.TopEnd).padding(top = 9.dp, end = 9.dp).size(10.dp).background(MasterHigh, CircleShape).padding(2.dp)
+                .background(if (notesOn) V3.Wait else Cm.actionIcon, CircleShape),
+        )
+        if (menu) {
+            val st0 = actions.menuState ?: it.pixelbox.cmwatch.contract.State(v = 1, ts = 0, host = "", sessions = (actions.sessions + s).distinctBy { x -> x.name })
+            val items = it.pixelbox.cmwatch.rules.SessionMenu.entries(s, st0, actions.mine, changes = changes != null, terminal = showTerminal, canExit = canExit)
+            val (entries, footer) = sessionMenuEntries(s, items, SessionMenuActions(
+                changes = { onChanges?.invoke() },
+                changesTitle = changes?.let { c -> DiffRules.menuLine(stringResource(R.string.changes_title), pluralStringResource(R.plurals.changes_files, c.files, c.files), c) },
+                changesSub = stringResource(R.string.changes_open),
+                prove = actions.openMine?.let { o -> { o(it.pixelbox.cmwatch.rules.SessionMenu.Kind.PROVE) } },
+                decidi = actions.openMine?.let { o -> { o(it.pixelbox.cmwatch.rules.SessionMenu.Kind.DECIDI) } },
+                guarda = actions.openMine?.let { o -> { o(it.pixelbox.cmwatch.rules.SessionMenu.Kind.GUARDA) } },
+                seguiti = actions.openMine?.let { o -> { o(it.pixelbox.cmwatch.rules.SessionMenu.Kind.SEGUITI) } },
+                follow = actions.follow, askMaster = actions.askMaster, openInClaude = actions.openInClaude, terminal = actions.terminal,
+                restartClean = actions.handoff,
+                exit = { exitAsk = true },
+            ))
+            val tune = listOfNotNull(ModelText.short(model) ?: stringResource(R.string.model_title), effort).joinToString(" · ")
+            val zone = ZoneId.systemDefault()
+            val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
+            val h5 = quota?.h5
+            val reset = quota?.resetH5?.takeIf { r -> r > now }?.let { r ->
+                java.time.format.DateTimeFormatter.ofPattern(if (SessionMeters.resetNeedsDay(r, now, zone)) "EEE HH:mm" else "HH:mm", locale)
+                    .format(Instant.ofEpochSecond(r).atZone(zone))
+            }
+            val quotaText = h5?.let { pct -> quotaLabel(QuotaForm.FULL, stringResource(R.string.quota_h5_short, pct), reset) }
+            val goalNote = SessionsText.goalLine(s, stringResource(R.string.goal))
+            val notes = listOfNotNull(
+                goalNote,
+                SessionsText.priority(s, stringResource(R.string.low_priority), stringResource(R.string.low_priority_offered)),
+                SessionsText.window(s, stringResource(R.string.no_window)),
+            )
+            val ctxSub = stringResource(R.string.master_sheet_ctx_sub)
+            PanelShell(onDismiss = { menu = false }, header = {
+                SessionBadge(s, 20.dp)
+                Text(
+                    s.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold), color = Cm.text,
+                    maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.weight(1f),
+                )
+            }, tag = "foglio-menu") { close ->
+                if (notesOn) Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp).testTag("foglio-avvisi"), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.box_notes), style = V3.Meter.copy(color = V3.Wait))
+                    BgNoteRow(s)
+                    HeadsUpNoteRow(s, now)
+                }
+                SheetMoreRow(Icons.Rounded.Tune, tune, stringResource(R.string.details_model), first = !notesOn, enabled = tunable) { close(); picker = true }
+                if (quotaText != null) SheetMoreRow(Icons.Rounded.Schedule, quotaText, stringResource(R.string.details_quota), first = false) { close(); actions.overview() }
+                s.context?.let { pct -> SheetMoreRow(Icons.Rounded.Layers, stringResource(R.string.ctx_title, pct), ctxSub, first = false, enabled = tunable) { close(); ctxSheet = true } }
+                notes.forEachIndexed { i, n ->
+                    HorizontalDivider(color = V3.Line)
+                    if (i == 0 && goalNote != null) LongText(n, Modifier.padding(horizontal = 16.dp, vertical = 10.dp), style = MaterialTheme.typography.labelMedium, color = Cm.briefLabel)
+                    else Text(n, style = MaterialTheme.typography.labelMedium, color = Cm.briefLabel, modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp))
+                }
+                entries.forEach { e -> SheetMoreRow(e.icon, e.title, e.sub, first = false) { close(); e.onClick() } }
+                footer?.let { f -> SheetMoreRow(f.icon, f.title, f.sub, first = false, destructive = f.destructive) { close(); f.onClick() } }
+            }
+        }
+    }
+    if (picker && choices != null) TunePanel(choices, model?.id, effort, advice, onModel = actions.setModel, onEffort = actions.setEffort, onDismiss = { picker = false }, session = s, onPermission = actions.setPermission, modelNext = modelNext, effortNext = effortNext)
+    if (ctxSheet) s.context?.let { pct -> ContextSheet(pct, it.pixelbox.cmwatch.rules.ContextActions.wider(s.copy(model = model), choices), actions) { ctxSheet = false } }
+    if (exitAsk) CloseDialog(s, onDismiss = { exitAsk = false }, onConfirm = { exitAsk = false; actions.slash("exit", null) }, onSave = actions.closeSave?.let { save -> { exitAsk = false; save() } })
+}
+
+/** Una voce del ⋮ del foglio della master (gruppo 4), nella forma delle voci dei menu a pannello (MenuItem): icona, titolo, una riga. */
+@Composable
+private fun SheetMoreRow(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, sub: String, first: Boolean, enabled: Boolean = true, destructive: Boolean = false, onClick: () -> Unit) {
+    val tone = if (destructive) V3.Red else V3.Tx2
+    Box(Modifier.alpha(if (enabled) 1f else 0.45f)) {
+        V3Row(first, if (enabled) onClick else null, { Icon(icon, null, tint = tone, modifier = Modifier.size(22.dp)) }) {
+            Text(title, style = V3.Name.copy(color = if (destructive) V3.Red else V3.Tx))
+            if (sub.isNotEmpty()) Text(sub, style = V3.Small)
+        }
+    }
 }
 
 /**

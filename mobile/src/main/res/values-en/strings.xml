@@ -397,6 +397,10 @@
     <string name="menu_row_working">working · %1$s</string>
     <string name="menu_row_still">idle for %1$s</string>
     <string name="dock_collapse">Collapse the master</string>
+    <string name="master_sheet_tap_row">Open the master to half</string>
+    <string name="master_sheet_tap_half">Open the master to full height</string>
+    <string name="master_sheet_tap_full">Shrink the master to its row</string>
+    <string name="master_sheet_ctx_sub">Handoff, compact, larger window</string>
     <string name="dock_close">Close</string>
     <string name="context_pct">%1$d%% context</string>
     <string name="effort">Effort</string>

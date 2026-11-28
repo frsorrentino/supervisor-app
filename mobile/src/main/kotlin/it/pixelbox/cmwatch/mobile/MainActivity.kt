@@ -70,6 +70,7 @@ import it.pixelbox.cmwatch.rules.Slash
 import it.pixelbox.cmwatch.rules.PhoneTerminal
 import it.pixelbox.cmwatch.rules.TerminalLive
 import it.pixelbox.cmwatch.rules.StartRoute
+import it.pixelbox.cmwatch.rules.MasterSheet
 import it.pixelbox.cmwatch.contract.Freshness
 import it.pixelbox.cmwatch.rules.PhonePrimary
 import it.pixelbox.cmwatch.data.Repo
@@ -380,9 +381,13 @@ class MainActivity : ComponentActivity() {
         val uploads by app.repo.uploads.collectAsStateWithLifecycle()
         val tabState = rememberSaveable { mutableStateOf(StartRoute.tab(restored = null)) }
         var tab by tabState
-        // La master espansa nella home (Franz, 03/10 16:30-16:44): dal basso a tutta pagina, ridotta con un tocco sulla sua barra.
-        val masterChatState = rememberSaveable { mutableStateOf(false) }
+        // La master espansa nella home (Franz, 03/10 16:30-16:44). app-posizioni-sistema-27-11 gruppo 4: sul telefono è il foglio della
+        // master e `masterChat` vuol dire «a metà o intera» (`masterFull` dice quale); si riparte dall'ultima misura (MasterSheet.PREF).
+        val startNarrow = !it.pixelbox.cmwatch.rules.Tablet.wide(androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp)
+        val sheetSaved = remember { MasterSheet.read(getSharedPreferences("ui", MODE_PRIVATE).getString(MasterSheet.PREF, null)) }
+        val masterChatState = rememberSaveable { mutableStateOf(startNarrow && sheetSaved != MasterSheet.Stop.ROW) }
         var masterChat by masterChatState
+        var masterFull by rememberSaveable { mutableStateOf(sheetSaved == MasterSheet.Stop.FULL) }
         // Sul tablet la misura a metà fra barra e tutto schermo (Franz, 08/10 18:15); conta solo con `masterChat`.
         var masterHalf by rememberSaveable { mutableStateOf(false) }
         // Sul tablet lato, misura e posto della master come nella PWA larga (app-tablet-come-pwa-03-11), ricordati qui.
@@ -780,6 +785,10 @@ class MainActivity : ComponentActivity() {
         val widthDp = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp
         val wide = it.pixelbox.cmwatch.rules.Tablet.wide(widthDp)
         val tabletPrefs = remember { getSharedPreferences("ui", MODE_PRIVATE) }
+        // app-posizioni-sistema-27-11 gruppo 4: la misura del foglio della master sul telefono; l'ultima si ricorda, una preferenza sola.
+        val sheetStop = if (!masterChat) MasterSheet.Stop.ROW else if (masterFull) MasterSheet.Stop.FULL else MasterSheet.Stop.HALF
+        val setSheet: (MasterSheet.Stop) -> Unit = { s -> masterChat = s != MasterSheet.Stop.ROW; if (s != MasterSheet.Stop.ROW) masterFull = s == MasterSheet.Stop.FULL }
+        LaunchedEffect(sheetStop, wide) { if (!wide) tabletPrefs.edit().putString(MasterSheet.PREF, sheetStop.id).apply() }
         // I box sopra il campo aperti o chiusi (Franz, 04/10 20:21): Prossimi aperto e Ricorrenti chiuso finché non li tocca.
         val promptBoxes = remember {
             it.pixelbox.cmwatch.mobile.ui.PromptBoxes(
@@ -2422,6 +2431,7 @@ class MainActivity : ComponentActivity() {
                             modelNext = tunePicks[session.name + "/model"].let { p -> Tune.nextTurn(session, p, p?.let { results[it.cmd] }, now) },
                             effortNext = tunePicks[session.name + "/effort"].let { p -> Tune.nextTurn(session, p, p?.let { results[it.cmd] }, now) },
                             home = home, grid = home != null && homeOpen, header = header, dock = dock, bar = bar, homeOpen = homeOpen, appBar = appBar, halfStops = home != null && wide, half = masterHalf,
+                            sheetAt = if (home != null && !wide) sheetStop else null, onSheet = setSheet,
                             headerLead = lead, draftState = drafts.state(session),
                             results = if (tabsOn) resultsLine.takeIf { l -> l.groups.isNotEmpty() }?.let { l -> { it.pixelbox.cmwatch.mobile.ui.ResultsChatRows(l, onOpen = openResult) } }
                             else it.pixelbox.cmwatch.rules.Guardare.ofSession(resultsPage, session.name).takeIf { l -> it.pixelbox.cmwatch.rules.Guardare.shown(l, resultsClosed[session.name]) }?.let { l -> {
@@ -2803,47 +2813,16 @@ class MainActivity : ComponentActivity() {
             if (master != null && !wide) {
                 val hero = remember(masterEntries, master.outcome) { it.pixelbox.cmwatch.rules.MasterHome.hero(masterEntries, master) }
                 val homeList: @Composable ColumnScope.((String) -> Unit, (String) -> Unit) -> Unit = { _, _ -> list() }
-                // Franz, 03/10 16:44: la master si espande dal basso a tutta pagina (la sua conversazione, con modello ed effort)
-                // e torna ridotta toccando la sua barra, ora in cima. Ridotta: la lista con la barra sopra il campo. Il campo
-                // scrive alla master in tutte e due.
-                // Una pagina sola: si anima la parte sopra il campo, il campo resta fermo (`SessionSheet` con `homeOpen`).
-                // Sotto la master a tutto schermo la Home in riga (app-home-riga-c1-13-11); con la tastiera aperta non c'è.
-                LaunchedEffect(masterChat) { if (masterChat) { phoneRowSince = System.currentTimeMillis() / 1000; phoneRowOpened = emptySet() } }
-                val keyboard = androidx.compose.foundation.layout.WindowInsets.ime.getBottom(androidx.compose.ui.platform.LocalDensity.current) > 0
-                Column(Modifier.fillMaxSize()) {
-                Box(Modifier.weight(1f).fillMaxWidth()) {
+                // app-posizioni-sistema-27-11 gruppo 4 (B «Foglio»): la master è il foglio sopra la home (MasterSheetBox in SessionSheet),
+                // riga · metà · intera; alla riga prende del tutto il posto della barra (MasterDock), con la sua riga in testa al foglio e il
+                // campo sotto. La home tiene il suo contenuto (niente riga di icone né schede: servono l'ok di Franz) e la Home in riga
+                // sotto il campo non c'è più: la home si vede sopra il foglio (le posizioni di prima le toglie il gruppo 5).
                 sessionPage(
                     master, masterEntries, homeList, true,
-                    // Sul tablet il tocco sulla barra porta a metà, il trascinamento alla misura vicina; sul telefono barra e tutto schermo.
-                    { MasterDock(master, hero, onSpeak = { t -> speech.toggle(t, it.pixelbox.cmwatch.rules.ContextActions.MASTER) }, onToggle = { masterHalf = wide; masterChat = true }) },
-                    {
-                        val half = wide && masterHalf
-                        val collapse = { masterChat = false; masterHalf = false }
-                        MasterDock(
-                            master, hero, onSpeak = { t -> speech.toggle(t, it.pixelbox.cmwatch.rules.ContextActions.MASTER) },
-                            onToggle = if (wide && !half) ({ masterHalf = true }) else collapse, expanded = true,
-                            onUp = if (half) ({ masterHalf = false }) else null,
-                            onDown = if (wide && !half) ({ masterHalf = true }) else collapse,
-                            toggleUp = half, onToggleKey = if (half) ({ masterHalf = false }) else if (wide) ({ masterHalf = true }) else collapse,
-                            onClose = if (half) collapse else null,
-                            // Il telefono a tutto schermo: una testata sola, col menu ≡ della home (Franz, 08/10 18:15). Sul tablet a tutta
-                            // altezza la testata della home rientra allo stesso modo, quindi il ≡ sta qui anche lì; a metà resta quello
-                            // della home, che si vede sopra (Franz, 09/10 21:26: «quando è aperta non c'è più il menu»).
-                            screen = !wide, trailing = if (half) null else ({ AppMenu(menuActions) }),
-                        )
-                    },
+                    { MasterSheetHead(master, hero, onSpeak = { t -> speech.toggle(t, it.pixelbox.cmwatch.rules.ContextActions.MASTER) }, closed = !masterChat) },
+                    null,
                     !masterChat, { pageHeader(null) }, null,
                 )
-                }
-                if (masterChat && !keyboard) {
-                    val voices = remember(summary, phoneRowSince, phoneRowOpened) { it.pixelbox.cmwatch.rules.HomeRow.voices(it.pixelbox.cmwatch.rules.HomeRow.fromSummary(summary.rows), emptyList(), phoneRowSince, phoneRowOpened) }
-                    it.pixelbox.cmwatch.mobile.ui.HomeRowBar(
-                        voices, now, tight = true,
-                        onOpen = { v -> if (v.kind == it.pixelbox.cmwatch.rules.HomeRow.Kind.NEWS) phoneRowOpened = phoneRowOpened + v.key; open = v.session },
-                        onHome = { masterChat = false; masterHalf = false },
-                    )
-                }
-                }
             } else Column(Modifier.fillMaxSize()) {
                 pageHeader(null)
                 Box(Modifier.weight(1f)) { list() }

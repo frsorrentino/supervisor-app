@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Terminal
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -50,7 +51,8 @@ import it.pixelbox.cmwatch.rules.SessionBottom
 // Le regole in SessionBottom.
 
 /** Un'azione della riga sopra il campo: il testo, se sblocca un lavoro fermo (contratto 1.38), se è vecchia (ripetuta in tre risposte). */
-internal data class AzioneChip(val text: String, val blocking: Boolean = false, val old: Boolean = false)
+/** `terminal`: il suggerito del terminale (app-posizioni-sistema-27-11 gruppo 4, nel foglio della master), col segno del prompt. */
+internal data class AzioneChip(val text: String, val blocking: Boolean = false, val old: Boolean = false, val terminal: Boolean = false)
 
 /**
  * La riga delle Azioni sopra il campo: i Prossimi della sessione in chip da 32 dp su una riga che scorre di lato, 6 dp fra l'uno e l'altro.
@@ -69,9 +71,9 @@ internal fun AzioniRow(
         if (ctxPct != null) AzioneChipView(stringResource(R.string.ctx_chip, ctxPct), Icons.Outlined.Layers, onClick = onHandoff, amber = true, tag = "azioni-contesto")
         actions.forEach { a ->
             AzioneChipView(
-                a.text, if (a.blocking) Icons.Outlined.Lock else Icons.Outlined.Bolt, onClick = { onPick(a.text) }, faded = a.old,
+                a.text, if (a.terminal) Icons.Outlined.Terminal else if (a.blocking) Icons.Outlined.Lock else Icons.Outlined.Bolt, onClick = { onPick(a.text) }, faded = a.old,
                 desc = if (a.blocking) stringResource(R.string.steps_unblock) else null,
-                onLongClick = onDismiss?.let { d -> { d(a.text) } },
+                onLongClick = onDismiss?.takeIf { !a.terminal }?.let { d -> { d(a.text) } },
             )
         }
     }

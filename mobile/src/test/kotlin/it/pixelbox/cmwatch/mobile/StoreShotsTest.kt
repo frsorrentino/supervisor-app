@@ -68,14 +68,14 @@ class StoreShotsTest {
         if (on) paparazzi.snapshot { CmPhoneTheme(still = true) { content() } }
     }
 
-    /** La home: chi ti aspetta, chi lavora, chi ha finito; sotto, la barra della master. */
+    /** La home: chi ti aspetta, chi lavora, chi ha finito; sotto, il foglio della master alla riga (app-posizioni-sistema-27-11 gruppo 4). */
     @Test fun s1Home() = shot {
         val summary = Summary.build(st, emptyList(), emptyList(), st.ts, ZoneId.of("Europe/Rome"), emptySet())
         SessionSheet(master, st.ts, emptyList(), 120, none, grid = true,
             home = { _, _ -> Column { SummaryList(summary, {}, { _, _ -> }, { _, _ -> }, {}, {}, startOpen = setOf("sessions")) } },
             homeOpen = true,
             appBar = { PageHeader(null, st.sessions, st.sessions.count { it.state != SessionState.GONE }, st.ts, {}, {}, menu) },
-            bar = { MasterDock(master, MasterHome.hero(masterEntries, master), {}, {}) },
+            dock = { MasterSheetHead(master, MasterHome.hero(masterEntries, master), {}) },
             feed = ChatFeed.merge(masterEntries, emptyList()))
     }
 
@@ -104,13 +104,13 @@ class StoreShotsTest {
             appBar = { PageHeader(s.name, st.sessions, 3, st.ts, {}, {}, menu) })
     }
 
-    /** La master a tutto schermo: la sessione che guida le altre, con l'esito e i prossimi passi come tasti. */
+    /** La master a tutta altezza, nel suo foglio: la sessione che guida le altre, con l'esito e i prossimi passi come tasti. */
     @Test fun s4Master() = shot {
         SessionSheet(master, st.ts, emptyList(), 120, none, grid = true,
             home = { _, _ -> androidx.compose.material3.Text("", Modifier.padding(16.dp)) },
             homeOpen = false,
             appBar = { PageHeader(null, st.sessions, 3, st.ts, {}, {}, menu) },
-            bar = { MasterDock(master, MasterHome.hero(masterEntries, master), {}, {}, expanded = true, screen = true, trailing = { AppMenu(menu) }) },
+            dock = { MasterSheetHead(master, MasterHome.hero(masterEntries, master), {}, closed = false) },
             feed = ChatFeed.merge(masterEntries, emptyList()))
     }
 }

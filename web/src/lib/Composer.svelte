@@ -145,6 +145,7 @@
   const ringTight = $derived(!!draft.trim() && barW > 0 && barW < 420)
   const inField = $derived(narrow ? null : field)
   const placeholder = $derived(inField ?? (s.question ? t.answerFree : toMaster ? t.masterPlaceholder : t.writeTo(s.name)))
+  // app-posizioni-sistema-27-11 gruppo 4: con l'anellino del contesto (le sessioni, e la master nel suo foglio) il segnaposto sta su una riga.
 </script>
 
   <div class="bar" class:sess={!toMaster} bind:clientWidth={barW}>
@@ -202,7 +203,7 @@
       <input bind:this={images} type="file" accept="image/*" multiple hidden onchange={picked} />
       <input bind:this={camera} type="file" accept="image/*" capture="environment" hidden onchange={picked} />
       <input bind:this={any} type="file" multiple hidden onchange={picked} />
-      <textarea bind:this={area} use:crescita={draft} data-fix="sugg-focus" rows="1" class:sug={!!inField} class:one={!toMaster && !draft && !inField} bind:value={draft} onkeydown={key} onpaste={paste} {placeholder}></textarea>
+      <textarea bind:this={area} use:crescita={draft} data-fix="sugg-focus" rows="1" class:sug={!!inField} class:one={(!toMaster || ctx != null) && !draft && !inField} bind:value={draft} onkeydown={key} onpaste={paste} {placeholder}></textarea>
       {#if ctx != null}
         <!-- Gruppo 3: quanto contesto resta mentre scrivi, ambra dal 70 %; il tocco apre il foglio del contesto (handoff, compatta, finestra). -->
         <button type="button" class="ctxr" class:hi={ringHigh(ctx)} class:tight={ringTight} aria-label={t.ctxTitle(ctx)} title={t.ctxTitle(ctx)} disabled={!onCtx} data-testid="campo-contesto" onclick={() => onCtx?.()}>

@@ -91,6 +91,8 @@
   import ColumnHead from './lib/ColumnHead.svelte'
   import { t } from './lib/t'
   import HomePane from './lib/HomePane.svelte'
+  import MasterSheet from './lib/MasterSheet.svelte'
+  import { PREF as SHEET_PREF, readStop, type Stop as SheetStop } from './lib/masterSheet'
   import DockEmbed from './lib/DockEmbed.svelte'
   import { DOCK_CACHE, dockCacheOf, dockWanted, readDockCache } from './lib/dockEmbed'
   import Lavori from './lib/Lavori.svelte'
@@ -844,7 +846,19 @@
   // Dentro Studio la barra parte dall'ultima vista (dockEmbed.ts), finché il relay non risponde; poi si aggiorna da sé.
   const dockCached = dock ? readDockCache<Session, TranscriptEntry>(load(DOCK_CACHE)) : null
   $effect(() => { const e = transcripts[MASTER]; if (dock && master && e) save(DOCK_CACHE, dockCacheOf(master, e)) })
-  let masterOpen = $state(linked === MASTER || embed)
+  // app-posizioni-sistema-27-11 gruppo 4: la master è un foglio, riga · metà · intera (lib/masterSheet.ts, MasterSheet), al posto della
+  // sua barra e delle posizioni di prima. `masterOpen` resta «la conversazione si vede», cioè metà o intera, e `sheetFull` dice quale
+  // delle due; l'ultima misura si ricorda, una preferenza sola (cm.master_sheet), alla riga se non c'è.
+  const sheetSaved = readStop(load(SHEET_PREF))
+  let masterOpen = $state(linked === MASTER || embed || sheetSaved !== 'row')
+  let sheetFull = $state(sheetSaved === 'full')
+  const sheetAt = $derived<SheetStop>(!masterOpen ? 'row' : sheetFull ? 'full' : 'half')
+  function setSheet(s: SheetStop) { masterOpen = s !== 'row'; if (s !== 'row') sheetFull = s === 'full' }
+  $effect(() => { const s = sheetAt; if (!embed && !dock) save(SHEET_PREF, s) })
+  // L'altezza della riga del foglio sulla plancia senza sessioni: le colonne la lasciano libera in fondo.
+  let dashRowH = $state(170)
+  // Le posizioni di prima (lato, misure, sotto la home, Home in riga, il tasto tondo, la barra in fondo): spente; il gruppo 5 le toglie.
+  const legacyPlaces = false
   // Il lato del pannello della master nella plancia, ricordato su questo dispositivo (Franz 30/10 13:26).
   let masterLeft = $state(load('cm.master_left') === '1')
   // Master sotto la dashboard, nella stessa colonna (Franz 03/11 16:52, forma B, app-master-sopra-dashboard-03-11): con le
@@ -857,7 +871,7 @@
     })
   }
   // Solo con le sessioni aperte nella vista larga, con la master aperta e fuori dalle colonne.
-  const stacked = $derived(masterUnder && masterOpen && !!master && !cols.includes(MASTER))
+  const stacked = $derived(legacyPlaces && masterUnder && masterOpen && !!master && !cols.includes(MASTER))
   // Home sopra e master sotto non è un lato (Franz 03/11 17:30 e 17:31): la colonna con home e master prende il lato e la larghezza
   // che la master ha in quel momento; le sessioni occupano il resto.
   function placeMaster(p: 'right' | 'left') { smooth(() => { masterLeft = p === 'left'; save('cm.master_left', masterLeft ? '1' : '0') }) }
@@ -892,7 +906,7 @@
       if (!masterOpen) { masterOpen = true; masterHalf = masterNarrow() }
     })
   }
-  const homeInRow = $derived(homeRow && wide && !!master && masterOpen && !masterUnder && cols.length > 0 && !cols.includes(MASTER))
+  const homeInRow = $derived(legacyPlaces && homeRow && wide && !!master && masterOpen && !masterUnder && cols.length > 0 && !cols.includes(MASTER))
   const homeVoices = $derived(homeInRow ? homeRowVoices(fromSummary(summary.rows), cols, homeRowSince, homeRowOpened) : [])
   // Sul telefono la master a tutto schermo ha la Home in riga sotto il campo, senza sceglierla: lì nessuna sessione è a schermo, e le
   // novità si contano da quando la master si è aperta.
@@ -2306,14 +2320,15 @@
 <PairPage {store} onPaired={() => location.reload()} />
 {:else}
 
-{#snippet chatOf(name: string, inColumn: boolean)}
+<!-- app-posizioni-sistema-27-11 gruppo 4: `sheet`, la master dentro il suo foglio (Chat tiene solo la conversazione). -->
+{#snippet chatOf(name: string, inColumn: boolean, sheet = false)}
   {@const s = st.sessions.find(x => x.name === name) ?? ghost(name)}
   <!-- app-posizioni-sistema-27-11 gruppo 2: nella sessione «Risultati» e «Per te» stanno nella tendina (`bare`) e dicono i loro numeri alla riga di icone. -->
   {#snippet resultsRow(bare: boolean, onCount: ((fresh: number, all: number) => void) | null)}{#if st.ops?.includes('results')}<ResultsRow {run} session={name} summary={st.results} {bare} {onCount} onOpen={(id) => { watchSession = name; watchOpenId = id; openPage('guardare') }} />{/if}{/snippet}
   <!-- «Per te» (app-formato-unico-12-11): le richieste e i risultati che aspettano la persona in questa sessione, riletti quando cambiano nello stato. -->
   {#snippet perTe(bare: boolean, onCount: ((n: number) => void) | null)}{#if st.ops?.includes('attese')}<PerTe {run} session={name} items={uItems} wide={wide && unified} onMaster={unified ? toMaster : null} {bare} {onCount} sig={`${openWids}|${st.results?.n_unseen ?? 0}|${(st.results?.items ?? []).map(r => r.id).join(',')}`} now={st.ts} results={!!st.ops?.includes('results')}
     onOpenWait={openWait} onOpenResult={(id) => { watchSession = name; watchOpenId = id; openPage('guardare') }} onAnswered={(w) => waitCardsRefresh(w)} />{/if}{/snippet}
-  <Chat {resultsRow} {perTe} focus={focusOf[name] ?? null} onMine={(k) => mineGo(name, k)} onHeadsUp={(text) => sendTo(name, text)} onTask={() => openPage('lavori')} {st} {s} entries={transcripts[name] ?? []} mine={mine.filter(([m]) => m.session === name)} onSend={(x) => sendTo(name, x)} onPick={pick} waitingSince={waitSince[name] ?? null}
+  <Chat {sheet} {resultsRow} {perTe} focus={focusOf[name] ?? null} onMine={(k) => mineGo(name, k)} onHeadsUp={(text) => sendTo(name, text)} onTask={() => openPage('lavori')} {st} {s} entries={transcripts[name] ?? []} mine={mine.filter(([m]) => m.session === name)} onSend={(x) => sendTo(name, x)} onPick={pick} waitingSince={waitSince[name] ?? null}
     updating={!!tr && s.state !== 'gone' && !fresh[name] && behind(s, bgReads[name])}
     onSendAt={st.ops?.includes('project_new') && name !== MASTER ? (x, at) => sendAtTo(name, x, at) : null}
     onSendTo={name === MASTER ? (n, x) => { sendTo(n, x); say(t.mentionSent(n)) } : null}
@@ -2329,14 +2344,12 @@
 {#snippet appMenu()}<AppBar {st} now={now} openCount={summary.open} onPage={openPage} onFeedback={openFeedback} menuOnly />{/snippet}
 
 {#snippet homePane()}
-  <!-- Larga con le sessioni aperte la master non sta più nella colonna della home: ha il pannello e la barra della plancia
-       (Franz 03/11 13:10, variante A, app-pwa-master-tasti-03-11). -->
-  <HomePane master={wide ? null : master} entries={transcripts[MASTER] ?? []} open={masterOpen} onToggle={(o) => smooth(() => { masterOpen = o; masterHalf = o && wide })} onSpeak={(x) => toggle(x, MASTER)}
-    halfStops={wide} half={masterHalf} onHalf={(h) => (masterHalf = h)}>
-    {#snippet menu()}<AppBar {st} now={now} openCount={summary.open} onPage={openPage} onFeedback={openFeedback} menuOnly />{/snippet}
-    {#snippet quick()}{@render masterQuick()}{/snippet}
+  <!-- app-posizioni-sistema-27-11 gruppo 4: la home con la master come foglio sopra (HomePane, MasterSheet), al telefono a tutta
+       larghezza e sulla web larga nella colonna della home, dove la conversazione arriva spostata (una sola, chatHost). Il foglio
+       alla riga prende il posto della barra della master; la home tiene il suo contenuto (niente riga di icone né schede). -->
+  <HomePane master={master && !(wide && cols.includes(MASTER)) ? master : null} entries={transcripts[MASTER] ?? []} stop={sheetAt} onStop={setSheet} onSpeak={(x) => toggle(x, MASTER)} inset={wide}>
+    {#snippet head()}<AppBar {st} now={now} openCount={summary.open} onPage={openPage} onFeedback={openFeedback} quota={false} />{/snippet}
     {#snippet list()}
-      <AppBar {st} now={now} openCount={summary.open} onPage={openPage} onFeedback={openFeedback} quota={false} />
       <div class="list" use:fadeEnd>{@render homeView(null)}</div>
       {#if !master && ready}
         <!-- Senza master (MasterHome.kt, app-master-avvia-19-11): «Avvia la master» con un tocco, anche dopo /exit; con lo
@@ -2349,9 +2362,7 @@
       {/if}
       <div class="reading"><ReadingPill {slots} here={null} onOpen={pick} /></div>
     {/snippet}
-    {#snippet chat()}{@render chatOf(MASTER, true)}{/snippet}
-    <!-- Sul telefono, sotto la master a tutto schermo: la Home in riga (app-home-riga-c1-13-11). -->
-    {#snippet row()}{#if !wide}<HomeRow tight voices={phoneVoices} {now} onOpen={openPhoneVoice} onHome={() => smooth(() => { masterOpen = false })} />{/if}{/snippet}
+    {#snippet chat()}{#if wide}<div class="mchat" {@attach chatHost('desk')}></div>{:else}{@render chatOf(MASTER, true, true)}{/if}{/snippet}
   </HomePane>
 {/snippet}
 
@@ -2506,6 +2517,10 @@
 
 
 {#snippet deskPage()}{#if page}{@render pageView(page)}{/if}{/snippet}
+<!-- app-posizioni-sistema-27-11 gruppo 4: il foglio della master sulla plancia senza sessioni; la conversazione arriva spostata qui. -->
+{#snippet dashSheet()}{#if master}<MasterSheet {master} entries={transcripts[MASTER] ?? []} stop={sheetAt} onStop={setSheet} onSpeak={(x) => toggle(x, MASTER)} inset bind:rowH={dashRowH}>
+  {#snippet chat()}<div class="mchat" {@attach chatHost('dash')}></div>{/snippet}
+</MasterSheet>{/if}{/snippet}
 
 {#if dock}
   <DockEmbed master={master ?? dockCached?.master ?? ghost(MASTER)} entries={transcripts[MASTER] ?? dockCached?.entries ?? []} onSpeak={(x) => toggle(x, MASTER)}>
@@ -2522,7 +2537,10 @@
        fondo, Risorse; le altre nell'ordine della home. -->
   <!-- Le sessioni a sé (app-home-sessioni-a-se-08-11, scelta A di Franz 08/11 18:35): la colonna Sessioni prima, poi le categorie
        nell'ordine della home, Lavori (Notte, In corso, Esiti e Fatto oggi) in una colonna sua. -->
-  <Plancia {width} order={['sessions', ...decodeCats(st.home_order).map(c => c.id).filter(id => id !== 'out')]} top={null} panel={master && masterOpen ? masterPanelGrips : null} panelWide={!masterHalf} panelLeft={masterLeft}>
+  <!-- app-posizioni-sistema-27-11 gruppo 4: senza sessioni il foglio della master sta sopra le colonne, a destra, largo quanto la colonna
+       della home; il pannello di lato e la barra in fondo sono spenti (legacyPlaces). -->
+  <Plancia {width} order={['sessions', ...decodeCats(st.home_order).map(c => c.id).filter(id => id !== 'out')]} top={null} panel={legacyPlaces && master && masterOpen ? masterPanelGrips : null} panelWide={!masterHalf} panelLeft={legacyPlaces && masterLeft}
+    sheet={master && !cols.includes(MASTER) ? dashSheet : null} sheetRow={dashRowH}>
     {#snippet head()}<AppBar {st} now={now} openCount={summary.open} onPage={openPage} onFeedback={openFeedback} quota={false} />{/snippet}
     <!-- Lo spazio in cima della home (app-home-in-cima-02-11): una fascia a tutta larghezza sopra le colonne. -->
     {#snippet topBand()}{@render homeView('top')}{/snippet}
@@ -2531,17 +2549,17 @@
     {#snippet work()}{#if ready}<div class="pboot" class:boot={bootFade} style:animation-delay="60ms"><DeskHead kind="work" h={kpiHeadOf(st, kpiPage, now)} {st} {now} progress={lavoriInProgress(st, agenda.page, now, Intl.DateTimeFormat().resolvedOptions().timeZone, todayIso()).total} onOpen={() => openPage('lavori')} />{@render homeView('work')}<DeskWork part="done" st={stShown} agenda={agenda.page} {now} {events} {donePages} onLavori={() => openPage('lavori')} /></div>{:else}{@render pskel()}{/if}{/snippet}
     {#snippet out()}{#if ready}<div class="pboot" class:boot={bootFade} style:animation-delay="120ms"><DeskHead kind="out" h={kpiHeadOf(st, kpiPage, now)} {st} {now} onOpen={() => openPage('box-esiti')} />{@render homeView('out')}<DeskNight night={nightModel} loading={night.loading} onNight={() => openPage('night')} /><DeskWork part="done" st={stShown} agenda={agenda.page} {now} {events} {donePages} onLavori={() => openPage('lavori')} /></div>{:else}{@render pskel()}{/if}{/snippet}
     {#snippet tools()}{#if ready}<div class="pboot" class:boot={bootFade} style:animation-delay="180ms"><DeskHead kind="tools" h={kpiHeadOf(st, kpiPage, now)} {st} {now} onOpen={() => openPage('overview')} />{@render homeView('tools')}<DeskTools {st} {now} onPick={card} onTalk={talk} onLaunch={(pr) => cmd(pr.name)('launch', pr.path)} /></div>{:else}{@render pskel()}{/if}{/snippet}
-    {#snippet bar()}{@render masterBar()}{/snippet}
+    {#snippet bar()}{#if legacyPlaces}{@render masterBar()}{/if}{/snippet}
   </Plancia>
   </div></div>{/if}
   <!-- Con le sessioni aperte la master si comporta come senza (variante A, app-pwa-master-tasti-03-11): chiusa la barra in fondo,
        aperta il pannello di lato con i tasti di sempre (lato, metà schermo, chiudi); lato e misura restano ricordati. -->
   {#if keepBoth || !deskDashboard}<div class="wslot">
-  <div class="deskwrap" class:left={masterLeft} class:stacked class:homerow={homeInRow} style:--hr={homeInRow ? `${rowHeight(homeVoices)}px` : null} {@attach park(!deskDashboard)}>
+  <div class="deskwrap" class:left={legacyPlaces && masterLeft} class:stacked class:homerow={homeInRow} style:--hr={homeInRow ? `${rowHeight(homeVoices)}px` : null} {@attach park(!deskDashboard)}>
   <div class="dstage">
   <!-- Proposta 1 (Franz 03/11 13:30, app-pwa-master-tasti-03-11): home e master stanno insieme, la master sul bordo e la home
        accanto; «Sposta» della master porta di lato tutte e due. Le frecce della home restano solo senza master. -->
-  <Desk {cols} {shares} homeRight={master ? !masterLeft : homeRight} tab={wco ? columnTab : null} onCols={dropCols} onShares={setShares} override={page ? deskPage : null} details={details && cols.length && !page ? inspector : null}
+  <Desk {cols} {shares} homeRight={master ? true : homeRight} tab={wco ? columnTab : null} onCols={dropCols} onShares={setShares} override={page ? deskPage : null} details={details && cols.length && !page ? inspector : null}
     onHomeSide={master ? null : () => smooth(() => { homeRight = !homeRight; save('cm.home_right', homeRight ? '1' : '0') })}>
     {#snippet home()}{#if !stacked && !homeInRow}{@render homePane()}{/if}{/snippet}
     <!-- app-colonne-strette-05-11 (scelta A): la colonna senza posto leggibile è una striscia; la X la toglie come quella della testata. -->
@@ -2578,18 +2596,18 @@
         onLaunch={(pr) => cmd(pr.name)('launch', pr.path)} />{/if}
     {/snippet}
   </Desk>
-  {#if master && !masterOpen && !cols.includes(MASTER)}{@render masterBar()}{/if}
+  {#if legacyPlaces && master && !masterOpen && !cols.includes(MASTER)}{@render masterBar()}{/if}
   <!-- + e › nel bordo accanto a ogni sessione della home (app-sessione-sostituisci-03-11). -->
-  {#if cols.length && !page}<SwapPills shown={cols} homeRight={master ? !masterLeft : homeRight} onAdd={(n) => { if (!cols.includes(n)) setCols(add(cols, n)) }} onClose={(n) => setCols(cols.filter(c => c !== n))} />{/if}
+  {#if cols.length && !page}<SwapPills shown={cols} homeRight={master ? true : homeRight} onAdd={(n) => { if (!cols.includes(n)) setCols(add(cols, n)) }} onClose={(n) => setCols(cols.filter(c => c !== n))} />{/if}
   </div>
-  {#if master && masterOpen && !cols.includes(MASTER) && !stacked}<aside class="dpanel" class:wide={!masterHalf} style:view-transition-name="master-morph" style:width={masterW ? `${masterW}px` : null}><button class="wgrip" aria-label={t.masterWidthEdge} title={t.masterWidthEdge} onpointerdown={widthDown} onpointermove={widthMove} onpointerup={widthUp} onpointercancel={widthCancel}></button><button class="hgrip top" aria-label={t.masterGrab} title={t.masterGrab} onpointerdown={topDown}><i></i></button>{@render masterPanel('desk')}</aside>{/if}
+  {#if legacyPlaces && master && masterOpen && !cols.includes(MASTER) && !stacked}<aside class="dpanel" class:wide={!masterHalf} style:view-transition-name="master-morph" style:width={masterW ? `${masterW}px` : null}><button class="wgrip" aria-label={t.masterWidthEdge} title={t.masterWidthEdge} onpointerdown={widthDown} onpointermove={widthMove} onpointerup={widthUp} onpointercancel={widthCancel}></button><button class="hgrip top" aria-label={t.masterGrab} title={t.masterGrab} onpointerdown={topDown}><i></i></button>{@render masterPanel('desk')}</aside>{/if}
   <!-- La Home in riga, in fondo a tutta larghezza (app-home-riga-c1-13-11). -->
   {#if homeInRow}<div class="hrowwrap"><HomeRow voices={homeVoices} {now} onOpen={openVoice} onHome={() => setHomeRow(false)} /></div>{/if}
   <!-- Home sopra e master sotto, nel lato e nella larghezza della master (Franz 03/11 17:30 e 17:31). -->
   {#if stacked}<aside class="dpanel stackcol" class:wide={!masterHalf} style:width={masterW ? `${masterW}px` : null}><button class="wgrip" aria-label={t.masterWidthEdge} title={t.masterWidthEdge} onpointerdown={widthDown} onpointermove={widthMove} onpointerup={widthUp} onpointercancel={widthCancel}></button><div class="hstack" data-h={stackH}><div class="hs-top" use:fadeEnd>{@render homePane()}</div><button class="grip" aria-label={t.masterStackStep} title={t.masterStackStep} onpointerdown={topDown}><i></i></button><div class="dpanel under" style:view-transition-name="master-morph" class:compact={stackH === 'compact'} class:nohead={stackH === 'half' && !stackHead}>{@render masterPanel('desk')}</div></div></aside>{/if}
   </div>
   </div>{/if}
-  {#if master && (masterOpen || stacked)}<div class="wslot"><div class="wslot" {@attach chatNode}>{@render chatOf(MASTER, true)}</div></div>{/if}
+  {#if master && !cols.includes(MASTER)}<div class="wslot"><div class="wslot" {@attach chatNode}>{@render chatOf(MASTER, true, true)}</div></div>{/if}
   {#each colChats as n (n)}<div class="wslot"><div class="wslot" {@attach colChat(n)}>{@render chatOf(n, true)}</div></div>{/each}
 {:else}
   <div class="phone">

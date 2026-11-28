@@ -51,7 +51,12 @@
   import { MINUS, pill as changesOf } from './diff'
   import RigaAzioni from './RigaAzioni.svelte'
   import { ctxChip, ringPct, rowShown } from './sessionBottom'
-  let { onNewer = null, onLatest = null, focus = null, onFocused = () => {}, resultsRow = null, perTe = null, onHeadsUp = null, onTask = null, menuMove = null, st, s, entries, mine, onSend, onBack, onPick, onAnswer, onCmd, wide, events, sent, read, onRead, onPromptTo, slots, onAttach, onFile, onFiles = () => {}, onHandoff, elsewhere = null, elsewhereAway = null, onElsewhere = () => {}, onElsewhereDismiss = () => {}, waitingSince = null, updating = false, onSendAt = null, onSendTo = null, inject = null, onInjected = () => {}, onUsage = () => {}, onOlder = null, onGo = null, onReopen = null, appMenu = null, onDiff = null, onChanges = null, onMine = null }: {
+  let { onNewer = null, onLatest = null, focus = null, onFocused = () => {}, resultsRow = null, perTe = null, onHeadsUp = null, onTask = null, menuMove = null, st, s, entries, mine, onSend, onBack, onPick, onAnswer, onCmd, wide, events, sent, read, onRead, onPromptTo, slots, onAttach, onFile, onFiles = () => {}, onHandoff, elsewhere = null, elsewhereAway = null, onElsewhere = () => {}, onElsewhereDismiss = () => {}, waitingSince = null, updating = false, onSendAt = null, onSendTo = null, inject = null, onInjected = () => {}, onUsage = () => {}, onOlder = null, onGo = null, onReopen = null, appMenu = null, onDiff = null, onChanges = null, onMine = null, sheet = false }: {
+    /**
+     * app-posizioni-sistema-27-11 gruppo 4: la master nel suo foglio (MasterSheet). Tiene solo la conversazione: in fondo le Azioni in chip
+     * e l'anellino del contesto come le sessioni; la riga dei dati e gli Avvisi vanno nel ⋮ della riga del foglio, niente pillole in cima.
+     */
+    sheet?: boolean
     /** Contratto 1.106: la riga «Risultati» in cima alla chat; nella sessione (gruppo 2) le sue righe nella tendina, `bare`, e i conteggi. */
     resultsRow?: import('svelte').Snippet<[boolean, ((fresh: number, all: number) => void) | null]> | null
     /** «Per te» in cima alla chat: tutto ciò che aspetta la persona in questa sessione (app-formato-unico-12-11); nella sessione le voci nella tendina. */
@@ -171,7 +176,8 @@
   let recurringOpen = $state(saved('cm.recurring_open', false))
   const idle = $derived(s.state === 'idle' && !s.question)
   // app-riall-3-doppioni-16-11 (direzione A): in una sessione i Prossimi stanno solo sopra il campo, non nel campo né nel turno.
-  const stepsBox = $derived(idle ? (s.name === MASTER ? boxOf(steps, s.suggestion, draft) : boxOf(steps, s.suggestion, draft, 4, true)) : { field: null, rows: [] })
+  // Gruppo 4: nel foglio anche la master ha i Prossimi solo nei chip, come le sessioni; nel campo resta il suggerito del terminale.
+  const stepsBox = $derived(idle ? (s.name === MASTER && !sheet ? boxOf(steps, s.suggestion, draft) : boxOf(steps, s.suggestion, draft, 4, true)) : { field: null, rows: [] })
   const recurringRows = $derived(s.name === MASTER ? (st.recurring ?? []).filter(r => !inDraft(draft, r.prompt)).map(r => ({ label: r.label, text: r.prompt, direct: !r.param && idle })) : [])
   // Contratto 1.37: la proposta del contesto pieno sopra il campo; chiusa, torna alla fascia dopo (70, 80).
   const loadDismissed = (): Record<string, number> => { try { return JSON.parse(localStorage.getItem('cm.ctx_dismissed') ?? '{}') } catch { return {} } }
@@ -187,6 +193,13 @@
   // scheda aperta o Chat, tirandola su, con Esc. I numeri dalla regola di sessionTabs.ts; Per te e Risultati restano montati nella
   // tendina chiusa e dicono quanti sono.
   const tabsOn = $derived(s.name !== MASTER && !s.master)
+  // app-posizioni-sistema-27-11 gruppo 4 (B «Foglio»: «la master tiene solo la conversazione, così niente compare due volte»): nel foglio la
+  // master ha in fondo quello delle sessioni (gruppo 3: le Azioni in chip sopra il campo, nascoste scrivendo; l'anellino del contesto nel
+  // campo, ambra dal 70 %; il chip «Contesto N% · Handoff» alle stesse condizioni, quindi solo con un comando di handoff). In cima niente
+  // riga dei dati né pillole: modello ed effort, quota delle 5 ore, contesto, obiettivo, Modifiche, gli Avvisi e le voci del ⋮ di prima
+  // stanno nel ⋮ della riga del foglio (Header `inSheet`, prestato con headMore); Per te e Risultati della master sono nel Per te della
+  // home, subito sopra, e le altre sessioni nel suo tabellone.
+  const bottomOn = $derived(tabsOn || sheet)
   let tab = $state<SessionTab>('chat')
   // La sezione nella tendina, anche mentre si richiude; `opened` conta le aperture, così Modifiche si rilegge a ogni apertura.
   let lastTab = $state<SessionTab>('perte')
@@ -213,10 +226,13 @@
   // app-posizioni-sistema-27-11 gruppo 3 (in basso si scrive): in una sessione le Azioni sono una riga di chip sopra il campo, nascosta
   // appena si scrive; il contesto è un anellino nel campo che apre il suo foglio, e dal 70 % il chip «Contesto 72% · Handoff» è il primo
   // della riga. Le regole in sessionBottom.ts. La master resta com'è fino al suo foglio (gruppo 4).
-  const azioni = $derived(tabsOn && !home ? stepsBox.rows.map(x => ({ text: x, blocking: stepsBlocking.has(x) })) : [])
-  const chipCtx = $derived(tabsOn ? ctxChip(s.context, s.state === 'idle', handoffPrompt(st, s, () => '') != null) : null)
-  const azioniOn = $derived(tabsOn && rowShown(azioni.length, chipCtx != null, draft))
-  const ring = $derived(tabsOn && s.state !== 'gone' ? ringPct(s.context) : null)
+  // Gruppo 4: nel foglio il suggerito del terminale è il primo chip (riempie il campo come «Usa»), invece di una riga sua sopra il campo
+  // stretto: alla conversazione della master restano almeno 200 px a metà, a 360 × 780.
+  const sheetSug = $derived(sheet ? stepsBox.field : null)
+  const azioni = $derived(bottomOn && !home ? [...(sheetSug ? [{ text: sheetSug, blocking: false, terminal: true }] : []), ...stepsBox.rows.map(x => ({ text: x, blocking: stepsBlocking.has(x) }))] : [])
+  const chipCtx = $derived(bottomOn ? ctxChip(s.context, s.state === 'idle', handoffPrompt(st, s, () => '') != null) : null)
+  const azioniOn = $derived(bottomOn && rowShown(azioni.length, chipCtx != null, draft))
+  const ring = $derived(bottomOn && s.state !== 'gone' ? ringPct(s.context) : null)
   // File trascinati sulla colonna: vanno nel campo come quelli scelti con il +.
   let dragging = $state(false)
   let dragN = $state(0)
@@ -361,7 +377,8 @@
 <section class="chat" class:dragging class:master={s.name === MASTER} class:reading={s.name === MASTER && !atEnd} aria-label={s.name} bind:this={section} tabindex={tabsOn ? -1 : undefined}
   ondragover={(e) => { if (hasFiles(e)) { e.preventDefault(); dragN = e.dataTransfer?.items?.length ?? 0; hold.over() } }} ondragleave={(e) => hold.leave(leftColumn(e))} ondrop={onDrop}>
   {#if dragging}<DropZone n={dragN} to={s.name} />{/if}
-  <Header bind:this={header} {st} {s} wide={wide} {onBack} {onCmd} onPrompt={onSend} {onHandoff} {onUsage} {onGo} {onReopen} {appMenu} {menuMove} {onMine} onChanges={onChanges ? () => (changesOpen = true) : null} tabs={tabsOn ? tabsRow : null} />
+  <Header bind:this={header} {st} {s} wide={wide} {onBack} {onCmd} onPrompt={onSend} {onHandoff} {onUsage} {onGo} {onReopen} {appMenu} {menuMove} {onMine} onChanges={onChanges ? () => (changesOpen = true) : null} tabs={tabsOn ? tabsRow : null}
+    inSheet={sheet} sheetNotes={sheet && notesN ? notesBody : null} />
   <!-- Franz 24/10 18:58: la riga «Home» sopra la conversazione della master è tolta: l'intestazione resta più bassa. -->
 
   <!-- Contratto 1.146: l'avviso su /logout nelle sessioni lanciate con --bg, fisso sotto l'intestazione. -->
@@ -369,7 +386,7 @@
   <!-- app-riquadri-chiusi-16-11 (Franz 16/11 20:02): i riquadri della sessione in una riga di pillole col numero, aperti al tocco;
        da solo si apre soltanto «Per te» con una voce che aspetta. Lo stato resta per sessione. Un riquadro aperto prende la riga intera. -->
   <!-- app-posizioni-sistema-27-11 gruppo 2: in una sessione le pillole lasciano il posto alla riga di icone; restano nella master (gruppo 4). -->
-  {#if !tabsOn}
+  {#if !tabsOn && !sheet}
   <div class="riq" data-testid="chat-riquadri">
     {#if perTe && !home}{@render perTe(false, null)}{/if}
     {#if notesN}<Blocco pill icon="warn" title={t.boxNotes} n={notesN} amber open={boxOpen(s.name, 'avvisi')} testid="chat-avvisi" onToggle={() => boxToggle(s.name, 'avvisi')}>
@@ -460,7 +477,7 @@
   </div>
 
   <!-- Sopra il campo, «Azioni» e «Contesto» come pillole (app-riquadri-chiusi-16-11); restano nella master fino al suo foglio (gruppo 4). -->
-  {#if !tabsOn}
+  {#if !bottomOn}
   <div class="riq low" data-testid="chat-riquadri-sotto">
     {#if stepsBox.rows.length && !home}
       <PromptBox pill title={t.next} rows={stepsBox.rows.map(x => ({ label: x, text: x, direct: true, blocking: stepsBlocking.has(x) }))} open={boxOpen(s.name, 'azioni')}
@@ -493,7 +510,7 @@
       <button aria-label={t.mineJumpClose} title={t.mineJumpClose} onclick={jumpClose}><svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" /></svg></button>
     </div>
   {:else}
-  <Composer bind:this={composer} {st} {s} bind:draft field={stepsBox.field} toMaster={s.name === MASTER} {onSend}
+  <Composer bind:this={composer} {st} {s} bind:draft field={sheet ? null : stepsBox.field} toMaster={s.name === MASTER} {onSend}
     onAnswerText={(arg) => onCmd('answer', arg)} onSlash={(c, a) => onCmd('slash', c, a ?? undefined)} onStop={() => onCmd('interrupt')}
     onReopen={() => onCmd('reopen')} {onAttach} onCloseSave={s.name !== MASTER && st.ops?.includes('close') ? () => onCmd('close', 'save') : null}
     onRecurring={recurringRows.length ? () => { recurringOpen = !recurringOpen; save('cm.recurring_open', recurringOpen) } : null}
@@ -512,6 +529,9 @@
   {/if}
 </section>
 
+
+<!-- Gruppo 4: gli Avvisi della master nel suo foglio, in cima al ⋮ della riga del foglio. -->
+{#snippet notesBody()}<div class="inbox"><BgNote {s} />{#if onHeadsUp}<HeadsUpNote {s} now={st.ts} onPropose={onHeadsUp} />{/if}</div>{/snippet}
 
 {#snippet tabsRow()}<IconRow tabs={iconTabs} active={tab} onPick={choose} onEsc={tab !== 'chat' ? closeTab : undefined} label={t.tabsLabel} keyScope={section ?? null} />{/snippet}
 

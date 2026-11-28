@@ -408,6 +408,11 @@
     <string name="menu_row_working">al lavoro · %1$s</string>
     <string name="menu_row_still">ferma da %1$s</string>
     <string name="dock_collapse">Riduci la master</string>
+    <!-- app-posizioni-sistema-27-11 gruppo 4: il foglio della master; la maniglia dice cosa fa il tocco. -->
+    <string name="master_sheet_tap_row">Apri la master a metà</string>
+    <string name="master_sheet_tap_half">Apri la master a tutta altezza</string>
+    <string name="master_sheet_tap_full">Riduci la master alla riga</string>
+    <string name="master_sheet_ctx_sub">Handoff, compatta, finestra più grande</string>
     <string name="dock_close">Chiudi</string>
     <string name="context_pct">%1$d%% contesto</string>
     <string name="effort">Effort</string>

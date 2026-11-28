@@ -18,6 +18,10 @@ const it = {
   tabChat: 'Chat', tabDetails: 'Dettagli', tabsLabel: 'Sezioni della sessione', shadeClose: 'Chiudi e torna alla chat',
   perTeNone: 'Niente ti aspetta in questa sessione.', resultsNone: 'Questa sessione non ha ancora consegnato risultati.',
   changesNoneHere: 'Nessuna modifica da mostrare.', detailsModel: 'Modello ed effort', detailsQuota: 'Quota delle 5 ore',
+  // app-posizioni-sistema-27-11, gruppo 4: il foglio della master; la maniglia dice cosa fa il tocco.
+  sheetTap: { row: 'Apri la master a metà', half: 'Apri la master a tutta altezza', full: 'Riduci la master alla riga' } as Record<'row' | 'half' | 'full', string>,
+  sheetGrip: 'Trascina o tocca per cambiare la misura della master',
+  sheetCtxSub: 'Handoff, compatta, finestra più grande',
   summary: {
     waiting: (n: number) => pl(n, 'Ti aspetta', 'Ti aspettano'), finished: (n: number) => pl(n, 'Ha finito', 'Hanno finito'),
     working: (n: number) => pl(n, 'Al lavoro', 'Al lavoro'), still: (n: number) => pl(n, 'Ferma', 'Ferme'),
@@ -531,6 +535,9 @@ const en: typeof it = {
   tabChat: 'Chat', tabDetails: 'Details', tabsLabel: 'Session sections', shadeClose: 'Close and go back to the chat',
   perTeNone: 'Nothing is waiting for you in this session.', resultsNone: 'This session has not delivered any results yet.',
   changesNoneHere: 'No changes to show.', detailsModel: 'Model and effort', detailsQuota: '5-hour quota',
+  sheetTap: { row: 'Open the master to half', half: 'Open the master to full height', full: 'Shrink the master to its row' },
+  sheetGrip: 'Drag or tap to change the master size',
+  sheetCtxSub: 'Handoff, compact, larger window',
   summary: {
     waiting: (n: number) => `Waiting for you · ${n}`, finished: (n: number) => `Finished · ${n}`,
     working: (n: number) => `Working · ${n}`, still: (n: number) => `Idle · ${n}`,

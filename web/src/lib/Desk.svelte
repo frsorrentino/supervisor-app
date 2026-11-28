@@ -140,10 +140,12 @@
 </div>
 
 <style>
-  .desk { display: grid; grid-template-columns: 400px 28px minmax(0, 1fr); grid-template-areas: 'home handle cols'; height: 100%; background: var(--bg); }
-  .desk.right { grid-template-columns: minmax(0, 1fr) 28px 400px; grid-template-areas: 'cols handle home'; }
-  .desk.details { grid-template-columns: 400px 28px minmax(0, 1fr) 341px; grid-template-areas: 'home handle cols det'; }
-  .desk.right.details { grid-template-columns: 341px minmax(0, 1fr) 28px 400px; grid-template-areas: 'det cols handle home'; }
+  /* app-posizioni-sistema-27-11 gruppo 4: la colonna della home, dove sta il foglio della master, 400 px e 440 da 1680. */
+  .desk { --home-w: 400px; display: grid; grid-template-columns: var(--home-w) 28px minmax(0, 1fr); grid-template-areas: 'home handle cols'; height: 100%; background: var(--bg); }
+  @media (min-width: 1680px) { .desk { --home-w: 440px; } }
+  .desk.right { grid-template-columns: minmax(0, 1fr) 28px var(--home-w); grid-template-areas: 'cols handle home'; }
+  .desk.details { grid-template-columns: var(--home-w) 28px minmax(0, 1fr) 341px; grid-template-areas: 'home handle cols det'; }
+  .desk.right.details { grid-template-columns: 341px minmax(0, 1fr) 28px var(--home-w); grid-template-areas: 'det cols handle home'; }
   .det { grid-area: det; min-height: 0; border-left: 1px solid var(--line); }
   .desk.right .det { border-left: 0; border-right: 1px solid var(--line); }
   /* view-transition-name fa della home un contesto di impilamento: senza z-index il menu ≡ (z-index 21 dentro la home)

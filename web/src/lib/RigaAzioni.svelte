@@ -5,7 +5,8 @@
   // prima; quelle che sbloccano un lavoro fermo hanno il lucchetto ambra al posto del fulmine. Dal 70 % di contesto il primo chip, ambra,
   // è «Contesto 72% · Handoff» e fa l'handoff di prima.
   let { actions, ctx = null, onPick, onHandoff }: {
-    actions: { text: string; blocking: boolean }[]
+    /** `terminal`: il suggerito del terminale (gruppo 4, nel foglio della master), col segno del prompt. */
+    actions: { text: string; blocking: boolean; terminal?: boolean }[]
     /** La percentuale del chip del contesto (`ctxChip`); null = niente chip. */
     ctx?: number | null
     onPick: (text: string) => void; onHandoff: () => void
@@ -21,7 +22,8 @@
   {/if}
   {#each actions as a (a.text)}
     <button type="button" class="chip" class:lock={a.blocking} title={a.text} onclick={() => onPick(a.text)}>
-      {#if a.blocking}<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 9.9-1" /></svg>
+      {#if a.terminal}<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 17l6-5-6-5M12 19h8" /></svg>
+      {:else if a.blocking}<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 9.9-1" /></svg>
       {:else}<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M13 2.5 4.5 13.5H11l-1 8 8.5-11H12z" /></svg>{/if}
       <span class="tx">{a.text}</span>
     </button>

@@ -369,7 +369,7 @@ class SessionSheetTest {
         CmPhoneTheme(still = true) {
             androidx.compose.runtime.CompositionLocalProvider(it.pixelbox.cmwatch.mobile.ui.LocalMasterLook provides look) {
                 SessionSheet(m, st.ts, emptyList(), 120, none, grid = true, home = { _, _ -> }, homeOpen = false, header = false,
-                    bar = { it.pixelbox.cmwatch.mobile.ui.MasterDock(m, hero, {}, {}, expanded = true) },
+                    dock = { it.pixelbox.cmwatch.mobile.ui.MasterSheetHead(m, hero, {}, closed = false) },
                     feed = it.pixelbox.cmwatch.rules.ChatFeed.merge(entries, emptyList()))
             }
         }
@@ -388,9 +388,11 @@ class SessionSheetTest {
             SessionSheet(m, st.ts, emptyList(), 120, none, grid = true,
                 home = { _, _ -> st.sessions.take(4).forEach { s -> androidx.compose.material3.Text(s.name, color = it.pixelbox.cmwatch.mobile.ui.V3.Tx, modifier = androidx.compose.ui.Modifier.padding(16.dp)) } },
                 homeOpen = pulled != null, homePull = pulled, halfStops = tablet, half = half,
-                dock = if (pulled != null) ({ it.pixelbox.cmwatch.mobile.ui.MasterDock(m, hero, {}, {}) }) else null,
+                // app-posizioni-sistema-27-11 gruppo 4: sul telefono il foglio della master, con la sua riga in testa (intero, o fermo a metà
+                // della corsa); sul tablet la barra di prima.
+                dock = if (!tablet) ({ it.pixelbox.cmwatch.mobile.ui.MasterSheetHead(m, hero, {}, closed = pulled != null) }) else if (pulled != null) ({ it.pixelbox.cmwatch.mobile.ui.MasterDock(m, hero, {}, {}) }) else null,
                 appBar = { it.pixelbox.cmwatch.mobile.ui.PageHeader(null, st.sessions, 3, st.ts, {}, {}, menu) },
-                bar = { it.pixelbox.cmwatch.mobile.ui.MasterDock(m, hero, {}, {}, expanded = true, toggleUp = half, onClose = if (half) ({}) else null, screen = !tablet, trailing = if (half) null else ({ it.pixelbox.cmwatch.mobile.ui.AppMenu(menu) })) },
+                bar = if (!tablet) null else ({ it.pixelbox.cmwatch.mobile.ui.MasterDock(m, hero, {}, {}, expanded = true, toggleUp = half, onClose = if (half) ({}) else null, screen = false, trailing = if (half) null else ({ it.pixelbox.cmwatch.mobile.ui.AppMenu(menu) })) }),
                 feed = it.pixelbox.cmwatch.rules.ChatFeed.merge(entries, emptyList()))
         }
     }
