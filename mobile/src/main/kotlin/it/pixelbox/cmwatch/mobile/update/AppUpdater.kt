@@ -88,7 +88,7 @@ class AppUpdater(private val ctx: Context, private val scope: CoroutineScope) {
                     same && (u.phase is Phase.Downloading || (u.phase is Phase.Ready && (u.phase as Phase.Ready).file.exists())) -> u.phase
                     else -> cached(offer)?.let { Phase.Ready(offer, it) } ?: Phase.Available(offer)
                 }
-                u.copy(phase = phase, checking = false, checkedAt = now, error = null, novita = offer?.let { o -> it.pixelbox.cmwatch.rules.Novita.lines(releases, installed().installedAt, o) })
+                u.copy(phase = phase, checking = false, checkedAt = now, error = null, novita = offer?.let { o -> it.pixelbox.cmwatch.rules.Novita.lines(releases, installed(), o) })
             }
         }
     }

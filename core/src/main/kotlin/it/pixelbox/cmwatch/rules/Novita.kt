@@ -31,6 +31,19 @@ object Novita {
      * Le novità fra l'installata e l'offerta: le pre-release uscite dopo l'installazione fino all'offerta compresa (solo
      * l'offerta se non se ne sa di più), la più nuova prima, senza doppioni, al massimo [MAX] righe.
      */
+    fun lines(releases: List<AppUpdate.Release>, installed: AppUpdate.Installed, offer: AppUpdate.Release): Lines =
+        lines(releases, since(releases, installed), offer)
+
+    /**
+     * Da quando contano le pre-release (app-novita-cosa-cambia-28-11, Franz 28/11 13:57: «la sezione novità non dice più cosa
+     * cambia»): dalla pubblicazione della release installata, riconosciuta dal digest dell'APK, non dall'ora in cui è stata
+     * installata. Franz aveva messo la 0.2.2435 dalla carta della prova quando la 0.2.2436, con la correzione del foglio, era già
+     * uscita; la 0.2.2437 offerta aveva solo i golden, e la scheda diceva «Correzioni minori». Senza digest che torni, l'ora
+     * dell'installazione come prima.
+     */
+    fun since(releases: List<AppUpdate.Release>, installed: AppUpdate.Installed): Long =
+        installed.sha256?.let { sha -> releases.firstOrNull { it.sha256 == sha }?.publishedAt } ?: installed.installedAt
+
     fun lines(releases: List<AppUpdate.Release>, installedAt: Long, offer: AppUpdate.Release): Lines {
         val span = releases.filter { it.publishedAt > installedAt && it.publishedAt <= offer.publishedAt }.ifEmpty { listOf(offer) }
         val all = span.sortedByDescending { it.publishedAt }.flatMap { section(it.notes) }.distinct()
