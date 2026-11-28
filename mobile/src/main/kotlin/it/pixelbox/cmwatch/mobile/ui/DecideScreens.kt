@@ -163,16 +163,22 @@ private fun primaSection(key: String): String = when (key) {
 
 /**
  * «Da provare» (contratto 1.99, banco_prova): le prove per versione. Quelle di una versione non ancora installata dicono di installarla prima e non
- * hanno i tasti. «Non va» chiede cosa non va, a voce dalla tastiera, e uno screenshot facoltativo: arrivano alla master.
+ * hanno i tasti. «Non va» chiede cosa non va, a voce dalla tastiera; col + del campo delle sessioni anche foto, file e schermate
+ * (app-allegati-carta-27-11), che partono prima della risposta verso la sessione del compito della prova (`attach`).
  */
 @Composable
-fun DaProvareScreen(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onBack: () -> Unit, onOk: suspend (String) -> Boolean, onKo: suspend (ProveItem, String, android.net.Uri?) -> Boolean, onScreen: (String) -> Unit, focus: String? = null) = DecidePage(stringResource(R.string.prove_title), "da-provare", onBack) { DaProvareBody(page, buildOf, onOk, onKo, onScreen, focus = focus) }
+fun DaProvareScreen(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onBack: () -> Unit, onOk: suspend (String) -> Boolean, onKo: suspend (ProveItem, String, android.net.Uri?) -> Boolean, onScreen: (String) -> Unit, focus: String? = null, attach: ((ProveItem) -> CardAttach?)? = null) = DecidePage(stringResource(R.string.prove_title), "da-provare", onBack) { DaProvareBody(page, buildOf, onOk, onKo, onScreen, focus = focus, attach = attach) }
 
 /** Le prove con l'Ok mandato, per tutta l'app: la sezione della home e la pagina le tolgono insieme (app-prova-ok-sparisce-04-11). */
 internal object ProveSent { val ids = androidx.compose.runtime.mutableStateListOf<String>() }
 
 @Composable
-fun DaProvareBody(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onOk: suspend (String) -> Boolean, onKo: suspend (ProveItem, String, android.net.Uri?) -> Boolean, onScreen: (String) -> Unit, onWait: ((String) -> Unit)? = null, focus: String? = null) {
+fun DaProvareBody(
+    page: ProvePage?, buildOf: (String) -> BancoProva.Build, onOk: suspend (String) -> Boolean, onKo: suspend (ProveItem, String, android.net.Uri?) -> Boolean, onScreen: (String) -> Unit,
+    onWait: ((String) -> Unit)? = null, focus: String? = null,
+    /** app-allegati-carta-27-11: il + degli allegati nel «Non va» di una prova; null senza un relay che li accetta. */
+    attach: ((ProveItem) -> CardAttach?)? = null,
+) {
     var ko by remember { mutableStateOf<ProveItem?>(null) }
     // Franz 02/11 15:38: Ok non blocca più e la scheda non sparisce di colpo (Leave): conferma sul tasto, uscita in altezza,
     // le altre salgono; se il PC dice no, la scheda torna.
@@ -258,19 +264,40 @@ fun DaProvareBody(page: ProvePage?, buildOf: (String) -> BancoProva.Build, onOk:
     }
     ko?.let { p ->
         var text by rememberSaveable(p.id) { mutableStateOf("") }
-        var shot by remember(p.id) { mutableStateOf<android.net.Uri?>(null) }
-        val pick = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.GetContent()) { u -> if (u != null) shot = u }
+        // app-allegati-carta-27-11: il + del campo delle sessioni al posto dello screenshot solo. Gli allegati partono prima del «Non va»,
+        // verso la sessione del compito della prova; se non arrivano il «Non va» non parte e il campo tiene testo e allegati, col motivo.
+        val up = attach?.invoke(p)
+        var files by rememberSaveable(p.id) { mutableStateOf(listOf<android.net.Uri>()) }
+        var busy by remember(p.id) { mutableStateOf(false) }
+        var failed by remember(p.id) { mutableStateOf<String?>(null) }
         AlertDialog(
-            onDismissRequest = { ko = null }, containerColor = Cm.surface,
+            onDismissRequest = { if (!busy) ko = null }, containerColor = Cm.surface,
             title = { Text(p.short ?: p.task, color = Cm.text) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(text, { text = it.take(2000) }, label = { Text(stringResource(R.string.prove_ko_hint)) }, modifier = Modifier.fillMaxWidth())
-                    TextButton(onClick = { pick.launch("image/*") }) { Text(stringResource(if (shot == null) R.string.prove_ko_shot else R.string.prove_ko_shot_ok)) }
+                    CardAttachThumbs(files, enabled = !busy) { u -> files = files - u }
+                    OutlinedTextField(
+                        text, { v -> text = v.take(2000) }, label = { Text(stringResource(R.string.prove_ko_hint)) }, modifier = Modifier.fillMaxWidth(),
+                        leadingIcon = if (up != null) ({ CardAttachPlus(up) { more -> files = cardAttachAdd(files, more) } }) else null,
+                    )
+                    CardAttachState(busy, failed)
                 }
             },
-            confirmButton = { TextButton(enabled = text.isNotBlank(), onClick = { val body = text.trim(); val s = shot; ko = null; act(listOf(p.id.toString()), "ko") { onKo(p, body, s) } }) { Text(stringResource(R.string.prove_ko_send)) } },
-            dismissButton = { TextButton(onClick = { ko = null }) { Text(stringResource(R.string.cancel)) } },
+            confirmButton = { TextButton(enabled = text.isNotBlank() && !busy, onClick = {
+                val body = text.trim()
+                val toSend = files
+                if (up != null && toSend.isNotEmpty()) {
+                    busy = true; failed = null
+                    scope.launch {
+                        val why = up.send(toSend)
+                        busy = false
+                        if (why != null) { failed = why; return@launch }
+                        files = emptyList(); ko = null
+                        act(listOf(p.id.toString()), "ko") { onKo(p, body, null) }
+                    }
+                } else { ko = null; act(listOf(p.id.toString()), "ko") { onKo(p, body, null) } }
+            }) { Text(stringResource(R.string.prove_ko_send)) } },
+            dismissButton = { TextButton(enabled = !busy, onClick = { ko = null }) { Text(stringResource(R.string.cancel)) } },
         )
     }
 }

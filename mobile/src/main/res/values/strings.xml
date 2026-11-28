@@ -421,6 +421,8 @@
     <string name="attach_gallery">Foto dalla galleria</string>
     <string name="attach_camera">Scatta una foto</string>
     <string name="attach_file">File</string>
+    <!-- app-allegati-carta-27-11: il testo che lega alla carta gli allegati della sua risposta, nel report alla sessione del compito. -->
+    <string name="card_attach_note">Allegati alla risposta della carta «%1$s»</string>
     <string name="write_to">Scrivi a %1$s</string>
     <string name="write_to_ad">Scrivi ad %1$s</string>
     <string name="attached_file">File: %1$s</string>
@@ -1690,8 +1692,6 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="prove_red">CONTROLLO ROSSO</string>
     <string name="prove_red_running">Il controllo sta girando</string>
     <string name="prove_ko_hint">Cosa non va</string>
-    <string name="prove_ko_shot">Allega uno screenshot</string>
-    <string name="prove_ko_shot_ok">Screenshot allegato</string>
     <string name="prove_ko_send">Manda</string>
     <string name="prove_ko_shot_note">Screenshot del «Non va» su %1$s</string>
     <string name="decisions_title">Da decidere</string>

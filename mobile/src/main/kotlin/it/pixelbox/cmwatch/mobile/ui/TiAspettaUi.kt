@@ -217,15 +217,38 @@ fun WaitCardBody(
     ops: List<String>? = null, now: Long = 0,
     /** Contratto 1.159: l'op `silence` col testo («3d» o «off»); null senza relay. */
     onSilence: (suspend (String) -> it.pixelbox.cmwatch.contract.CmdResult?)? = null,
+    /** app-allegati-carta-27-11: il + degli allegati nel campo di un tasto; null senza un relay che li accetta. */
+    attach: CardAttach? = null,
+    /** Solo per i test: il campo del tasto [writingAt] già aperto, con questi allegati. */
+    writingAt: Int? = null, filesAt: List<android.net.Uri> = emptyList(),
     onSend: (it.pixelbox.cmwatch.contract.WaitAction, String?) -> Unit,
 ) {
     var sent by androidx.compose.runtime.saveable.rememberSaveable(item.id) { androidx.compose.runtime.mutableStateOf<Int?>(null) }
-    var writing by androidx.compose.runtime.saveable.rememberSaveable(item.id) { androidx.compose.runtime.mutableStateOf<Int?>(null) }
+    var writing by androidx.compose.runtime.saveable.rememberSaveable(item.id) { androidx.compose.runtime.mutableStateOf(writingAt) }
     var written by androidx.compose.runtime.saveable.rememberSaveable(item.id) { androidx.compose.runtime.mutableStateOf("") }
+    // app-allegati-carta-27-11: gli allegati del campo, mentre partono (`busy`) e il motivo se non sono arrivati (`failed`).
+    var files by androidx.compose.runtime.saveable.rememberSaveable(item.id) { androidx.compose.runtime.mutableStateOf(filesAt) }
+    var busy by remember(item.id) { mutableStateOf(false) }
+    var failed by remember(item.id) { mutableStateOf<String?>(null) }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
     val actions = item.actions.orEmpty()
     fun go(i: Int, a: it.pixelbox.cmwatch.contract.WaitAction) {
-        if (sent != null) return
-        if (a.textField != null && writing != i) { writing = i; written = ""; return }
+        if (sent != null || busy) return
+        if (a.textField != null && writing != i) { writing = i; written = ""; files = emptyList(); failed = null; return }
+        // Gli allegati prima della risposta, alla sessione del compito: se non arrivano la risposta non parte e il campo resta com'è.
+        val up = attach
+        val picked: List<android.net.Uri> = if (a.textField != null) files else emptyList()
+        if (up != null && picked.isNotEmpty()) {
+            busy = true; failed = null
+            scope.launch {
+                val why = up.send(picked)
+                busy = false
+                if (why != null) { failed = why; return@launch }
+                files = emptyList(); sent = i; writing = null
+                onSend(a, written.takeIf { a.textField != null })
+            }
+            return
+        }
         sent = i; writing = null
         onSend(a, written.takeIf { a.textField != null })
     }
@@ -302,13 +325,17 @@ fun WaitCardBody(
         writing?.let { i ->
             val a = actions.getOrNull(i) ?: return@let
             ImeBlock {
+                // app-allegati-carta-27-11: le anteprime sopra il campo e il + dentro, a sinistra, come nel campo delle sessioni.
+                CardAttachThumbs(files, enabled = !busy) { u -> files = files - u }
                 androidx.compose.material3.OutlinedTextField(
                     written, { v -> written = v.take(2000) }, modifier = Modifier.fillMaxWidth().testTag("ti-aspetta-testo"),
                     label = { Text(a.label) }, minLines = 2,
+                    leadingIcon = if (attach != null) ({ CardAttachPlus(attach) { more -> files = cardAttachAdd(files, more) } }) else null,
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                CardAttachState(busy, failed)
+                Row(Modifier.graphicsLayer { alpha = if (busy) 0.45f else 1f }, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     V3Pill(stringResource(R.string.ti_aspetta_send), filled = true) { if (written.isNotBlank() || a.textField == "text") go(i, a) }
-                    V3Pill(stringResource(R.string.cancel)) { writing = null }
+                    V3Pill(stringResource(R.string.cancel)) { if (!busy) writing = null }
                 }
             }
         }

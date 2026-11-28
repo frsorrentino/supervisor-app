@@ -12,14 +12,21 @@
   import { leaveOut } from './motion'
   import ItemList from './ItemList.svelte'
   import ProvaFiles from './ProvaFiles.svelte'
+  import CardAttach from './CardAttach.svelte'
+  import { revoke, type Allegato, type CardFiles } from './allegatiCarta'
+  import type { State } from './contract'
   import { prove, proveKo, proveRed } from './itemRows'
   // «Da provare» (contratto 1.99, banco_prova), porta di DaProvareScreen. Sul web vale l'ultima versione online: nessuna prova aspetta un'installazione.
   // `focus` (app-prova-link-diretta-10-11): la prova di un link «prova #N», aperta, in vista ed evidenziata.
   // `only` (app-sessioni-compatte-06-11): solo le verifiche di una sessione, dentro la sua scheda; o solo quelle senza.
-  let { run, onScreen, onShot, only = null, onWait = null, focus = null }: { focus?: string | null; onWait?: ((wid: string) => void) | null; only?: ((p: ProvePage['groups'][number]['prove'][number]) => boolean) | null; run: (c: ReturnType<typeof newCmd>) => Promise<CmdResult | null>; onScreen: (s: string) => void; onShot: (f: File, note: string) => void } = $props()
+  // `onFiles` e `share` (app-allegati-carta-27-11): nel «Non va» il + del campo delle sessioni al posto dello screenshot solo; gli allegati
+  // partono prima della risposta, alla sessione del compito della prova.
+  let { run, onScreen, onFiles = null, share = null, only = null, onWait = null, focus = null }: { focus?: string | null; onWait?: ((wid: string) => void) | null; only?: ((p: ProvePage['groups'][number]['prove'][number]) => boolean) | null; run: (c: ReturnType<typeof newCmd>) => Promise<CmdResult | null>; onScreen: (s: string) => void; onFiles?: CardFiles | null; share?: State['share'] | null } = $props()
   let page = $state<ProvePage | null>(null)
   let ko = $state<ProvePage['groups'][number]['prove'][number] | null>(null)
-  let text = $state(''), shot = $state<File | null>(null)
+  let text = $state(''), files = $state<Allegato[]>([]), busy = $state(false), upErr = $state<string | null>(null)
+  // Il «Non va» di un'altra prova parte senza gli allegati e senza l'errore di quella di prima.
+  function openKo(p: ProvePage['groups'][number]['prove'][number]) { if (ko?.id !== p.id) { revoke(files); files = []; upErr = null }; ko = p }
   // Senza risposta in tempo la pagina lo dice e offre Riprova, invece di restare «In arrivo dal PC» (app-pwa-decisioni-03-11).
   let failed = $state(false)
   async function load() { failed = false; ({ page, failed } = readPage(await run(newCmd('prove', null)), decodeProve, page)) }
@@ -61,7 +68,19 @@
   async function result(ids: string[], arg: string, res: 'ok' | 'ko', body?: string) { await leave(ids, res, () => send(arg, res, body), hooks); void load() }
   const shown = (g: ProvePage['groups'][number]) => g.prove.filter(p => !gone[String(p.id)] && (only?.(p) ?? true))
   const koShown = $derived((page?.ko ?? []).filter(k => !gone[`ko-${k.id}`]))
-  async function sendKo() { const p = ko!; const b = text.trim(), f = shot; ko = null; text = ''; shot = null; await result([String(p.id)], String(p.id), 'ko', b); if (f) onShot(f, t.proveKoShotNote(p.short ?? p.task)) }
+  // Gli allegati prima (app-allegati-carta-27-11): se non arrivano il «Non va» non parte e il campo tiene testo e allegati, col motivo.
+  async function sendKo() {
+    const p = ko, b = text.trim()
+    if (!p || busy) return
+    if (files.length && onFiles) {
+      busy = true; upErr = null
+      const why = await onFiles(p.session, p.task, p.short ?? p.title ?? p.task, files.map(f => f.file))
+      busy = false
+      if (why) { upErr = why; return }
+    }
+    revoke(files); files = []; ko = null; text = ''
+    await result([String(p.id)], String(p.id), 'ko', b)
+  }
 </script>
 
 <div class="dp" data-testid="da-provare">
@@ -96,7 +115,7 @@
         <div class="ac">
           {#if screen(p.dove)}<button class="text" onclick={() => onScreen(screen(p.dove)!)}>{t.featuresGo}</button>{/if}
           <span class="sp"></span>
-          <button class="out" class:fade={pk === 'ok'} disabled={!!pk} onclick={() => (ko = p)}>{t.proveKo}</button><button class="tonal ck" class:done={pk === 'ok'} class:fade={pk === 'ko'} disabled={!!pk} onclick={() => result([String(p.id)], String(p.id), 'ok')}><span class="lbl">{t.proveOk}</span>{#if pk === 'ok'}<Check />{/if}</button>
+          <button class="out" class:fade={pk === 'ok'} disabled={!!pk} onclick={() => openKo(p)}>{t.proveKo}</button><button class="tonal ck" class:done={pk === 'ok'} class:fade={pk === 'ko'} disabled={!!pk} onclick={() => result([String(p.id)], String(p.id), 'ok')}><span class="lbl">{t.proveOk}</span>{#if pk === 'ok'}<Check />{/if}</button>
         </div>
       </div>{/if}{/snippet}</ItemList>
   {/each}
@@ -109,9 +128,11 @@
   {#if ko}
     <div class="c ko">
       <b>{ko.short ?? ko.task}</b>
-      <textarea bind:value={text} maxlength="2000" rows="3" placeholder={t.proveKoHint}></textarea>
-      <label class="text">{shot ? shot.name : t.proveKoShot}<input type="file" accept="image/*" hidden onchange={(e) => { shot = (e.currentTarget as HTMLInputElement).files?.[0] ?? null }} /></label>
-      <div class="ac"><span class="sp"></span><button class="text" onclick={() => (ko = null)}>{t.cancel}</button><button class="tonal" disabled={!text.trim()} onclick={sendKo}>{t.proveKoSend}</button></div>
+      <!-- app-allegati-carta-27-11: il + del campo delle sessioni accanto al campo, al posto dello screenshot solo. -->
+      <CardAttach bind:files share={onFiles ? share : null} {busy} failed={upErr}>
+        <textarea bind:value={text} maxlength="2000" rows="3" placeholder={t.proveKoHint} data-testid="prova-non-va-testo"></textarea>
+      </CardAttach>
+      <div class="ac"><span class="sp"></span><button class="text" disabled={busy} onclick={() => (ko = null)}>{t.cancel}</button><button class="tonal" disabled={!text.trim() || busy} data-testid="prova-non-va-manda" onclick={sendKo}>{t.proveKoSend}</button></div>
     </div>
   {/if}
 </div>

@@ -1469,7 +1469,7 @@ private fun SuggestionPill(text: String, onEdit: () -> Unit) {
 
 /** L'anteprima di un'immagine scelta dalla galleria, ridotta mentre si legge (una foto intera occuperebbe troppa memoria). */
 @Composable
-private fun UriThumb(uri: Uri, modifier: Modifier) {
+internal fun UriThumb(uri: Uri, modifier: Modifier) {
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val bmp = remember(uri) {
         runCatching {
@@ -1497,7 +1497,7 @@ private fun UriThumb(uri: Uri, modifier: Modifier) {
  * (Paparazzi) non c'è, e il tasto resta disegnato senza selettore.
  */
 @Composable
-private fun AttachButton(files: Boolean = false, attach: Boolean = true, onRecurring: (() -> Unit)? = null, onMine: (() -> Unit)? = null, onPicked: (List<Uri>) -> Unit) {
+internal fun AttachButton(files: Boolean = false, attach: Boolean = true, onRecurring: (() -> Unit)? = null, onMine: (() -> Unit)? = null, onPicked: (List<Uri>) -> Unit) {
     val icon: @Composable () -> Unit = { Icon(Icons.Rounded.Add, stringResource(R.string.attach_image), tint = Cm.actionIcon) }
     if (androidx.activity.compose.LocalActivityResultRegistryOwner.current == null) { IconButton(onClick = {}, content = icon); return }
     val ctx = androidx.compose.ui.platform.LocalContext.current

@@ -8,6 +8,9 @@
   import SceltaAperta from './SceltaAperta.svelte'
   import AttesaFiles from './AttesaFiles.svelte'
   import LongText from './LongText.svelte'
+  import CardAttach from './CardAttach.svelte'
+  import { revoke, type Allegato, type CardFiles } from './allegatiCarta'
+  import { untrack } from 'svelte'
   import type { CmdResult, DecisionItem, State, WaitAction, WaitFile, WaitItem } from './contract'
   import { isChoice, outcomeOf } from './scelta'
   import { lang, locale } from './lang'
@@ -26,7 +29,7 @@
   // Contratto 1.137 (app-scheda-scelta-12-11): una scelta ha la sua scheda (SceltaAperta: le opzioni con immagini, righe di pro e
   // contro e tasti, «Nessuna, rifare», i giri precedenti); ogni altra richiesta mostra i suoi file sotto il testo (le immagini di cosa
   // guardare di una verifica). La voce si legge con `archive`: dopo la risposta la scheda resta, senza tasti, con com'è finita.
-  let { id, st, now, wide = false, run, onBack, onHome, onSession = () => {}, onSent, onOpenWait, onJump, onApprove, onDone, onAsk, onScreen, onShot, onFile = () => {}, onAnswered = () => {} }: {
+  let { id, st, now, wide = false, run, onBack, onHome, onSession = () => {}, onSent, onOpenWait, onJump, onApprove, onDone, onAsk, onScreen, onFiles = null, onFile = () => {}, onAnswered = () => {} }: {
     id: string; st: State; now: number; wide?: boolean
     run: (c: ReturnType<typeof newCmd>) => Promise<CmdResult | null>
     onBack: () => void; onOpenWait: (id: string) => void
@@ -34,7 +37,9 @@
     onHome: () => void; onSession?: (session: string) => void; onSent: (w: WaitItem, what: string, to: string | null) => void
     onJump: (session: string, entry: string, sessionId: string | null) => void
     onApprove: (task: string, note: string, choice?: string) => void; onDone: (i: DecisionItem) => void; onAsk: (text: string) => void
-    onScreen: (s: string) => void; onShot: (f: File, note: string) => void
+    onScreen: (s: string) => void
+    /** app-allegati-carta-27-11: gli allegati di una risposta, prima di lei, alla sessione del compito; null = il campo senza il +. */
+    onFiles?: CardFiles | null
     /** Un file della richiesta: l'anteprima (la chiede la cornice appena è in pagina) o l'apertura. */
     onFile?: (f: WaitFile, act: 'preview' | 'open') => void
     /** Una risposta partita da questa scheda ha avuto il suo esito dal PC: le schede compatte delle chat rileggono la loro. */
@@ -53,6 +58,7 @@
   $effect(() => {
     const want = id, n = tries
     full = null; failed = false; gone = false; slow = false; sent = null; writing = null; written = ''; silenceSet = null; silenceBusy = false; silenceErr = null
+    untrack(() => revoke(picked)); picked = []; busy = false; upErr = null
     const timer = setTimeout(() => { if (want === id && n === tries && full == null) slow = true }, 10_000)
     void run({ ...newCmd('attesa', null, want), archive: true }).then(r => {
       if (want !== id || n !== tries) return
@@ -75,21 +81,38 @@
   const legacy = $derived(!!item && item.actions == null)
   // Un tasto: manda il suo comando, o chiede prima il testo del campo `text_field`; dopo l'invio i tasti si spengono.
   let sent = $state<number | null>(null), writing = $state<number | null>(null), written = $state('')
+  // app-allegati-carta-27-11: gli allegati del campo, mentre partono (`busy`) e il motivo se non sono arrivati (`upErr`).
+  let picked = $state<Allegato[]>([]), busy = $state(false), upErr = $state<string | null>(null)
+  const share = $derived(onFiles ? st.share : null)
   function go(i: number, a: WaitAction) {
-    if (sent != null) return
-    if (a.text_field && writing !== i) { writing = i; written = ''; return }
-    send(i, a.text_field ? written : null)
+    if (sent != null || busy) return
+    if (a.text_field && writing !== i) { writing = i; written = ''; revoke(picked); picked = []; upErr = null; return }
+    void send(i, a.text_field ? written : null, a.text_field ? picked.map(f => f.file) : []).then(why => { if (why) upErr = why })
   }
-  /** Manda il comando del tasto `i`, col testo scritto nel suo campo, e chiude la scheda. */
-  function send(i: number, text: string | null) {
+  /**
+   * Manda il comando del tasto `i`, col testo scritto nel suo campo, e chiude la scheda. Con degli allegati (app-allegati-carta-27-11)
+   * prima partono loro, in un `report` alla sessione del compito; se non arrivano la risposta non parte, il campo tiene testo e
+   * allegati e torna il motivo. Una scheda cambiata nel frattempo non riceve la risposta.
+   */
+  async function send(i: number, text: string | null, files: File[] = []): Promise<string | null> {
     const w = item, a = w?.actions?.[i]
-    if (sent != null || !w || !a) return
+    if (sent != null || busy || !w || !a) return null
+    if (files.length && onFiles) {
+      const want = id
+      busy = true; upErr = null
+      const why = await onFiles(w.session, w.task, w.title || w.text, files)
+      busy = false
+      if (why != null) return why
+      if (want !== id) return null
+      revoke(picked); picked = []
+    }
     sent = i; writing = null
     const c = cmdOf(a, a.text_field ? text : null)
     // La voce esce subito da ogni vista (app-riall-1-dati-16-11); se il PC rifiuta, torna.
     markAnswered(w.id)
     void run({ ...newCmd(c.op as Parameters<typeof newCmd>[0], c.session ?? null, c.arg ?? null), ...c } as ReturnType<typeof newCmd>).then(r => { if (!r?.ok && !waitGone(r?.text)) markAnswered(w.id, false); onAnswered(w) })
     onSent(w, sentWhat(a.label, a.text_field ? text : null), typeof c.session === 'string' ? c.session : null)
+    return null
   }
   // Una scheda che non aspetta più (dall'archivio): la testata dice com'è finita e quando, non da quanto aspetta.
   const out = $derived(item ? outcomeOf(item) : null)
@@ -133,11 +156,11 @@
   <TiAspetta {page} {now} {wide} {onBack} {onHome} stack={choice} title={out && out.state !== 'open' ? t.sceltaDone[out.state] : null} sub={out && out.state !== 'open' ? answeredAt ?? '' : null} onOther={onOpenWait} onJump={(s) => { if (s.entry) onJump(s.session, s.entry, w.msg?.session_id ?? null) }}>
     {#snippet card()}
       {#if legacy && item.kind === 'prova'}
-        <DaProvare {run} only={(p) => p.wid === w.id} {onScreen} {onShot} />
+        <DaProvare {run} only={(p) => p.wid === w.id} {onScreen} {onFiles} share={st.share} />
       {:else if legacy && w.type === 'carta'}
         <CinqueMinuti rows allOpen only={(g) => g.items.some(i => i.wid === w.id)} {st} {run} onApprove={(task, note, choice) => { onApprove(task, note, choice); onSent(w, sentWhat(choice || t.approve, note), null) }} onDone={(i) => { onDone(i); onSent(w, t.tiAspettaDone, null) }} {onAsk} />
       {:else if choice}
-        <SceltaAperta item={w} rows={rows(w)} {sent} onSend={send} {onFile} />
+        <SceltaAperta item={w} rows={rows(w)} {sent} onSend={send} {onFile} {share} />
       {:else}
         {@const acts = w.actions ?? []}
         <div class="wc" data-testid="ti-aspetta-carta">
@@ -175,10 +198,13 @@
           {/if}
           {#if silenceErr}<p class="note" role="status">{silenceErr}</p>{/if}
           {#if writing != null}{@const a = acts[writing]}
-            <textarea class="field" rows="2" placeholder={a?.label} bind:value={written} data-testid="ti-aspetta-testo"></textarea>
+            <!-- app-allegati-carta-27-11: il + del campo delle sessioni accanto al campo; gli allegati partono prima della risposta. -->
+            <CardAttach bind:files={picked} {share} {busy} failed={upErr}>
+              <textarea class="field" rows="2" placeholder={a?.label} bind:value={written} data-testid="ti-aspetta-testo"></textarea>
+            </CardAttach>
             <div class="pills">
-              <button class="pill main" disabled={!written.trim() && a?.text_field !== 'text'} onclick={() => a && go(writing!, a)}>{t.tiAspettaSend}</button>
-              <button class="pill" onclick={() => (writing = null)}>{t.cancel}</button>
+              <button class="pill main" disabled={busy || (!written.trim() && a?.text_field !== 'text')} onclick={() => a && go(writing!, a)}>{t.tiAspettaSend}</button>
+              <button class="pill" disabled={busy} onclick={() => (writing = null)}>{t.cancel}</button>
             </div>
           {/if}
           {#if !acts.length}<div class="note"><LongText text={out && out.state !== 'open' ? [out.state === 'chosen' ? t.sceltaChosen(out.letter, out.name) : t.sceltaDone[out.state], out.reason].filter(Boolean).join(': ') : t.tiAspettaByMaster} /></div>{/if}

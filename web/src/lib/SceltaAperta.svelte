@@ -11,6 +11,9 @@
   import { locale } from './lang'
   import { t } from './t'
   import { adviceLine, adviceOf } from './tiAspetta'
+  import CardAttach from './CardAttach.svelte'
+  import { revoke, type Allegato } from './allegatiCarta'
+  import type { State } from './contract'
   // La scheda di scelta aperta (app-scheda-scelta-12-11, descrizione approvata da Franz il 12/11 alle 15:10): la descrizione vera,
   // le opzioni una accanto all'altra, ognuna con la sua immagine, la riga di pro e contro e il suo tasto; le immagini si ingrandiscono
   // al tocco e nel visore si passa dall'una all'altra; in fondo «Nessuna, rifare» col motivo, obbligatorio. Un giro nuovo entra nella
@@ -18,10 +21,13 @@
   // e dice com'è finita. Una sola griglia: stretta, le immagini stanno affiancate in alto e sotto ogni opzione ha la sua riga intera,
   // così il testo non finisce in colonne strette; larga (misurata sulla scheda, non sulla finestra), ogni opzione è una colonna.
   // Le regole (lettere, tasto di ogni opzione, esito, giri) stanno in scelta.ts, coi casi condivisi con Kotlin.
-  let { item, rows = [], sent, onSend, onFile }: {
+  let { item, rows = [], sent, onSend, onFile, share = null }: {
     item: WaitItem; rows?: [string, string][]; sent: number | null
-    onSend: (i: number, written: string | null) => void
+    /** Con degli allegati (app-allegati-carta-27-11) torna il motivo se non sono arrivati: la risposta non è partita. */
+    onSend: (i: number, written: string | null, files?: File[]) => void | Promise<string | null>
     onFile: (f: WaitFile, act: 'preview' | 'open') => void
+    /** app-allegati-carta-27-11: il relay che accetta gli allegati; null = il campo senza il +. */
+    share?: State['share'] | null
   } = $props()
   const acts = $derived(item.actions ?? [])
   const c = $derived(choiceOf(item))
@@ -40,13 +46,24 @@
   const isRedo = $derived(writing != null && writing === c.redo)
   const ready = $derived(isRedo ? redoReady(written) : !!written.trim() || wa?.text_field === 'text')
   const left = $derived(REDO_MAX - written.trim().length)
+  // app-allegati-carta-27-11: gli allegati del campo; partono prima della risposta e, se non arrivano, il campo resta com'è col motivo.
+  let files = $state<Allegato[]>([]), busy = $state(false), upErr = $state<string | null>(null)
   function tap(i: number) {
-    if (sent != null) return
+    if (sent != null || busy) return
     const a = acts[i]
-    if (a?.text_field) { writing = i; written = ''; return }
+    if (a?.text_field) { writing = i; written = ''; revoke(files); files = []; upErr = null; return }
     onSend(i, null)
   }
-  function send() { if (writing == null || !ready || sent != null) return; const i = writing; writing = null; onSend(i, written) }
+  async function send() {
+    if (writing == null || !ready || sent != null || busy) return
+    const i = writing
+    if (!files.length) { writing = null; onSend(i, written); return }
+    busy = true; upErr = null
+    const why = await onSend(i, written, files.map(f => f.file))
+    busy = false
+    if (why) { upErr = why; return }
+    revoke(files); files = []; writing = null
+  }
   const focus = (node: HTMLTextAreaElement) => { node.focus({ preventScroll: true }); node.scrollIntoView({ block: 'nearest' }) }
 
   // Il visore: tutte le immagini già arrivate di questo giro (o di un giro precedente), nell'ordine delle opzioni.
@@ -125,12 +142,15 @@
     <form class="form" onsubmit={(e) => { e.preventDefault(); send() }}>
       <label for="scelta-motivo">{isRedo ? t.sceltaReasonLabel : wa.label}</label>
       {#if isRedo}<p class="hint">{t.sceltaReasonHint}</p>{/if}
-      <textarea id="scelta-motivo" rows="3" maxlength={isRedo ? REDO_MAX : undefined} bind:value={written} use:focus enterkeyhint="send" data-testid="scelta-motivo"></textarea>
+      <!-- app-allegati-carta-27-11: il + del campo delle sessioni accanto al motivo; gli allegati partono prima della risposta. -->
+      <CardAttach bind:files {share} {busy} failed={upErr}>
+        <textarea id="scelta-motivo" rows="3" maxlength={isRedo ? REDO_MAX : undefined} bind:value={written} use:focus enterkeyhint="send" data-testid="scelta-motivo"></textarea>
+      </CardAttach>
       <div class="ac">
         {#if isRedo}<LimitRing length={written.trim().length} max={REDO_MAX} />{/if}
         <span class="sp"></span>
-        <button type="button" class="txt" onclick={() => (writing = null)}>{t.cancel}</button>
-        <button type="submit" class="go filled" disabled={!ready || sent != null} data-testid="scelta-manda">{t.tiAspettaSend}</button>
+        <button type="button" class="txt" disabled={busy} onclick={() => (writing = null)}>{t.cancel}</button>
+        <button type="submit" class="go filled" disabled={!ready || sent != null || busy} data-testid="scelta-manda">{t.tiAspettaSend}</button>
       </div>
     </form>
   {:else if c.redo != null || c.rest.length}

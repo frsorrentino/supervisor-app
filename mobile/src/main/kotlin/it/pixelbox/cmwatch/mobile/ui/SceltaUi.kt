@@ -261,10 +261,20 @@ private fun outcomeText(o: Scelta.Outcome): String? = when (o.state) {
  * condivisi con la web; `rows` i campi della carta (cosa, dove, non provato, annullare). `onSend` riceve il tasto e il testo scritto.
  */
 @Composable
-fun SceltaAperta(item: WaitItem, rows: List<Pair<Int, String>>, onSend: (Int, String?) -> Unit) {
+fun SceltaAperta(
+    item: WaitItem, rows: List<Pair<Int, String>>,
+    /** app-allegati-carta-27-11: il + degli allegati nel campo di un tasto; null senza un relay che li accetta. */
+    attach: CardAttach? = null,
+    onSend: (Int, String?) -> Unit,
+) {
     var sent by rememberSaveable(item.id) { mutableStateOf<Int?>(null) }
     var writing by rememberSaveable(item.id) { mutableStateOf<Int?>(null) }
     var written by rememberSaveable(item.id) { mutableStateOf("") }
+    // app-allegati-carta-27-11: gli allegati del campo, mentre partono (`busy`) e il motivo se non sono arrivati (`failed`).
+    var files by rememberSaveable(item.id) { mutableStateOf(listOf<android.net.Uri>()) }
+    var busy by remember(item.id) { mutableStateOf(false) }
+    var failed by remember(item.id) { mutableStateOf<String?>(null) }
+    val sendScope = rememberCoroutineScope()
     val acts = item.actions.orEmpty()
     val c = remember(item) { Scelta.choiceOf(item) }
     val out = remember(item) { Scelta.outcomeOf(item) }
@@ -276,14 +286,31 @@ fun SceltaAperta(item: WaitItem, rows: List<Pair<Int, String>>, onSend: (Int, St
     val screenH = LocalConfiguration.current.screenHeightDp
     val cap = (screenH * if (c.options.size >= 3) 0.34f else 0.4f).dp.coerceAtMost(480.dp)
     fun tap(i: Int) {
-        if (sent != null) return
+        if (sent != null || busy) return
         val a = acts.getOrNull(i) ?: return
-        if (a.textField != null) { writing = i; written = ""; return }
+        if (a.textField != null) { writing = i; written = ""; files = emptyList(); failed = null; return }
         sent = i; onSend(i, null)
     }
     val isRedo = writing != null && writing == c.redo
     val ready = writing?.let { i -> if (i == c.redo) Scelta.redoReady(written) else written.isNotBlank() || acts.getOrNull(i)?.textField == "text" } == true
-    fun send() { val i = writing ?: return; if (!ready || sent != null) return; writing = null; sent = i; onSend(i, written) }
+    fun send() {
+        val i = writing ?: return
+        if (!ready || sent != null || busy) return
+        // Gli allegati prima della risposta, alla sessione del compito: se non arrivano la risposta non parte e il campo resta com'è.
+        val up = attach
+        if (up != null && files.isNotEmpty()) {
+            val picked = files
+            busy = true; failed = null
+            sendScope.launch {
+                val why = up.send(picked)
+                busy = false
+                if (why != null) { failed = why; return@launch }
+                files = emptyList(); writing = null; sent = i; onSend(i, written)
+            }
+            return
+        }
+        writing = null; sent = i; onSend(i, written)
+    }
     // Il visore: le immagini già arrivate di un giro, nell'ordine delle opzioni, ognuna col suo nome.
     fun enlarge(options: List<Scelta.Opt>, from: WaitFile, prefix: String? = null) {
         val shots = options.flatMap { o -> o.images.map { f -> f to listOfNotNull(prefix, listOf(o.letter, o.name).filter { it.isNotEmpty() }.joinToString(", "), f.name.takeIf { o.images.size > 1 }).joinToString(" · ") } }
@@ -407,19 +434,23 @@ fun SceltaAperta(item: WaitItem, rows: List<Pair<Int, String>>, onSend: (Int, St
                 Rule()
                 Text(if (isRedo) stringResource(R.string.scelta_reason_label) else a.label, style = V3.Name, modifier = Modifier.padding(top = 4.dp))
                 if (isRedo) Text(stringResource(R.string.scelta_reason_hint), style = V3.Small)
+                // app-allegati-carta-27-11: le anteprime sopra il campo e il + dentro, a sinistra, come nel campo delle sessioni.
+                CardAttachThumbs(files, enabled = !busy) { u -> files = files - u }
                 OutlinedTextField(
                     written, { v -> written = if (isRedo) v.take(Scelta.REDO_MAX + 40) else v.take(2000) },
                     modifier = Modifier.fillMaxWidth().testTag("scelta-motivo"), minLines = 3, maxLines = 6, textStyle = V3.Body.copy(fontSize = 16.sp),
+                    leadingIcon = if (attach != null) ({ CardAttachPlus(attach) { more -> files = cardAttachAdd(files, more) } }) else null,
                 )
+                CardAttachState(busy, failed)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     val left = Scelta.REDO_MAX - written.trim().length
                     // Voce 7 di app-animazioni-seconde-26-11: il limite del motivo come anello.
                     if (isRedo) LimitRing(written.trim().length, Scelta.REDO_MAX)
                     Spacer(Modifier.weight(1f))
-                    Box(Modifier.handCursor().clip(CircleShape).clickable { writing = null }.padding(horizontal = 12.dp, vertical = 11.dp)) {
+                    Box(Modifier.handCursor().clip(CircleShape).clickable { if (!busy) writing = null }.padding(horizontal = 12.dp, vertical = 11.dp)) {
                         Text(stringResource(R.string.cancel), style = V3.Name.copy(fontSize = 15.sp, color = V3.Tx2))
                     }
-                    Box(Modifier.testTag("scelta-manda")) { ChoiceButton(stringResource(R.string.ti_aspetta_send), filled = true, done = false, enabled = ready && sent == null) { send() } }
+                    Box(Modifier.testTag("scelta-manda")) { ChoiceButton(stringResource(R.string.ti_aspetta_send), filled = true, done = false, enabled = ready && sent == null && !busy) { send() } }
                 }
             }
         } ?: run {

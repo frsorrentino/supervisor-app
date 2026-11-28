@@ -22,6 +22,7 @@
   import { firstLines, previewKind } from './lib/media'
   import { firstPage } from './lib/pdfPreview'
   import { groups, together } from './lib/shareMulti'
+  import { allegatiTarget, type CardFiles } from './lib/allegatiCarta'
   import type { FileAct, Fetched } from './lib/fileActions'
   import { FileStore } from './lib/fileStore'
   import { GoneFiles, fileGone, fileName } from './lib/fileGone'
@@ -2016,6 +2017,32 @@
       res = { ...res, [m.id]: await tr.send({ ...newCmd('report', name, ids.join(','), text || undefined), id: m.id }) }
     } catch { pend = { ...pend, [m.id]: 'failed' } }
   }
+  // app-allegati-carta-27-11: gli allegati del campo di risposta di una carta (Ti aspetta, Banco prova), prima della risposta, alla
+  // sessione del compito (allegatiTarget). Come attachTogether: ogni file in /share, poi un `report` per gruppo di `share.multi` col
+  // testo nel primo; qui si aspetta l'esito e torna il motivo se non arrivano, così la carta tiene testo e allegati e la risposta non
+  // parte. Arrivati, il messaggio entra nella chat di quella sessione come dal suo campo.
+  const cardFiles: CardFiles = async (session, task, title, files) => {
+    if (!tr) return t.noAnswer
+    const name = allegatiTarget(session, task, st)
+    for (const [g, group] of groups(files, st.share).entries()) {
+      const ids: string[] = []
+      for (const f of group) {
+        const sid = crypto.randomUUID()
+        try {
+          await tr.share(sid, f.type || 'application/octet-stream', new Uint8Array(await f.arrayBuffer()), f.name)
+        } catch (e) { return e instanceof Error ? e.message : String(e) }
+        ids.push(sid)
+      }
+      const m: Sent = { id: crypto.randomUUID(), session: name, text: g === 0 ? t.cardAttachNote(title) : '', sentAt: nowS(), attachments: group.map(f => f.name) }
+      let r: CmdResult
+      try { r = await tr.send({ ...newCmd('report', name, ids.join(','), m.text || undefined), id: m.id }) } catch { return t.noAnswer }
+      if (!r.ok) return r.text.trim() || t.noAnswer
+      msgs = [...msgs, m]
+      res = { ...res, [m.id]: r }
+    }
+    return null
+  }
+  const cardFilesFn = $derived<CardFiles | null>(tr && st.share ? cardFiles : null)
   // Un file della chat: il comando `file`, poi i byte da /api/file/<id>; il menu del file li chiede appena si apre
   // («prepare») e l'anteprima appena la card è a schermo. Restano pronti finché la chat è a schermo (`FileStore`), con la
   // chiave del file della chat (`fileKey`): lo stesso percorso mandato di nuovo con un'altra misura non riprende quello vecchio.
@@ -2323,7 +2350,7 @@
 
 <!-- La home, intera (part null: telefono e colonna home della web larga) o per parti nelle colonne della plancia (pwa2). -->
 <!-- Le decisioni e le verifiche di una sessione, nella sua scheda aperta (app-sessioni-compatte-06-11). -->
-{#snippet sessionTodo(name: string)}<CinqueMinuti rows allOpen only={(g) => g.items.some(i => i.session === name)} onAsk={(x) => sendTo(MASTER, x)} {st} {run} onApprove={approve} onDone={(i) => { if (i.kind === 'needs_you' && i.session) attentionDone({ kind: 'needs_you', ref: i.session, since: i.since }); else { const c = st.commitments?.find(x => x.task === i.task); if (c) doneForPerson(c) } }} />{#if todo[name]?.v}<DaProvare {run} only={(p) => provaSession(p) === name} onScreen={(s) => openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName)} onShot={(file, note) => attach(MASTER, [file], note)} />{/if}{/snippet}
+{#snippet sessionTodo(name: string)}<CinqueMinuti rows allOpen only={(g) => g.items.some(i => i.session === name)} onAsk={(x) => sendTo(MASTER, x)} {st} {run} onApprove={approve} onDone={(i) => { if (i.kind === 'needs_you' && i.session) attentionDone({ kind: 'needs_you', ref: i.session, since: i.since }); else { const c = st.commitments?.find(x => x.task === i.task); if (c) doneForPerson(c) } }} />{#if todo[name]?.v}<DaProvare {run} only={(p) => provaSession(p) === name} onScreen={(s) => openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName)} onFiles={cardFilesFn} share={st.share} />{/if}{/snippet}
 {#snippet decisionsBody(rows = false)}<CinqueMinuti {rows} onWait={openWait} only={(g) => !decOfSession(g)} onAsk={(x) => sendTo(MASTER, x)} {st} {run} onApprove={approve} onDone={(i) => { if (i.kind === 'needs_you' && i.session) attentionDone({ kind: 'needs_you', ref: i.session, since: i.since }); else { const c = st.commitments?.find(x => x.task === i.task); if (c) doneForPerson(c) } }} />{/snippet}
 <!-- I corpi delle voci del programma del 01/11, gli stessi delle pagine: si aprono sul posto nella home (Franz 02/11 08:05). -->
 {#snippet sectionBody(k: string)}
@@ -2331,7 +2358,7 @@
   {:else if k === 'prima_raccolta'}<PrimaRaccolta {run} summary={st.prima_raccolta} onScreen={(s) => openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName)} onFeatures={() => openPage('features')} />
   <!-- Verifica (app-tocca-sezioni-06-11): le prove, poi i lavori consegnati da guardare. -->
   <!-- app-riall-1-dati-16-11: con la lista unica Verifica elenca le voci verify di tutte le sessioni, per intero. -->
-  {:else if k === 'prove'}{#if uItems}<VoceList {run} items={uItems.filter(isVerify)} now={st.ts} testid="verifica-voci" onOpenWait={openWait} />{:else if st.prove && st.prove.n + st.prove.ko + st.prove.red > 0}<DaProvare {run} onWait={openWait} only={(p) => { const s = provaSession(p); return !(s && liveSet.has(s)) }} onScreen={(s) => openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName)} onShot={(file, note) => attach(MASTER, [file], note)} />{/if}{#if st.results?.n_unseen}{@render guardare('body')}{/if}
+  {:else if k === 'prove'}{#if uItems}<VoceList {run} items={uItems.filter(isVerify)} now={st.ts} testid="verifica-voci" onOpenWait={openWait} />{:else if st.prove && st.prove.n + st.prove.ko + st.prove.red > 0}<DaProvare {run} onWait={openWait} only={(p) => { const s = provaSession(p); return !(s && liveSet.has(s)) }} onScreen={(s) => openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName)} onFiles={cardFilesFn} share={st.share} />{/if}{#if st.results?.n_unseen}{@render guardare('body')}{/if}
   <!-- Prima raccolta sta dentro Decidi finché c'è (app-sezioni-accorpate-03-11, scelta A). -->
   {:else if k === 'decisioni'}{#if uItems}<PerTeGruppi {run} groups={perTeG} now={st.ts} current={wide ? (cols.length === 1 ? cols : perTeFocus && cols.includes(perTeFocus.session) ? [perTeFocus.session] : []) : []} focus={perTeFocus} onSession={(n) => { openPage(null); pick(n) }} onOpenWait={openWait}
     onOpenResult={(id, s) => { watchSession = s; watchOpenId = id; openPage('guardare') }} reread={() => void readResults(run)} onAnswered={(w) => waitCardsRefresh(w)} />{:else}{#if st.prima_raccolta}<PrimaRaccolta {run} summary={st.prima_raccolta} onScreen={(s) => openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName)} onFeatures={() => openPage('features')} />{/if}{#if st.decisions?.n}{@render decisionsBody(true)}{/if}{/if}
@@ -2372,7 +2399,7 @@
     onOpenWait={(w) => (waitId = w)} onJump={(n, entry, sid) => { const live = st.sessions.some(x => x.name === n && x.state !== 'gone'); waitId = null; waitFrom = null; openPage(null); if (!live && sid) { sidOf = { ...sidOf, [n]: sid }; reading = n } else pick(n); void jumpTo(n, entry) }}
     onApprove={approve} onAsk={(x) => sendTo(MASTER, x)}
     onDone={(i) => { if (i.kind === 'needs_you' && i.session) attentionDone({ kind: 'needs_you', ref: i.session, since: i.since }); else { const c = st.commitments?.find(x => x.task === i.task); if (c) doneForPerson(c) } }}
-    onScreen={(s) => { waitId = null; waitFrom = null; openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName) }} onShot={(file, note) => attach(MASTER, [file], note)}
+    onScreen={(s) => { waitId = null; waitFrom = null; openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName) }} onFiles={cardFilesFn}
     onFile={(f, act) => fileAction(f.session ?? null, f.path, act, waitFileKey(f))} onAnswered={(w) => waitCardsRefresh(w)} />
   {:else if p === 'prova' && provaId != null}
   <!-- La scheda di una prova (app-prova-link-10-11): ancora da provare, il tasto apre Verifica, dove si risponde. -->
@@ -2407,7 +2434,7 @@
     {:else if p === 'prima-raccolta'}
       <PrimaRaccolta {run} summary={st.prima_raccolta} onScreen={(s) => openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName)} onFeatures={() => openPage('features')} />
     {:else if p === 'prove'}
-      <DaProvare {run} focus={proveFocus} onScreen={(s) => openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName)} onShot={(file, note) => attach(MASTER, [file], note)} />
+      <DaProvare {run} focus={proveFocus} onScreen={(s) => openPage(s === 'home' ? null : s === 'usage' ? 'overview' : s as PageName)} onFiles={cardFilesFn} share={st.share} />
     {:else if p === 'decisions'}
       <!-- Con la lista unica la pagina è «Per te» con le sole decisioni, con le stesse righe (app-riall-3-doppioni-16-11). -->
       {#if unified}<PerTeGruppi {run} groups={perTeG.map(g => ({ ...g, voci: g.voci.filter(v => v.group === 'decidi') })).filter(g => g.voci.length)} now={st.ts}

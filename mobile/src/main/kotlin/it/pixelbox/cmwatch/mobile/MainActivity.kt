@@ -1612,6 +1612,14 @@ class MainActivity : ComponentActivity() {
             if (ok && shot != null) attachMany(it.pixelbox.cmwatch.rules.ContextActions.MASTER, listOf(shot), getString(R.string.prove_ko_shot_note, p.short ?: p.task), state?.share)
             ok
         }
+        // app-allegati-carta-27-11: il + nel campo di risposta delle carte (Ti aspetta, Banco prova), solo con un relay che accetta allegati.
+        // Gli allegati vanno, prima della risposta, alla sessione del compito della carta (AllegatiCarta.target), col titolo della carta.
+        val cardAttach: (String?, String?, String) -> CardAttach? = { session, task, title ->
+            state?.share?.let { sh ->
+                CardAttach(sh.any) { uris -> cardFiles(it.pixelbox.cmwatch.rules.AllegatiCarta.target(session, task, state), uris, getString(R.string.card_attach_note, title), sh) }
+            }
+        }
+        val proveAttach: (it.pixelbox.cmwatch.contract.ProveItem) -> CardAttach? = { p -> cardAttach(p.session, p.task, p.short ?: p.title ?: p.task) }
         val decApprove: (String, String?) -> Unit = { task, choice -> scope.launch {
             val also = state?.approvals?.firstOrNull { a -> a.task == task }?.let { a -> it.pixelbox.cmwatch.rules.OkInformato.also(a) }
             val id = runCatching { app.repo.command(CmdOp.APPROVE, null, task, it.pixelbox.cmwatch.rules.MasterService.approveText(""), choice = choice, also = also) }.getOrNull()
@@ -1839,7 +1847,7 @@ class MainActivity : ComponentActivity() {
                 // app-verifica-vuota-16-11: le prove delle sessioni aperte stanno nelle loro schede; qui una riga per sessione che porta lì, come
                 // il web dal 12/11 (app-verifica-conto-elenco-12-11). «Niente da provare» solo se nemmeno le sessioni ne hanno.
                 val ver = provePage?.let { p -> it.pixelbox.cmwatch.rules.ToccaRules.verifica(p, proveSession, todoLive) }
-                if (state?.prove?.let { p -> p.n + p.ko + p.red > 0 } == true && (ver == null || !ver.outsideEmpty || ver.inSessions.isEmpty())) it.pixelbox.cmwatch.mobile.ui.DaProvareBody(ver?.outside, { tag -> app.updater.buildOf(tag) }, { ids -> proveOkRun(ids) }, proveKo, goScreen, onWait = { w -> waitOpen = w })
+                if (state?.prove?.let { p -> p.n + p.ko + p.red > 0 } == true && (ver == null || !ver.outsideEmpty || ver.inSessions.isEmpty())) it.pixelbox.cmwatch.mobile.ui.DaProvareBody(ver?.outside, { tag -> app.updater.buildOf(tag) }, { ids -> proveOkRun(ids) }, proveKo, goScreen, onWait = { w -> waitOpen = w }, attach = proveAttach)
                 ver?.inSessions?.forEach { r -> it.pixelbox.cmwatch.mobile.ui.ProveInSessionRow(r.session, r.n) { homeFolds.openCard(r.session) } }
                 // Verifica porta anche i lavori consegnati da guardare (app-tocca-sezioni-06-11).
                 }
@@ -1871,7 +1879,7 @@ class MainActivity : ComponentActivity() {
             it.pixelbox.cmwatch.mobile.ui.PageIn { androidx.compose.runtime.CompositionLocalProvider(it.pixelbox.cmwatch.mobile.ui.LocalWaitFiles provides waitFiles()) { it.pixelbox.cmwatch.mobile.ui.DaProvareScreen(provePage, { tag -> app.updater.buildOf(tag) }, onBack = { proveOpen = false; proveFocus = null },
                 onOk = { ids -> proveOkRun(ids) },
                 onKo = proveKo,
-                onScreen = { s -> proveOpen = false; proveFocus = null; goScreen(s) }, focus = proveFocus) } }
+                onScreen = { s -> proveOpen = false; proveFocus = null; goScreen(s) }, focus = proveFocus, attach = proveAttach) } }
             it.pixelbox.cmwatch.mobile.ui.PageBackHandler { proveOpen = false; proveFocus = null }
             return
         }
@@ -1968,14 +1976,16 @@ class MainActivity : ComponentActivity() {
                         p.copy(groups = gs, n = gs.sumOf { g -> g.prove.size }, ko = emptyList(), red = emptyList())
                     }?.takeIf { p -> p.groups.isNotEmpty() }
                     // Contratto 1.131: i tasti del relay per ogni carta; senza `actions` (un relay di prima) la carta che l'app ha già.
+                    // app-allegati-carta-27-11: il + nel campo di un tasto, con gli allegati verso la sessione del compito della carta.
+                    val attachHere = cardAttach(item.session, item.task, item.title?.takeIf { t -> t.isNotBlank() } ?: item.text)
                     when {
                         // Contratto 1.137: una scelta ha la sua scheda, con le immagini delle opzioni, «Nessuna, rifare» e i giri.
-                        choice -> it.pixelbox.cmwatch.mobile.ui.SceltaAperta(item, it.pixelbox.cmwatch.mobile.ui.waitRows(item)) { i, written -> item.actions?.getOrNull(i)?.let { a -> send(a, written) } }
-                        item.actions != null -> it.pixelbox.cmwatch.mobile.ui.WaitCardBody(item, state?.ops, now, silence, send)
+                        choice -> it.pixelbox.cmwatch.mobile.ui.SceltaAperta(item, it.pixelbox.cmwatch.mobile.ui.waitRows(item), attach = attachHere) { i, written -> item.actions?.getOrNull(i)?.let { a -> send(a, written) } }
+                        item.actions != null -> it.pixelbox.cmwatch.mobile.ui.WaitCardBody(item, state?.ops, now, silence, attach = attachHere, onSend = send)
                         groups.isNotEmpty() -> it.pixelbox.cmwatch.mobile.ui.SessionDecisions(groups, answer.two(decApprove), answer.one(decDone), answer.one(decNotNow), answer.two(decDrop), decAsk)
-                        prove != null -> it.pixelbox.cmwatch.mobile.ui.DaProvareBody(prove, { tag -> app.updater.buildOf(tag) }, answer.taken<String> { ids -> proveOkRun(ids) }, answer.taken(proveKo), goScreen)
+                        prove != null -> it.pixelbox.cmwatch.mobile.ui.DaProvareBody(prove, { tag -> app.updater.buildOf(tag) }, answer.taken<String> { ids -> proveOkRun(ids) }, answer.taken(proveKo), goScreen, attach = proveAttach)
                         // Contratto 1.131: i tasti del relay, ognuno col suo comando già pronto.
-                        else -> it.pixelbox.cmwatch.mobile.ui.WaitCardBody(item, state?.ops, now, silence, send)
+                        else -> it.pixelbox.cmwatch.mobile.ui.WaitCardBody(item, state?.ops, now, silence, attach = attachHere, onSend = send)
                     }
                 }
             } }
@@ -3610,6 +3620,52 @@ class MainActivity : ComponentActivity() {
                 runCatching { app.repo.reportMany(session, t, parts, share?.maxBytes ?: 0, id = id, partsMax = share?.takeIf { x -> x.parts }?.maxPartsBytes) }
             }
         }
+    }
+
+    /**
+     * app-allegati-carta-27-11 (Franz 27/11 20:47, «questo campo di testo dovrebbe avere la possibilità di caricare allegati come nelle
+     * sessioni»): gli allegati del campo di risposta di una carta, prima della risposta, alla sessione [session] del compito. Come
+     * attachMany: le immagini ridotte, gli altri file così come sono (con `share.any`), a gruppi di `share.multi` in un `report` solo
+     * col testo nel primo; qui si aspetta l'esito di ogni report. Null se sono arrivati tutti, e i messaggi entrano nella chat della
+     * sessione come dal suo campo; altrimenti il motivo, e la carta non manda la risposta e tiene testo e allegati.
+     */
+    private suspend fun cardFiles(session: String, uris: List<Uri>, text: String, share: it.pixelbox.cmwatch.contract.Share): String? {
+        val per = (share.multi ?: 1).coerceAtLeast(1)
+        val limit = ShareLimits.maxFileBytes(share)
+        for ((k, group) in uris.chunked(per).withIndex()) {
+            val id = java.util.UUID.randomUUID().toString()
+            val parts = mutableListOf<Repo.SharePart>()
+            val copies = mutableListOf<String>()
+            val names = mutableListOf<String>()
+            for ((i, uri) in group.withIndex()) {
+                val mime = contentResolver.getType(uri) ?: "image/jpeg"
+                if (mime.startsWith("image/") || !share.any) {
+                    val bytes = withContext(kotlinx.coroutines.Dispatchers.IO) { it.pixelbox.cmwatch.mobile.share.ImageShrink.jpeg(this@MainActivity, uri) }
+                        ?: return getString(R.string.share_unreadable)
+                    val copy = withContext(kotlinx.coroutines.Dispatchers.IO) { java.io.File(java.io.File(filesDir, "chat").apply { mkdirs() }, "$id-$i.jpg").apply { writeBytes(bytes) } }
+                    parts += Repo.SharePart("image/jpeg", bytes)
+                    copies += copy.path
+                } else {
+                    val name = runCatching {
+                        contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c -> if (c.moveToFirst()) c.getString(0) else null }
+                    }.getOrNull() ?: "file"
+                    val bytes = withContext(kotlinx.coroutines.Dispatchers.IO) { runCatching { contentResolver.openInputStream(uri)?.use { s -> s.readBytes() } }.getOrNull() }
+                        ?: return getString(R.string.share_unreadable)
+                    if (bytes.size > limit) return getString(R.string.file_too_big, android.text.format.Formatter.formatShortFileSize(this, limit))
+                    parts += Repo.SharePart(mime, bytes, name)
+                    names += name
+                }
+            }
+            val t = if (k == 0) text else ""
+            val sent = runCatching { app.repo.reportMany(session, t, parts, share.maxBytes, id = id, partsMax = share.takeIf { x -> x.parts }?.maxPartsBytes) }
+            sent.exceptionOrNull()?.let { e -> return e.message ?: getString(R.string.chat_no_answer) }
+            val r = kotlinx.coroutines.withTimeoutOrNull(60_000) { app.repo.resultsById.first { m -> m.containsKey(id) }[id] }
+                ?: return getString(R.string.chat_no_answer)
+            if (!r.ok) return r.text.ifBlank { getString(R.string.chat_no_answer) }
+            val shown = (names.map { n -> getString(R.string.attached_file, n) } + listOfNotNull(t.takeIf { x -> x.isNotBlank() })).joinToString("\n")
+            app.chatLog.add(Sent(id, session, shown, System.currentTimeMillis() / 1000, attachments = copies))
+        }
+        return null
     }
 
     /** La bozza di `feedback_app` già mandata: vale una volta, la scelta la consuma. */

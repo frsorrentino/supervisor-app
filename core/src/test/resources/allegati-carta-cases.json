@@ -1,0 +1,25 @@
+{
+  "_": "app-allegati-carta-27-11: a chi vanno gli allegati della risposta di una carta (Ti aspetta, Banco prova). Li leggono core AllegatiCartaTest.kt e web/src/lib/allegatiCarta.test.ts.",
+  "sessions": [
+    { "id": "s1", "name": "alfa", "account": "personal", "project": "personal/alfa", "state": "busy", "since": 0 },
+    { "id": "s2", "name": "beta", "account": "personal", "project": "personal/beta", "state": "idle", "since": 0 },
+    { "id": "s3", "name": "chiusa", "account": "personal", "project": "personal/chiusa", "state": "gone", "since": 0 },
+    { "id": "s4", "name": "master", "account": "personal", "project": "personal/control-room", "state": "idle", "since": 0 }
+  ],
+  "commitments": [
+    { "task": "app-x", "title": "X", "session": "beta" },
+    { "task": "app-y", "title": "Y", "session": "chiusa" },
+    { "task": "app-z", "title": "Z", "session": null }
+  ],
+  "cases": [
+    { "name": "la sessione della carta, se è viva", "session": "alfa", "task": "app-x", "out": "alfa" },
+    { "name": "senza sessione sulla carta, quella del compito nel registro", "session": null, "task": "app-x", "out": "beta" },
+    { "name": "la sessione della carta chiusa, quella del compito", "session": "chiusa", "task": "app-x", "out": "beta" },
+    { "name": "chiuse tutte e due, la master", "session": "chiusa", "task": "app-y", "out": "master" },
+    { "name": "una sessione che lo stato non conosce, la master", "session": "sparita", "task": null, "out": "master" },
+    { "name": "né sessione né compito, la master", "session": null, "task": null, "out": "master" },
+    { "name": "un compito senza sessione nel registro, la master", "session": null, "task": "app-z", "out": "master" },
+    { "name": "un compito che il registro non ha, la master", "session": null, "task": "app-w", "out": "master" },
+    { "name": "una richiesta della master resta alla master", "session": "master", "task": null, "out": "master" }
+  ]
+}
