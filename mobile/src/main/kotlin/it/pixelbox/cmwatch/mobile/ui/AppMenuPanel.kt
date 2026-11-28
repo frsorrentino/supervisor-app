@@ -103,10 +103,11 @@ fun PanelShell(
     val shown = remember { androidx.compose.animation.core.MutableTransitionState(off).apply { targetState = true } }
     var closing by remember { androidx.compose.runtime.mutableStateOf(false) }
     val close: () -> Unit = { if (off) onDismiss() else { closing = true; shown.targetState = false } }
-    // Il tasto che ha aperto il menu diventa × (app-genie-menu-09-11): sul suo segno se chi apre dice dov'è ([mark]), altrimenti dove
-    // si è toccato; senza un tocco recente chiude la × della testata.
+    // Il pannello si gonfia dal tasto che l'ha aperto (app-genie-menu-09-11): dal suo segno se chi apre dice dov'è ([mark]),
+    // altrimenti da dove si è toccato. La × sta sempre nella testata, a destra e dentro il bordo (app-menu-x-fuori-posto-28-11, Franz
+    // 28/11 14:34): disegnata sul punto del tocco finiva in una pillola scura fuori dal menu, col ⋮ del foglio della master o un
+    // tocco vecchio.
     val press = remember { LastPress.at }
-    val pressX = press != null && !off
     val from = remember { if (press != null) mark ?: press else null }
     androidx.compose.runtime.LaunchedEffect(shown.isIdle, shown.currentState, closing) { if (closing && shown.isIdle && !shown.currentState) onDismiss() }
     // Compose misura il popup una volta sola, sulla parte visibile della finestra: aperto con la tastiera su (scrivendo alla
@@ -155,13 +156,12 @@ fun PanelShell(
                     V3Theme { Column(Modifier.genieContent(p)) {
                         Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 2.dp, bottom = 2.dp).heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             header()
-                            if (!pressX) IconButton(onClick = close) { Icon(Icons.Rounded.Close, stringResource(R.string.close), tint = Cm.text2) }
+                            IconButton(onClick = close) { Icon(Icons.Rounded.Close, stringResource(R.string.close), tint = Cm.text2) }
                         }
                         Box(Modifier.fillMaxWidth().height(1.dp).background(V3.Line))
                         Column(Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState())) { content(close) }
                     } }
                 }
-                if (pressX && from != null) GenieClose(from, p, close)
             }
         }
     }
