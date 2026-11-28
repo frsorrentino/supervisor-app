@@ -126,9 +126,11 @@ jobs:
           # 47 MB a build: con 30 giorni la quota Actions (0,5 GB-mese) finiva in pochi giorni di push. L'APK si scarica subito.
           retention-days: 1
 
-  # I golden controllati a ogni push (app-golden-verdi-23-11, Franz 24/11 08:09): un job a sé, rosso a ogni differenza, così i golden
-  # rossi per motivi estranei ai compiti non si accumulano più. Non ferma la pre-release (app-pipeline-veloce-06-11 resta: il job
-  # build registra le immagini nuove e le mette su goldens/<sha>). Lo stesso comando di verify che si usa su win, in UTC come lì.
+  # I golden controllati a ogni push (app-golden-verdi-23-11, Franz 24/11 08:09): un job a sé, così i golden diversi per motivi
+  # estranei ai compiti non si accumulano. Non ferma la pre-release (app-pipeline-veloce-06-11 resta: il job build registra le
+  # immagini nuove e le mette su goldens/<sha>). Lo stesso comando di verify che si usa su win, in UTC come lì. Dal 28/11
+  # (app-ci-golden-avviso-28-11, Franz 17:04: una run rossa e una mail «Run failed» a ogni modifica visiva) le sole immagini
+  # cambiate danno un avviso col numero e la run resta verde; un test fallito per altro la fa ancora fallire (tools/golden-esito.sh).
   verify-golden:
     if: github.event.inputs.record != 'true'
     runs-on: ubuntu-latest
@@ -150,9 +152,11 @@ jobs:
       - name: Gradle memory for CI
         run: printf 'org.gradle.jvmargs=-Xmx4096m -Dfile.encoding=UTF-8\nkotlin.daemon.jvmargs=-Xmx4096m\n' >> ~/.gradle/gradle.properties
       - name: Golden (Paparazzi, verify)
+        id: verify
+        continue-on-error: true
         run: ./gradlew --max-workers=2 --continue :wear:verifyPaparazziDebug :mobile:verifyPaparazziGithubDebug --console=plain
       - name: Differenze
-        if: failure()
+        if: steps.verify.outcome == 'failure'
         uses: actions/upload-artifact@v4
         with:
           name: golden-differenze
@@ -160,6 +164,10 @@ jobs:
             wear/build/paparazzi/failures
             mobile/build/paparazzi/failures
           retention-days: 7
+      # Solo immagini diverse: ::warning:: «Golden cambiati» col numero, verde. Altri test falliti, o nessuno nei risultati: rosso.
+      - name: Golden, immagini cambiate o errore
+        if: steps.verify.outcome == 'failure'
+        run: bash tools/golden-esito.sh
 
   # La pre-release da sola (app-ci-prerelease-auto-06-11): a ogni push sul ramo dell'app, se la build è passata con l'APK firmato,
   # una pre-release sullo sha del push con mobile-release.apk, l'asset che l'app cerca (AppUpdate.ASSET) e che la Home propone come
