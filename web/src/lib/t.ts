@@ -14,6 +14,10 @@ function nightShort(s: number): string {
 }
 
 const it = {
+  // app-posizioni-sistema-27-11, gruppo 2: le schede della sessione e la tendina.
+  tabChat: 'Chat', tabDetails: 'Dettagli', tabsLabel: 'Sezioni della sessione', shadeClose: 'Chiudi e torna alla chat',
+  perTeNone: 'Niente ti aspetta in questa sessione.', resultsNone: 'Questa sessione non ha ancora consegnato risultati.',
+  changesNoneHere: 'Nessuna modifica da mostrare.', detailsModel: 'Modello ed effort', detailsQuota: 'Quota delle 5 ore',
   summary: {
     waiting: (n: number) => pl(n, 'Ti aspetta', 'Ti aspettano'), finished: (n: number) => pl(n, 'Ha finito', 'Hanno finito'),
     working: (n: number) => pl(n, 'Al lavoro', 'Al lavoro'), still: (n: number) => pl(n, 'Ferma', 'Ferme'),
@@ -522,6 +526,9 @@ function nightLongEn(s: number): string {
 
 // In inglese: le parole di mobile/src/main/res/values-en dove ci sono, il resto nello stesso stile.
 const en: typeof it = {
+  tabChat: 'Chat', tabDetails: 'Details', tabsLabel: 'Session sections', shadeClose: 'Close and go back to the chat',
+  perTeNone: 'Nothing is waiting for you in this session.', resultsNone: 'This session has not delivered any results yet.',
+  changesNoneHere: 'No changes to show.', detailsModel: 'Model and effort', detailsQuota: '5-hour quota',
   summary: {
     waiting: (n: number) => `Waiting for you · ${n}`, finished: (n: number) => `Finished · ${n}`,
     working: (n: number) => `Working · ${n}`, still: (n: number) => `Idle · ${n}`,

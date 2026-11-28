@@ -30,5 +30,14 @@
   {:else if name === 'hand'}
     <!-- «Per te» (app-riall-2-viste-16-11): la mano della riga «Ti aspetta». -->
     <path d="M18 11V6a2 2 0 0 0-4 0M14 10V4a2 2 0 0 0-4 0v2M10 10.5V6a2 2 0 0 0-4 0v8" /><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15" />
+  {:else if name === 'chat'}
+    <!-- Le schede della sessione (app-posizioni-sistema-27-11 gruppo 2), dal mockup della master: la conversazione, -->
+    <path d="M4 5h16v11H9.5L5 19.5V16H4z" />
+  {:else if name === 'diff'}
+    <!-- le modifiche (un foglio col ±), -->
+    <path d="M6 3h8l4 4v14H6z" /><path d="M9 11h6M12 8v6M9 17.5h6" />
+  {:else if name === 'info'}
+    <!-- i dettagli. -->
+    <circle cx="12" cy="12" r="9" /><path d="M12 11v6M12 7.5v.2" />
   {/if}
 </svg>

@@ -792,6 +792,8 @@ fun TabletColumnHeader(r: Summary.Row, now: Long, onClose: () -> Unit, drag: Mod
         Row(Modifier.fillMaxWidth().padding(start = 14.dp, end = 4.dp, top = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             SessionBadge(s, 24.dp)
             Text(s.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold), color = Cm.text, modifier = Modifier.weight(1f))
+            // app-posizioni-sistema-27-11 gruppo 2: il ⋮ della sessione accanto al ×, come nel mockup della master.
+            LocalHeadMore.current?.invoke()
             IconButton(onClick = onClose, modifier = Modifier.handCursor()) { Icon(Icons.Rounded.Close, stringResource(R.string.tablet_close_column, s.name), tint = Cm.text2) }
         }
         Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {

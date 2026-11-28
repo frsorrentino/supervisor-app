@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte'
   import type { CmdResult, ResultsPage, WaitItem } from './contract'
   import { decodeWaits, readPage } from './decideDecode'
   import { cala } from './molla'
@@ -21,13 +22,16 @@
   // app-riall-2-viste-16-11 (direzione A): `onMaster` è il rimando «anche in Dalla master ›» in testa alla lista; sullo schermo largo
   // (`wide`) la colonna della sessione tiene solo il numero, e il tocco mostra il suo gruppo nella colonna Dalla master. Se quella
   // colonna non c'è (`onMaster` risponde false), la lista si apre qui come prima.
-  let { run, session, sig, now, results = true, items: given = null, wide = false, onMaster = null, onOpenWait, onOpenResult, onAnswered = () => {} }: {
+  // app-posizioni-sistema-27-11 gruppo 2: `bare`, solo le voci (e il rimando), senza il blocco, dentro la tendina della scheda Per te;
+  // `onCount` dice quante voci ci sono, per il numero della riga di icone, anche a tendina chiusa.
+  let { run, session, sig, now, results = true, items: given = null, wide = false, onMaster = null, onOpenWait, onOpenResult, onAnswered = () => {}, bare = false, onCount = null }: {
     run: (c: ReturnType<typeof newCmd>) => Promise<CmdResult | null>; session: string; sig: string; now: number
     /** Il relay conosce `results` (contratto 1.106). */
     results?: boolean
     items?: WaitItem[] | null
     wide?: boolean; onMaster?: ((session: string) => boolean) | null
     onOpenWait: (id: string) => void; onOpenResult: (id: string) => void; onAnswered?: (w: WaitItem) => void
+    bare?: boolean; onCount?: ((n: number) => void) | null
   } = $props()
   let waits = $state<WaitItem[]>([]), page = $state<ResultsPage | null>(null)
   let n = 0
@@ -40,6 +44,8 @@
   $effect(() => { void session; void sig; read() })
   // Le voci a cui è già partita la risposta, da qui o da un'altra vista: l'insieme è uno solo (attese.svelte.ts).
   const items = $derived(voci(given ?? waits, (given ? shared.groups : page?.groups) ?? [], session).filter(v => !store.answered.has(v.key)))
+  $effect(() => { const n = items.length; untrack(() => onCount?.(n)) })
+  $effect(() => () => untrack(() => onCount?.(0)))
   // app-riquadri-chiusi-16-11: chiuso è una pillola; si apre da solo quando c'è una voce che aspetta la persona (non un risultato da
   // guardare), e chiuso a mano resta chiuso finché non ne arriva una nuova. Lo stato resta per sessione.
   const waiting = $derived(items.filter(v => v.group !== 'verifica').map(v => v.key))
@@ -54,7 +60,12 @@
   const act = (v: Item) => actVoce(run, v, { open: openOf, reread: read, onAnswered })
 </script>
 
-{#if items.length}{@const top = items[0]}
+{#if bare}
+  {#if items.length && onMaster}<button class="also first" data-testid="per-te-in-master" onclick={() => onMaster(session)}>{t.perTeAlsoMaster}<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></button>{/if}
+  {#each items as v (v.key)}
+    <div><Voce group={v.group} title={v.title} sub={subOf(v)} ago={agoOf(v, now)} silence={silenceOf(v, now)} advice={adviceText(v.advice)} main={mainLabelOf(v)} rec={!!v.main?.recommended} testid="voce-{v.key}" onOpen={() => openOf(v)} onMain={() => void act(v)} /></div>
+  {/each}
+{:else if items.length}{@const top = items[0]}
   <Blocco pill stack={stackEdges(items.length)} fan={items.slice(1, 3).map((x) => x.title)} icon="hand" title={t.forYou} n={items.length} first={top.title} hint={t.perTeHint} open={wide ? here : open} amber testid="chat-per-te" onToggle={tap}>
     {#if onMaster && !wide}<button class="also" data-testid="per-te-in-master" onclick={() => onMaster(session)}>{t.perTeAlsoMaster}<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></button>{/if}
     {#each items as v, i (v.key)}
@@ -66,4 +77,5 @@
 <style>
   .also { display: flex; align-items: center; justify-content: flex-end; gap: 2px; width: 100%; min-height: 36px; padding: 0 12px; border-top: 1px solid var(--line); font-size: 13px; color: var(--tx2); }
   .also:hover { color: var(--tx); }
+  .also.first { border-top: 0; }
 </style>

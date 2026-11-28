@@ -2234,4 +2234,13 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <!-- app-anteprime-webp-27-11: l'anteprima animata ferma col ▶ (animazioni ridotte) e il tocco su quella con accanto la sua bozza HTML. -->
     <string name="anim_play">Guarda l\'animazione</string>
     <string name="anim_draft_open">Apri la bozza dal vivo</string>
+    <!-- app-posizioni-sistema-27-11 gruppo 2: le schede della sessione (Chat, Per te, Risultati, Modifiche, Dettagli) e la tendina. -->
+    <string name="tab_chat">Chat</string>
+    <string name="tab_details">Dettagli</string>
+    <string name="shade_close">Chiudi e torna alla chat</string>
+    <string name="per_te_none">Niente ti aspetta in questa sessione.</string>
+    <string name="results_none">Questa sessione non ha ancora consegnato risultati.</string>
+    <string name="changes_none_here">Nessuna modifica da mostrare.</string>
+    <string name="details_model">Modello ed effort</string>
+    <string name="details_quota">Quota delle 5 ore</string>
 </resources>

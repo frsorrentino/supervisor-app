@@ -9,7 +9,9 @@
   // La vista «Modifiche» (contratto 1.72, ChangesPanel in DiffViews.kt), sopra la sessione: sul telefono ne prende la pagina,
   // sulla plancia la colonna. I file rispetto all'ultimo commit coi loro numeri e l'etichetta; un tocco apre il diff del file
   // (op `changes` con `file=`), Aggiorna rilegge tutto. Mai vuota senza spiegazione.
-  let { s, load, onClose }: { s: Session; load: (file: string | null) => Promise<Load<ChangesView>>; onClose: () => void } = $props()
+  // app-posizioni-sistema-27-11 gruppo 2: `bare`, dentro la tendina della scheda Modifiche: senza la pagina e la sua testata (il nome è
+  // sulla scheda aperta), «Aggiorna» sulla riga della base; le righe nell'elemento `data-rows`, che la tendina fa comparire una alla volta.
+  let { s, load, onClose, bare = false }: { s: Session; load: (file: string | null) => Promise<Load<ChangesView>>; onClose: () => void; bare?: boolean } = $props()
   let got = $state<Load<ChangesView> | null>(null)
   let loading = $state(false)
   let open = $state<Record<string, boolean>>({})
@@ -38,17 +40,21 @@
   </button>
 {/snippet}
 
-<Page title={t.changesTitle} onBack={onClose} {actions}>
-  <div class="chg">
-    <p class="who">{s.name}</p>
+{#snippet body()}
+  <div class="chg" class:bare data-rows={bare ? '' : undefined} data-testid={bare ? 'modifiche' : undefined}>
+    {#if bare}
+      {@const v0 = got?.ok ? got.value : null}
+      {@const src0 = v0 ? source(v0) : null}
+      <div class="head"><p class="src" class:outside={src0 === 'transcript'}>{got == null ? t.changesLoading : v0 == null ? '' : src0 === 'transcript' ? t.changesOutsideGit : src0 === 'no_commits' ? t.changesNoCommits : t.changesBase(v0.base ?? '')}</p>{@render actions()}</div>
+    {:else}<p class="who">{s.name}</p>{/if}
     {#if loading}<div class="bar"><b></b></div>{/if}
-    {#if got == null}<p class="note">{t.changesLoading}</p>
+    {#if got == null}{#if !bare}<p class="note">{t.changesLoading}</p>{/if}
     {:else if !got.ok}
       <div class="fail"><p>{fail(got)}</p><button class="retry" onclick={refresh}>{t.diffRetry}</button></div>
     {:else}
       {@const v = got.value}
       {@const src = source(v)}
-      <p class="src" class:outside={src === 'transcript'}>{src === 'transcript' ? t.changesOutsideGit : src === 'no_commits' ? t.changesNoCommits : t.changesBase(v.base ?? '')}</p>
+      {#if !bare}<p class="src" class:outside={src === 'transcript'}>{src === 'transcript' ? t.changesOutsideGit : src === 'no_commits' ? t.changesNoCommits : t.changesBase(v.base ?? '')}</p>{/if}
       {#if !v.files.length}<p class="note">{src === 'transcript' ? t.changesNoneTranscript : t.changesNone}</p>{/if}
       <!-- Chiave con la posizione: due file dallo stesso percorso non rompono l'elenco (la chiave doppia del 15/10). -->
       {#each v.files as f, i (`${i}:${f.path}`)}
@@ -80,10 +86,15 @@
       {#if hiddenFiles(v) > 0}<p class="note">{t.changesMoreFiles(hiddenFiles(v))}</p>{/if}
     {/if}
   </div>
-</Page>
+{/snippet}
+
+{#if bare}{@render body()}{:else}<Page title={t.changesTitle} onBack={onClose} {actions}>{@render body()}</Page>{/if}
 
 <style>
   .chg { display: flex; flex-direction: column; gap: 8px; padding: 0 16px 24px; }
+  .chg.bare { padding: 0 2px 8px; }
+  .head { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+  .head .src { flex: 1; min-width: 0; }
   .who { font-size: 12.5px; color: var(--text2); }
   .src { font-size: 14px; color: var(--text2); }
   .src.outside { color: var(--wait); }

@@ -2265,6 +2265,12 @@ class MainActivity : ComponentActivity() {
                         }
                         // Un file aperto in chat è visto anche in Risultati (app-risultati-visti-03-11, Franz: «rimangono presenti anche se li vedo altrove»).
                         val seenPath: (String) -> Unit = { p -> it.pixelbox.cmwatch.rules.Guardare.seenByPath(state?.results?.items.orEmpty(), p).forEach { id -> guardare.seen(it.pixelbox.cmwatch.contract.ResultItem(id)) } }
+                        // app-posizioni-sistema-27-11 gruppo 2: in una sessione, non nella master, «Per te» e «Risultati» stanno nella tendina delle
+                        // schede e i loro numeri sulla riga di icone (SessionTabs); nella master restano le pillole (gruppo 4).
+                        val tabsOn = home == null && session.master != true && session.name != it.pixelbox.cmwatch.rules.ContextActions.MASTER
+                        val perTeItems = if (attese) it.pixelbox.cmwatch.rules.PerTe.voci(waitOthers, resultsPage?.groups.orEmpty(), session.name).filterNot { v -> perTeSent[v.key] == true } else emptyList()
+                        val resultsLine = it.pixelbox.cmwatch.rules.Guardare.ofSession(resultsPage, session.name)
+                        val openResult: (String?) -> Unit = { id -> val r = id?.let { x -> resultsLine.groups.flatMap { g -> g.items }.firstOrNull { i -> i.id == x } }; if (r != null) resultOpen = r else { watchSession = session.name; watchOpen = true } }
                         CompositionLocalProvider(it.pixelbox.cmwatch.mobile.ui.LocalSeenPath provides seenPath, it.pixelbox.cmwatch.mobile.ui.LocalWaitFiles provides waitFiles(), LocalFileOpener provides FileOpener({ k, f -> seenPath(f.path); openFile(session.name, k, f) }, fileLoading.toSet(), fileLocal.toMap(), { k, f, a -> fileAct(session.name, k, f, a) }, { k, f -> withFile(session.name, k, f, true) { _, _ -> } }, unmetered, actAll = { all, a -> fileActAll(session.name, all, a) }, gone = fileGone.toSet()), LocalDiffOpener provides readDiff(session.name).copy(got = remember(session.name) { mutableMapOf() })) {
                         SessionSheet(session, now, snap.pending, ttsMinChars, SheetActions(
                             answer = { n -> tapResult(scope, getString(R.string.tap_answered, session.name)) { app.repo.answer(session.name, n) } },
@@ -2417,14 +2423,18 @@ class MainActivity : ComponentActivity() {
                             effortNext = tunePicks[session.name + "/effort"].let { p -> Tune.nextTurn(session, p, p?.let { results[it.cmd] }, now) },
                             home = home, grid = home != null && homeOpen, header = header, dock = dock, bar = bar, homeOpen = homeOpen, appBar = appBar, halfStops = home != null && wide, half = masterHalf,
                             headerLead = lead, draftState = drafts.state(session),
-                            results = it.pixelbox.cmwatch.rules.Guardare.ofSession(resultsPage, session.name).takeIf { l -> it.pixelbox.cmwatch.rules.Guardare.shown(l, resultsClosed[session.name]) }?.let { l -> {
+                            results = if (tabsOn) resultsLine.takeIf { l -> l.groups.isNotEmpty() }?.let { l -> { it.pixelbox.cmwatch.mobile.ui.ResultsChatRows(l, onOpen = openResult) } }
+                            else it.pixelbox.cmwatch.rules.Guardare.ofSession(resultsPage, session.name).takeIf { l -> it.pixelbox.cmwatch.rules.Guardare.shown(l, resultsClosed[session.name]) }?.let { l -> {
                                 it.pixelbox.cmwatch.mobile.ui.ResultsChatRow(l, onClose = {
                                     it.pixelbox.cmwatch.rules.Guardare.lastKey(l)?.let { k -> resultsClosed[session.name] = k; resultsPrefs.edit().putString(session.name, k).apply() }
                                 }, open = sessionBoxes.isOpen(session.name, it.pixelbox.cmwatch.rules.Riquadri.Kind.RISULTATI),
                                     onToggle = { sessionBoxes.toggle(session.name, it.pixelbox.cmwatch.rules.Riquadri.Kind.RISULTATI) },
                                 ) { id -> val r = id?.let { x -> l.groups.flatMap { g -> g.items }.firstOrNull { i -> i.id == x } }; if (r != null) resultOpen = r else { watchSession = session.name; watchOpen = true } }
                             } },
-                            perTe = it.pixelbox.cmwatch.rules.PerTe.voci(waitOthers, resultsPage?.groups.orEmpty(), session.name).filterNot { v -> perTeSent[v.key] == true }.takeIf { l -> l.isNotEmpty() && attese }?.let { items -> {
+                            perTe = if (tabsOn) perTeItems.takeIf { l -> l.isNotEmpty() }?.let { items -> {
+                                it.pixelbox.cmwatch.mobile.ui.PerTeRows(items, now, onOpen = perTeOpenVoce, onMain = perTeMain, onMaster = if (uItems != null) ({ toMaster(session.name) }) else null)
+                            } }
+                            else it.pixelbox.cmwatch.rules.PerTe.voci(waitOthers, resultsPage?.groups.orEmpty(), session.name).filterNot { v -> perTeSent[v.key] == true }.takeIf { l -> l.isNotEmpty() && attese }?.let { items -> {
                                 it.pixelbox.cmwatch.mobile.ui.PerTeBlock(
                                     items, now, sessionBoxes.isOpen(session.name, it.pixelbox.cmwatch.rules.Riquadri.Kind.PERTE, it.pixelbox.cmwatch.rules.PerTe.waitingKeys(items)),
                                     { sessionBoxes.toggle(session.name, it.pixelbox.cmwatch.rules.Riquadri.Kind.PERTE, it.pixelbox.cmwatch.rules.PerTe.waitingKeys(items)) },
@@ -2433,6 +2443,8 @@ class MainActivity : ComponentActivity() {
                                     onMaster = if (uItems != null) ({ toMaster(session.name) }) else null, numberOnly = wide && home != null && homeOpen,
                                 )
                             } },
+                            perTeCount = if (tabsOn) perTeItems.size else 0,
+                            newResults = if (tabsOn) it.pixelbox.cmwatch.rules.SessionTabs.newResults(resultsLine.groups.map { g -> g.unseen }) else 0,
                             // Con l'ispettore obiettivo e bassa priorità stanno lì: in testata non si ripetono (revisione della master, 04/10).
                             notesInHeader = lead == null || !inspectorOn,
                             canAttachFiles = state?.share?.any == true,

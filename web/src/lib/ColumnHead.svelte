@@ -10,17 +10,23 @@
 
 <script lang="ts">
   import Badge from './Badge.svelte'
+  import { claim, heads } from './headMore.svelte'
   // La testata di una colonna (TabletColumnHeader): l'icona della sessione, il nome, × per toglierla; sotto lo stato e da
   // quanto, nel colore del gruppo. Si prende per trascinare la colonna sopra un'altra.
+  // app-posizioni-sistema-27-11 gruppo 2: accanto al nome il ⋮ della sessione, prestato dalla sua testata (headMore.svelte.ts), come
+  // nel mockup della master; il menu aperto non prende la colonna per trascinarla.
   let { r, now, onClose, onGrab }: { r: Row; now: number; onClose: () => void; onGrab: (e: PointerEvent) => void } = $props()
   const tone = columnTone
   const state = $derived(columnState(r, now))
+  $effect(() => claim(r.session.name))
+  const more = $derived(heads.more[r.session.name] ?? null)
 </script>
 
-<div class="head" role="presentation" onpointerdown={(e) => { if (!(e.target as HTMLElement).closest('button')) onGrab(e) }}>
+<div class="head" role="presentation" onpointerdown={(e) => { if (!(e.target as HTMLElement).closest('button, a, [role="menu"]')) onGrab(e) }}>
   <div class="top">
     <Badge s={r.session} size={24} />
     <b>{r.session.name}</b>
+    {#if more}{@render more()}{/if}
     <button class="x" aria-label={t.tabletClose(r.session.name)} title={t.tabletClose(r.session.name)} onclick={onClose}>
       <svg viewBox="0 0 24 24" width="22" height="22"><path d="M18 6 6 18M6 6l12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>
     </button>

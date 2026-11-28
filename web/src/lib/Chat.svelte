@@ -43,11 +43,17 @@
   import { turns } from './chatTurns'
   import { cut, type Quote } from './quotes'
   import { dragHold } from './dragHold'
+  import IconRow from './IconRow.svelte'
+  import Tendina from './Tendina.svelte'
+  import SessionDetails from './SessionDetails.svelte'
+  import type { IconTab } from './iconRow'
+  import { countOf, notesCount, pick as pickTab, TABS, tabCounts, toneOf, type SessionTab } from './sessionTabs'
+  import { MINUS, pill as changesOf } from './diff'
   let { onNewer = null, onLatest = null, focus = null, onFocused = () => {}, resultsRow = null, perTe = null, onHeadsUp = null, onTask = null, menuMove = null, st, s, entries, mine, onSend, onBack, onPick, onAnswer, onCmd, wide, events, sent, read, onRead, onPromptTo, slots, onAttach, onFile, onFiles = () => {}, onHandoff, elsewhere = null, elsewhereAway = null, onElsewhere = () => {}, onElsewhereDismiss = () => {}, waitingSince = null, updating = false, onSendAt = null, onSendTo = null, inject = null, onInjected = () => {}, onUsage = () => {}, onOlder = null, onGo = null, onReopen = null, appMenu = null, onDiff = null, onChanges = null, onMine = null }: {
-    /** Contratto 1.106: la riga «Risultati» in cima alla chat. */
-    resultsRow?: import('svelte').Snippet | null
-    /** «Per te» in cima alla chat: tutto ciò che aspetta la persona in questa sessione (app-formato-unico-12-11). */
-    perTe?: import('svelte').Snippet | null
+    /** Contratto 1.106: la riga «Risultati» in cima alla chat; nella sessione (gruppo 2) le sue righe nella tendina, `bare`, e i conteggi. */
+    resultsRow?: import('svelte').Snippet<[boolean, ((fresh: number, all: number) => void) | null]> | null
+    /** «Per te» in cima alla chat: tutto ciò che aspetta la persona in questa sessione (app-formato-unico-12-11); nella sessione le voci nella tendina. */
+    perTe?: import('svelte').Snippet<[boolean, ((n: number) => void) | null]> | null
     /** La voce da portare in vista, da Cerca (app-cerca-pagina-03-11). */
     focus?: string | null; onFocused?: () => void
     st: State; s: Session; entries: TranscriptEntry[]; mine: [Sent, Status][]; onSend: (text: string) => void; onBack?: () => void
@@ -100,7 +106,7 @@
   let shown = s.name
   // Contratto 1.72: la vista «Modifiche» aperta sopra la sessione; cambiando sessione si chiude.
   let changesOpen = $state(false)
-  $effect.pre(() => { const name = s.name; if (name !== shown) { drafts[shown] = draft; draft = drafts[name] ?? ''; shown = name; changesOpen = false } })
+  $effect.pre(() => { const name = s.name; if (name !== shown) { drafts[shown] = draft; draft = drafts[name] ?? ''; shown = name; changesOpen = false; tab = 'chat' } })
   let list: HTMLElement | undefined = $state()
   // Citare la trascrizione (app-citazione-trascrizione-07-11, Franz 07/11 20:06): selezionando un pezzo di un messaggio, vicino
   // alla selezione «Cita» e «Cita tutto»; i pezzi vanno sopra il campo e partono in Markdown con la risposta (Composer).
@@ -171,7 +177,33 @@
   // Contratto 1.51: senza un comando di handoff la proposta non serve.
   const nudge = $derived(home || handoffPrompt(st, s, () => '') == null ? null : ctxNudge(s, dismissed[s.name] ?? null))
   // app-riquadri-chiusi-16-11: gli avvisi della sessione (--bg, nota di Claude Code) in una pillola sola, col loro numero.
-  const notesN = $derived((bgWarns(s) ? 1 : 0) + (onHeadsUp && visibleHeadsUp(s, huSeen.set) ? 1 : 0))
+  const notesN = $derived(notesCount(bgWarns(s), !!onHeadsUp && !!visibleHeadsUp(s, huSeen.set)))
+
+  // app-posizioni-sistema-27-11 gruppo 2 (B «Foglio»): in una sessione, non nella master, sotto il nome la riga di icone Chat · Per te ·
+  // Risultati · Modifiche · Dettagli al posto delle due righe di pillole e della riga dei dati; una scheda diversa da Chat fa scendere la
+  // tendina sopra la chat, fino al campo, col contenuto di oggi di quella sezione (Avvisi dentro Per te). Si chiude toccando di nuovo la
+  // scheda aperta o Chat, tirandola su, con Esc. I numeri dalla regola di sessionTabs.ts; Per te e Risultati restano montati nella
+  // tendina chiusa e dicono quanti sono.
+  const tabsOn = $derived(s.name !== MASTER && !s.master)
+  let tab = $state<SessionTab>('chat')
+  // La sezione nella tendina, anche mentre si richiude; `opened` conta le aperture, così Modifiche si rilegge a ogni apertura.
+  let lastTab = $state<SessionTab>('perte')
+  let opened = $state(0)
+  let perTeN = $state(0), resNew = $state(0), resAll = $state(0)
+  const changesNow = $derived(changesOf(s))
+  const counts = $derived(tabCounts(perTeN, notesN, resNew, changesNow?.files))
+  const tabLabel: Record<SessionTab, string> = { chat: t.tabChat, perte: t.forYou, risultati: t.watchResults, modifiche: t.changesTitle, dettagli: t.tabDetails }
+  const tabIcon: Record<SessionTab, string> = { chat: 'svg:chat', perte: 'svg:hand', risultati: 'svg:eye', modifiche: 'svg:diff', dettagli: 'svg:info' }
+  const iconTabs = $derived<IconTab[]>(TABS.map((k) => ({ key: k, icon: tabIcon[k], label: tabLabel[k], count: countOf(k, counts), tone: toneOf(k) })))
+  function choose(key: string) {
+    const next = pickTab(tab, key)
+    if (next !== 'chat' && next !== tab) { lastTab = next; opened++ }
+    tab = next
+  }
+  const closeTab = () => { tab = 'chat' }
+  // Alt+1…5 ed Esc valgono col fuoco in questa sessione: due sessioni affiancate non cambiano insieme.
+  let section = $state<HTMLElement>()
+  let header: Header | undefined = $state()
   function dismissNudge() {
     dismissed = { ...dismissed, [s.name]: nudge! }
     try { localStorage.setItem('cm.ctx_dismissed', JSON.stringify(dismissed)) } catch { /* resta per la sessione */ }
@@ -315,26 +347,32 @@
   })
 </script>
 
-<section class="chat" class:dragging class:master={s.name === MASTER} class:reading={s.name === MASTER && !atEnd} aria-label={s.name}
+<!-- tabindex -1: un tocco dentro la sessione le dà il fuoco, così Alt+1…5 ed Esc della riga di icone valgono per lei (gruppo 2). -->
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+<section class="chat" class:dragging class:master={s.name === MASTER} class:reading={s.name === MASTER && !atEnd} aria-label={s.name} bind:this={section} tabindex={tabsOn ? -1 : undefined}
   ondragover={(e) => { if (hasFiles(e)) { e.preventDefault(); dragN = e.dataTransfer?.items?.length ?? 0; hold.over() } }} ondragleave={(e) => hold.leave(leftColumn(e))} ondrop={onDrop}>
   {#if dragging}<DropZone n={dragN} to={s.name} />{/if}
-  <Header {st} {s} wide={wide} {onBack} {onCmd} onPrompt={onSend} {onHandoff} {onUsage} {onGo} {onReopen} {appMenu} {menuMove} {onMine} onChanges={onChanges ? () => (changesOpen = true) : null} />
+  <Header bind:this={header} {st} {s} wide={wide} {onBack} {onCmd} onPrompt={onSend} {onHandoff} {onUsage} {onGo} {onReopen} {appMenu} {menuMove} {onMine} onChanges={onChanges ? () => (changesOpen = true) : null} tabs={tabsOn ? tabsRow : null} />
   <!-- Franz 24/10 18:58: la riga «Home» sopra la conversazione della master è tolta: l'intestazione resta più bassa. -->
 
   <!-- Contratto 1.146: l'avviso su /logout nelle sessioni lanciate con --bg, fisso sotto l'intestazione. -->
   <!-- I blocchi in cima alla chat, ognuno ridotto a una riga (app-formato-unico-12-11): «Per te», poi «Risultati». -->
   <!-- app-riquadri-chiusi-16-11 (Franz 16/11 20:02): i riquadri della sessione in una riga di pillole col numero, aperti al tocco;
        da solo si apre soltanto «Per te» con una voce che aspetta. Lo stato resta per sessione. Un riquadro aperto prende la riga intera. -->
+  <!-- app-posizioni-sistema-27-11 gruppo 2: in una sessione le pillole lasciano il posto alla riga di icone; restano nella master (gruppo 4). -->
+  {#if !tabsOn}
   <div class="riq" data-testid="chat-riquadri">
-    {#if perTe && !home}{@render perTe()}{/if}
+    {#if perTe && !home}{@render perTe(false, null)}{/if}
     {#if notesN}<Blocco pill icon="warn" title={t.boxNotes} n={notesN} amber open={boxOpen(s.name, 'avvisi')} testid="chat-avvisi" onToggle={() => boxToggle(s.name, 'avvisi')}>
       <div class="inbox"><BgNote {s} />{#if onHeadsUp}<HeadsUpNote {s} now={st.ts} onPropose={onHeadsUp} />{/if}</div>
     </Blocco>{/if}
     {#if elsewhere}<Blocco pill icon={elsewhere.type === 'waiting' ? 'hand' : 'flag'} title={t.boxOthers} n={elsewhere.type === 'waiting' ? elsewhere.sessions.length : 1} amber={elsewhere.type === 'waiting'} open={boxOpen(s.name, 'altre')} testid="chat-altre" onToggle={() => boxToggle(s.name, 'altre')}>
       <div class="inbox"><ElsewherePill alert={elsewhere} onOpen={onElsewhere} onDismiss={onElsewhereDismiss} away={elsewhereAway} now={st.ts} /></div>
     </Blocco>{/if}
-    {#if resultsRow}{@render resultsRow()}{/if}
+    {#if resultsRow}{@render resultsRow(false, null)}{/if}
   </div>
+  {/if}
+  <div class="stage">
   <div class="lines" class:dots={home} class:atend={atEnd} bind:this={list} data-chat-list data-at-end={atEnd}>
     {#if home}
       <MasterHome {st} master={s} {entries} onConversation={() => (conversation = true)} onStep={pick} onSendStep={onSend}
@@ -380,6 +418,36 @@
         <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 5v14M6 13l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
       </button></div>
     {/if}
+  </div>
+  {#if tabsOn}
+    <!-- La tendina: il contenitore è Tendina, il contenuto di ogni sezione è quello di prima (pillole e riga dei dati). -->
+    <Tendina open={tab !== 'chat'} key={lastTab} label={tabLabel[lastTab]} onClose={closeTab}>
+      <div class="sec" hidden={lastTab !== 'perte'} data-testid="tendina-per-te">
+        <div class="card pcard" class:empty={!perTeN} data-rows>{@render perTe?.(true, (n) => (perTeN = n))}</div>
+        {#if notesN}
+          <p class="sh">{t.boxNotes}</p>
+          <div class="card" data-rows><BgNote {s} />{#if onHeadsUp}<HeadsUpNote {s} now={st.ts} onPropose={onHeadsUp} />{/if}</div>
+        {/if}
+        {#if !perTeN && !notesN}<p class="none">{t.perTeNone}</p>{/if}
+      </div>
+      <div class="sec" hidden={lastTab !== 'risultati'} data-testid="tendina-risultati">
+        <div class="card" class:empty={!resAll} data-rows>{@render resultsRow?.(true, (f, a) => { resNew = f; resAll = a })}</div>
+        {#if !resAll}<p class="none">{t.resultsNone}</p>{/if}
+      </div>
+      {#if lastTab === 'modifiche'}
+        <div class="sec" data-testid="tendina-modifiche">
+          {#if onChanges}{#key opened}<Changes {s} load={onChanges} bare onClose={closeTab} />{/key}
+          {:else if changesNow}<p class="none">{t.changesFiles(changesNow.files)} · <b class="plus">+{changesNow.added}</b> <b class="minus">{MINUS}{changesNow.removed}</b></p>
+          {:else}<p class="none">{t.changesNoneHere}</p>{/if}
+        </div>
+      {/if}
+      {#if lastTab === 'dettagli'}
+        <div class="sec" data-testid="tendina-dettagli">
+          <SessionDetails {s} {st} tune={header?.tuneView() ?? null} onTune={(el) => header?.openTune(el)} onCtx={() => header?.openCtx()} {onUsage} />
+        </div>
+      {/if}
+    </Tendina>
+  {/if}
   </div>
 
   <!-- Sopra il campo, «Azioni» e «Contesto» come pillole (app-riquadri-chiusi-16-11). -->
@@ -431,8 +499,23 @@
 </section>
 
 
+{#snippet tabsRow()}<IconRow tabs={iconTabs} active={tab} onPick={choose} onEsc={tab !== 'chat' ? closeTab : undefined} label={t.tabsLabel} keyScope={section ?? null} />{/snippet}
+
 <style>
   .chgwrap { position: absolute; inset: 0; z-index: 16; }
+  /* app-posizioni-sistema-27-11 gruppo 2: la chat e, sopra, la tendina delle schede; il campo resta sotto, fuori, sempre in vista. */
+  .stage { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .chat:focus { outline: none; }
+  .sec { display: flex; flex-direction: column; gap: 8px; }
+  .sec[hidden] { display: none; }
+  .card { border: 1px solid var(--line); border-radius: 14px; background: var(--s1); overflow: hidden; flex: none; }
+  .card.empty { display: none; }
+  .pcard > :global(div:first-child > .voce), .card > :global(.row:first-child) { border-top: 0; }
+  .sh { margin: 6px 4px 0; font: 500 12.5px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--tx2); }
+  .none { padding: 14px 6px; font-size: 14px; color: var(--tx2); }
+  .none b { font-weight: 500; }
+  .plus { color: var(--b-good); }
+  .minus { color: var(--b-alert); }
   .older { display: block; width: 100%; padding: 10px; color: var(--icon); font-size: 14px; font-weight: 500; border-radius: 12px; }
   .emptychat { text-align: center; color: var(--text2); font-size: 14px; padding: 32px 16px; }
   /* La master aperta, piatta e velata di celeste come la sua linguetta: la chat su un solo tono più scuro, testata e campo sul

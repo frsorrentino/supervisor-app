@@ -77,6 +77,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -128,6 +129,7 @@ import it.pixelbox.cmwatch.rules.QuotaWarning
 import it.pixelbox.cmwatch.rules.Sent
 import it.pixelbox.cmwatch.rules.SessionMeters
 import it.pixelbox.cmwatch.rules.SessionsText
+import it.pixelbox.cmwatch.rules.SessionTabs
 import it.pixelbox.cmwatch.rules.ToolText
 import java.time.Instant
 import kotlinx.coroutines.flow.first
@@ -298,6 +300,10 @@ fun SessionSheet(
     changesShown: DiffRules.Load<ChangesView>? = null,
     /** Negli snapshot: le citazioni già sopra il campo (app-citazione-trascrizione-07-11). */
     quoteStart: QuoteDraft? = null,
+    /** app-posizioni-sistema-27-11 gruppo 2: quante voci di «Per te» e quanti risultati nuovi ha la sessione, per i numeri della riga di icone. */
+    perTeCount: Int = 0, newResults: Int = 0,
+    /** Negli snapshot: la scheda aperta, con la sua tendina già giù (gruppo 2). */
+    tabStart: SessionTabs.Key? = null,
 ) {
     // L'orologio dell'attesa del PC gira solo con una lettura in volo, e si legge solo dentro la lista: il tic di ogni
     // secondo non ricompone la scheda (la digitazione lenta del 05/10 veniva da letture in cima).
@@ -364,6 +370,54 @@ fun SessionSheet(
     val streamGate = remember(s.name) { StreamGate() }
     turnRows?.let { rs -> if (!streamGate.primed) streamGate.prime(rs.mapNotNull { r -> (r as? it.pixelbox.cmwatch.rules.ChatTurns.Row.Turn)?.answer?.id }) }
     val tinted = remember(s.name) { mutableSetOf<String>() }
+    // app-posizioni-sistema-27-11 gruppo 2 (B «Foglio»): in una sessione, non nella master, sotto il nome la riga di icone Chat · Per te ·
+    // Risultati · Modifiche · Dettagli al posto delle due righe di pillole e della riga dei dati; una scheda diversa da Chat fa scendere la
+    // tendina sopra la chat, fino al campo, col contenuto di oggi di quella sezione (Avvisi dentro Per te). Si chiude toccando di nuovo la
+    // scheda aperta o Chat, tirandola su, con Esc e con Indietro, prima di lasciare la sessione. I numeri da SessionTabs.counts.
+    val tabsOn = home == null && s.master != true && s.name != it.pixelbox.cmwatch.rules.ContextActions.MASTER
+    var tab by rememberSaveable(s.name) { mutableStateOf(tabStart ?: if (tabsOn && changesShown != null) SessionTabs.Key.MODIFICHE else SessionTabs.Key.CHAT) }
+    // La sezione nella tendina, anche mentre si richiude; `opened` conta le aperture, così Modifiche si rilegge a ogni apertura.
+    var lastTab by remember(s.name) { mutableStateOf(if (tab == SessionTabs.Key.CHAT) SessionTabs.Key.PERTE else tab) }
+    var opened by remember(s.name) { mutableIntStateOf(0) }
+    val pickTab: (String) -> Unit = { k ->
+        val next = SessionTabs.pick(tab, k)
+        if (next != SessionTabs.Key.CHAT && next != tab) { lastTab = next; opened++ }
+        tab = next
+    }
+    val closeTab: () -> Unit = { tab = SessionTabs.Key.CHAT }
+    val shadeOpen = tabsOn && SessionTabs.shadeOpen(tab)
+    // Indietro chiude la tendina prima di lasciare la sessione: registrato all'apertura, è l'ultimo arrivato e passa davanti agli altri.
+    // Solo a tendina aperta, e mai nelle immagini di prova, dove non c'è chi riceve Indietro.
+    if (shadeOpen && !still) androidx.activity.compose.BackHandler(onBack = closeTab)
+    val headsNow = LocalHeadsUp.current?.let { a -> it.pixelbox.cmwatch.rules.HeadsUpNote.visible(s, a.dismissed) }
+    val tabNotes = SessionTabs.notes(it.pixelbox.cmwatch.rules.BgSession.warns(s), headsNow != null)
+    val tabCounts = SessionTabs.counts(perTeCount, tabNotes, newResults, DiffRules.pill(s)?.files)
+    val handIcon = androidx.compose.ui.graphics.vector.ImageVector.vectorResource(R.drawable.ic_hand)
+    val sessionTabs = if (!tabsOn) emptyList() else SessionTabs.ORDER.map { k ->
+        IconTab(
+            key = k.id,
+            icon = when (k) {
+                SessionTabs.Key.CHAT -> Icons.Rounded.ChatBubbleOutline
+                SessionTabs.Key.PERTE -> handIcon
+                SessionTabs.Key.RISULTATI -> Icons.Outlined.Visibility
+                SessionTabs.Key.MODIFICHE -> Icons.Outlined.Difference
+                SessionTabs.Key.DETTAGLI -> Icons.Outlined.Info
+            },
+            label = stringResource(when (k) {
+                SessionTabs.Key.CHAT -> R.string.tab_chat
+                SessionTabs.Key.PERTE -> R.string.fy_title
+                SessionTabs.Key.RISULTATI -> R.string.watch_results
+                SessionTabs.Key.MODIFICHE -> R.string.changes_title
+                SessionTabs.Key.DETTAGLI -> R.string.tab_details
+            }),
+            count = SessionTabs.count(k, tabCounts), tone = SessionTabs.tone(k),
+        )
+    }
+    // Il ⋮ resta in testata, accanto al nome: lo mostra la testata della pagina (PageHeader, TabletColumnHeader) con LocalHeadMore.
+    val canExitNow = slash?.contains("exit") == true && s.state != SessionState.GONE
+    val moreMenu: (@Composable () -> Unit)? = if (!tabsOn) null else ({
+        SessionMoreMenu(s, actions, showTerminal = feed == null, canExit = canExitNow, bg = LocalPageBg.current ?: Cm.bg, changes = null, changesMenu = false, onChanges = null)
+    })
     val recurring = LocalRecurring.current
     val recurringRows by remember(recurring, home == null, idle, draftHolder) {
         derivedStateOf {
@@ -513,7 +567,8 @@ fun SessionSheet(
     val quoteDraft = remember(s.id) { quoteStart ?: QuoteDraft() }
     androidx.compose.runtime.CompositionLocalProvider(LocalQuoteDraft provides quoteDraft) {
     // Contratto 1.72: una scatola attorno alla scheda, perché la vista «Modifiche» le stia sopra (nella colonna, sul tablet).
-    Box(Modifier.fillMaxSize()) {
+    // Gruppo 2: Alt+1…5 sceglie la scheda ed Esc chiude la tendina, col fuoco in questa sessione (il campo, di solito).
+    Box(Modifier.fillMaxSize().then(if (tabsOn) Modifier.iconRowKeys(SessionTabs.ORDER.map { k -> k.id }, pickTab, if (shadeOpen) closeTab else null) else Modifier)) {
     // Vola come pagina solo la sessione aperta, non la home (app-scorrimento-prima-sessione-09-11, video di Franz 10/11 09:37): con
     // la master la home del telefono è la sua scheda, con la stessa chiave della card della master in «Ti aspettano». Richiudendo
     // una sessione la home intera volava verso quella card: se ne vedeva solo la cima nel riquadro della card, il resto nero.
@@ -525,7 +580,7 @@ fun SessionSheet(
         // La testata della home rientra in proporzione: il pannello resta rigido e nessuno lo rimisura mentre si muove.
         fun headerShown(): Int = kotlin.math.round(appBarPx[0] * (1f - masterAt.value)).toInt()
         // A tutto schermo la master ha una testata sola, la sua (Franz, 08/10 18:15): quella della home rientra mentre il pannello sale.
-        if (home == null) appBar?.invoke()
+        if (home == null) androidx.compose.runtime.CompositionLocalProvider(LocalHeadMore provides moreMenu) { appBar?.invoke() }
         else if (!halfStops) appBar?.let { ab ->
             val covered by remember { androidx.compose.runtime.derivedStateOf { masterAt.value >= 1f } }
             if (!covered) Box(
@@ -558,7 +613,8 @@ fun SessionSheet(
             bar?.invoke()
             // Nella chat della master, mentre rileggi più su, la testata rientra come le barre che si comprimono del Material 3
             // Expressive, e torna quando sei in fondo (Franz, 06/10 22:27).
-            if (header) androidx.compose.animation.AnimatedVisibility(
+            if (header && tabsOn) SessionTabsHeader(sessionTabs, tab.id, pickTab, if (shadeOpen) closeTab else null, more = if (appBar == null) moreMenu else null)
+            else if (header) androidx.compose.animation.AnimatedVisibility(
                 visible = home == null || follow,
                 enter = androidx.compose.animation.expandVertically(MaterialTheme.motionScheme.defaultSpatialSpec()) + androidx.compose.animation.fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()),
                 exit = androidx.compose.animation.shrinkVertically(MaterialTheme.motionScheme.defaultSpatialSpec()) + androidx.compose.animation.fadeOut(MaterialTheme.motionScheme.defaultEffectsSpec()),
@@ -575,7 +631,7 @@ fun SessionSheet(
             val sb = LocalSessionBoxes.current
             val heads = LocalHeadsUp.current?.let { a -> it.pixelbox.cmwatch.rules.HeadsUpNote.visible(s, a.dismissed) }
             val notesN = (if (it.pixelbox.cmwatch.rules.BgSession.warns(s)) 1 else 0) + (if (heads != null) 1 else 0)
-            if (perTe != null || results != null || elsewhere != null || notesN > 0) RiquadriRow(Modifier.padding(top = 6.dp)) {
+            if (!tabsOn && (perTe != null || results != null || elsewhere != null || notesN > 0)) RiquadriRow(Modifier.padding(top = 6.dp)) {
                 perTe?.invoke()
                 if (notesN > 0) ChatBlock(
                     BlockIcon.WARN, stringResource(R.string.box_notes), notesN, null, sb.isOpen(s.name, it.pixelbox.cmwatch.rules.Riquadri.Kind.AVVISI),
@@ -789,6 +845,34 @@ fun SessionSheet(
                 }
             }
             }
+            // app-posizioni-sistema-27-11 gruppo 2: la tendina delle schede sopra la chat, fino alle Azioni e al campo, che restano in vista.
+            // Il contenitore è Tendina; il contenuto di ogni sezione è quello di prima (pillole e riga dei dati).
+            if (tabsOn) Tendina(shadeOpen, lastTab, closeTab, Modifier.matchParentSize()) {
+                when (lastTab) {
+                    SessionTabs.Key.MODIFICHE -> {
+                        val load = actions.changes
+                        if (load != null) androidx.compose.runtime.key(opened) { ChangesBody(s, load, start = changesShown) }
+                        else ShadeList {
+                            val c = DiffRules.pill(s)
+                            ShadeNone(if (c != null) pluralStringResource(R.plurals.changes_files, c.files, c.files) + " · " + DiffRules.counts(c.added, c.removed) else stringResource(R.string.changes_none_here))
+                        }
+                    }
+                    SessionTabs.Key.DETTAGLI -> SessionDetailsBody(s, now, choices, canTune, actions, model, effort, modelNext, effortNext, accountQuota, notesInHeader)
+                    SessionTabs.Key.RISULTATI -> ShadeList { if (results != null) results() else ShadeNone(stringResource(R.string.results_none)) }
+                    else -> ShadeList {
+                        perTe?.invoke()
+                        if (tabNotes > 0) {
+                            Text(stringResource(R.string.box_notes).uppercase(), style = MonoSmall.copy(color = V3.Tx2), modifier = Modifier.padding(start = 4.dp, top = 6.dp))
+                            val notesShape = RoundedCornerShape(14.dp)
+                            Column(
+                                Modifier.fillMaxWidth().tendinaRow(perTeCount + 1).clip(notesShape).background(V3.S1).border(1.dp, V3.Line, notesShape).padding(horizontal = 12.dp, vertical = 10.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                            ) { BgNoteRow(s); HeadsUpNoteRow(s, now) }
+                        }
+                        if (perTe == null && tabNotes == 0) ShadeNone(stringResource(R.string.per_te_none))
+                    }
+                }
+            }
             }
             // Il box «Prossimi» (variante A del 03/10 15:20, rivista il 04/10 20:21): sopra la barra con la sessione ferma,
             // anche scrivendo; il tocco porta la riga nel campo, accodata con «e poi» se c'è già testo, ↗ la manda subito a
@@ -979,7 +1063,7 @@ fun SessionSheet(
     }
     // Contratto 1.72: la vista «Modifiche» sopra la sessione: sul telefono ne prende la pagina, sul tablet la colonna.
     val loadChanges = actions.changes
-    if (changesOpen && loadChanges != null) ChangesPanel(
+    if (changesOpen && loadChanges != null && !tabsOn) ChangesPanel(
         s, loadChanges, onClose = { changesOpen = false }, modifier = Modifier.fillMaxSize(), start = changesShown,
     )
     }
@@ -2549,8 +2633,6 @@ private fun SheetHeader(
     onChanges: (() -> Unit)? = null,
 ) {
     var picker by remember { mutableStateOf<String?>(null) }   // "tune": il foglio di modello ed effort
-    var menu by remember { mutableStateOf(false) }
-    var exitAsk by remember { mutableStateOf(false) }
     var ctxSheet by remember { mutableStateOf(false) }
     val tunable = canTune && choices != null && s.state != SessionState.GONE
     // Contratto 1.37: il consiglio di fable-director, dentro il foglio; il puntino solo se la scelta attuale è diversa.
@@ -2579,36 +2661,7 @@ private fun SheetHeader(
                 changes = changes?.takeIf { !changesMenu }?.let { c -> { ChangesPill(c, onChanges) } },
                 onChangesInline = { if (changesInline != it) changesInline = it },
             ) {
-            Box {
-                IconButton(onClick = { menu = true }, modifier = Modifier.size(40.dp)) { Icon(Icons.Rounded.MoreVert, stringResource(R.string.more), tint = Cm.text2) }
-                if (changesMenu) Box(Modifier.align(Alignment.TopEnd).padding(top = 7.dp, end = 7.dp).size(10.dp).background(bg, CircleShape).padding(2.dp).background(Cm.actionIcon, CircleShape))
-                // Il menu della sessione come quello dell'app (Franz, 03/10 15:26): pannello, voci spiegate.
-                if (menu) {
-                    // Un menu solo, lo stesso dalla home e dalla plancia (app-menu-sessione-03-11): le voci da SessionMenu.
-                    val st0 = actions.menuState ?: it.pixelbox.cmwatch.contract.State(v = 1, ts = 0, host = "", sessions = (actions.sessions + s).distinctBy { x -> x.name })
-                    val items = it.pixelbox.cmwatch.rules.SessionMenu.entries(s, st0, actions.mine, changes = changes != null && changesMenu, terminal = showTerminal, canExit = canExit)
-                    val (entries, footer) = sessionMenuEntries(s, items, SessionMenuActions(
-                        changes = { onChanges?.invoke() },
-                        changesTitle = changes?.let { c -> DiffRules.menuLine(stringResource(R.string.changes_title), pluralStringResource(R.plurals.changes_files, c.files, c.files), c) },
-                        changesSub = stringResource(R.string.changes_open),
-                        prove = actions.openMine?.let { o -> { o(it.pixelbox.cmwatch.rules.SessionMenu.Kind.PROVE) } },
-                        decidi = actions.openMine?.let { o -> { o(it.pixelbox.cmwatch.rules.SessionMenu.Kind.DECIDI) } },
-                        guarda = actions.openMine?.let { o -> { o(it.pixelbox.cmwatch.rules.SessionMenu.Kind.GUARDA) } },
-                        seguiti = actions.openMine?.let { o -> { o(it.pixelbox.cmwatch.rules.SessionMenu.Kind.SEGUITI) } },
-                        follow = actions.follow, askMaster = actions.askMaster, openInClaude = actions.openInClaude, terminal = actions.terminal,
-                        restartClean = actions.handoff,
-                        // Franz, 03/10 16:02: chiudere la sessione dal menu, con la stessa conferma di /exit scritto nel campo.
-                        exit = { exitAsk = true },
-                    ))
-                    MenuPanel(onDismiss = { menu = false }, entries = entries, footer = footer) {
-                        SessionBadge(s, 20.dp)
-                        Text(
-                            s.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold), color = Cm.text,
-                            maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.weight(1f),
-                        )
-                    }
-                }
-            }
+            SessionMoreMenu(s, actions, showTerminal, canExit, bg, changes, changesMenu, onChanges)
             }
         }
         // Contratto 1.72: «4 file · +8 −2» nella riga delle pillole quando ci sta (MeterPills), altrimenti in una riga sua sotto.
@@ -2629,10 +2682,155 @@ private fun SheetHeader(
         Spacer(Modifier.height(if (notes.isEmpty() && (changes == null || changesMenu || changesInline)) 2.dp else 8.dp))
         HorizontalDivider(color = Cm.line)
     }
-    if (exitAsk) CloseDialog(s, onDismiss = { exitAsk = false }, onConfirm = { exitAsk = false; actions.slash("exit", null) }, onSave = actions.closeSave?.let { save -> { exitAsk = false; save() } })
     if (ctxSheet) s.context?.let { pct -> ContextSheet(pct, it.pixelbox.cmwatch.rules.ContextActions.wider(s.copy(model = model), choices), actions) { ctxSheet = false } }
     // Il pannello Modello ed effort, dalla pillola (bozza approvata da Franz il 07/10 alle 00:06).
     if (picker != null && choices != null) TunePanel(choices, model?.id, effort, advice, onModel = actions.setModel, onEffort = actions.setEffort, onDismiss = { picker = null }, session = s, onPermission = actions.setPermission, modelNext = modelNext, effortNext = effortNext)
+}
+
+/**
+ * Il menu ⋮ della sessione (app-menu-sessione-03-11), lo stesso dalla riga dei dati (la master) e dalla testata col nome (una sessione,
+ * app-posizioni-sistema-27-11 gruppo 2): pannello, voci spiegate, e Chiudi la sessione dopo la conferma.
+ */
+@Composable
+private fun SessionMoreMenu(
+    s: Session, actions: SheetActions, showTerminal: Boolean, canExit: Boolean, bg: androidx.compose.ui.graphics.Color,
+    changes: it.pixelbox.cmwatch.contract.ChangesCount?, changesMenu: Boolean, onChanges: (() -> Unit)?,
+) {
+    var menu by remember { mutableStateOf(false) }
+    var exitAsk by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { menu = true }, modifier = Modifier.size(40.dp)) { Icon(Icons.Rounded.MoreVert, stringResource(R.string.more), tint = Cm.text2) }
+        if (changesMenu) Box(Modifier.align(Alignment.TopEnd).padding(top = 7.dp, end = 7.dp).size(10.dp).background(bg, CircleShape).padding(2.dp).background(Cm.actionIcon, CircleShape))
+        // Il menu della sessione come quello dell'app (Franz, 03/10 15:26): pannello, voci spiegate.
+        if (menu) {
+            // Un menu solo, lo stesso dalla home e dalla plancia (app-menu-sessione-03-11): le voci da SessionMenu.
+            val st0 = actions.menuState ?: it.pixelbox.cmwatch.contract.State(v = 1, ts = 0, host = "", sessions = (actions.sessions + s).distinctBy { x -> x.name })
+            val items = it.pixelbox.cmwatch.rules.SessionMenu.entries(s, st0, actions.mine, changes = changes != null && changesMenu, terminal = showTerminal, canExit = canExit)
+            val (entries, footer) = sessionMenuEntries(s, items, SessionMenuActions(
+                changes = { onChanges?.invoke() },
+                changesTitle = changes?.let { c -> DiffRules.menuLine(stringResource(R.string.changes_title), pluralStringResource(R.plurals.changes_files, c.files, c.files), c) },
+                changesSub = stringResource(R.string.changes_open),
+                prove = actions.openMine?.let { o -> { o(it.pixelbox.cmwatch.rules.SessionMenu.Kind.PROVE) } },
+                decidi = actions.openMine?.let { o -> { o(it.pixelbox.cmwatch.rules.SessionMenu.Kind.DECIDI) } },
+                guarda = actions.openMine?.let { o -> { o(it.pixelbox.cmwatch.rules.SessionMenu.Kind.GUARDA) } },
+                seguiti = actions.openMine?.let { o -> { o(it.pixelbox.cmwatch.rules.SessionMenu.Kind.SEGUITI) } },
+                follow = actions.follow, askMaster = actions.askMaster, openInClaude = actions.openInClaude, terminal = actions.terminal,
+                restartClean = actions.handoff,
+                // Franz, 03/10 16:02: chiudere la sessione dal menu, con la stessa conferma di /exit scritto nel campo.
+                exit = { exitAsk = true },
+            ))
+            MenuPanel(onDismiss = { menu = false }, entries = entries, footer = footer) {
+                SessionBadge(s, 20.dp)
+                Text(
+                    s.name, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold), color = Cm.text,
+                    maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.weight(1f),
+                )
+            }
+        }
+    }
+    if (exitAsk) CloseDialog(s, onDismiss = { exitAsk = false }, onConfirm = { exitAsk = false; actions.slash("exit", null) }, onSave = actions.closeSave?.let { save -> { exitAsk = false; save() } })
+}
+
+/**
+ * La testata della sessione con la riga di icone (app-posizioni-sistema-27-11, gruppo 2): al centro, sotto la testata col nome, Chat ·
+ * Per te · Risultati · Modifiche · Dettagli. Il ⋮ sta nella testata col nome (LocalHeadMore); qui, a destra, solo se la pagina non ne ha
+ * una ([more]). La riga resta al centro se ci sta accanto al ⋮, se no si sposta a sinistra.
+ */
+@Composable
+private fun SessionTabsHeader(tabs: List<IconTab>, active: String, onPick: (String) -> Unit, onEsc: (() -> Unit)?, more: (@Composable () -> Unit)?) {
+    Column(Modifier.fillMaxWidth().background(LocalPageBg.current ?: Cm.bg)) {
+        androidx.compose.ui.layout.Layout(
+            content = {
+                IconRow(tabs, active, onPick, onEsc = onEsc)
+                Box { more?.invoke() }
+            },
+            modifier = Modifier.fillMaxWidth().padding(start = 8.dp, end = 4.dp, top = 6.dp, bottom = 8.dp).testTag("testata-schede"),
+        ) { ms, c ->
+            val moreP = ms[1].measure(c.copy(minWidth = 0, minHeight = 0))
+            val rowP = ms[0].measure(c.copy(minWidth = 0, minHeight = 0, maxWidth = (c.maxWidth - moreP.width).coerceAtLeast(0)))
+            val w = c.maxWidth
+            val h = maxOf(rowP.height, moreP.height)
+            layout(w, h) {
+                rowP.place(((w - rowP.width) / 2).coerceAtMost(w - moreP.width - rowP.width).coerceAtLeast(0), (h - rowP.height) / 2)
+                moreP.place(w - moreP.width, (h - moreP.height) / 2)
+            }
+        }
+        HorizontalDivider(color = Cm.line)
+    }
+}
+
+/** Una sezione della tendina che scorre (gruppo 2): le schede una sotto l'altra. */
+@Composable
+private fun ShadeList(content: @Composable ColumnScope.() -> Unit) = Column(
+    Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 10.dp),
+    verticalArrangement = Arrangement.spacedBy(8.dp), content = content,
+)
+
+/** La riga di una sezione vuota della tendina (gruppo 2). */
+@Composable
+private fun ShadeNone(text: String) = Text(text, style = MaterialTheme.typography.bodyMedium, color = Cm.text2, modifier = Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 14.dp))
+
+/**
+ * La scheda Dettagli della sessione (app-posizioni-sistema-27-11, gruppo 2): quello che stava nella riga dei dati della testata e sotto,
+ * con le stesse pillole e gli stessi tocchi. Modello ed effort aprono il pannello Modello ed effort (tenuta premuta, la scheda dei
+ * permessi); la quota delle 5 ore porta a Utilizzo; il contesto apre il suo foglio; poi obiettivo, priorità e finestra, a capo.
+ * Le modifiche hanno la loro scheda.
+ */
+@Composable
+private fun SessionDetailsBody(
+    s: Session, now: Long, choices: Choices?, canTune: Boolean, actions: SheetActions,
+    model: it.pixelbox.cmwatch.contract.Model?, effort: String?, modelNext: Boolean, effortNext: Boolean,
+    quota: it.pixelbox.cmwatch.contract.QuotaAccount?, notesInHeader: Boolean,
+) {
+    var picker by remember { mutableStateOf(false) }
+    var ctxSheet by remember { mutableStateOf(false) }
+    val tunable = canTune && choices != null && s.state != SessionState.GONE
+    val advice = it.pixelbox.cmwatch.rules.MasterService.advice(s, choices, now)
+    val tune = listOfNotNull(ModelText.short(model) ?: stringResource(R.string.model_title), effort).joinToString(" · ")
+    val goalNote = SessionsText.goalLine(s, stringResource(R.string.goal)).takeIf { notesInHeader }
+    val notes = listOfNotNull(
+        goalNote,
+        SessionsText.priority(s, stringResource(R.string.low_priority), stringResource(R.string.low_priority_offered)).takeIf { notesInHeader },
+        SessionsText.window(s, stringResource(R.string.no_window)),
+    )
+    val shape = RoundedCornerShape(14.dp)
+    val h5 = quota?.h5
+    val ctx = s.context
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 10.dp)) {
+        Column(Modifier.fillMaxWidth().clip(shape).background(V3.S1).border(1.dp, V3.Line, shape).testTag("dettagli")) {
+            DetailRow(stringResource(R.string.details_model), 0) {
+                TunePill(tune, tunable, dot = tunable && advice?.dot == true, mode = s.permissionMode) { picker = true }
+            }
+            if (quota != null && h5 != null) DetailRow(stringResource(R.string.details_quota), 1) {
+                QuotaPill(h5, quota.resetH5, quota.stale, now, QuotaForm.FULL, onClick = actions.overview)
+            }
+            if (ctx != null) DetailRow(stringResource(R.string.box_context), 2) { ContextPill(ctx, enabled = tunable) { ctxSheet = true } }
+            notes.forEachIndexed { i, n ->
+                Column(Modifier.fillMaxWidth().tendinaRow(3 + i)) {
+                    HorizontalDivider(color = V3.Line)
+                    if (i == 0 && goalNote != null) LongText(n, Modifier.padding(horizontal = 14.dp, vertical = 8.dp), style = MaterialTheme.typography.labelMedium, color = Cm.briefLabel)
+                    else Text(n, style = MaterialTheme.typography.labelMedium, color = Cm.briefLabel, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp))
+                }
+            }
+        }
+    }
+    if (ctxSheet && ctx != null) ContextSheet(ctx, it.pixelbox.cmwatch.rules.ContextActions.wider(s.copy(model = model), choices), actions) { ctxSheet = false }
+    if (picker && choices != null) TunePanel(choices, model?.id, effort, advice, onModel = actions.setModel, onEffort = actions.setEffort, onDismiss = { picker = false }, session = s, onPermission = actions.setPermission, modelNext = modelNext, effortNext = effortNext)
+}
+
+/** Una riga di Dettagli (gruppo 2): il nome a sinistra, la pillola di prima a destra; la [row]-esima riga della tendina. */
+@Composable
+private fun DetailRow(label: String, row: Int, value: @Composable () -> Unit) {
+    Column(Modifier.fillMaxWidth().tendinaRow(row)) {
+        if (row > 0) HorizontalDivider(color = V3.Line)
+        Row(
+            Modifier.fillMaxWidth().heightIn(min = 52.dp).padding(start = 14.dp, end = 10.dp, top = 6.dp, bottom = 6.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(label, style = V3.Name.copy(fontSize = 15.sp), maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Clip, modifier = Modifier.weight(1f))
+            value()
+        }
+    }
 }
 
 /** La proposta del contesto pieno sopra il campo (contratto 1.37): «Contesto al 64%», «Fallo», ×. */

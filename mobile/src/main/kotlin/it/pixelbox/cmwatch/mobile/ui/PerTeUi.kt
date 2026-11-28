@@ -328,6 +328,32 @@ fun PerTeBlock(
 }
 
 /**
+ * «Per te» nella tendina della sessione (app-posizioni-sistema-27-11, gruppo 2): le stesse voci e gli stessi tasti di [PerTeBlock], in
+ * una scheda, ognuna una riga della tendina che compare al suo turno ([tendinaRow]); in testa il rimando «anche in Bacheca ›» ([onMaster]).
+ */
+@Composable
+fun PerTeRows(items: List<PerTe.Voce>, now: Long, onOpen: (PerTe.Voce) -> Unit, onMain: (PerTe.Voce) -> Unit, onMaster: (() -> Unit)? = null) {
+    if (items.isEmpty()) return
+    val shape = RoundedCornerShape(14.dp)
+    val first = if (onMaster != null) 1 else 0
+    Column(Modifier.fillMaxWidth().clip(shape).background(V3.S1).border(1.dp, V3.Line, shape).testTag("tendina-per-te")) {
+        if (onMaster != null) Row(
+            Modifier.fillMaxWidth().tendinaRow(0).heightIn(min = 36.dp).handCursor().clickable(role = Role.Button, onClick = onMaster).testTag("per-te-in-master").padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.End,
+        ) {
+            Text(stringResource(R.string.per_te_also_master), style = V3.Small.copy(fontSize = 13.sp, color = V3.Tx2), maxLines = 1, softWrap = false)
+            Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx2, modifier = Modifier.size(16.dp))
+        }
+        items.forEachIndexed { i, v ->
+            Column(Modifier.tendinaRow(first + i)) {
+                if (i > 0 || onMaster != null) HorizontalDivider(color = V3.Line)
+                VoceItem(v, now, onOpen, onMain)
+            }
+        }
+    }
+}
+
+/**
  * La scheda di una sessione in Home (app-riall-3-doppioni-16-11, direzione A): niente tasti di risposta, la mano di «Per te» col numero
  * delle sue voci, compatta perché il nome resti intero; il tocco apre la sessione.
  */

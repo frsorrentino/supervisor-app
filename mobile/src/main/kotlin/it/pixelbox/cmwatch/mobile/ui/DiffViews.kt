@@ -32,6 +32,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.PlatformTextStyle
@@ -291,14 +292,57 @@ internal fun ChangesPanel(
     }
 }
 
+/**
+ * La vista «Modifiche» nella tendina della sessione (app-posizioni-sistema-27-11, gruppo 2): la stessa di [ChangesPanel] senza la sua
+ * testata (il nome è sulla scheda aperta), con «Aggiorna» sulla riga della base. Si legge al primo disegno, come la vista.
+ */
 @Composable
-private fun ChangesList(v: ChangesView, load: suspend (String?) -> DiffRules.Load<ChangesView>, asked: Int, startOpen: Map<String, DiffRules.Load<ChangesView>>) {
+internal fun ChangesBody(
+    s: Session, load: suspend (String?) -> DiffRules.Load<ChangesView>, modifier: Modifier = Modifier,
+    start: DiffRules.Load<ChangesView>? = null, startOpen: Map<String, DiffRules.Load<ChangesView>> = emptyMap(),
+) {
+    var got by remember(s.name) { mutableStateOf(start) }
+    var asked by remember(s.name) { mutableIntStateOf(if (start == null) 1 else 0) }
+    var loading by remember(s.name) { mutableStateOf(false) }
+    LaunchedEffect(s.name, asked) {
+        if (asked == 0) return@LaunchedEffect
+        loading = true
+        got = load(null)
+        loading = false
+    }
+    val v = (got as? DiffRules.Load.Ok)?.value
+    val src = v?.let { x -> DiffRules.source(x) }
+    Column(modifier.fillMaxSize().testTag("modifiche")) {
+        Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(start = 16.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            val line = when {
+                got == null -> stringResource(R.string.changes_loading)
+                v == null -> ""
+                src == DiffRules.Source.TRANSCRIPT -> stringResource(R.string.changes_outside_git)
+                src == DiffRules.Source.NO_COMMITS -> stringResource(R.string.changes_no_commits)
+                else -> stringResource(R.string.changes_base, v.base.orEmpty())
+            }
+            Text(line, style = MaterialTheme.typography.bodyMedium, color = if (src == DiffRules.Source.TRANSCRIPT) Cm.waiting else Cm.text2, modifier = Modifier.weight(1f))
+            IconButton(onClick = { asked++ }, enabled = !loading) { Icon(Icons.Rounded.Refresh, stringResource(R.string.refresh), tint = Cm.actionIcon) }
+        }
+        Box(Modifier.fillMaxWidth().height(4.dp).padding(horizontal = 20.dp)) {
+            if (loading) LinearProgressIndicator(Modifier.fillMaxWidth(), color = Cm.actionIcon, trackColor = Cm.briefTrack)
+        }
+        when (val g = got) {
+            null -> Unit
+            is DiffRules.Load.Failed -> Box(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) { DiffFailed(g) { asked++ } }
+            is DiffRules.Load.Ok -> ChangesList(g.value, load, asked, startOpen, source = false)
+        }
+    }
+}
+
+@Composable
+private fun ChangesList(v: ChangesView, load: suspend (String?) -> DiffRules.Load<ChangesView>, asked: Int, startOpen: Map<String, DiffRules.Load<ChangesView>>, source: Boolean = true) {
     // Revisione finale (16/10): i file letti con `file=` restano qui, fuori dalla LazyColumn: un file che esce di vista e torna
     // non si richiede al PC. Aggiorna (asked) ricomincia da capo.
     val read = remember(asked) { mutableMapOf<String, DiffRules.Load<ChangesView>>() }
     val src = DiffRules.source(v)
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        item(key = "source") {
+        if (source) item(key = "source") {
             val line = when (src) {
                 DiffRules.Source.GIT -> stringResource(R.string.changes_base, v.base.orEmpty())
                 DiffRules.Source.NO_COMMITS -> stringResource(R.string.changes_no_commits)

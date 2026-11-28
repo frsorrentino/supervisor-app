@@ -302,5 +302,12 @@
     .ic .ms { font-size: 20px; }
     .ic :global(svg) { width: 20px; height: 20px; }
   }
+  /* app-posizioni-sistema-27-11 gruppo 2: stretta anche in una colonna stretta della plancia, non solo sul telefono; la sessione (.chat) è
+     il contenitore. Con la misura della finestra, in una colonna da 300 px su uno schermo largo le schede uscivano dalla colonna. */
+  @container (max-width: 400px) {
+    .it { padding: 0 7px; }
+    .ic .ms { font-size: 20px; }
+    .ic :global(svg) { width: 20px; height: 20px; }
+  }
   @media (prefers-reduced-motion: reduce) { .it { transition: none; } }
 </style>

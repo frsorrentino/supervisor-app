@@ -2188,4 +2188,12 @@ It starts at your last message to the master.</string>
     <string name="pagella_defects">%d%% with defects</string>
     <string name="anim_play">Play the animation</string>
     <string name="anim_draft_open">Open the live draft</string>
+    <string name="tab_chat">Chat</string>
+    <string name="tab_details">Details</string>
+    <string name="shade_close">Close and go back to the chat</string>
+    <string name="per_te_none">Nothing is waiting for you in this session.</string>
+    <string name="results_none">This session has not delivered any results yet.</string>
+    <string name="changes_none_here">No changes to show.</string>
+    <string name="details_model">Model and effort</string>
+    <string name="details_quota">5-hour quota</string>
 </resources>

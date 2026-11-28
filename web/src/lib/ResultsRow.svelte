@@ -1,5 +1,7 @@
 <script lang="ts">
+  import { untrack } from 'svelte'
   import type { CmdResult, ResultsPage, ResultsSummary } from './contract'
+  import { newResults } from './sessionTabs'
   import { lastKey, line, ofSession, shown } from './guardare'
   import { boxOpen, boxToggle } from './riquadri.svelte'
   import { newCmd } from './transport'
@@ -9,13 +11,20 @@
   // ha consegnato. Senza consegne non c'è. Dal formato unico (app-formato-unico-12-11, blocchi B) è un blocco ridotto: una riga con
   // l'ultimo lavoro non visto; il tocco lo apre sul posto, coi lavori della sessione uno per riga, e resta come lasciato. Il tocco
   // su un lavoro apre la pagina dei risultati di questa sessione su quel lavoro; «Tutti» la apre intera.
-  let { run, session, summary, onOpen }: { run: (c: ReturnType<typeof newCmd>) => Promise<CmdResult | null>; session: string; summary: ResultsSummary | null | undefined; onOpen: (id: string | null) => void } = $props()
+  // app-posizioni-sistema-27-11 gruppo 2: `bare`, solo le righe dei lavori e «Tutti i risultati», dentro la tendina della scheda
+  // Risultati (senza la X, che chiudeva la pillola); `onCount` dice quanti lavori sono nuovi e quanti in tutto, anche a tendina chiusa.
+  let { run, session, summary, onOpen, bare = false, onCount = null }: {
+    run: (c: ReturnType<typeof newCmd>) => Promise<CmdResult | null>; session: string; summary: ResultsSummary | null | undefined; onOpen: (id: string | null) => void
+    bare?: boolean; onCount?: ((fresh: number, all: number) => void) | null
+  } = $props()
   let page = $state<ResultsPage | null>(null)
   // Si rilegge quando cambia il riassunto dei risultati, non a ogni stato (app-letture-leggere-11-11); le righe di più colonne
   // partono insieme e diventano una lettura sola (LightTransport).
   const sig = $derived(JSON.stringify(summary ?? null))
   $effect(() => { void session; void sig; void run(newCmd('results', null)).then(r => { if (r?.ok) try { page = JSON.parse(r.text) as ResultsPage } catch { /* resta com'era */ } }) })
   const mine = $derived(ofSession(page, session))
+  $effect(() => { const fresh = newResults(mine.groups), all = mine.groups.length; untrack(() => onCount?.(fresh, all)) })
+  $effect(() => () => untrack(() => onCount?.(0, 0)))
   // La X la chiude fino al risultato successivo (Guardare.lastKey, app-risultati-x-05-11), ricordata in questo browser.
   const CLOSED = 'cm.results_closed'
   const readClosed = (): Record<string, string> => { try { return JSON.parse(localStorage.getItem(CLOSED) ?? '{}') } catch { return {} } }
@@ -33,7 +42,16 @@
   const name = (l: ReturnType<typeof line>) => (l.version != null ? t.watchTitleVersion(l.title, l.version) : l.title)
 </script>
 
-{#if shown(mine, closed[session])}
+{#if bare}
+  {#each mine.groups as g (g.title + g.at)}{@const top = g.items[0]}
+    {#if top}{@const gl = line(top)}
+      <button class="row" data-testid="chat-risultato-{top.id}" onclick={() => onOpen(top.id)}>
+        <i class="dot" class:off={!g.unseen}></i><span class="ti">{name(gl)}</span><small>{t.watchKind[gl.kind]}</small><span class="ms" aria-hidden="true">chevron_right</span>
+      </button>
+    {/if}
+  {/each}
+  {#if mine.groups.length}<button class="row all" data-testid="chat-risultati-tutti" onclick={() => onOpen(null)}><span class="ti">{t.watchAll}</span><span class="ms" aria-hidden="true">chevron_right</span></button>{/if}
+{:else if shown(mine, closed[session])}
   {@const l = mine.latest ? line(mine.latest) : null}
   <Blocco pill icon="eye" title={t.watchResults} n={mine.groups.length} first={l ? name(l) : null} {open} testid="chat-risultati" onToggle={toggle}>
     {#snippet extra()}

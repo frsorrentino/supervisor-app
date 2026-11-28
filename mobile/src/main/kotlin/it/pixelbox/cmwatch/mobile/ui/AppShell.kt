@@ -240,6 +240,12 @@ private fun SessionMenuRow(s: Session, group: it.pixelbox.cmwatch.rules.Summary.
     }
 }
 
+/**
+ * app-posizioni-sistema-27-11 gruppo 2: il ⋮ della sessione aperta. Con la riga di icone resta in testata accanto al nome: la pagina della
+ * sessione lo dà alla sua testata, che lo mostra accanto al ≡ ([PageHeader]) o, nella colonna del tablet, accanto al × (TabletColumnHeader).
+ */
+val LocalHeadMore = androidx.compose.runtime.compositionLocalOf<(@Composable () -> Unit)?> { null }
+
 /** Le voci del menu ≡ e del collegamento in testa, le stesse in ogni testata. */
 data class MenuActions(
     val host: String?, val updated: String, val stale: Boolean, val onLaunch: () -> Unit, val onLavori: () -> Unit,
@@ -286,6 +292,7 @@ fun PageHeader(
                 // La lente solo nella home: la ricerca è di tutte le sessioni, e in una sessione la testa ha già abbastanza comandi.
                 menu.onSearch?.let { IconButton(onClick = it) { Icon(Icons.Rounded.Search, stringResource(R.string.search), tint = Cm.text2) } }
             }
+            if (page != null) LocalHeadMore.current?.invoke()
             AppMenu(menu, menuStartOpen)
         }
         if (page == null && showQuota) quota?.let { Box(Modifier.padding(horizontal = 16.dp).padding(bottom = 8.dp)) { it() } }

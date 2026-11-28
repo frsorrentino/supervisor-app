@@ -2308,9 +2308,10 @@
 
 {#snippet chatOf(name: string, inColumn: boolean)}
   {@const s = st.sessions.find(x => x.name === name) ?? ghost(name)}
-  {#snippet resultsRow()}{#if st.ops?.includes('results')}<ResultsRow {run} session={name} summary={st.results} onOpen={(id) => { watchSession = name; watchOpenId = id; openPage('guardare') }} />{/if}{/snippet}
+  <!-- app-posizioni-sistema-27-11 gruppo 2: nella sessione «Risultati» e «Per te» stanno nella tendina (`bare`) e dicono i loro numeri alla riga di icone. -->
+  {#snippet resultsRow(bare: boolean, onCount: ((fresh: number, all: number) => void) | null)}{#if st.ops?.includes('results')}<ResultsRow {run} session={name} summary={st.results} {bare} {onCount} onOpen={(id) => { watchSession = name; watchOpenId = id; openPage('guardare') }} />{/if}{/snippet}
   <!-- «Per te» (app-formato-unico-12-11): le richieste e i risultati che aspettano la persona in questa sessione, riletti quando cambiano nello stato. -->
-  {#snippet perTe()}{#if st.ops?.includes('attese')}<PerTe {run} session={name} items={uItems} wide={wide && unified} onMaster={unified ? toMaster : null} sig={`${openWids}|${st.results?.n_unseen ?? 0}|${(st.results?.items ?? []).map(r => r.id).join(',')}`} now={st.ts} results={!!st.ops?.includes('results')}
+  {#snippet perTe(bare: boolean, onCount: ((n: number) => void) | null)}{#if st.ops?.includes('attese')}<PerTe {run} session={name} items={uItems} wide={wide && unified} onMaster={unified ? toMaster : null} {bare} {onCount} sig={`${openWids}|${st.results?.n_unseen ?? 0}|${(st.results?.items ?? []).map(r => r.id).join(',')}`} now={st.ts} results={!!st.ops?.includes('results')}
     onOpenWait={openWait} onOpenResult={(id) => { watchSession = name; watchOpenId = id; openPage('guardare') }} onAnswered={(w) => waitCardsRefresh(w)} />{/if}{/snippet}
   <Chat {resultsRow} {perTe} focus={focusOf[name] ?? null} onMine={(k) => mineGo(name, k)} onHeadsUp={(text) => sendTo(name, text)} onTask={() => openPage('lavori')} {st} {s} entries={transcripts[name] ?? []} mine={mine.filter(([m]) => m.session === name)} onSend={(x) => sendTo(name, x)} onPick={pick} waitingSince={waitSince[name] ?? null}
     updating={!!tr && s.state !== 'gone' && !fresh[name] && behind(s, bgReads[name])}

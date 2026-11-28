@@ -2,6 +2,7 @@ package it.pixelbox.cmwatch.mobile.ui
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -312,6 +313,43 @@ fun ResultsChatRow(line: Guardare.SessionLine, onClose: (() -> Unit)? = null, op
         ) {
             Text(stringResource(R.string.watch_all), style = V3.Small, modifier = Modifier.weight(1f))
             Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3, modifier = Modifier.size(20.dp))
+        }
+    }
+}
+
+/**
+ * «Risultati» nella tendina della sessione (app-posizioni-sistema-27-11, gruppo 2): i lavori della sessione uno per riga, poi «Tutti i
+ * risultati», come [ResultsChatRow] aperto, in una scheda; ogni riga compare al suo turno ([tendinaRow]). Il puntino sui lavori nuovi.
+ */
+@Composable
+fun ResultsChatRows(line: Guardare.SessionLine, onOpen: (String?) -> Unit) {
+    if (line.groups.isEmpty()) return
+    val shape = RoundedCornerShape(14.dp)
+    Column(Modifier.fillMaxWidth().clip(shape).background(V3.S1).border(1.dp, V3.Line, shape).testTag("tendina-risultati")) {
+        line.groups.forEachIndexed { i, g ->
+            val top = g.items.firstOrNull() ?: return@forEachIndexed
+            val gl = Guardare.line(top)
+            Column(Modifier.tendinaRow(i)) {
+                if (i > 0) HorizontalDivider(color = V3.Line)
+                Row(
+                    Modifier.fillMaxWidth().heightIn(min = 44.dp).clickable { onOpen(top.id) }.testTag("chat-risultato-${top.id}").padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Box(Modifier.size(8.dp).clip(CircleShape).background(if (g.unseen) V3.Wait else androidx.compose.ui.graphics.Color.Transparent))
+                    Text(titleOf(gl), style = V3.Body, maxLines = 1, softWrap = false, overflow = TextOverflow.Clip, modifier = Modifier.weight(1f))
+                    Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3, modifier = Modifier.size(20.dp))
+                }
+            }
+        }
+        Column(Modifier.tendinaRow(line.groups.size)) {
+            HorizontalDivider(color = V3.Line)
+            Row(
+                Modifier.fillMaxWidth().heightIn(min = 44.dp).clickable { onOpen(null) }.testTag("chat-risultati-tutti").padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(stringResource(R.string.watch_all), style = V3.Small, modifier = Modifier.weight(1f))
+                Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = V3.Tx3, modifier = Modifier.size(20.dp))
+            }
         }
     }
 }
