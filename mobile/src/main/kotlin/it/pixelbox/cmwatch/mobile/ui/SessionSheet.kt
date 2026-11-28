@@ -935,6 +935,9 @@ fun SessionSheet(
                 },
                 head = { androidx.compose.runtime.CompositionLocalProvider(LocalHeadMore provides sheetMore) { dock?.invoke() } },
                 body = { chatArea() },
+                // app-posizioni-sistema-27-11, prova 1447: a foglio fermo l'ultimo messaggio torna appena sopra il campo con una corsa breve,
+                // se la si seguiva.
+                onSettled = { if (follow) jumpScope.launch { list.scrollToEnd(animate = true) } },
             )
         }
         // Il posto del mini-controller sopra il campo, come il mini-player delle app di musica (Franz, 03/10 23:00); il

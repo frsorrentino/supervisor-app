@@ -363,7 +363,9 @@
       else if (dir > 0 && !auto && gap() < 40) atEnd = true
     }
     const onEnd = () => { lastTop = el.scrollTop; clearTimeout(still); delete el.dataset.moving; if (auto) { auto = false; if (gap() < 40) atEnd = true } }
-    const ro = new ResizeObserver(() => { if (atEnd && !home) el.scrollTop = endOf(el) })
+    // app-posizioni-sistema-27-11, prova 1447: mentre il foglio della master si muove la chat è un blocco rigido (data-sheet-frozen): niente
+    // salti in fondo, la riporta lui con una corsa breve quando si ferma.
+    const ro = new ResizeObserver(() => { if (atEnd && !home && !el.closest('[data-sheet-frozen]')) el.scrollTop = endOf(el) })
     el.addEventListener('scroll', onScroll, { passive: true })
     el.addEventListener('scrollend', onEnd)
     ro.observe(el)

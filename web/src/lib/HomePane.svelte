@@ -25,7 +25,7 @@
 
 <div class="pane v3">
   {@render head?.()}
-  <div class="host">
+  <div class="host" data-sheet-host>
     <div class="under" style:padding-bottom={master ? `${rowH}px` : null}>{@render list()}</div>
     {#if master}<MasterSheet {master} {entries} {stop} {onStop} {onSpeak} {chat} {inset} bind:rowH />{/if}
   </div>
@@ -36,4 +36,9 @@
   /* Il posto del foglio: tutto sotto la testata; la lista ci sta ferma, il foglio sopra. */
   .host { position: relative; flex: 1; min-height: 0; overflow: hidden; }
   .under { position: absolute; inset: 0; display: flex; flex-direction: column; min-height: 0; }
+  /* app-posizioni-sistema-27-11, prova 1447: mentre il foglio sale la home dietro arretra (fino a 0,96, dal centro in alto) e si vela (fino
+     al 40 % di nero); i valori li scrive il foglio (masterSheet.cues). A scala 1 niente trasformazione: i menu fissi della home restano
+     riferiti alla finestra. Il velo non prende i tocchi. */
+  .under { scale: var(--sheet-scale, none); transform-origin: 50% 0; }
+  .host::after { content: ''; position: absolute; inset: 0; z-index: 5; pointer-events: none; background: rgb(0 0 0 / var(--sheet-dim, 0)); }
 </style>

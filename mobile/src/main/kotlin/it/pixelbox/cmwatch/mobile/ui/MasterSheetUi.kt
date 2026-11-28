@@ -31,6 +31,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,7 +42,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
@@ -164,9 +170,15 @@ private fun SheetGrip() {
  * posto sotto la testata meno lo stacco). La maniglia e la riga si trascinano 1:1, oltre la riga e l'intera con l'elastico; al rilascio la
  * velocità si proietta come su iOS (0,998) e il foglio va alla misura più vicina al punto proiettato, con la molla senza rimbalzo della
  * master che parte dalla velocità del dito ([MasterGestures.land]: smorzamento critico, mai oltre la misura). Il tocco passa alla misura
- * dopo (riga → metà → intera → riga). Fra la riga e la metà la conversazione ([body]) è disegnata alla misura di metà e ancorata in
- * fondo: sale col foglio dal campo in su e sfuma dalla riga alla metà; alla riga non c'è. Il foglio cambia altezza nella fase di misura e
- * di disegno, la home sotto non si ricompone a ogni fotogramma. Con le animazioni spente (e nei provini) va subito alla misura.
+ * dopo (riga → metà → intera → riga). Il foglio cambia altezza nella fase di misura e di disegno, la home sotto non si ricompone a ogni
+ * fotogramma. Con le animazioni spente (e nei provini) va subito alla misura.
+ * app-posizioni-sistema-27-11, prova 1447 (Franz: «sembra quasi che si sta alzando solo l'header», «si confonde con il testo della home»):
+ * la riga e la conversazione ([body]) sono un blocco solo, opaco e rigido: la conversazione è appesa sotto la riga e sale con lei, e il
+ * campo, fermo sotto il foglio, la taglia. Mentre il foglio si muove la sua altezza è ferma ([MasterSheet.freezeAt]: dalla riga quanta se
+ * ne vedrà all'arrivo; scendendo resta rigida; salendo si allunga col foglio); da fermo torna alta quanto si vede e [onSettled] riporta
+ * l'ultimo messaggio sopra il campo con una corsa breve. Dietro, la home si vela e arretra con l'avanzamento ([MasterSheet.cues]); sopra il
+ * bordo un'ombra sfuma verso il nero. Con le animazioni spente la home non arretra, resta il velo; sulla plancia del tablet, dove sotto
+ * c'è una lista vuota, si vela solo la colonna sotto il foglio.
  */
 @Composable
 internal fun MasterSheetBox(
@@ -176,6 +188,8 @@ internal fun MasterSheetBox(
     under: @Composable ColumnScope.() -> Unit,
     head: @Composable () -> Unit,
     body: @Composable ColumnScope.() -> Unit,
+    /** A foglio fermo dopo un movimento: l'ultimo messaggio appena sopra il campo, con una corsa breve, se la si seguiva (prova 1447). */
+    onSettled: () -> Unit = {},
 ) {
     val density = LocalDensity.current
     val off = animationsOff()
@@ -194,20 +208,35 @@ internal fun MasterSheetBox(
         val fling = remember { floatArrayOf(0f) }
         val ready = remember { booleanArrayOf(false) }
         var settled by remember { mutableIntStateOf(0) }
-        LaunchedEffect(target, off, settled, pull, headPx > 0) {
-            if (held[0]) return@LaunchedEffect
-            // Prima della misura vera della riga, con le animazioni spente e nei provini: subito alla misura.
-            if (off || pull != null || !ready[0]) { height.snapTo(target); ready[0] = headPx > 0; fling[0] = 0f; return@LaunchedEffect }
-            val land = MasterGestures.land(height.value - target, fling[0])
-            fling[0] = 0f
-            height.animateTo(target, spring(dampingRatio = 1f, stiffness = land.stiffness), land.velocity)
-        }
         val scope = rememberCoroutineScope()
         val aNow by rememberUpdatedState(a)
         val stopNow by rememberUpdatedState(stop)
         val onStopNow by rememberUpdatedState(onStop)
+        val onSettledNow by rememberUpdatedState(onSettled)
         val boxNow by rememberUpdatedState(boxPx)
         val pullNow by rememberUpdatedState(pull)
+        // Prova 1447: l'altezza ferma della conversazione durante il movimento, in px (-1 da fermo), e la misura da cui è partito. Si ferma
+        // all'inizio ([MasterSheet.freezeAt]) e non si accorcia finché il foglio non si ferma; se il foglio la supera, si allunga con lui.
+        // Le usano anche i gesti, che tengono le funzioni della prima composizione: dentro solo stati e cose ricordate.
+        val frozen = remember { mutableFloatStateOf(-1f) }
+        val base = remember { arrayOf(stop) }
+        val freeze: (MasterSheet.Stop?) -> Unit = { to -> frozen.floatValue = maxOf(frozen.floatValue, MasterSheet.freezeAt(aNow, height.value, base[0], to)) }
+        val grow: (Float) -> Unit = { h -> if (frozen.floatValue >= 0f) frozen.floatValue = maxOf(frozen.floatValue, h - aNow.row) }
+        LaunchedEffect(target, off, settled, pull, headPx > 0) {
+            if (held[0]) return@LaunchedEffect
+            // Prima della misura vera della riga, con le animazioni spente e nei provini: subito alla misura.
+            if (off || pull != null || !ready[0]) {
+                height.snapTo(target); ready[0] = headPx > 0; fling[0] = 0f
+            } else {
+                val land = MasterGestures.land(height.value - target, fling[0])
+                fling[0] = 0f
+                if (kotlin.math.abs(height.value - target) > 0.5f) freeze(stop)
+                height.animateTo(target, spring(dampingRatio = 1f, stiffness = land.stiffness), land.velocity) { grow(value) }
+            }
+            // Fermo: la conversazione torna alta quanto si vede e, se la si seguiva, l'ultimo messaggio torna sopra il campo.
+            base[0] = stop
+            if (frozen.floatValue >= 0f) { frozen.floatValue = -1f; onSettledNow() }
+        }
         // L'altezza di adesso, letta solo dove si misura e si disegna.
         val px: () -> Float = { (pullNow?.let { p -> aNow.row + (aNow.full - aNow.row) * p.coerceIn(0f, 1f) } ?: height.value).coerceIn(0f, boxNow) }
         val release: (Float) -> Unit = { v ->
@@ -222,7 +251,7 @@ internal fun MasterSheetBox(
             var from = 0f
             var total = 0f
             detectVerticalDragGestures(
-                onDragStart = { _ -> tracker.resetTracking(); total = 0f; from = height.value; held[0] = true },
+                onDragStart = { _ -> tracker.resetTracking(); total = 0f; from = height.value; held[0] = true; freeze(null) },
                 onDragEnd = { release(-tracker.calculateVelocity().y) },
                 onDragCancel = { release(0f) },
                 onVerticalDrag = { change, dy ->
@@ -231,14 +260,35 @@ internal fun MasterSheetBox(
                     change.consume()
                     val h = MasterSheet.rubber(from - total, aNow.row, aNow.full, boxNow)
                     scope.launch { height.snapTo(h) }
+                    grow(h)
                 },
             )
         }
         val rowDp = with(density) { rowPx.toDp() }
-        // La home, ferma: in fondo lascia il posto della riga.
-        Column(Modifier.fillMaxSize().padding(bottom = rowDp), content = under)
+        // Prova 1447: il velo, l'arretramento della home e l'ombra sopra il bordo, dall'avanzamento del foglio (MasterSheet.cues).
+        val cuesNow: () -> MasterSheet.Cues = { MasterSheet.cues(MasterSheet.progress(aNow, px()), reduced = off) }
+        val shadePx = with(density) { MasterSheet.SHADE_DP.dp.toPx() }
+        // La home, ferma: in fondo lascia il posto della riga; mentre il foglio sale arretra dal centro in alto.
+        Column(
+            Modifier.fillMaxSize().padding(bottom = rowDp).graphicsLayer {
+                val k = cuesNow(); scaleX = k.scale; scaleY = k.scale; transformOrigin = TransformOrigin(0.5f, 0f)
+            },
+            content = under,
+        )
+        // Il velo sulla home (sulla plancia del tablet, sulla colonna sotto il foglio) e l'ombra che sfuma verso il nero sopra il bordo del
+        // foglio; non prendono tocchi.
+        Box(
+            Modifier.fillMaxSize().drawBehind {
+                val k = cuesNow()
+                if (k.dim > 0f) drawRect(Color.Black.copy(alpha = k.dim))
+                val top = size.height - px()
+                drawRect(
+                    Brush.verticalGradient(0f to Color.Transparent, 1f to Color.Black.copy(alpha = k.shade), startY = top - shadePx, endY = top),
+                    topLeft = Offset(0f, top - shadePx), size = Size(size.width, shadePx),
+                )
+            },
+        )
         val bodyOn by remember { derivedStateOf { pullNow != null || height.value > aNow.row + 0.5f } }
-        val halfBody = (a.half - rowPx).coerceAtLeast(0f).roundToInt()
         val sh = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp)
         Column(
             Modifier.align(Alignment.BottomCenter).fillMaxWidth()
@@ -262,14 +312,15 @@ internal fun MasterSheetBox(
                 SheetGrip()
                 head()
             }
+            // Prova 1447: appesa sotto la riga e opaca, alta quanto si vede o, durante il movimento, ferma; la taglia il bordo del campo.
             if (bodyOn) Column(
                 Modifier.weight(1f).fillMaxWidth()
-                    // Tagliata ai suoi bordi: la parte disegnata più su, fuori dal foglio, non copre la riga né ne prende i tocchi.
-                    .graphicsLayer { alpha = MasterSheet.openness(aNow, px()); clip = true }
+                    .graphicsLayer { clip = true }
                     .layout { m, c ->
-                        val h = maxOf(c.maxHeight, halfBody)
+                        val f = frozen.floatValue
+                        val h = if (f >= 0f) maxOf(c.maxHeight, f.roundToInt()) else c.maxHeight
                         val p = m.measure(Constraints.fixed(c.maxWidth, h))
-                        layout(c.maxWidth, c.maxHeight) { p.place(0, c.maxHeight - h) }
+                        layout(c.maxWidth, c.maxHeight) { p.place(0, 0) }
                     },
                 content = body,
             )

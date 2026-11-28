@@ -94,14 +94,52 @@ class MasterSheetTest {
         assertEquals("master_sheet", MasterSheet.PREF)
     }
 
-    @Test fun `la conversazione si apre fra la riga e la metà`() {
-        assertEquals(0f, MasterSheet.openness(a, 170f), 0f)
-        assertEquals(0.5f, MasterSheet.openness(a, (170f + a.half) / 2f), 0.0001f)
-        assertEquals(1f, MasterSheet.openness(a, a.half), 0f)
-        assertEquals(1f, MasterSheet.openness(a, 600f), 0f)
-        assertEquals(0f, MasterSheet.openness(a, 100f), 0f)
-        assertEquals(0f, MasterSheet.openness(MasterSheet.anchors(150f, 170f), 170f), 0f)
-        assertEquals(1f, MasterSheet.openness(MasterSheet.anchors(150f, 170f), 171f), 0f)
+    // app-posizioni-sistema-27-11, prova 1447: il blocco rigido e la home che si vela e arretra.
+    @Test fun `l'avanzamento va da 0 alla riga a 1 all'intera, e resta fra i due`() {
+        assertEquals(0f, MasterSheet.progress(a, 170f), 0f)
+        assertEquals(1f, MasterSheet.progress(a, a.full), 0f)
+        assertEquals(0.5f, MasterSheet.progress(a, (170f + a.full) / 2f), 0.0001f)
+        assertEquals(0f, MasterSheet.progress(a, 90f), 0f)
+        assertEquals(1f, MasterSheet.progress(a, 900f), 0f)
+        assertEquals(0f, MasterSheet.progress(MasterSheet.anchors(150f, 170f), 170f), 0f)
+    }
+
+    @Test fun `all'intera la home è velata al 40 per cento e arretra a 0,96, alla riga niente`() {
+        assertEquals(0.4f, MasterSheet.DIM_MAX, 0f)
+        assertEquals(0.04f, MasterSheet.RECEDE, 0f)
+        assertEquals(MasterSheet.Cues(0f, 1f, MasterSheet.SHADE_MIN), MasterSheet.cues(0f))
+        val full = MasterSheet.cues(1f)
+        assertEquals(0.4f, full.dim, 0.0001f)
+        assertEquals(0.96f, full.scale, 0.0001f)
+        assertEquals(MasterSheet.SHADE_MAX, full.shade, 0.0001f)
+        val half = MasterSheet.cues(0.5f)
+        assertEquals(0.2f, half.dim, 0.0001f)
+        assertEquals(0.98f, half.scale, 0.0001f)
+        assertEquals(MasterSheet.cues(1f), MasterSheet.cues(1.4f))
+        assertEquals(MasterSheet.cues(0f), MasterSheet.cues(-1f))
+    }
+
+    @Test fun `con il movimento ridotto la home non arretra, resta il velo`() {
+        val r = MasterSheet.cues(1f, reduced = true)
+        assertEquals(1f, r.scale, 0f)
+        assertEquals(0.4f, r.dim, 0.0001f)
+        assertEquals(MasterSheet.SHADE_MAX, r.shade, 0.0001f)
+    }
+
+    @Test fun `dalla riga la conversazione si ferma a quanta se ne vedrà all'arrivo, e col dito a quanta alla metà`() {
+        val b = MasterSheet.anchors(700f, 170f)
+        assertEquals(b.half - 170f, MasterSheet.freezeAt(b, 170f, Stop.ROW, Stop.HALF), 0.001f)
+        assertEquals(b.full - 170f, MasterSheet.freezeAt(b, 170f, Stop.ROW, Stop.FULL), 0.001f)
+        assertEquals(b.half - 170f, MasterSheet.freezeAt(b, 170f, Stop.ROW, null), 0.001f)
+        assertEquals(0f, MasterSheet.freezeAt(b, 120f, Stop.HALF, Stop.ROW), 0f)
+    }
+
+    @Test fun `fuori dalla riga resta quanta se ne vede adesso, scendendo rigida e salendo si allunga col foglio`() {
+        val b = MasterSheet.anchors(700f, 170f)
+        assertEquals(b.half - 170f, MasterSheet.freezeAt(b, b.half, Stop.HALF, Stop.FULL), 0.001f)
+        assertEquals(b.half - 170f, MasterSheet.freezeAt(b, b.half, Stop.HALF, null), 0.001f)
+        assertEquals(b.full - 170f, MasterSheet.freezeAt(b, b.full, Stop.FULL, Stop.ROW), 0.001f)
+        assertEquals(130f, MasterSheet.freezeAt(b, 300f, Stop.ROW, Stop.FULL), 0.001f)
     }
 
     @Test fun `la molla arriva senza superare la misura, anche partendo dalla velocità del dito`() {

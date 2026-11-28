@@ -35,7 +35,7 @@
           <section class="col lit">{#each parts as p, k (k)}{@render p()}{/each}</section>
         {/each}
       </div>
-      {#if sheet}<div class="sheethost">{@render sheet()}</div>{/if}
+      {#if sheet}<div class="sheethost" data-sheet-host>{@render sheet()}</div>{/if}
     </div>
   </div>
 </div>
@@ -50,6 +50,9 @@
   .plancia { --home-w: 400px; }
   @media (min-width: 1680px) { .plancia { --home-w: 440px; } }
   .sheethost { position: absolute; top: 0; right: 0; bottom: 0; width: var(--home-w); pointer-events: none; }
+  /* app-posizioni-sistema-27-11, prova 1447: la colonna sotto il foglio si vela con lui (masterSheet.cues); le colonne non arretrano, il
+     foglio ne copre una sola. Come la plancia del tablet. Il velo non prende i tocchi. */
+  .sheethost::after { content: ''; position: absolute; inset: 0; z-index: 5; pointer-events: none; background: rgb(0 0 0 / var(--sheet-dim, 0)); }
   .sheethost > :global(*) { pointer-events: auto; }
   .topband { flex: none; max-height: 40%; overflow-y: auto; border-top: 1px solid var(--line); }
   .col { min-width: 0; min-height: 0; overflow-y: auto; padding-bottom: calc(24px + var(--sheet-row, 0px)); border-radius: 14px; --lit-bg: var(--s1); --lit-angle: 150deg; }

@@ -4,7 +4,7 @@
   import { locale } from './lang'
   import type { Session } from './contract'
   import { hero as heroOf, type Entry } from './masterHome'
-  import { anchors, openness, ROW_PX, rubber, settleAt, snap, STIFFNESS, tap, toRow, up, type Anchors, type Stop } from './masterSheet'
+  import { anchors, cues, freezeAt, progress, ROW_PX, rubber, settleAt, snap, STIFFNESS, tap, toRow, up, type Anchors, type Stop } from './masterSheet'
   import { DRAG_PX, landSpring, velocity } from './gesture'
   import { ridotto } from './molla'
   import { OPENING_MS } from './arrivo'
@@ -24,8 +24,13 @@
   // `rowH`. Trascinato dalla maniglia o dalla riga segue il dito, con l'elastico oltre la riga e l'intera; al rilascio scatta alla misura
   // più vicina al punto proiettato, con la molla senza rimbalzo che parte dalla velocità del dito (anche con le animazioni ridotte:
   // smorzamento critico, niente oltre la misura). Il tocco sulla riga passa alla misura dopo; Esc, e ↓ a campo vuoto o fuori dal campo,
-  // tornano alla riga. Dentro, la conversazione della master com'è (`chat`): alla riga se ne vede solo il fondo, il campo; il resto sta
-  // sopra, tagliato dal bordo, e compare mentre il foglio sale.
+  // tornano alla riga. Dentro, la conversazione della master com'è (`chat`).
+  // app-posizioni-sistema-27-11, prova 1447 (Franz: «sembra quasi che si sta alzando solo l'header», «si confonde con il testo della home»):
+  // testata e conversazione sono un blocco solo, opaco e rigido, che sale e scende insieme; il campo resta fermo in fondo e la copre. Mentre
+  // si muove l'altezza della conversazione è ferma (masterSheet.freezeAt: dalla riga quanta se ne vedrà all'arrivo; scendendo resta rigida;
+  // salendo si allunga col foglio), e i chip delle Azioni le stanno sotto e salgono con lei; da fermo torna alta quanto si vede, e se si era
+  // in fondo una corsa breve riporta l'ultimo messaggio appena sopra i chip e il campo. Dietro, la home si vela e arretra con l'avanzamento del foglio (masterSheet.cues), e sopra il
+  // bordo c'è un'ombra che sfuma verso il nero; con le animazioni ridotte la home non arretra.
   let { master, entries, stop, onStop, onSpeak, chat, inset = false, rowH = $bindable(ROW_PX), screen = false, onHeight = null }: {
     master: Session; entries: Entry[]; stop: Stop; onStop: (s: Stop) => void; onSpeak: (text: string) => void
     /** La conversazione della master (Chat), o il posto dove arriva quella spostata (la web larga ne ha una sola). */
@@ -56,12 +61,77 @@
   let ready = false
   let raf = 0
   let anim: { from: number; v: number; w: number; t0: number } | null = null
+  // Prova 1447: le parti misurate (la riga in alto, il campo coi suoi pezzi fermi, i chip), la conversazione rigida durante il movimento
+  // (`frozen`, null da fermo), la misura da cui il movimento è partito, se la chat era in fondo; il posto dove velare la home.
+  let grabH = 0, fieldH = 0, azH = 0
+  let frozen: number | null = null
+  let base: Stop = untrack(() => stop)
+  let wasEnd = true
+  let conv = -1
+  let host: HTMLElement | null = null
+  let cueKey = ''
+  let pinRO: ResizeObserver | null = null
 
+  // Quanta conversazione si vede con il foglio alto `hh`, o a una misura.
+  const visOf = (hh: number) => Math.max(0, hh - grabH - fieldH)
   function paint() {
     if (!el) return
     el.style.height = `${Math.max(0, h).toFixed(1)}px`
-    el.style.setProperty('--open', openness(a, h).toFixed(3))
+    // La conversazione rigida: da fermo quanto si vede; in movimento ferma, e cresce solo se il foglio la supera (un trascinamento oltre).
+    const vis = visOf(h)
+    if (frozen != null && vis > frozen) frozen = vis
+    const c = Math.round(frozen ?? vis)
+    if (c !== conv) { conv = c; body?.style.setProperty('--conv-h', `${c}px`) }
+    // Ferma e in fondo, la conversazione mostra già quello che si vedrà all'arrivo: le voci fuori schermo hanno un'altezza stimata, e
+    // disegnate cambiano la misura; tenerla in fondo a ogni fotogramma non la sposta rispetto alla riga, perché la sua altezza non cambia.
+    if (frozen != null && wasEnd) { const l = body?.querySelector<HTMLElement>('section.chat .lines'); if (l) l.scrollTop = l.scrollHeight }
+    // Il velo e l'arretramento della home, l'ombra sopra il bordo (masterSheet.cues); a scala 1 niente trasformazione, così la home non
+    // diventa il riferimento dei suoi menu fissi.
+    const k = cues(progress(a, h), ridotto())
+    el.style.setProperty('--shade', k.shade.toFixed(3))
+    if (host) {
+      const key = `${k.dim.toFixed(3)}|${k.scale.toFixed(4)}`
+      if (key !== cueKey) {
+        cueKey = key
+        host.style.setProperty('--sheet-dim', k.dim.toFixed(3))
+        host.style.setProperty('--sheet-scale', k.scale > 0.9999 ? 'none' : k.scale.toFixed(4))
+      }
+    }
     onHeight?.(Math.max(0, h), moving ? 'move' : shown)
+  }
+  // Prova 1447: all'inizio di un movimento la conversazione si ferma (masterSheet.freezeAt); durante, paint la allunga se il foglio la supera.
+  function freeze(to: Stop | null) {
+    if (frozen == null) {
+      const lines = body?.querySelector<HTMLElement>('section.chat .lines')
+      wasEnd = !lines || lines.dataset.atEnd !== 'false'
+      body?.setAttribute('data-sheet-frozen', '')
+      // Le voci che entrano nella conversazione ferma prendono la loro misura vera dopo il disegno (content-visibility): appena cambia, e
+      // prima che il fotogramma si veda, la si riporta in fondo; se no per un fotogramma l'ultimo messaggio finirebbe sotto il campo.
+      if (wasEnd && lines) {
+        pinRO = new ResizeObserver(() => { if (frozen != null) lines.scrollTop = lines.scrollHeight })
+        for (const c of lines.children) pinRO.observe(c)
+      }
+    }
+    frozen = Math.max(frozen ?? 0, freezeAt(a, h, base, to))
+  }
+  // A foglio fermo torna alta quanto si vede; se la chat era in fondo, una corsa breve riporta l'ultimo messaggio appena sopra il campo.
+  function unfreeze() {
+    base = shown
+    if (frozen == null) return
+    frozen = null
+    paint()
+    const lines = body?.querySelector<HTMLElement>('section.chat .lines')
+    const gap = () => (lines ? lines.scrollHeight - lines.scrollTop - lines.clientHeight : 0)
+    // La chat resta ferma (data-sheet-frozen) finché la corsa non è finita: da sola salterebbe in fondo d'un colpo. Dopo, ancora due
+    // fotogrammi in fondo: le voci appena disegnate prendono lì la loro misura vera (content-visibility), anche con un foglio arrivato in
+    // pochi fotogrammi.
+    const pin = () => { if (frozen == null && wasEnd && lines && gap() > 1) lines.scrollTop = lines.scrollHeight }
+    const done = () => requestAnimationFrame(() => { pin(); requestAnimationFrame(() => { pin(); if (frozen == null) { body?.removeAttribute('data-sheet-frozen'); pinRO?.disconnect(); pinRO = null } }) })
+    if (!wasEnd || !lines || gap() <= 1 || ridotto()) { pin(); done(); return }
+    lines.scrollTo({ top: lines.scrollHeight, behavior: 'smooth' })
+    const stopIt = () => { clearTimeout(timer); lines.removeEventListener('scrollend', stopIt); done() }
+    const timer = setTimeout(stopIt, 600)
+    lines.addEventListener('scrollend', stopIt)
   }
   // La posizione del dito: nella pagina, o sullo schermo dentro Studio (`screen`).
   const yOf = (e: PointerEvent) => (screen ? e.screenY : e.clientY)
@@ -71,21 +141,26 @@
   function measure() {
     if (!el?.isConnected || !el.parentElement) return
     avail = el.parentElement.clientHeight
+    host = el.closest<HTMLElement>('[data-sheet-host]')
     const sec = body?.querySelector<HTMLElement>('section.chat')
-    let block = 0, min = 0, jumping = false
+    // Prova 1447: fermi in fondo il campo e i suoi pezzi (le ricorrenti aperte, la lettura, la barra dei miei messaggi); i chip delle
+    // Azioni stanno col blocco che si muove, sotto la conversazione.
+    let block = 0, chips = 0, jumping = false
     if (sec) for (const c of sec.children) {
       if (!(c instanceof HTMLElement)) continue
       const cs = getComputedStyle(c)
-      if (cs.display === 'none' || cs.position === 'absolute' || cs.position === 'fixed') continue
+      if (cs.display === 'none' || cs.position === 'fixed' || c.matches('.stage, dialog')) continue
       const outer = c.offsetHeight + (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0)
-      if (!c.classList.contains('stage')) min += outer
-      if (c.matches('.bar, .mjbar, .blk.box')) block += outer
+      if (c.classList.contains('az')) { chips = outer; continue }
+      if (cs.position === 'absolute') continue
+      block += outer
       if (c.classList.contains('mjbar')) jumping = true
     }
-    const g = grab?.offsetHeight ?? 0
-    const row = g + (block || ROW_PX - g)
+    grabH = grab?.offsetHeight ?? 0
+    fieldH = block || ROW_PX - grabH
+    if (Math.abs(chips - azH) > 0.5) { azH = chips; body?.style.setProperty('--az-h', `${Math.round(chips)}px`) }
+    const row = grabH + fieldH
     if (Math.abs(row - rowH) > 0.5) rowH = row
-    body?.style.setProperty('--chat-min', `${Math.round(min)}px`)
     a = anchors(avail, row)
     if (!ready && avail > 0) { ready = true; h = a[shown] }
     if (!drag && !anim) h = a[shown]
@@ -99,7 +174,8 @@
   function animate(v: number) {
     cancelAnimationFrame(raf)
     const from = h - a[shown]
-    if (!ready || (Math.abs(from) < 0.5 && Math.abs(v) < 1)) { anim = null; h = a[shown]; moving = false; paint(); return }
+    if (!ready || (Math.abs(from) < 0.5 && Math.abs(v) < 1)) { anim = null; h = a[shown]; moving = false; paint(); unfreeze(); return }
+    freeze(shown)
     const s = landSpring(from, v, STIFFNESS)
     anim = { from, v: s.v, w: s.w, t0: performance.now() }
     moving = true
@@ -110,7 +186,7 @@
     const s = settleAt(anim.from, anim.v, anim.w, Math.max(0, now - anim.t0) / 1000)
     h = a[shown] + s.x
     paint()
-    if (Math.abs(s.x) < 0.5 && Math.abs(s.v) < 8) { anim = null; h = a[shown]; moving = false; paint(); return }
+    if (Math.abs(s.x) < 0.5 && Math.abs(s.v) < 8) { anim = null; h = a[shown]; moving = false; paint(); unfreeze(); return }
     raf = requestAnimationFrame(frame)
   }
   function go(to: Stop, v = 0) {
@@ -128,6 +204,8 @@
     // Il ▶ e il ⋮ col suo menu tengono i loro tocchi.
     if ((e.target as Element | null)?.closest?.('button:not(.gr), .more')) return
     cancelAnimationFrame(raf); anim = null
+    // Il puntatore resta alla riga anche se esce subito di lì (un mouse veloce): i tasti dentro sono già fuori da qui.
+    try { grab?.setPointerCapture(e.pointerId) } catch { /* il puntatore è già andato */ }
     drag = { id: e.pointerId, y0: yOf(e), h0: h, moved: false, speed: velocity() }
     drag.speed.add(yOf(e), e.timeStamp)
   }
@@ -138,6 +216,7 @@
     if (!drag.moved) {
       if (Math.abs(dy) <= DRAG_PX) return
       drag.moved = true; moving = true
+      freeze(null)
       try { grab?.setPointerCapture(e.pointerId) } catch { /* il puntatore è già andato */ }
       document.body.style.userSelect = 'none'
     }
@@ -199,7 +278,7 @@
     mo.observe(body, { childList: true, subtree: true })
     // Fuori dalla reattività: la misura legge `shown`, e rifare questo effetto a ogni cambio di misura fermerebbe la molla.
     untrack(watch)
-    return () => { ro.disconnect(); mo.disconnect(); cancelAnimationFrame(queued); cancelAnimationFrame(raf) }
+    return () => { ro.disconnect(); mo.disconnect(); pinRO?.disconnect(); cancelAnimationFrame(queued); cancelAnimationFrame(raf) }
   })
 
   // La riga della master: il glifo dello stato, il nome, l'ora dell'ultima risposta che scorre e il suo titolo, ▶ per ascoltarla.
@@ -263,9 +342,12 @@
 <style>
   /* Il foglio sta sopra la pagina, ancorato in fondo al posto che lo contiene; cambia altezza, mai posto: niente transform, così i
      menu e la scelta di «Cita» dentro la conversazione restano dove li mette il dito. */
-  .msheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 6; display: flex; flex-direction: column; min-height: 0; overflow: hidden;
-    height: 170px; background: var(--s1); border-radius: 22px 22px 0 0; box-shadow: 0 -1px 0 var(--line), 0 -18px 40px rgb(0 0 0 / .55); }
-  :global(html.theme-day) .msheet { box-shadow: 0 -1px 0 var(--line), 0 -10px 28px rgb(0 0 0 / .12); }
+  .msheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 6; display: flex; flex-direction: column; min-height: 0;
+    height: 170px; background: var(--s1); border-radius: 22px 22px 0 0; box-shadow: 0 -1px 0 var(--line); }
+  /* Prova 1447: sopra il bordo un'ombra che sfuma verso il nero, più scura mentre il foglio sale (masterSheet.cues, `--shade`). */
+  .msheet::before { content: ''; position: absolute; left: 0; right: 0; bottom: 100%; height: 40px; pointer-events: none; border-radius: 22px 22px 0 0;
+    background: linear-gradient(to top, rgb(0 0 0 / var(--shade, .3)), rgb(0 0 0 / 0)); }
+  :global(html.theme-day) .msheet::before { opacity: .35; }
   .msheet.inset { left: 8px; right: 8px; }
   /* La maniglia e la riga della master: si trascinano insieme, e un tocco passa alla misura dopo. */
   .grab { flex: none; touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; }
@@ -294,13 +376,13 @@
   .more :global(.anchor > .panel) { position: fixed; top: auto; left: auto; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px));
     width: min(380px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); overflow-y: auto; overscroll-behavior: contain; }
   @media (prefers-reduced-motion: reduce) { .ib:active { transform: none; } .nd { animation: none; } }
-  /* La conversazione: ancorata in fondo, alta almeno quanto le sue parti fisse (`--chat-min`); sotto quella misura il bordo del foglio
-     ne taglia la cima e resta il fondo, il campo. */
+  /* Prova 1447: la conversazione è appesa sotto la riga e sale con lei, alta `--conv-h` (quanto se ne vede, o ferma durante il movimento);
+     i chip delle Azioni le stanno subito sotto e salgono con lei. Il campo e i suoi pezzi stanno fermi in fondo, opachi, e la coprono; il
+     resto lo taglia il bordo. Niente dissolvenze: il foglio è opaco a ogni misura. */
   .sbody { position: relative; flex: 1; min-height: 0; overflow: hidden; }
-  .sbody :global(section.chat) { position: absolute; left: 0; right: 0; bottom: 0; height: max(100%, var(--chat-min, 0px)); background: transparent; }
+  .sbody :global(section.chat) { position: absolute; inset: 0; height: auto; justify-content: flex-end; background: transparent; }
+  .sbody :global(section.chat > .stage) { position: absolute; left: 0; right: 0; top: 0; flex: none; height: max(0px, calc(var(--conv-h, 0px) - var(--az-h, 0px))); }
+  .sbody :global(section.chat > .az) { position: absolute; left: 0; right: 0; top: calc(var(--conv-h, 0px) - var(--az-h, 0px)); }
+  .sbody :global(section.chat > :is(.bar, .mjbar, .blk.box, .pill)) { position: relative; z-index: 1; background: var(--s1); }
   .sbody :global(section.chat.master > .bar) { margin-top: 0; border-radius: 0; }
-  /* Fra la riga e la metà quello che sta sopra il campo compare con il foglio; alla riga non si tocca e non si legge. */
-  /* Le finestre (dialog: il contesto, modello ed effort, Chiudi) restano fuori: si aprono anche dalla riga, dall'anellino o dal ⋮. */
-  .msheet:not([data-at='half'], [data-at='full']) .sbody :global(section.chat > :not(.bar, .mjbar, .blk.box, .dropzone, .qpick, .chgwrap, dialog)) { opacity: var(--open, 0); }
-  .msheet[data-at='row'] .sbody :global(section.chat > :not(.bar, .mjbar, .blk.box, .dropzone, .qpick, .chgwrap, dialog)) { visibility: hidden; }
 </style>

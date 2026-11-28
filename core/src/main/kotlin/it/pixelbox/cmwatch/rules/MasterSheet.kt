@@ -82,9 +82,44 @@ object MasterSheet {
     /** La preferenza letta: una misura nota, altrimenti la riga. */
     fun read(raw: String?): Stop = Stop.entries.firstOrNull { it.id == raw } ?: Stop.ROW
 
-    /** Quanto è aperta la conversazione: 0 alla riga, 1 da metà in su; per la dissolvenza di quello che sta fra la riga e il campo. */
-    fun openness(a: Anchors, h: Float): Float =
-        if (a.half <= a.row) (if (h > a.row) 1f else 0f) else ((h - a.row) / (a.half - a.row)).coerceIn(0f, 1f)
+    // app-posizioni-sistema-27-11, prova 1447 (Franz: «sembra quasi che si sta alzando solo l'header»; «una sfumatura verso il nero tra il
+    // bordo della master superiore e la home e qualche animazione di movimento che fa comprendere bene l'azione di sovrapposizione»): il
+    // foglio è un blocco solo, testata e conversazione insieme; la home dietro si vela e arretra mentre lui sale, e sopra il bordo c'è un'ombra.
+
+    /** Quanto è salito il foglio: 0 alla riga, 1 all'intera. Guida il velo, l'arretramento della home e l'ombra sopra il bordo. */
+    fun progress(a: Anchors, h: Float): Float = if (a.full <= a.row) 0f else ((h - a.row) / (a.full - a.row)).coerceIn(0f, 1f)
+
+    /** Il velo nero sulla home all'intera: 40 %. */
+    const val DIM_MAX = 0.4f
+    /** La home arretra fino a 0,96 all'intera, dal centro in alto. */
+    const val RECEDE = 0.04f
+    /** L'ombra sopra il bordo del foglio: nero che sfuma verso l'alto, dal 30 % alla riga al 55 % all'intera, alta SHADE_DP. */
+    const val SHADE_MIN = 0.3f
+    const val SHADE_MAX = 0.55f
+    const val SHADE_DP = 40f
+
+    data class Cues(val dim: Float, val scale: Float, val shade: Float)
+
+    /**
+     * Il velo sulla home, la sua scala e l'ombra sopra il bordo per l'avanzamento `p`. Con il movimento ridotto la home non arretra: restano
+     * il velo e l'ombra, che non si muovono.
+     */
+    fun cues(p: Float, reduced: Boolean = false): Cues {
+        val q = p.coerceIn(0f, 1f)
+        return Cues(DIM_MAX * q, if (reduced) 1f else 1f - RECEDE * q, SHADE_MIN + (SHADE_MAX - SHADE_MIN) * q)
+    }
+
+    /**
+     * La conversazione rigida (prova 1447): quanta tenerne ferma (px) all'inizio di un movimento, col foglio alto [h], partito da [from],
+     * verso [to] (null quando lo tiene il dito). Dalla riga, dove non se ne vede niente, quanta se ne vedrà all'arrivo (col dito, alla misura
+     * sopra): sale tutta insieme alla testata e il campo la copre finché non arriva. Altrimenti quanta se ne vede adesso: scendendo resta
+     * rigida e passa sotto il campo; salendo si allunga col foglio e l'ultimo messaggio resta sopra il campo, perché sotto l'ultimo non c'è
+     * altro da mostrare (alzarla tutta subito farebbe saltare quello che si vede). Da fermo torna alta quanto si vede.
+     */
+    fun freezeAt(a: Anchors, h: Float, from: Stop, to: Stop?): Float {
+        val vis = { x: Float -> max(0f, x - a.row) }
+        return if (h <= a.row + 0.5f) vis(a.of(to ?: up(from))) else vis(h)
+    }
 
     /** Esc riporta sempre alla riga; ↓ solo a campo vuoto o col fuoco fuori dal campo. */
     fun toRow(key: String, inField: Boolean, fieldEmpty: Boolean): Boolean = key == "Escape" || (key == "ArrowDown" && (!inField || fieldEmpty))

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { anchors, band, GAP_PX, HALF_SHARE, nearest, openness, project, RATE, readStop, rubber, settleAt, snap, tap, toRow, up } from './masterSheet'
+import { anchors, band, cues, DIM_MAX, freezeAt, GAP_PX, HALF_SHARE, nearest, progress, project, RATE, readStop, RECEDE, rubber, settleAt, SHADE_MAX, SHADE_MIN, snap, tap, toRow, up } from './masterSheet'
 import { landSpring } from './gesture'
 
 // Il foglio della master (app-posizioni-sistema-27-11 gruppo 4). Gli stessi casi di MasterSheetTest in Kotlin.
@@ -93,14 +93,52 @@ describe('foglio della master', () => {
     expect(readStop('compact')).toBe('row')
   })
 
-  it('la conversazione si apre fra la riga e la metà', () => {
-    expect(openness(a, 170)).toBe(0)
-    expect(openness(a, (170 + a.half) / 2)).toBeCloseTo(0.5, 6)
-    expect(openness(a, a.half)).toBe(1)
-    expect(openness(a, 600)).toBe(1)
-    expect(openness(a, 100)).toBe(0)
-    expect(openness(anchors(150, 170), 170)).toBe(0)
-    expect(openness(anchors(150, 170), 171)).toBe(1)
+  // app-posizioni-sistema-27-11, prova 1447: il blocco rigido e la home che si vela e arretra.
+  it("l'avanzamento va da 0 alla riga a 1 all'intera, e resta fra i due", () => {
+    expect(progress(a, 170)).toBe(0)
+    expect(progress(a, a.full)).toBe(1)
+    expect(progress(a, (170 + a.full) / 2)).toBeCloseTo(0.5, 6)
+    expect(progress(a, 90)).toBe(0)
+    expect(progress(a, 900)).toBe(1)
+    expect(progress(anchors(150, 170), 170)).toBe(0)
+  })
+
+  it("all'intera la home è velata al 40 % e arretra a 0,96; alla riga niente", () => {
+    expect(DIM_MAX).toBe(0.4)
+    expect(RECEDE).toBe(0.04)
+    expect(cues(0)).toEqual({ dim: 0, scale: 1, shade: SHADE_MIN })
+    const full = cues(1)
+    expect(full.dim).toBeCloseTo(0.4, 6)
+    expect(full.scale).toBeCloseTo(0.96, 6)
+    expect(full.shade).toBeCloseTo(SHADE_MAX, 6)
+    const half = cues(0.5)
+    expect(half.dim).toBeCloseTo(0.2, 6)
+    expect(half.scale).toBeCloseTo(0.98, 6)
+    expect(cues(1.4)).toEqual(cues(1))
+    expect(cues(-1)).toEqual(cues(0))
+  })
+
+  it('con il movimento ridotto la home non arretra: resta il velo', () => {
+    const r = cues(1, true)
+    expect(r.scale).toBe(1)
+    expect(r.dim).toBeCloseTo(0.4, 6)
+    expect(r.shade).toBeCloseTo(SHADE_MAX, 6)
+  })
+
+  it("dalla riga la conversazione si ferma a quanta se ne vedrà all'arrivo, e col dito a quanta alla metà", () => {
+    const b = anchors(700, 170)
+    expect(freezeAt(b, 170, 'row', 'half')).toBe(b.half - 170)
+    expect(freezeAt(b, 170, 'row', 'full')).toBe(b.full - 170)
+    expect(freezeAt(b, 170, 'row', null)).toBe(b.half - 170)
+    expect(freezeAt(b, 120, 'half', 'row')).toBe(0)
+  })
+
+  it('fuori dalla riga resta quanta se ne vede adesso: scendendo rigida, salendo si allunga col foglio', () => {
+    const b = anchors(700, 170)
+    expect(freezeAt(b, b.half, 'half', 'full')).toBe(b.half - 170)
+    expect(freezeAt(b, b.half, 'half', null)).toBe(b.half - 170)
+    expect(freezeAt(b, b.full, 'full', 'row')).toBe(b.full - 170)
+    expect(freezeAt(b, 300, 'row', 'full')).toBe(130)
   })
 
   it('la molla arriva senza superare la misura, anche partendo dalla velocità del dito', () => {

@@ -74,10 +74,46 @@ export const up = (s: Stop): Stop => (s === 'row' ? 'half' : 'full')
 /** La preferenza letta: una misura nota, altrimenti la riga. */
 export const readStop = (raw: string | null | undefined): Stop => (raw === 'half' || raw === 'full' ? raw : 'row')
 
-/** Quanto è aperta la conversazione: 0 alla riga, 1 da metà in su; per la dissolvenza di quello che sta fra la riga e il campo. */
-export function openness(a: Anchors, h: number): number {
-  if (a.half <= a.row) return h > a.row ? 1 : 0
-  return Math.min(1, Math.max(0, (h - a.row) / (a.half - a.row)))
+// app-posizioni-sistema-27-11, prova 1447 (Franz: «sembra quasi che si sta alzando solo l'header»; «una sfumatura verso il nero tra il
+// bordo della master superiore e la home e qualche animazione di movimento che fa comprendere bene l'azione di sovrapposizione»): il
+// foglio è un blocco solo, testata e conversazione insieme; la home dietro si vela e arretra mentre lui sale, e sopra il bordo c'è un'ombra.
+
+/** Quanto è salito il foglio: 0 alla riga, 1 all'intera. Guida il velo, l'arretramento della home e l'ombra sopra il bordo. */
+export function progress(a: Anchors, h: number): number {
+  if (a.full <= a.row) return 0
+  return Math.min(1, Math.max(0, (h - a.row) / (a.full - a.row)))
+}
+
+/** Il velo nero sulla home all'intera: 40 %. */
+export const DIM_MAX = 0.4
+/** La home arretra fino a 0,96 all'intera, dal centro in alto. */
+export const RECEDE = 0.04
+/** L'ombra sopra il bordo del foglio: nero che sfuma verso l'alto, dal 30 % alla riga al 55 % all'intera, alta SHADE_PX. */
+export const SHADE_MIN = 0.3
+export const SHADE_MAX = 0.55
+export const SHADE_PX = 40
+
+export type Cues = { dim: number; scale: number; shade: number }
+
+/**
+ * Il velo sulla home, la sua scala e l'ombra sopra il bordo per l'avanzamento `p`. Con il movimento ridotto la home non arretra: restano
+ * il velo e l'ombra, che non si muovono.
+ */
+export function cues(p: number, reduced = false): Cues {
+  const q = Math.min(1, Math.max(0, p))
+  return { dim: DIM_MAX * q, scale: reduced ? 1 : 1 - RECEDE * q, shade: SHADE_MIN + (SHADE_MAX - SHADE_MIN) * q }
+}
+
+/**
+ * La conversazione rigida (prova 1447): quanta tenerne ferma (px) all'inizio di un movimento, col foglio alto `h`, partito da `from`,
+ * verso `to` (null quando lo tiene il dito). Dalla riga, dove non se ne vede niente, quanta se ne vedrà all'arrivo (col dito, alla misura
+ * sopra): sale tutta insieme alla testata e il campo la copre finché non arriva. Altrimenti quanta se ne vede adesso: scendendo resta
+ * rigida e passa sotto il campo; salendo si allunga col foglio e l'ultimo messaggio resta sopra il campo, perché sotto l'ultimo non c'è
+ * altro da mostrare (alzarla tutta subito farebbe saltare quello che si vede). Da fermo torna alta quanto si vede.
+ */
+export function freezeAt(a: Anchors, h: number, from: Stop, to: Stop | null): number {
+  const vis = (x: number) => Math.max(0, x - a.row)
+  return h <= a.row + 0.5 ? vis(a[to ?? up(from)]) : vis(h)
 }
 
 /** Esc riporta sempre alla riga; ↓ solo a campo vuoto o col fuoco fuori dal campo. */
