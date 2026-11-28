@@ -401,7 +401,7 @@
     {#if resultsRow}{@render resultsRow(false, null)}{/if}
   </div>
   {/if}
-  <div class="stage">
+  <div class="stage" class:fade={barOn}>
   <div class="lines" class:dots={home} class:atend={atEnd} bind:this={list} data-chat-list data-at-end={atEnd}>
     {#if home}
       <MasterHome {st} master={s} {entries} onConversation={() => (conversation = true)} onStep={pick} onSendStep={onSend}
@@ -546,6 +546,11 @@
   .chgwrap { position: absolute; inset: 0; z-index: 16; }
   /* app-posizioni-sistema-27-11 gruppo 2: la chat e, sopra, la tendina delle schede; il campo resta sotto, fuori, sempre in vista. */
   .stage { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  /* app-barra-stato-28-11 (Franz, «sotto spunta il testo»): sotto la barra di stato la conversazione sfuma in 12 px, dal fondo della pagina (o
+     del foglio della master, --fade-bg) al trasparente: il testo che le scorre sotto svanisce invece di tagliarsi a metà. Sotto le tendine,
+     senza prendere i tocchi. */
+  .stage.fade::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 12px; z-index: 2; pointer-events: none;
+    background: linear-gradient(var(--fade-bg, var(--bg)), transparent); }
   .chat:focus { outline: none; }
   .sec { display: flex; flex-direction: column; gap: 8px; }
   .sec[hidden] { display: none; }

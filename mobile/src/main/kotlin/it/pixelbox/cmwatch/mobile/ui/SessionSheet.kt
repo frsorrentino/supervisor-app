@@ -843,6 +843,16 @@ fun SessionSheet(
                 }
             }
             }
+            // app-barra-stato-28-11 (Franz, «sotto spunta il testo»): sotto la barra di stato la conversazione sfuma in 12 dp, dal fondo della
+            // pagina (o del foglio della master) al trasparente: il testo che le scorre sotto svanisce invece di tagliarsi a metà. Sopra la
+            // conversazione e sotto la tendina; non prende i tocchi.
+            if (barOn) Box(
+                Modifier.fillMaxWidth().height(12.dp).background(
+                    androidx.compose.ui.graphics.Brush.verticalGradient(
+                        listOf(if (inSheet) MasterHigh else LocalPageBg.current ?: Cm.bg, androidx.compose.ui.graphics.Color.Transparent),
+                    ),
+                ),
+            )
             // app-posizioni-sistema-27-11 gruppo 2: la tendina delle schede sopra la chat, fino alle Azioni e al campo, che restano in vista.
             // Il contenitore è Tendina; il contenuto di ogni sezione è quello di prima (pillole e riga dei dati).
             if (barOn) Tendina(shadeOpen, lastTab, closeTab, Modifier.matchParentSize(), bg = if (inSheet) MasterHigh else V3.Bg) {

@@ -427,7 +427,7 @@
      lei; le tendine scendono dalla barra e restano sotto il campo (la conversazione è un piano suo, sotto il campo). */
   .sbody :global(section.chat > .sbar) { position: absolute; left: 0; right: 0; top: 0; z-index: 1; }
   .sbody :global(section.chat > .stage .td) { background: var(--s1); }
-  .sbody :global(section.chat > .stage) { position: absolute; left: 0; right: 0; top: var(--bar-h, 0px); z-index: 0; flex: none;
+  .sbody :global(section.chat > .stage) { position: absolute; left: 0; right: 0; top: var(--bar-h, 0px); z-index: 0; flex: none; --fade-bg: var(--s1);
     height: max(0px, calc(var(--conv-h, 0px) - var(--az-h, 0px) - var(--bar-h, 0px))); }
   .sbody :global(section.chat > .az) { position: absolute; left: 0; right: 0; top: calc(var(--conv-h, 0px) - var(--az-h, 0px)); }
   .sbody :global(section.chat > :is(.bar, .mjbar, .blk.box, .pill)) { position: relative; z-index: 1; background: var(--s1); }
