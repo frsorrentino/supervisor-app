@@ -20,8 +20,8 @@ import org.junit.Test
 
 /**
  * La Home in riga (app-home-riga-c1-13-11, variante C1): la riga con chi ti aspetta fuori schermo e una novità, con una novità sola,
- * e vuota con la sola maniglia; sul tablet largo con cosa in breve, sul tablet stretto e sul telefono col nome e da quanto (sul
- * telefono le novità contate in una voce). Giorno e notte. Golden da CI.
+ * e vuota con la sola maniglia; sul tablet largo con cosa in breve, sul tablet stretto col nome e da quanto. Giorno e notte. Golden
+ * da CI. app-posizioni-sistema-27-11 gruppo 5: via `phone` e `phoneDay`, la riga del telefono non c'è più.
  */
 class HomeRowScreenTest {
     @get:Rule val paparazzi = Paparazzi(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenHeight = 900), theme = "android:Theme.Material.NoActionBar")
@@ -37,20 +37,18 @@ class HomeRowScreenTest {
 
     @After fun night() { V3.day = false }
 
-    @Composable private fun rows(tight: Boolean) {
+    @Composable private fun rows() {
         Column(Modifier.fillMaxSize().background(V3.S2).padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            HomeRowBar(waits + news.take(1), now, tight, {}, {})
-            HomeRowBar(news, now, tight, {}, {})
-            HomeRowBar(emptyList(), now, tight, {}, {})
+            HomeRowBar(waits + news.take(1), now, {}, {})
+            HomeRowBar(news, now, {}, {})
+            HomeRowBar(emptyList(), now, {}, {})
         }
     }
     private fun wide(w: Int) = paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig.PIXEL_5.copy(locale = "it", screenWidth = w, screenHeight = 600, density = com.android.resources.Density.XHIGH, orientation = com.android.resources.ScreenOrientation.LANDSCAPE))
 
-    @Test fun phone() = paparazzi.snapshot { CmPhoneTheme(still = true) { rows(tight = true) } }
-    @Test fun phoneDay() = paparazzi.snapshot { CmPhoneTheme(still = true, day = true) { rows(tight = true) } }
     // La plancia larga 1280 dp: le voci dicono anche cosa.
-    @Test fun tabletWide() { wide(2560); paparazzi.snapshot { CmPhoneTheme(still = true) { rows(tight = false) } } }
-    @Test fun tabletWideDay() { wide(2560); paparazzi.snapshot { CmPhoneTheme(still = true, day = true) { rows(tight = false) } } }
+    @Test fun tabletWide() { wide(2560); paparazzi.snapshot { CmPhoneTheme(still = true) { rows() } } }
+    @Test fun tabletWideDay() { wide(2560); paparazzi.snapshot { CmPhoneTheme(still = true, day = true) { rows() } } }
     // Accanto alla master resta meno di 900 dp: il nome e da quanto.
-    @Test fun tabletNarrow() { wide(1640); paparazzi.snapshot { CmPhoneTheme(still = true) { rows(tight = false) } } }
+    @Test fun tabletNarrow() { wide(1640); paparazzi.snapshot { CmPhoneTheme(still = true) { rows() } } }
 }

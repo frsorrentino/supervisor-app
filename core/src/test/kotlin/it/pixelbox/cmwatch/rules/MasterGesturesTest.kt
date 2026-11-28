@@ -5,7 +5,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-// I quattro casi di app-master-gesti-senza-conflitti-04-11, come gesture.test.ts.
+// I casi di app-master-gesti-senza-conflitti-04-11; la soglia e le molle anche in gesture.test.ts, la corsa breve solo qui (app-posizioni-sistema-27-11 gruppo 5).
 class MasterGesturesTest {
     @Test fun aDragStartsPast6dp() {
         assertFalse(MasterGestures.isDrag(4f, 4f))

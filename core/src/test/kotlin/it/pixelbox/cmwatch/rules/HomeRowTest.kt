@@ -11,7 +11,7 @@ import kotlinx.serialization.json.long
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-/** La Home in riga (app-home-riga-c1-13-11): gli stessi casi di web/src/lib/homeRow.test.ts, dallo stesso file. */
+/** La Home in riga (app-home-riga-c1-13-11): i casi del file che leggeva anche la web, fino a app-posizioni-sistema-27-11 gruppo 5. */
 class HomeRowTest {
     private val cases = Json.parseToJsonElement(javaClass.getResource("/home-row-cases.json")!!.readText()).jsonObject
     private fun str(o: JsonObject, k: String): String? = (o[k] as? JsonPrimitive)?.takeIf { it.isString }?.content

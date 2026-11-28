@@ -378,8 +378,8 @@ export function world(now: number): World {
   const benchHunk = (n: number) => ({ old_start: 0, old_lines: 0, new_start: 1, new_lines: bench.length, lines: bench.slice(0, n).map(l => `+${l}`) })
   const benchStep: StepDiff = { path: '/w/blog/bench/results.csv', kind: 'create', added: bench.length, removed: 0, hunks: [benchHunk(200)], cut: true }
   const fullDiffs: Record<string, StepDiff> = { 'blog/w1': { ...benchStep, hunks: [benchHunk(bench.length)], cut: false } }
-  // La mattina della master prima del giro di adesso: una chat lunga, che scorre, per vedere il morph della master partire dal
-  // punto in vista (app-fluidita-06-11).
+  // La mattina della master prima del giro di adesso: una chat lunga, che scorre nel foglio della master (app-fluidita-06-11;
+  // app-posizioni-sistema-27-11 gruppo 5: il morph della master fra i posti di prima non c'è più).
   const morning: [string, string, string, string][] = [
     ['Apri la giornata: cosa è rimasto di ieri?', 'Ieri sono rimasti tre lavori: il deploy di payments-api, le prove del checkout e la copertina del blog.', 'Open the day: what is left from yesterday?', 'Three jobs are left from yesterday: the payments-api deploy, the checkout tests and the blog cover.'],
     ['Comincia dalle prove del checkout', 'Le prove del checkout girano su storefront: 42 su 44 verdi, due rosse sui totali con i buoni regalo.', 'Start with the checkout tests', 'The checkout tests run on storefront: 42 of 44 green, two red on totals with gift cards.'],

@@ -6,10 +6,10 @@ import kotlin.math.max
 import kotlin.math.roundToInt
 
 /**
- * La master del tablet si sposta e si misura coi gesti come nella PWA larga (`web/src/lib/masterLanding.ts`, Franz 03/11
- * 22:06-23:01, app-master-trascina-03-11; sul tablet app-tablet-come-pwa-03-11): la testata trascinata cambia solo il lato;
- * il bordo verso le sessioni allarga e stringe fra due posti fissi (colonna e metà schermo); il bordo superiore cambia
- * l'altezza a scatti. Mentre si trascina compaiono i segni dove si può lasciare: quello di arrivo è
+ * La master del tablet si sposta e si misura coi gesti come faceva la PWA larga (sulla web tolti con app-posizioni-sistema-27-11
+ * gruppo 5; Franz 03/11 22:06-23:01, app-master-trascina-03-11; sul tablet app-tablet-come-pwa-03-11): la testata trascinata
+ * cambia solo il lato; il bordo verso le sessioni allarga e stringe fra due posti fissi (colonna e metà schermo); il bordo
+ * superiore cambia l'altezza a scatti. Mentre si trascina compaiono i segni dove si può lasciare: quello di arrivo è
  * grande, e un segno vicino al dito si allunga e gli va incontro (la calamita). Misure in px dello schermo, senza la pagina.
  */
 object MasterLanding {
@@ -101,7 +101,7 @@ object MasterLanding {
 
     /**
      * Il posto della master nell'area della pagina, per la sagoma dell'anteprima (scelta A di Franz, 04/11 17:21,
-     * app-trascina-rifinitura-04-11; sul tablet app-tablet-scelta-a-04-11; come `placeRect` di masterLanding.ts): la colonna sul
+     * app-trascina-rifinitura-04-11; sul tablet app-tablet-scelta-a-04-11; come `placeRect` della web di prima): la colonna sul
      * lato `left` larga `w`; sotto la home a metà o compatta, in fondo a quella colonna; la riga in basso a tutta larghezza.
      */
     fun placeRect(area: Rect, left: Boolean, h: Height, w: Float, bar: Float = BAR_H, compact: Float = COMPACT_H): Rect {
@@ -124,7 +124,7 @@ object MasterLanding {
     const val DWELL_MS = 140L
 
     /**
-     * La sosta (Franz 04/11 08:20: «dalla riga in basso c'è sfarfallio»; `steady` di masterLanding.ts): il bersaglio di adesso
+     * La sosta (Franz 04/11 08:20: «dalla riga in basso c'è sfarfallio»; `steady` della web di prima): il bersaglio di adesso
      * tiene; uno nuovo vince solo se resta sotto il dito per `dwell` ms di fila. `feed` dice il bersaglio da mostrare e, se uno
      * nuovo aspetta, fra quanti ms riguardare anche senza altri movimenti del dito.
      */

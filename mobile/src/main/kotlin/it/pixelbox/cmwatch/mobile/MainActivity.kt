@@ -393,13 +393,11 @@ class MainActivity : ComponentActivity() {
         // Sul tablet lato, misura e posto della master come nella PWA larga (app-tablet-come-pwa-03-11), ricordati qui.
         var place by remember { mutableStateOf(it.pixelbox.cmwatch.rules.MasterPlace.fromPref(getSharedPreferences("ui", MODE_PRIVATE).getString("master_place", null))) }
         val keepPlace = { p: it.pixelbox.cmwatch.rules.MasterPlace -> place = p; getSharedPreferences("ui", MODE_PRIVATE).edit().putString("master_place", p.pref()).apply() }
-        // La Home in riga (app-home-riga-c1-13-11): da quando è in riga, per le novità, e le novità già aperte. Sul telefono la master
-        // a tutto schermo ha la riga sotto il campo senza sceglierla, e le novità si contano da quando si è aperta.
+        // La Home in riga sul tablet (app-home-riga-c1-13-11): da quando è in riga, per le novità, e le novità già aperte.
+        // app-posizioni-sistema-27-11 gruppo 5: quella del telefono, sotto il campo della master, non c'è più (la home sta sopra il foglio).
         var homeRowSince by rememberSaveable { mutableStateOf<Long?>(getSharedPreferences("ui", MODE_PRIVATE).getLong("home_row_since", 0L).takeIf { it > 0 }) }
         var homeRowOpened by remember { mutableStateOf(emptySet<String>()) }
         val startHomeRow = { val t = System.currentTimeMillis() / 1000; homeRowSince = t; homeRowOpened = emptySet(); getSharedPreferences("ui", MODE_PRIVATE).edit().putLong("home_row_since", t).apply() }
-        var phoneRowSince by rememberSaveable { mutableStateOf<Long?>(null) }
-        var phoneRowOpened by remember { mutableStateOf(emptySet<String>()) }
         // Nome della sessione aperta; la master non è mai una pagina: aprirla, da qualunque strada, porta la home sulla sua chat.
         val openState = rememberSaveable { mutableStateOf<String?>(null) }
         val route = remember { OpenRoute(openState, tabState, masterChatState) }
@@ -2816,7 +2814,8 @@ class MainActivity : ComponentActivity() {
                 // app-posizioni-sistema-27-11 gruppo 4 (B «Foglio»): la master è il foglio sopra la home (MasterSheetBox in SessionSheet),
                 // riga · metà · intera; alla riga prende del tutto il posto della barra (MasterDock), con la sua riga in testa al foglio e il
                 // campo sotto. La home tiene il suo contenuto (niente riga di icone né schede: servono l'ok di Franz) e la Home in riga
-                // sotto il campo non c'è più: la home si vede sopra il foglio (le posizioni di prima le toglie il gruppo 5).
+                // sotto il campo non c'è più: la home si vede sopra il foglio (gruppo 5: via anche il suo stato; il tablet tiene le posizioni
+                // di prima, MasterFrame, fino al gruppo 6).
                 sessionPage(
                     master, masterEntries, homeList, true,
                     { MasterSheetHead(master, hero, onSpeak = { t -> speech.toggle(t, it.pixelbox.cmwatch.rules.ContextActions.MASTER) }, closed = !masterChat) },
@@ -3056,7 +3055,7 @@ class MainActivity : ComponentActivity() {
                     if (inRow) {
                         val voices = remember(summary, tabletCols, homeRowSince, homeRowOpened) { it.pixelbox.cmwatch.rules.HomeRow.voices(it.pixelbox.cmwatch.rules.HomeRow.fromSummary(summary.rows), tabletCols, homeRowSince, homeRowOpened) }
                         it.pixelbox.cmwatch.mobile.ui.HomeRowBar(
-                            voices, now, tight = false,
+                            voices, now,
                             // Una novità aperta va via; la voce apre la sua sessione in una colonna.
                             onOpen = { v -> if (v.kind == it.pixelbox.cmwatch.rules.HomeRow.Kind.NEWS) homeRowOpened = homeRowOpened + v.key; if (v.session !in tabletCols) saveCols(it.pixelbox.cmwatch.rules.Tablet.add(tabletCols, v.session)) },
                             onHome = { keepPlace(place.copy(homeRow = false)) },

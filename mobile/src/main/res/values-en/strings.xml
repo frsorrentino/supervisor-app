@@ -1975,10 +1975,7 @@ It starts at your last message to the master.</string>
     <string name="max_sessions">Sessions at most</string>
     <string name="max_sessions_sub">how many sessions the PC keeps open</string>
     <string name="max_sessions_old">to change it, update supervisor on the PC</string>
-    <string name="master_pos_under">Under the dashboard</string>
-    <string name="master_widen">Widen</string>
-    <string name="master_narrow">Narrow</string>
-    <string name="master_close_key">Close the master</string>
+    <!-- app-posizioni-sistema-27-11 gruppo 5: via i testi del menu Posizione di prima, che nessuno usava più (sotto la dashboard, allarga, stringi, chiudi, il bordo). -->
     <string name="master_half_screen">Half the screen</string>
     <string name="master_land_bar">One row at the bottom</string>
     <string name="master_land_column">Full column</string>
@@ -1988,7 +1985,6 @@ It starts at your last message to the master.</string>
     <string name="master_mid_right">on the right</string>
     <string name="master_mid_cross">Past this line: %1$s %2$s</string>
     <string name="master_mid_release">Release: %1$s</string>
-    <string name="master_width_edge">Drag to widen or narrow the master</string>
     <string name="master_stack_step">Change the master height</string>
     <string name="swap_add">Open %1$s alongside</string>
     <string name="swap_close">Close the %1$s column</string>

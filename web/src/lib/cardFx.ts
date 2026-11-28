@@ -98,7 +98,7 @@ export function flatten(): void {
   for (const a of document.getAnimations()) {
     const e = a.effect as KeyframeEffect | null
     const pe = e?.pseudoElement
-    if (!e || !pe || !pe.startsWith('::view-transition-group(') || pe.includes('neck-') || pe.includes('master-morph')) continue
+    if (!e || !pe || !pe.startsWith('::view-transition-group(') || pe.includes('neck-')) continue
     const [k0] = e.getKeyframes()
     if (!k0 || k0.width == null || k0.height == null) continue
     const timing = e.getTiming()

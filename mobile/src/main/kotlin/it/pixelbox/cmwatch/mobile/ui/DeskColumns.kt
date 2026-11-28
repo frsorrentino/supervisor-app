@@ -261,13 +261,13 @@ internal fun Plancia(
 }
 
 /**
- * La master accanto a quello che c'è (App.svelte, `deskwrap`): chiusa la barra in fondo, aperta il pannello di lato alto quanto
- * lo schermo, sul lato e nella misura scelti (app-tablet-come-pwa-03-11).
+ * La master accanto a quello che c'è, come la web fino ad app-posizioni-sistema-27-11 gruppo 5 (`deskwrap` di App.svelte): chiusa
+ * la barra in fondo, aperta il pannello di lato alto quanto lo schermo, sul lato e nella misura scelti (app-tablet-come-pwa-03-11).
  *
- * I gesti della PWA (masterLanding, app-master-trascina-03-11), se `onPlace` c'è: la maniglia in testa al pannello cambia solo il
+ * I gesti che aveva la PWA (app-master-trascina-03-11), se `onPlace` c'è: la maniglia in testa al pannello cambia solo il
  * lato; il bordo verso le sessioni allarga e stringe fra i posti fissi a colonna e a metà schermo; la maniglia in alto del pannello,
  * o la barra tirata su, cambia l'altezza a scatti. Anteprima a fantasma (scelta A di Franz, 04/11 17:21, app-tablet-scelta-a-04-11,
- * come landingMorph.ts): durante il gesto la pagina resta ferma, lo sfondo si scurisce appena e la sagoma gialla occupa il posto
+ * come la web di prima): durante il gesto la pagina resta ferma, lo sfondo si scurisce appena e la sagoma gialla occupa il posto
  * d'arrivo con la misura vera; gli altri posti sono contorni tratteggiati con l'etichetta, e spostando di lato la linea a metà
  * schermo dice con la pillola che basta passarla. Al rilascio `onPlace(…, true)` mette la master lì e ricorda; annullato niente cambia.
  */
@@ -285,7 +285,7 @@ internal fun MasterFrame(
     // L'anteprima del tasto tondo (app-sposta-master-a-13-11): la zona d'arrivo accesa col suo nome e gli altri posti velati.
     var keyGhost by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<Pair<Ghost, List<Ghost>>?>(null) }
     val homeRowName = stringResource(R.string.master_pos_home_row); val homeBackName = stringResource(R.string.home_row_open)
-    // Il blocco che cambia forma mentre se ne cambia l'altezza (app-master-morph-m3-06-11, come lib/morphBlob.ts nella web): al posto
+    // Il blocco che cambia forma mentre se ne cambia l'altezza (app-master-morph-m3-06-11, come la web di prima): al posto
     // della master che si spostava intera. La riga e il pannello si registrano mentre si disegnano, e il blocco ne mostra la copia
     // che sfuma.
     var blob by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<BlobDraw?>(null) }
@@ -388,7 +388,7 @@ internal fun MasterFrame(
                     ?.takeIf { it.width > 0f }?.let { b -> L.Rect(b.left / density, b.top / density, b.width / density, b.height / density) }
                 val barH = rectOf("bar")?.h ?: L.BAR_H
                 val h0 = p0.copy(open = open0).height(underOk)
-                // Il posto di adesso con le misure vere; gli altri da masterLanding.
+                // Il posto di adesso con le misure vere; gli altri da MasterLanding.
                 val here = if (h0 == L.Height.BAR) rectOf("bar") else if (h0 == L.Height.COLUMN) rectOf("panel") else null
                 fun rectFor(l: Boolean, h: L.Height, w: Float) = here?.takeIf { l == p0.left && h == h0 && w == p0.panelWidth() } ?: L.placeRect(area, l, h, w, barH)
                 var moved = false
@@ -660,9 +660,10 @@ internal fun BlobLayer(b: BlobDraw, copy: androidx.compose.ui.graphics.layer.Gra
 internal data class Mid(val x: Float, val y: Float, val crossed: Boolean, val text: String)
 
 /**
- * Lo strato dell'anteprima (landingMorph.ts): lo sfondo scurito al 22 %, la sagoma gialla traslucida col bordo, che scivola in
- * 200 ms da un posto all'altro; i contorni tratteggiati delle altre destinazioni; la linea a metà schermo tratteggiata, piena e
- * accesa quando il dito l'ha passata. Entra e sparisce in 160 ms; col movimento ridotto senza scivolate e senza sfumature.
+ * Lo strato dell'anteprima (come la web prima di app-posizioni-sistema-27-11 gruppo 5): lo sfondo scurito al 22 %, la sagoma gialla
+ * traslucida col bordo, che scivola in 200 ms da un posto all'altro; i contorni tratteggiati delle altre destinazioni; la linea a
+ * metà schermo tratteggiata, piena e accesa quando il dito l'ha passata. Entra e sparisce in 160 ms; col movimento ridotto senza
+ * scivolate e senza sfumature.
  */
 @Composable
 private fun GhostLayer(ghost: Ghost?, hints: List<Ghost>, mid: Mid?, veil: Boolean = false) {

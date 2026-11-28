@@ -1,10 +1,11 @@
 package it.pixelbox.cmwatch.rules
 
 /**
- * La Home in riga (app-home-riga-c1-13-11, giro C dei mockup, variante C1 scelta da Franz il 13/11 alle 09:32), gemella di
- * web/src/lib/homeRow.ts. Mentre la master occupa la colonna, la Home è una riga in basso che mostra solo quello che non si vede
- * già: le sessioni che ti aspettano e non sono a schermo, e le novità da quando la Home è in riga. Una voce per cosa, che apre la
- * sua sessione; una novità va via quando la apri o quando riapri la Home. Vuota, resta la maniglia.
+ * La Home in riga (app-home-riga-c1-13-11, giro C dei mockup, variante C1 scelta da Franz il 13/11 alle 09:32), sul tablet: la
+ * gemella web è uscita con app-posizioni-sistema-27-11 gruppo 5. Mentre la master occupa la colonna, la Home è una riga in basso
+ * che mostra solo quello che non si vede già: le sessioni che ti aspettano e non sono a schermo, e le novità da quando la Home è in
+ * riga. Una voce per cosa, che apre la sua sessione; una novità va via quando la apri o quando riapri la Home. Vuota, resta la
+ * maniglia.
  */
 object HomeRow {
     /** Una riga della Home, come la vede la regola: `group` waiting | finished | working | still. */

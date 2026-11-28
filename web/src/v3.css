@@ -271,8 +271,6 @@ html.theme-day.v3, html.theme-day .v3, html.theme-day dialog {
 :root:root.theme-day .sec.hot::before { box-shadow: none; background: var(--wait); }
 /* Il morphing delle pagine (morphStart in lib/motion.ts): il gruppo va dalla voce premuta alla pagina con la molla lenta, senza
    rimbalzo; la pagina si scopre dall'angolo in alto a sinistra invece di deformarsi, la voce sfuma nel primo terzo. */
-/* La master che cambia posto al rilascio, mentre la sagoma dell'anteprima resta sopra finché arriva (landingMorph.ts, app-trascina-rifinitura-04-11). */
-::view-transition-group(master-morph) { animation-duration: var(--reflow-ms); animation-timing-function: var(--reflow-ease); }
 ::view-transition-group(morph) { animation-duration: 380ms; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); border-radius: 14px; overflow: clip; }
 /* La voce e la pagina senza dissolvenze (app-morph-senza-stacco-06-11, scelta A della master; Franz 06/11 09:40: «da pwa lo stacco
    c'è sempre»; regola Morph in core/rules/Morph.kt, la stessa di telefono e tablet): dal primo fotogramma quella che arriva è
@@ -298,24 +296,10 @@ html.reflow [data-vt] { view-transition-name: var(--vt); view-transition-class: 
   ::view-transition-group(*.home-reflow) { animation-duration: 0s; }
   ::view-transition-old(*.home-reflow), ::view-transition-new(*.home-reflow) { animation-duration: 150ms; }
 }
-/* Chi si muove prima, quando la master scende sotto la home o risale (Franz 04/11: «alcuni elementi si sovrappongono»; `order`
-   in App.svelte): prima chi libera il posto, poi chi lo prende; insieme fanno la stessa durata di sempre. Anche la master resta
-   alla sua misura e il riquadro la ritaglia, come le schede. */
-::view-transition-group(master-morph) { overflow: clip; }
-::view-transition-old(master-morph), ::view-transition-new(master-morph) { width: 100%; height: 100%; object-fit: none; object-position: left top; }
-html.reflow-master-first::view-transition-group(master-morph), html.reflow-master-first::view-transition-old(master-morph), html.reflow-master-first::view-transition-new(master-morph),
-html.reflow-home-first::view-transition-group(*.home-reflow), html.reflow-home-first::view-transition-old(*.home-reflow), html.reflow-home-first::view-transition-new(*.home-reflow) {
-  animation-duration: calc(var(--reflow-ms) * .5);
-}
-html.reflow-master-first::view-transition-group(*.home-reflow), html.reflow-master-first::view-transition-old(*.home-reflow), html.reflow-master-first::view-transition-new(*.home-reflow),
-html.reflow-home-first::view-transition-group(master-morph), html.reflow-home-first::view-transition-old(master-morph), html.reflow-home-first::view-transition-new(master-morph) {
-  animation-delay: calc(var(--reflow-ms) * .4); animation-duration: calc(var(--reflow-ms) * .6);
-}
-@media (prefers-reduced-motion: reduce) {
-  html.reflow-master-first::view-transition-group(*.home-reflow), html.reflow-home-first::view-transition-group(master-morph) { animation-delay: 0s; }
-}
+/* app-posizioni-sistema-27-11 gruppo 5: via il passaggio della master fra i posti, l'ordine della pila e gli angoli: la master
+   non cambia più posto. */
 /* La scheda che diventa colonna come la voce e la pagina (morph, sopra): dal primo fotogramma c'è solo quella che arriva, piena;
-   i bordi restano sulla loro molla. Le schede che solo scivolano e la master che cambia posto restano piene (Franz 04/11). */
+   i bordi restano sulla loro molla. Le schede che solo scivolano restano piene (Franz 04/11). */
 @media (prefers-reduced-motion: no-preference) {
   html:root:root::view-transition-old(*.fx-focus) { animation: none; opacity: 0; }
   html:root:root::view-transition-new(*.fx-focus) { animation: none; }
@@ -365,16 +349,6 @@ html:is(.fx-open, .fx-close)::view-transition-old(*.home-reflow), html:is(.fx-op
 ::view-transition-group(*.fx-focus) { z-index: 3; }
 ::view-transition-group(neck-top), ::view-transition-group(neck-bottom) { z-index: 4; }
 @keyframes fx-neck { to { transform: scaleY(0); } }
-
-/* Il foglio della master al telefono (app-effetti-movimenti-04-11, punto 3): aprendosi supera di poco l'arresto e torna, e
-   chiudendosi in basso fa un solo rimbalzo; la stessa molla di --spring-fx. */
-@media (max-width: 839px) and (prefers-reduced-motion: no-preference) {
-  ::view-transition-group(master-morph) { animation-duration: 520ms; animation-timing-function: var(--spring-fx); }
-}
-/* Compatta ed estesa (punto 8): durante il cambio di misura gli angoli della master si piegano verso l'interno e tornano tondi
-   con la molla. */
-html.fx-corners::view-transition-group(master-morph) { overflow: clip; animation-name: -ua-view-transition-group-anim-master-morph, fx-corners; }
-@keyframes fx-corners { 0% { clip-path: inset(0 round 18px); } 40% { clip-path: inset(0 round 3px 3px 26px 26px); } 100% { clip-path: inset(0 round 18px); } }
 
 /* Le schede e le righe della home fuori schermo non si stilano né si impaginano (app-fluidita-06-11): nelle transizioni il
    browser rifà lo stile di tutto il documento più volte, e con questo salta quello che non si vede. Misurato a CPU 4x nella

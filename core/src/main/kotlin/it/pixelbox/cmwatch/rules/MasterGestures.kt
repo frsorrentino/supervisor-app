@@ -18,7 +18,7 @@ object MasterGestures {
      * della direzione presa, molto prima nella corsa»). Fra posizioni fisse al rilascio conta la direzione: oltre COMMIT_DP nella
      * direzione presa, o con un colpo oltre FLICK_DP_S, la master va alla posizione dopo in quella direzione; sotto torna dov'era.
      * Come i fogli di iOS la velocità si proietta (PROJECT_S: dove arriverebbe il dito rallentando): un tratto o un colpo
-     * lunghi saltano più posizioni. Le stesse soglie sulla web (gesture.ts), in px CSS.
+     * lunghi saltano più posizioni. Sulla web la corsa breve è uscita con app-posizioni-sistema-27-11 gruppo 5: resta per il tablet.
      */
     const val COMMIT_DP = 24f
     const val FLICK_DP_S = 500f

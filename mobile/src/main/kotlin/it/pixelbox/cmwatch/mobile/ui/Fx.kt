@@ -24,7 +24,8 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 
 /**
  * Gli effetti sui movimenti dell'app (app-effetti-movimenti-04-11, Franz 04/11 21:54-22:41, valori da tarare dal vivo), con
- * i tempi della web (cardFx.ts, motion.ts, landingMorph.ts, v3.css). Col movimento ridotto nessuno.
+ * i tempi della web (cardFx.ts, motion.ts, v3.css; l'anteprima delle posizioni è uscita con app-posizioni-sistema-27-11 gruppo 5).
+ * Col movimento ridotto nessuno.
  */
 object Fx {
     /** La molla che supera di poco la misura e torna (--spring-fx della web, circa 2,5 %). */

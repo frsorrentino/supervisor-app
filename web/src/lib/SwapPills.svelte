@@ -12,12 +12,10 @@
   let spots = $state<Spot[]>([])
   let hot = $state<string | null>(null)
   function measure() {
-    // Con la master sotto la home (app-bordo-aggiungi-sparito-04-11) la home sta nella colonna della master; i segni stanno
-    // sempre a metà della corsia, che nella pila resta fra le sessioni e la colonna (app-tablet-barre-bordi-05-11: sul bordo
-    // della colonna coprivano le schede).
-    const stack = document.querySelector('aside.stackcol')
+    // I segni stanno sempre a metà della corsia (app-tablet-barre-bordi-05-11: sul bordo della colonna coprivano le schede).
+    // app-posizioni-sistema-27-11 gruppo 5: la home sta sempre nella sua colonna, la master sotto la home non c'è più.
     const desk = document.querySelector('.desk')
-    const home = stack ? stack.querySelector('.hs-top') : desk?.querySelector(':scope > aside.home')
+    const home = desk?.querySelector(':scope > aside.home')
     const handle = desk?.querySelector(':scope > .handle')
     if (!home || !handle) { spots = []; return }
     const hr = home.getBoundingClientRect()

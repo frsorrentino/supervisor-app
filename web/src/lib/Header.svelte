@@ -22,7 +22,7 @@
   // badge e nome, come la plancia del tablet.
   // app-posizioni-sistema-27-11 gruppo 2: con `tabs` (una sessione, non la master) la riga dei dati e le note vanno in Dettagli, e sotto
   // il nome c'è la riga di icone; il ⋮ resta accanto al nome (nella plancia lo prende la testata della colonna, headMore.svelte.ts).
-  let { st, s, wide, onBack, onCmd, onPrompt, onHandoff, onUsage = () => {}, onGo = null, onReopen = null, appMenu = null, onChanges = null, menuMove = null, onMine = null, tabs = null, inSheet = false, sheetNotes = null }: {
+  let { st, s, wide, onBack, onCmd, onPrompt, onHandoff, onUsage = () => {}, onGo = null, onReopen = null, appMenu = null, onChanges = null, onMine = null, tabs = null, inSheet = false, sheetNotes = null }: {
     /**
      * app-posizioni-sistema-27-11 gruppo 4: la master nel suo foglio. Niente testata qui: il ⋮ va nella riga del foglio (headMore) e in cima
      * porta quello che mostrava la riga dei dati (modello ed effort, quota delle 5 ore, contesto, obiettivo e note, Modifiche) e gli Avvisi.
@@ -32,8 +32,6 @@
     sheetNotes?: Snippet | null
     /** La riga di icone della sessione (gruppo 2); senza, la testata di prima con la riga dei dati (la master). */
     tabs?: Snippet | null
-    /** La voce del menu ⋮ che sposta il pannello della master di lato, nella plancia (Franz 30/10 13:26). */
-    menuMove?: { label: string; onMove: () => void; on?: boolean; icon?: string }[] | null
 
     /** Sul telefono il menu delle sessioni («Vai a») sul nome e il ≡ dell'app, come la testata della sessione nell'app. */
     onGo?: ((name: string | null) => void) | null; onReopen?: ((name: string) => void) | null; appMenu?: import('svelte').Snippet | null
@@ -345,17 +343,7 @@
             <span><span class="mt">{t.smenuRestart}</span><span class="msub">{t.smenuRestartSub}</span></span>
           </button>
         {/if}
-        <!-- Le posizioni e i tasti della master stanno qui (Franz 03/11 17:05, scelta C, app-master-tasti-compatti-03-11). -->
-        {#if menuMove?.length}
-          <hr />
-          {#each menuMove as m (m.label)}
-            <button class="mi" role="menuitemradio" aria-checked={m.on ?? false} onclick={() => { menu = false; m.onMove() }}>
-              <svg viewBox="0 0 24 24" width="22" height="22"><path d={m.icon ?? 'M8 7l-5 5 5 5M16 7l5 5-5 5M3 12h18'} /></svg>
-              <span><span class="mt">{m.label}</span></span>
-              {#if m.on}<span class="ms on" aria-hidden="true">check</span>{/if}
-            </button>
-          {/each}
-        {/if}
+        <!-- app-posizioni-sistema-27-11 gruppo 5: via le voci delle posizioni della master, spente dal 03/11. -->
         {#if has('exit')}
           <hr />
           <button class="mi danger" role="menuitem" onclick={() => { menu = false; closer?.ask(s) }}>
@@ -585,7 +573,6 @@
   .mi:hover { background: var(--high); }
   .mi svg { flex: none; fill: none; stroke: var(--icon); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   .mi > span { display: flex; flex-direction: column; gap: 2px; }
-  .mi > .on { margin-left: auto; flex-direction: row; color: var(--accent); font-size: 20px; }
   .mt { font-size: 15.5px; }
   .msub { font-size: 12.5px; color: var(--text2); }
   .danger svg { stroke: var(--b-alert); }

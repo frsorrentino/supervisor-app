@@ -3,20 +3,12 @@
   import UndoSnack from './lib/UndoSnack.svelte'
   import { favicons, wanted as wantedFavicons, remembered as rememberedFavicon, keep as keepFavicon, faviconUrl } from './lib/favicons.svelte'
   import { answer as maxAnswer, canSet as canSetMax } from './lib/maxSessions'
-  import MasterKey from './lib/MasterKey.svelte'
-  import { nameOf as keyNameOf, type Move as KeyMove, type Spot as KeySpot } from './lib/masterKey'
-  import HomeRow from './lib/HomeRow.svelte'
-  import { fromSummary, ROW_H, rowHeight, voices as homeRowVoices, type Voice } from './lib/homeRow'
   import { gated, type By } from './lib/retryGate'
   import { applyAnswered, live as liveMarks, markAnswer, settle as settleMark, type Answered } from './lib/answered'
   import { locale } from './lib/lang'
   import * as files from './lib/fileActions'
   import { seenByPath } from './lib/guardare'
   import type { MenuKind } from './lib/sessionMenu'
-  import { BAR_H, COLUMN, COMPACT_H, heightZones, mirrorRect, placeRect, sideAt, steady, widthAt, widthRect, widthStops, type Height, type Rect, type Side } from './lib/masterLanding'
-  import { ghostPreview, MOVE_MS, PLACES } from './lib/landingMorph'
-  import { DRAG_PX, isDrag, masterTaps, springFrames, step, velocity } from './lib/gesture'
-  import { morphBlob } from './lib/morphBlob'
   import { coming, failed, media, missed, moving, pages as pageSources, texts } from './lib/mediaCache.svelte'
   import { capable, moves } from './lib/anteprimeAnimate'
   import { FileQueue } from './lib/fileQueue'
@@ -81,7 +73,6 @@
   import HomeOrder from './lib/HomeOrder.svelte'
   import Utilizzo from './lib/Utilizzo.svelte'
   import UsagePage from './lib/UsagePage.svelte'
-  import MasterDock from './lib/MasterDock.svelte'
   import SwapPills from './lib/SwapPills.svelte'
   import DeskHead from './lib/DeskHead.svelte'
   import DeskTools from './lib/DeskTools.svelte'
@@ -99,7 +90,6 @@
   import { NIGHT_TARGET, night as nightCards, setCmd, todayIso } from './lib/recapAgenda'
   import { inProgress as lavoriInProgress } from './lib/lavori'
   import NightAgendaPicker from './lib/NightAgendaPicker.svelte'
-  import Composer from './lib/Composer.svelte'
   import Guardare from './lib/Guardare.svelte'
   import ResultsRow from './lib/ResultsRow.svelte'
   import PerTe from './lib/PerTe.svelte'
@@ -838,7 +828,7 @@
   })
   const known = (n: string) => (!!tr && !demo) || st.sessions.some(s => s.name === n && s.state !== 'gone')
 
-  // La master vive nella home: ridotta è la barra in fondo, espansa occupa la home (mai una colonna o una pagina a parte).
+  // La master vive nella home, nel suo foglio (mai una pagina a parte); la barra in fondo resta solo dentro Studio (`dock`).
   // Franz 24/10 09:41 (Studio, strada A): `/embed` è la sola chat della master, incorporata da studio.francescosorrentino.com.
   const embed = /^\/embed(\.html)?$/.test(location.pathname)
   // `/embed?dock=1` (studio-dock-coerente-24-10): la barra della master e il suo foglio, su fondo trasparente, dentro Studio.
@@ -857,409 +847,13 @@
   $effect(() => { const s = sheetAt; if (!embed && !dock) save(SHEET_PREF, s) })
   // L'altezza della riga del foglio sulla plancia senza sessioni: le colonne la lasciano libera in fondo.
   let dashRowH = $state(170)
-  // Le posizioni di prima (lato, misure, sotto la home, Home in riga, il tasto tondo, la barra in fondo): spente; il gruppo 5 le toglie.
-  const legacyPlaces = false
-  // Il lato del pannello della master nella plancia, ricordato su questo dispositivo (Franz 30/10 13:26).
-  let masterLeft = $state(load('cm.master_left') === '1')
-  // Master sotto la dashboard, nella stessa colonna (Franz 03/11 16:52, forma B, app-master-sopra-dashboard-03-11): con le
-  // sessioni aperte la chat della sessione tiene il resto. «Sposta» gira fra destra, sotto la dashboard e sinistra.
-  let masterUnder = $state(load('cm.master_under') === '1')
-  function moveMaster() {
-    smooth(() => {
-      masterLeft = !masterLeft
-      save('cm.master_left', masterLeft ? '1' : '0'); save('cm.master_under', masterUnder ? '1' : '0')
-    })
-  }
-  // Solo con le sessioni aperte nella vista larga, con la master aperta e fuori dalle colonne.
-  const stacked = $derived(legacyPlaces && masterUnder && masterOpen && !!master && !cols.includes(MASTER))
-  // Home sopra e master sotto non è un lato (Franz 03/11 17:30 e 17:31): la colonna con home e master prende il lato e la larghezza
-  // che la master ha in quel momento; le sessioni occupano il resto.
-  function placeMaster(p: 'right' | 'left') { smooth(() => { masterLeft = p === 'left'; save('cm.master_left', masterLeft ? '1' : '0') }) }
-  // Due altezze fisse della master sotto la home (Franz 03/11 17:38 e 17:41, app-master-compatta-03-11): compatta (l'ultimo
-  // messaggio, il ▶ e il campo) e metà colonna; intera c'è già la colonna sua. Il tocco sulla testata o sulla maniglia passa alla
-  // successiva; la maniglia trascinata si ferma sullo scatto più vicino nel verso del gesto. Di base compatta (Franz 17:44).
-  const STACK_H = ['compact', 'half'] as const
-  let stackH = $state<(typeof STACK_H)[number]>((STACK_H as readonly string[]).includes(load('cm.master_stack_h') ?? '') ? (load('cm.master_stack_h') as (typeof STACK_H)[number]) : 'compact')
-  function setStack(h: (typeof STACK_H)[number]) { corners(() => { stackH = h; save('cm.master_stack_h', h) }) }
-  function stepStack(d: 1 | -1, wrap = true) {
-    const i = STACK_H.indexOf(stackH) + d
-    setStack(STACK_H[wrap ? (i + STACK_H.length) % STACK_H.length : Math.max(0, Math.min(STACK_H.length - 1, i))])
-  }
-  let stackHead = $state(false)
-  function stackMaster() {
-    smooth(() => { masterUnder = !masterUnder; save('cm.master_under', masterUnder ? '1' : '0') })
-  }
-  // La Home in riga (app-home-riga-c1-13-11, variante C1 dei mockup, scelta di Franz del 13/11 alle 09:32): il contrario di «Una
-  // riga in basso». La master tiene la sua colonna e la Home diventa una riga in fondo, con solo chi ti aspetta fuori schermo e le
-  // novità da quando è in riga (lib/homeRow.ts). Vale con le sessioni aperte, come «Sotto la dashboard»: sul cruscotto la Home è
-  // tutto lo schermo. Il tocco sulla riga, la maniglia o la riga tirata su riaprono la Home.
-  let homeRow = $state(load('cm.home_row') === '1')
-  let homeRowSince = $state<number | null>(Number(load('cm.home_row_since')) || null)
-  let homeRowOpened = $state(new Set<string>())
-  function setHomeRow(on: boolean) {
-    smooth(() => {
-      homeRow = on; save('cm.home_row', on ? '1' : '0')
-      homeRowOpened = new Set()
-      if (!on) return
-      homeRowSince = Math.floor(Date.now() / 1000); save('cm.home_row_since', String(homeRowSince))
-      if (masterUnder) { masterUnder = false; save('cm.master_under', '0') }
-      if (!masterOpen) { masterOpen = true; masterHalf = masterNarrow() }
-    })
-  }
-  const homeInRow = $derived(legacyPlaces && homeRow && wide && !!master && masterOpen && !masterUnder && cols.length > 0 && !cols.includes(MASTER))
-  const homeVoices = $derived(homeInRow ? homeRowVoices(fromSummary(summary.rows), cols, homeRowSince, homeRowOpened) : [])
-  // Sul telefono la master a tutto schermo ha la Home in riga sotto il campo, senza sceglierla: lì nessuna sessione è a schermo, e le
-  // novità si contano da quando la master si è aperta.
-  let phoneRowSince = $state<number | null>(null)
-  let phoneRowOpened = $state(new Set<string>())
-  $effect(() => { if (!wide && masterOpen) untrack(() => { phoneRowSince = Math.floor(Date.now() / 1000); phoneRowOpened = new Set() }) })
-  const phoneVoices = $derived(!wide && masterOpen ? homeRowVoices(fromSummary(summary.rows), [], phoneRowSince, phoneRowOpened) : [])
-  function openPhoneVoice(v: Voice) { if (v.kind === 'news') phoneRowOpened = new Set([...phoneRowOpened, v.key]); pick(v.session) }
-  // Una novità aperta va via; la voce apre la sua sessione in una colonna.
-  function openVoice(v: Voice) { if (v.kind === 'news') homeRowOpened = new Set([...homeRowOpened, v.key]); card(v.session) }
-  // Il tasto tondo della master (app-sposta-master-a-13-11): al posto del menu Posizione del 03/11. Il chevron apre e chiude; col
-  // puntatore dentro il tasto una freccia sola porta la master dove può andare da lì (lib/masterKey.ts), e mentre si sceglie la
-  // zona d'arrivo si accende col suo nome e gli altri posti possibili sono un velo chiaro (variante A del giro F).
-  const masterSpot = $derived<KeySpot>({ side: masterLeft ? 'left' : 'right', height: !masterOpen ? 'bar' : !stacked ? 'column' : stackH, homeRow: homeInRow })
-  const keyText = (to: KeySpot): string => {
-    const n = keyNameOf(masterSpot, to)
-    return n === 'left' ? t.masterPosLeft : n === 'right' ? t.masterPosRight : n === 'homeRow' ? t.masterPosHomeRow : n === 'home' ? t.homeRowOpen : t.masterLand[n]
-  }
-  // Il posto d'arrivo sullo schermo: quello della master, o per la Home in riga (e per la Home che torna su) la riga in fondo.
-  function keyRect(to: KeySpot): Rect {
-    const area = areaRect(), n = keyNameOf(masterSpot, to)
-    if (n === 'homeRow' || n === 'home') return { x: area.x, y: area.y + area.h - ROW_H, w: area.w, h: ROW_H }
-    return placeRect(area, to.side, to.height, colWidth(), sizes)
-  }
-  function keyGo(to: KeySpot) {
-    const wasOpen = masterOpen
-    masterLeft = to.side === 'left'
-    setHeight(to.height)
-    if (!wasOpen && masterOpen) masterHalf = masterNarrow()
-    if (to.homeRow !== homeRow) {
-      homeRow = to.homeRow; save('cm.home_row', homeRow ? '1' : '0'); homeRowOpened = new Set()
-      if (homeRow) { homeRowSince = Math.floor(Date.now() / 1000); save('cm.home_row_since', String(homeRowSince)) }
-    }
-  }
-  // Senza `clearMarks`: quello segna la fine di un trascinamento e fa ignorare il clic subito dopo; qui non c'è stato trascinamento.
-  function keyPreview(m: KeyMove | null, all: KeyMove[]) {
-    if (!m) { aim = null; masterGhost.drop(); return }
-    measureSizes()
-    aimAt(keyRect(m.to), keyText(m.to), () => keyGo(m.to))
-    masterGhost.hint(all.filter(x => x !== m).map(x => ({ b: keyRect(x.to), text: '' })), true)
-  }
-  function keyMove(m: KeyMove) {
-    keyPreview(m, [])
-    const go = aim
-    aim = null
-    if (!go) { masterGhost.drop(); return }
-    const vt = smooth(() => { go(); save('cm.master_left', masterLeft ? '1' : '0'); save('cm.master_under', masterUnder ? '1' : '0'); save('cm.master_stack_h', stackH) })
-    masterGhost.land(vt ? vt.finished : tick().then(() => new Promise(r => setTimeout(r, MOVE_MS))))
-  }
-  const moveLabelOf = () => (masterLeft ? t.masterMoveRight : t.masterMoveLeft)
-  // Sulla plancia la misura a metà fra barra e tutto schermo (Franz, 08/10 18:15); conta solo con `masterOpen`.
-  let masterHalf = $state(false)
-  // La misura del pannello, stretto o a metà schermo, ricordata come il lato (app-pwa-master-tasti-03-11).
-  const masterNarrow = () => load('cm.master_wide') !== '1'
-  function masterSize() { masterHalf = !masterHalf; save('cm.master_wide', masterHalf ? '0' : '1') }
-  // I gesti della master nella plancia (Franz 03/11 22:06-22:08, app-master-trascina-03-11; masterLanding.ts): la testata
-  // trascinata cambia il lato; il bordo verso le sessioni allarga e stringe (posti fissi a colonna e metà schermo); il bordo
-  // superiore, o la riga in basso tirata su, cambia l'altezza a scatti. Anteprima a fantasma (scelta A di Franz, 04/11 17:21,
-  // app-trascina-rifinitura-04-11): durante il gesto la pagina resta ferma, lo sfondo si scurisce appena e la sagoma gialla
-  // occupa il posto d'arrivo con la misura vera (landingMorph.ts); al rilascio la master va lì, annullato il gesto niente cambia.
+  // app-posizioni-sistema-27-11 gruppo 5: via le posizioni di prima (lato, misure, sotto la home, Home in riga, il tasto tondo, la barra
+  // in fondo). Le loro preferenze si tolgono in silenzio; il foglio ne ha una sola (cm.master_sheet).
+  for (const k of ['cm.master_left', 'cm.master_under', 'cm.master_stack_h', 'cm.master_wide', 'cm.master_w', 'cm.home_row', 'cm.home_row_since']) store.remove(k)
+  // Col movimento ridotto niente onda né volo (waveDelays, setCols).
   const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
-  const masterGhost = ghostPreview(reducedMotion)
-  // Il posto che la sagoma mostra, da applicare al rilascio.
-  let aim: (() => void) | null = null
-  function aimAt(r: Rect, text: string, go: () => void) { aim = go; masterGhost.show(r, text) }
-  // Le misure di partenza della sagoma: l'area della pagina e il posto della master adesso.
-  const rectOf = (el: Element | null): Rect | null => { const r = el?.getBoundingClientRect(); return r && r.width > 0 ? { x: r.left, y: r.top, w: r.width, h: r.height } : null }
-  const areaRect = (): Rect => rectOf(document.querySelector('.deskwrap, .plancia')) ?? { x: 0, y: 0, w: window.innerWidth, h: window.innerHeight }
-  const placeNow = (): Rect | null => PLACES.map(q => rectOf(document.querySelector(q))).find(Boolean) ?? null
-  // La riga e la compatta si misurano quando ci sono; prima della prima volta valgono le misure di masterLanding.ts.
-  const sizes = { bar: BAR_H, compact: COMPACT_H }
-  function measureSizes() {
-    const bar = rectOf(document.querySelector('.mbar')), compact = rectOf(document.querySelector('.dpanel.under.compact'))
-    if (bar) sizes.bar = bar.h
-    if (compact) sizes.compact = compact.h
-  }
-  // Il gesto continua sulla finestra: mentre la pagina si riorganizza l'elemento preso può sparire (la riga che diventa pannello).
-  // Ogni gesto finisce in uno di quattro modi, e tutti passano da `onEnd`: rilascio, annullo del sistema, Esc, finestra che perde
-  // il fuoco (app-trascina-rifinitura-04-11: dopo il rilascio restavano «Metà schermo» e la barra gialla).
-  function follow(onMove: (e: PointerEvent) => void, onEnd: (e: PointerEvent | null) => void) {
-    const up = (e: PointerEvent) => { stop(); onEnd(e) }
-    const cancel = () => { stop(); onEnd(null) }
-    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') cancel() }
-    const stop = () => {
-      window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', cancel)
-      window.removeEventListener('keydown', key); window.removeEventListener('blur', cancel)
-    }
-    window.addEventListener('pointermove', onMove); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', cancel)
-    window.addEventListener('keydown', key); window.addEventListener('blur', cancel)
-  }
-  // Il punto solo dove finisce un gesto: il fotogramma in attesa del bordo (che dopo il rilascio rimetteva l'anteprima), la sosta
-  // in attesa, la selezione del testo.
-  let dwellTimer: ReturnType<typeof setTimeout> | undefined
-  function clearMarks() {
-    if (wFrame) cancelAnimationFrame(wFrame)
-    wFrame = 0; clearTimeout(dwellTimer); dwellTimer = undefined
-    wDrag = null; document.body.style.userSelect = ''; taps.released(performance.now())
-  }
-  // Un solo riconoscitore per le maniglie della master (gesture.ts, app-master-gesti-senza-conflitti-04-11): un trascinamento
-  // annulla i clic in sospeso; dopo il rilascio il click e il dblclick del browser sulla master non arrivano.
-  const taps = masterTaps()
-  for (const ev of ['click', 'dblclick'] as const) window.addEventListener(ev, (e) => {
-    if (taps.swallow(performance.now()) && (e.target as Element | null)?.closest?.('.dpanel, .stackcol, .mbar, .mpanel')) { e.stopPropagation(); e.preventDefault() }
-  }, true)
-  function begin() { document.body.style.userSelect = 'none'; taps.dragged(performance.now()) }
-  // Il rilascio: la master va al posto della sagoma, e la scelta si ricorda; la sagoma sparisce quando è arrivata. Arrivata si
-  // ferma (app-altezza-senza-rimbalzo-06-11, Franz 06/11 10:59): lo schiacciamento d'atterraggio la allungava oltre la misura e
-  // la riportava indietro, il rimbalzo dopo il ridimensionamento.
-  function commit() {
-    const go = aim
-    aim = null; clearMarks()
-    if (!go) { masterGhost.drop(); return }
-    const vt = smooth(() => {
-      go()
-      save('cm.master_left', masterLeft ? '1' : '0'); save('cm.master_under', masterUnder ? '1' : '0'); save('cm.master_stack_h', stackH)
-    })
-    const arrived = vt ? vt.finished : tick().then(() => new Promise(r => setTimeout(r, MOVE_MS)))
-    masterGhost.land(arrived)
-  }
-  function revert() { aim = null; masterGhost.drop(); clearMarks() }
-  // La testata: il lato, dalla metà dello schermo sotto il dito; la sagoma è il posto di adesso, o lo stesso specchiato.
-  let sideHold: ReturnType<typeof steady<Side>> | null = null
-  let sideFrom: { area: Rect; r: Rect; side: Side } | null = null
-  function placeDrag(phase: 'move' | 'end' | 'cancel', x: number, y = 0) {
-    if (phase !== 'move') { sideHold = null; sideFrom = null; if (phase === 'end') commit(); else revert(); return }
-    begin()
-    const W = window.innerWidth
-    sideFrom ??= { area: areaRect(), r: placeNow() ?? placeRect(areaRect(), masterLeft ? 'left' : 'right', 'column', colWidth()), side: masterLeft ? 'left' : 'right' }
-    // Un margine di 48 px intorno al centro e la sosta: il lato non sfarfalla mentre il dito passa sul confine.
-    sideHold ??= steady<Side>(sideFrom.side)
-    const raw: Side = Math.abs(x - W / 2) < 48 ? sideHold.current : sideAt(W, x)
-    const { on, wait } = sideHold.feed(raw, performance.now())
-    clearTimeout(dwellTimer)
-    if (wait != null) dwellTimer = setTimeout(() => placeDrag('move', x, y), wait + 5)
-    const f = sideFrom
-    aimAt(on === f.side ? f.r : mirrorRect(f.area, f.r), on === 'left' ? t.masterPosLeft : t.masterPosRight, () => { masterLeft = on === 'left' })
-    // Le destinazioni (app-trascina-destinazioni-04-11): l'altro lato tratteggiato con la sua etichetta, e la linea a metà
-    // schermo che si accende quando il dito la passa.
-    const other: Side = on === 'left' ? 'right' : 'left'
-    masterGhost.hint([{ b: other === f.side ? f.r : mirrorRect(f.area, f.r), text: other === 'left' ? t.masterPosLeft : t.masterPosRight }])
-    const crossed = (x < W / 2) !== (f.side === 'left'), toward: Side = f.side === 'left' ? 'right' : 'left'
-    masterGhost.midline(W / 2, crossed, y, crossed ? t.masterMidRelease(toward === 'left' ? t.masterMidLeft : t.masterMidRight) : t.masterMidCross(toward === 'left' ? t.masterMidLeft : t.masterMidRight, toward === 'left' ? '←' : '→'))
-  }
-  // Il cambio di lato continua il gesto (app-lato-animazione-06-11, Franz 06/11 00:40: l'atterraggio era «avulso dal contesto
-  // del movimento appena fatto»): il pannello segue il dito; al rilascio cambia lato senza transizione di pagina, riparte da dove
-  // l'ha lasciato il dito con la sua velocità e la plancia dal suo posto di prima, insieme, con la molla breve senza rimbalzo
-  // (springFrames, come MasterFrame sul tablet); annullato torna indietro allo stesso modo. Col movimento ridotto, dissolvenza.
-  const sidePanel = () => document.querySelector<HTMLElement>('aside.stackcol, aside.dpanel:not(.stackcol), aside.mpanel')
-  const sideStage = () => document.querySelector<HTMLElement>('.deskwrap > .dstage, .plancia > .stage')
-  function springX(el: HTMLElement, from: number, v: number) {
-    const f = springFrames(from, v)
-    el.animate(f.map(x => ({ transform: `translateX(${x}px)` })), { duration: (f.length / 60) * 1000, easing: 'linear' })
-  }
-  function sideEnd(dx: number, v: number, cancelled: boolean) {
-    const go = cancelled ? null : aim
-    sideHold = null; sideFrom = null; aim = null
-    clearMarks(); masterGhost.drop()
-    const p0 = sidePanel()?.getBoundingClientRect(), s0 = sideStage()?.getBoundingClientRect()
-    const wasLeft = masterLeft
-    if (go) { go(); save('cm.master_left', masterLeft ? '1' : '0') }
-    void tick().then(() => {
-      const p = sidePanel(), s = sideStage()
-      if (!p) return
-      p.style.transform = ''; p.style.zIndex = ''
-      const changed = masterLeft !== wasLeft
-      if (reducedMotion()) { if (changed) p.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180 }); return }
-      const p1 = p.getBoundingClientRect()
-      springX(p, changed && p0 ? p0.left - p1.left : dx, v)
-      const s1 = s?.getBoundingClientRect()
-      if (changed && s && s0 && s1 && s0.left !== s1.left) springX(s, s0.left - s1.left, 0)
-    })
-  }
-  // La maniglia della testata: il gesto continua sulla finestra, dopo 6 px.
-  function sideGrip(e: PointerEvent) {
-    const x0 = e.clientX, y0 = e.clientY
-    let moved = false
-    const speed = velocity()
-    const panel = reducedMotion() ? null : sidePanel()
-    follow((m) => {
-      speed.add(m.clientX, m.timeStamp)
-      if (!moved && !isDrag(m.clientX - x0, m.clientY - y0)) return
-      moved = true
-      if (panel) { panel.style.transform = `translateX(${m.clientX - x0}px)`; panel.style.zIndex = '60' }
-      placeDrag('move', m.clientX, m.clientY)
-    }, (m) => { if (!moved) return; sideEnd(m ? m.clientX - x0 : (panel ? Number(/-?[\d.]+/.exec(panel.style.transform)?.[0] ?? 0) : 0), speed.speed(), !m) })
-  }
-  // La larghezza lasciata col bordo, in px; null = quella del tasto Allarga/Stringi (420 o 720). Una misura libera di prima
-  // (fino al 04/11) torna al posto fisso più vicino.
-  const savedW = Number(load('cm.master_w')) || null
-  let masterW = $state<number | null>(savedW == null ? null : widthAt(savedW, window.innerWidth))
-  const colWidth = () => masterW ?? (masterHalf ? COLUMN : 720)
-  let wDrag: number | null = null
-  // La colonna all'inizio del gesto e la larghezza che la sagoma mostra; Esc e la perdita del fuoco annullano anche qui.
-  let wCol: Rect | null = null, wAim = 0
-  const wKey = (e: KeyboardEvent) => { if (e.key === 'Escape') widthCancel() }
-  function widthListen(on: boolean) {
-    if (on) { window.addEventListener('keydown', wKey); window.addEventListener('blur', widthCancel) }
-    else { window.removeEventListener('keydown', wKey); window.removeEventListener('blur', widthCancel) }
-  }
-  // La corsa breve (app-master-corsa-breve-05-11): conta la direzione presa dal posto di partenza, non la metà della corsa.
-  let wFrom = 0, wSpeed = velocity()
-  function widthDown(e: PointerEvent) {
-    e.preventDefault(); wDrag = e.clientX; wAim = colWidth(); begin(); widthListen(true)
-    const st0 = widthStops(window.innerWidth)
-    wFrom = st0.reduce((b, v, i) => (Math.abs(v - wAim) < Math.abs(st0[b] - wAim) ? i : b), 0)
-    wSpeed = velocity(); wSpeed.add(e.clientX, e.timeStamp)
-    const el = e.currentTarget as HTMLElement
-    wCol = rectOf(el.parentElement); el.setPointerCapture(e.pointerId)
-  }
-  function widthCancel() {
-    if (wDrag == null) return
-    widthListen(false); revert()
-  }
-  // Posti fissi (Franz 04/11 10:29-10:30): la sagoma salta a un posto, mai nel mezzo. Quale lo dice la direzione: oltre 24 px il
-  // posto dopo da quella parte, sotto quello di partenza (step in gesture.ts). Un aggiornamento per fotogramma.
-  const widthOf = (x: number, v = 0) => {
-    const st0 = widthStops(window.innerWidth), sgn = masterLeft ? 1 : -1
-    return st0[step(st0, wFrom, (x - (wDrag ?? x)) * sgn, v * sgn)] ?? wAim
-  }
-  let wFrame = 0, wX = 0
-  function aimWidth(w: number) {
-    wAim = w
-    const col = wCol ?? placeRect(areaRect(), masterLeft ? 'left' : 'right', 'column', colWidth())
-    aimAt(widthRect(col, masterLeft ? 'left' : 'right', w), w === COLUMN ? t.masterLand.column : t.masterHalfScreen, () => {
-      masterW = w; masterHalf = w < (COLUMN + window.innerWidth / 2) / 2
-      save('cm.master_w', String(w)); save('cm.master_wide', masterHalf ? '0' : '1')
-    })
-  }
-  function widthMove(e: PointerEvent) {
-    if (wDrag == null) return
-    wX = e.clientX; wSpeed.add(e.clientX, e.timeStamp)
-    if (wFrame) return
-    wFrame = requestAnimationFrame(() => { wFrame = 0; aimWidth(widthOf(wX)) })
-  }
-  function widthUp(e?: PointerEvent) {
-    if (wDrag == null) return
-    widthListen(false)
-    // Al rilascio conta anche il colpo: la velocità decide la direzione e si proietta.
-    if (e) { cancelAnimationFrame(wFrame); wFrame = 0; aimWidth(widthOf(e.clientX, wSpeed.speed())) }
-    commit()
-  }
-  // L'altezza: le bande della colonna (masterLanding.ts), fissate all'inizio del gesto. Il lato non lo decide il dito
-  // e il gesto è solo verticale, sul lato di adesso: la riga in basso non ha più maniglie per lato (app-riga-senza-maniglie-15-11).
-  // La master di adesso (riga, pannello, master nella pila) e la molla in verticale: come springX del cambio di lato.
-  const liftEl = () => PLACES.map(q => document.querySelector<HTMLElement>(q)).find(Boolean) ?? null
-  function springY(el: HTMLElement, from: number, v: number) {
-    const f = springFrames(from, v)
-    el.animate(f.map(y => ({ transform: `translateY(${y}px)` })), { duration: (f.length / 60) * 1000, easing: 'linear' })
-  }
-  // Il rilascio di un cambio d'altezza: senza transizione di pagina né schiacciamento, la master d'arrivo parte da dove il dito ha
-  // lasciato quella di prima, con la sua velocità, e va al suo posto con la molla breve senza rimbalzo.
-  function heightEnd(el0: HTMLElement | null, vy: number, blob: ReturnType<typeof morphBlob> | null = null, vp = 0) {
-    const go = aim
-    aim = null; clearMarks(); masterGhost.drop()
-    const top0 = el0?.getBoundingClientRect().top ?? null
-    if (go) { go(); save('cm.master_left', masterLeft ? '1' : '0'); save('cm.master_under', masterUnder ? '1' : '0'); save('cm.master_stack_h', stackH) }
-    void tick().then(() => {
-      if (el0) { el0.style.transform = ''; el0.style.zIndex = '' }
-      const el = liftEl()
-      // Col blocco che cambia forma, la molla completa la forma sul posto vero; senza posto nuovo, torna indietro.
-      if (blob) { if (el && go) blob.land(el, vp); else blob.back(vp); return }
-      if (!el) return
-      if (reducedMotion()) { if (go) el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180 }); return }
-      if (top0 == null) return
-      const from = top0 - el.getBoundingClientRect().top
-      if (Math.abs(from) > 0.5) springY(el, from, vy)
-    })
-  }
-  function heightGesture(y0: number) {
-    let moved = false
-    // Le zone si calcolano una volta, all'inizio del gesto (app-trascina-rifinitura-04-11): rifarle a ogni movimento faceva
-    // sfarfallare il bersaglio dalla riga in basso. Anche le misure della sagoma.
-    const W0 = window.innerWidth, H0 = window.innerHeight, under = !deskDashboard
-    const w0 = barColW()
-    const side0: Side = masterLeft ? 'left' : 'right', side = side0
-    const col: Rect = side === 'left' ? { x: 0, y: 0, w: w0, h: H0 } : { x: W0 - w0, y: 0, w: w0, h: H0 }
-    const zs = heightZones(col, under)
-    const h0: Height = !masterOpen ? 'bar' : !masterUnder ? 'column' : stackH === 'compact' ? 'compact' : 'half'
-    measureSizes()
-    const area = areaRect(), here = placeNow()
-    const rectFor = (h: Height) => (side === side0 && h === h0 && here) || placeRect(area, side, h, w0, sizes)
-    // La corsa breve (app-master-corsa-breve-05-11): le bande dall'alto in basso, e al rilascio conta la direzione presa dalla
-    // banda di partenza; oltre 24 px, o con un colpo, la banda dopo da quella parte (step in gesture.ts).
-    const keys = zs.map(z => z.key), mids = zs.map(z => z.rect.y + z.rect.h / 2)
-    const from = Math.max(0, keys.indexOf(h0))
-    const speed = velocity()
-    speed.add(y0, performance.now())
-    let aimR: Rect | null = null
-    const aimH = (on: Height) => {
-      aimR = rectFor(on)
-      aimAt(aimR, t.masterLand[on], () => { if (!masterOpen && on !== 'bar') masterHalf = masterNarrow(); masterLeft = side === 'left'; setHeight(on) })
-      // Gli altri posti possibili sul lato in cui si è, accennati (app-trascina-destinazioni-04-11).
-      masterGhost.hint(zs.map(z => z.key).filter(k => k !== on).map(k => ({ b: rectFor(k), text: t.masterLand[k] })))
-    }
-    // Anche l'altezza continua il gesto (app-altezza-animazione-06-11): la master che si sposta segue il dito in verticale.
-    // Il blocco cambia forma col dito (app-master-morph-m3-06-11, morphBlob): al posto della master che si alzava intera.
-    const el0 = reducedMotion() ? null : liftEl()
-    let blob: ReturnType<typeof morphBlob> | null = null
-    let dy = 0
-    const apply = (e: PointerEvent) => {
-      speed.add(e.clientY, e.timeStamp)
-      if (!moved && Math.abs(e.clientY - y0) <= DRAG_PX) return
-      moved = true; begin()
-      dy = e.clientY - y0
-      aimH(keys[step(mids, from, e.clientY - y0)])
-      if (el0 && aimR) { blob ??= morphBlob(el0); blob.move(aimR, dy, e.clientX, e.clientY) }
-    }
-    follow(apply, (e) => {
-      clearTimeout(dwellTimer)
-      if (!e) { revert(); blob?.back(0); return }
-      if (!moved) {
-        // Un tocco senza trascinare: la maniglia sotto la home passa all'altezza dopo. La riga in basso non ha più maniglie
-        // (app-riga-senza-maniglie-15-11): si apre col tocco, col tiro in su o col tasto tondo.
-        if (stacked) taps.tap('stack', performance.now(), () => stepStack(1))
-        return
-      }
-      aimH(keys[step(mids, from, e.clientY - y0, speed.speed())])
-      const span = (aimR && blob ? aimR.y - blob.from.y : 0) || 1
-      heightEnd(el0, speed.speed(), blob, speed.speed() / span)
-    })
-  }
-  function heightDown(e: PointerEvent) { e.preventDefault(); heightGesture(e.clientY) }
-  // La presa in alto e la maniglia della pila, come nell'app (app-cambio-lato-come-app-05-11, Franz 05/11 23:53): trascinate di
-  // lato cambiano lato, in su o in giù l'altezza; il primo movimento oltre i 6 px decide. Un tocco resta quello di sempre.
-  function topDown(e: PointerEvent) {
-    e.preventDefault()
-    const x0 = e.clientX, y0 = e.clientY
-    const stop = () => { window.removeEventListener('pointermove', first); window.removeEventListener('pointerup', tap); window.removeEventListener('pointercancel', stop) }
-    const tap = () => { stop(); heightGesture(y0); window.dispatchEvent(new PointerEvent('pointerup', { clientX: x0, clientY: y0 })) }
-    const first = (m: PointerEvent) => {
-      if (!isDrag(m.clientX - x0, m.clientY - y0)) return
-      stop()
-      if (Math.abs(m.clientX - x0) > Math.abs(m.clientY - y0)) sideGrip(e)
-      else heightGesture(y0)
-      // Il gesto scelto riparte da qui: il movimento che l'ha deciso conta già.
-      window.dispatchEvent(new PointerEvent('pointermove', { clientX: m.clientX, clientY: m.clientY }))
-    }
-    window.addEventListener('pointermove', first); window.addEventListener('pointerup', tap); window.addEventListener('pointercancel', stop)
-  }
-  // La larghezza della colonna dove la master atterra: le maniglie della riga stanno sul suo asse, da un lato e dall'altro.
-  // Chiusa, la master si apre stretta o larga come l'ultima volta (masterNarrow), e nella plancia senza la misura del bordo.
-  const barColW = () => { const narrow = masterOpen ? masterHalf : masterNarrow(); return deskDashboard ? (narrow ? COLUMN : 720) : masterW ?? (narrow ? COLUMN : 720) }
-  // La riga in basso tirata su dal testo (Franz 22:30 e 22:34): si apre alle altezze del bordo superiore, sul lato di adesso.
-  let barGesture = false
-  function barDrag(phase: 'move' | 'end' | 'cancel', _x: number, y: number) {
-    if (phase !== 'move' || barGesture) return
-    barGesture = true
-    heightGesture(y)
-    window.addEventListener('pointerup', () => { barGesture = false }, { once: true })
-  }
-  // Con la master sotto la home (app-home-sfuma-sopra-master-04-11, Franz 04/11 18:57): gli ultimi 32 px della home che scorre
-  // sfumano verso il fondo della colonna, solo finché sotto c'è altro; in fondo l'ultima riga si legge intera. Una maschera sul
-  // bordo, mai l'opacità delle righe.
+  // Gli ultimi 32 px della home che scorre sfumano verso il fondo (app-home-sfuma-sopra-master-04-11, Franz 04/11 18:57), solo
+  // finché sotto c'è altro; in fondo l'ultima riga si legge intera. Una maschera sul bordo, mai l'opacità delle righe.
   function fadeEnd(top: HTMLElement) {
     const check = () => {
       const s = top.querySelector<HTMLElement>('section.home')
@@ -1272,13 +866,6 @@
     return { destroy() { top.removeEventListener('scroll', check, true); ro.disconnect(); mo.disconnect() } }
   }
 
-  function setHeight(h: Height) {
-    if (h === 'bar') { masterOpen = false; return }
-    masterOpen = true
-    masterUnder = h !== 'column'
-    if (masterUnder) stackH = h === 'compact' ? 'compact' : 'half'
-  }
-  function masterSizeKey() { masterSize(); masterW = null; save('cm.master_w', '') }
   // Telefono: la sessione aperta, o la home.
   let open = $state<string | null>(linked != null && known(linked) && linked !== MASTER ? linked : null)
   // Chiusa una sessione, la sua pagina non sparisce (Franz, 08/10 18:06): resta com'era l'ultima volta, chiusa, sotto il
@@ -1453,13 +1040,13 @@
     const reflow = wide && !m
     const delays = reflow ? waveDelays() : null
     if (reflow) { reflowN++; document.documentElement.classList.add('reflow'); oneName(focus) }
-    const vt = document.startViewTransition(m ? async () => { m.before(); go(); await tick(); m.after() } : reflow ? async () => { const was = stacked; go(); await tick(); oneName(focus); order(was, stacked) } : go)
+    const vt = document.startViewTransition(m ? async () => { m.before(); go(); await tick(); m.after() } : reflow ? async () => { go(); await tick(); oneName(focus) } : go)
     for (const p of [vt.ready, vt.finished, vt.updateCallbackDone]) p.catch(() => {})
     if (delays?.size) vt.ready.then(() => waveApply(delays), () => {})
     if (m) vt.finished.catch(() => {}).finally(m.done)
     if (reflow) vt.finished.catch(() => {}).finally(() => {
       if (--reflowN > 0) return
-      document.documentElement.classList.remove('reflow', 'reflow-master-first', 'reflow-home-first')
+      document.documentElement.classList.remove('reflow')
       for (const el of document.querySelectorAll<HTMLElement>('[data-vt], .desk .col[data-col]')) { el.style.removeProperty('view-transition-name'); el.style.removeProperty('view-transition-class') }
     })
     return vt
@@ -1467,9 +1054,6 @@
   // I nomi del cambio, prima e dopo: un nome doppio annulla tutta la transizione, quindi il secondo resta senza. La sessione
   // `focus` è una cosa sola: la sua colonna se c'è, se no la sua scheda, così aprendo la scheda si espande nella colonna e
   // chiudendo la colonna rientra nella scheda, mentre le altre scivolano al loro posto.
-  // Chi si muove prima (Franz 04/11 dal telefono: «durante la riduzione della master da una colonna a metà colonna alcuni elementi si
-  // sovrappongono»): quando la master scende sotto la home si ritira prima lei e poi entrano le schede; quando risale escono prima
-  // le schede e poi lei cresce. Così le une non passano mai sopra l'altra.
   // A onda (app-effetti-movimenti-04-11, punto 6): ogni scheda parte un poco dopo quella sopra e a sinistra, 18 ms a passo e al
   // massimo 160, così il riposizionamento corre come un'onda dall'angolo in alto a sinistra. I ritardi stanno in uno stile della
   // transizione, tolto alla fine; la scheda che diventa colonna parte subito.
@@ -1492,18 +1076,6 @@
       const d = n == null ? undefined : delays.get(n) ?? delays.get(n.replace(/\\(.)/g, '$1'))
       if (d) a.effect?.updateTiming({ delay: d })
     }
-  }
-  // Compatta ed estesa (app-effetti-movimenti-04-11, punto 8): mentre la master cambia misura gli angoli si piegano verso
-  // l'interno e tornano con la molla (`html.fx-corners` in v3.css).
-  function corners(go: () => void) {
-    if (!reducedMotion()) { document.documentElement.classList.add('fx-corners'); setTimeout(() => document.documentElement.classList.remove('fx-corners'), 900) }
-    smooth(go)
-  }
-  function order(was: boolean, now: boolean) {
-    const c = document.documentElement.classList
-    c.remove('reflow-master-first', 'reflow-home-first')
-    if (!was && now) c.add('reflow-master-first')
-    else if (was && !now) c.add('reflow-home-first')
   }
   function oneName(focus: string | null) {
     const seen = new Set<string>()
@@ -1935,7 +1507,6 @@
     else if (!wide && open) smooth(() => { open = null })
     else if (masterOpen) smooth(() => { masterOpen = false })
   })
-  let masterDraft = $state('')
   /** Vero se il PC ha preso il messaggio (app-feedback-azioni-02-11: chi ha toccato sa se la scheda può uscire). */
   async function sendTo(name: string, text: string): Promise<boolean> {
     // Senza trasporto il messaggio resta «inviato al PC».
@@ -2336,7 +1907,7 @@
     wide={false} {slots} elsewhere={elsewhereFor(name)} elsewhereAway={embed ? (() => { const a = elsewhereFor(name); return a ? awayOf(a, st.sessions, location.origin) : null })() : null} onElsewhere={() => { const a = elsewhereFor(name); if (a) openAlert(a, name) }}
     onElsewhereDismiss={() => { const a = elsewhereFor(name); if (a) seenAlerts = new Set([...seenAlerts, ...alertKeys(a)]) }} onBack={inColumn ? undefined : () => smooth(() => { open = null })}
     inject={name === MASTER ? masterInject : null} onInjected={() => (masterInject = null)} onUsage={goUsage} onOlder={olderOf[name] ? () => loadOlder(name) : null} onNewer={newerOf[name] ? () => loadNewer(name) : null} onLatest={newerOf[name] ? () => toLatest(name) : null}
-    onGo={inColumn ? null : (n) => (n == null ? smooth(() => { open = null }) : pick(n))} onReopen={st.ops?.includes('reopen') ? (n) => cmd(n)('reopen') : null} appMenu={inColumn ? null : appMenu} menuMove={null}
+    onGo={inColumn ? null : (n) => (n == null ? smooth(() => { open = null }) : pick(n))} onReopen={st.ops?.includes('reopen') ? (n) => cmd(n)('reopen') : null} appMenu={inColumn ? null : appMenu}
     onDiff={st.ops?.includes('diff') ? (id) => ask(tr, newCmd('diff', name, id), decodeDiff) : null}
     onChanges={st.ops?.includes('changes') ? (f) => ask(tr, newCmd('changes', name, f == null ? null : fileArg(f)), decodeChanges) : null} />
 {/snippet}
@@ -2395,19 +1966,6 @@
         onApprove={approve} {todo} {sessionTodo} onApprovalClose={closeApproval} onDone={attentionDone} onOk={(n, x) => sendTo(n, x)} onClose={(n, save) => (save ? cmd(n)('close', 'save') : cmd(n)('slash', 'exit'))} closeSave={!!st.ops?.includes('close')} onSessionCmd={(n, op, arg) => cmd(n)(op, arg)} agenda={agenda.page} {donePages} onLavori={() => openPage('lavori')} onEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
         {usageFocus} onUsageFocused={() => (usageFocus = 0)} onSpeak={(x) => toggle(x)}
         {events} sent={scheduled} {read} {now} onService={service} lastNight={nightModel} onReopen={st.ops?.includes('reopen') ? (n) => cmd(n)('reopen') : null} onJump={(n, entry) => { openPage(null); pick(n); void jumpTo(n, entry) }} />{/snippet}
-{#snippet masterQuick()}
-  {@const m = st.sessions.find(x => x.name === MASTER)}
-  {#if m}
-    <!-- Il campo della master da chiusa (Franz, 06/10 10:45-10:54): lo stesso della conversazione, + compreso; mandare apre
-         la conversazione. -->
-    <div class="mquick">
-      <Composer {st} s={m} bind:draft={masterDraft} field={null} toMaster onSend={(x) => { sendTo(MASTER, x); smooth(() => { masterOpen = true }) }}
-        onAnswerText={(arg) => cmd(MASTER)('answer', arg)} onSlash={(c, a) => { cmd(MASTER)('slash', c, a ?? undefined); smooth(() => { masterOpen = true }) }}
-        onStop={() => cmd(MASTER)('interrupt')} onReopen={() => cmd(MASTER)('reopen')}
-        onAttach={(fs, x) => { attach(MASTER, fs, x); smooth(() => { masterOpen = true }) }} onRecurring={null} />
-    </div>
-  {/if}
-{/snippet}
 
 {#snippet pageView(p: PageName)}
   <!-- La scheda «Ti aspetta» (contratto 1.130, app-scheda-ti-aspetta-07-11): ha la sua testata, con la sessione e da quanto aspetta. -->
@@ -2499,22 +2057,9 @@
 {#snippet lavoriRight()}<Lavori onSpeak={(x) => toggle(x)} onWait={unified ? openWait : null} st={stShown} agenda={agenda.page} {events} {now} header="none" part="right" kpi={kpiData} onApprove={approve} onAgendaEdit={editAgenda} onStart={(a) => sendTo(a.to, a.send)} onDoneForPerson={doneForPerson}
   onNight={() => openPage('night')} onSession={(n) => pick(n)} {donePages} onLoadDay={loadDone} />{/snippet}
 {#snippet deskTasks()}<DeskWork part="progress" st={stShown} agenda={agenda.page} {now} {events} {donePages} onLavori={() => openPage('lavori')} />{/snippet}
-<!-- La master nella plancia (pwa2): la barra in fondo, fuori dalla griglia; a metà o aperta un pannello a destra, alto quanto lo
-     schermo (420 o 720 px). Il tasto tondo allarga o stringe, la × chiude; il tocco sulla barra stringe e poi chiude. -->
-<!-- La barra larga: prima il campo, poi il testo della master (Franz 03/11 16:45, dalla PWA). -->
 <!-- Lo scheletro di una colonna della plancia finché il relay non risponde (app-avvio-senza-salto-04-11, Franz 04/11: «compare
      prima semivuota e poi di colpo piena»). -->
 {#snippet pskel()}<div class="skel" aria-hidden="true"><i class="h"></i><i></i><i class="s"></i><i></i><i class="s"></i><i></i></div>{/snippet}
-<!-- Il tasto tondo della master, lo stesso nella riga in basso e in testa al pannello (app-sposta-master-a-13-11). -->
-{#snippet masterKey()}<MasterKey now={masterSpot} sessionsOpen={!deskDashboard} up={!masterOpen} label={''}
-  onToggle={() => smooth(() => { if (masterOpen) masterOpen = false; else { masterOpen = true; masterHalf = masterNarrow() } })} onPreview={keyPreview} onMove={keyMove} />{/snippet}
-{#snippet masterBar()}{#if master}<div class="mbar" style:view-transition-name={wide && !masterOpen ? 'master-morph' : null}><div class="mquick">{@render masterQuick()}</div><MasterDock {master} entries={transcripts[MASTER] ?? []} bar onPlace={wide ? barDrag : undefined} onToggle={() => smooth(() => { masterOpen = true; masterHalf = masterNarrow() })} onSpeak={(x) => toggle(x, MASTER)} />{@render masterKey()}</div>{/if}{/snippet}
-<!-- Il pannello della master nel cruscotto con le prese di quello accanto alle colonne (web-maniglia-riga-colonna-06-11, Franz
-     06/11 00:05): la presa in alto ‹ ━ › porta alla riga in basso o cambia lato, la corsia la larghezza; come MasterFrame sul tablet. -->
-{#snippet masterPanelGrips()}<button class="wgrip" class:onleft={masterLeft} aria-label={t.masterWidthEdge} title={t.masterWidthEdge} onpointerdown={widthDown} onpointermove={widthMove} onpointerup={widthUp} onpointercancel={widthCancel}></button><button class="hgrip top" aria-label={t.masterGrab} title={t.masterGrab} onpointerdown={topDown}><i></i></button>{@render masterPanel('dash')}{/snippet}
-{#snippet masterPanel(where: 'dash' | 'desk')}{#if master}<MasterDock {master} entries={transcripts[MASTER] ?? []} expanded side keys={false} lead={masterKey} mirror={masterLeft} toggleUp={masterHalf} onToggle={() => taps.tap('head', performance.now(), () => smooth(() => { if (stacked) stepStack(1); else if (masterHalf) masterOpen = false; else masterHalf = true }))}
-  onToggleKey={() => corners(masterSizeKey)} onClose={() => smooth(() => { masterOpen = false })} onMove={moveMaster} moveLabel={moveLabelOf()} onSpeak={(x) => toggle(x, MASTER)} />{#if stacked && stackH === 'half'}<button class="headkey" aria-expanded={stackHead} onclick={() => smooth(() => (stackHead = !stackHead))}>{t.masterHeadRow}<span class="ms" aria-hidden="true">{stackHead ? 'expand_less' : 'expand_more'}</span></button>{/if}<div class="mchat" {@attach chatHost(where)}></div>{/if}{/snippet}
-
 
 {#snippet deskPage()}{#if page}{@render pageView(page)}{/if}{/snippet}
 <!-- app-posizioni-sistema-27-11 gruppo 4: il foglio della master sulla plancia senza sessioni; la conversazione arriva spostata qui. -->
@@ -2538,8 +2083,8 @@
   <!-- Le sessioni a sé (app-home-sessioni-a-se-08-11, scelta A di Franz 08/11 18:35): la colonna Sessioni prima, poi le categorie
        nell'ordine della home, Lavori (Notte, In corso, Esiti e Fatto oggi) in una colonna sua. -->
   <!-- app-posizioni-sistema-27-11 gruppo 4: senza sessioni il foglio della master sta sopra le colonne, a destra, largo quanto la colonna
-       della home; il pannello di lato e la barra in fondo sono spenti (legacyPlaces). -->
-  <Plancia {width} order={['sessions', ...decodeCats(st.home_order).map(c => c.id).filter(id => id !== 'out')]} top={null} panel={legacyPlaces && master && masterOpen ? masterPanelGrips : null} panelWide={!masterHalf} panelLeft={legacyPlaces && masterLeft}
+       della home (gruppo 5: via il pannello di lato e la barra in fondo). -->
+  <Plancia {width} order={['sessions', ...decodeCats(st.home_order).map(c => c.id).filter(id => id !== 'out')]} top={null}
     sheet={master && !cols.includes(MASTER) ? dashSheet : null} sheetRow={dashRowH}>
     {#snippet head()}<AppBar {st} now={now} openCount={summary.open} onPage={openPage} onFeedback={openFeedback} quota={false} />{/snippet}
     <!-- Lo spazio in cima della home (app-home-in-cima-02-11): una fascia a tutta larghezza sopra le colonne. -->
@@ -2549,19 +2094,18 @@
     {#snippet work()}{#if ready}<div class="pboot" class:boot={bootFade} style:animation-delay="60ms"><DeskHead kind="work" h={kpiHeadOf(st, kpiPage, now)} {st} {now} progress={lavoriInProgress(st, agenda.page, now, Intl.DateTimeFormat().resolvedOptions().timeZone, todayIso()).total} onOpen={() => openPage('lavori')} />{@render homeView('work')}<DeskWork part="done" st={stShown} agenda={agenda.page} {now} {events} {donePages} onLavori={() => openPage('lavori')} /></div>{:else}{@render pskel()}{/if}{/snippet}
     {#snippet out()}{#if ready}<div class="pboot" class:boot={bootFade} style:animation-delay="120ms"><DeskHead kind="out" h={kpiHeadOf(st, kpiPage, now)} {st} {now} onOpen={() => openPage('box-esiti')} />{@render homeView('out')}<DeskNight night={nightModel} loading={night.loading} onNight={() => openPage('night')} /><DeskWork part="done" st={stShown} agenda={agenda.page} {now} {events} {donePages} onLavori={() => openPage('lavori')} /></div>{:else}{@render pskel()}{/if}{/snippet}
     {#snippet tools()}{#if ready}<div class="pboot" class:boot={bootFade} style:animation-delay="180ms"><DeskHead kind="tools" h={kpiHeadOf(st, kpiPage, now)} {st} {now} onOpen={() => openPage('overview')} />{@render homeView('tools')}<DeskTools {st} {now} onPick={card} onTalk={talk} onLaunch={(pr) => cmd(pr.name)('launch', pr.path)} /></div>{:else}{@render pskel()}{/if}{/snippet}
-    {#snippet bar()}{#if legacyPlaces}{@render masterBar()}{/if}{/snippet}
   </Plancia>
   </div></div>{/if}
-  <!-- Con le sessioni aperte la master si comporta come senza (variante A, app-pwa-master-tasti-03-11): chiusa la barra in fondo,
-       aperta il pannello di lato con i tasti di sempre (lato, metà schermo, chiudi); lato e misura restano ricordati. -->
+  <!-- Con le sessioni aperte la master è lo stesso foglio, sopra la colonna della home (HomePane); le colonne non si spostano
+       (app-posizioni-sistema-27-11 gruppi 4 e 5). -->
   {#if keepBoth || !deskDashboard}<div class="wslot">
-  <div class="deskwrap" class:left={legacyPlaces && masterLeft} class:stacked class:homerow={homeInRow} style:--hr={homeInRow ? `${rowHeight(homeVoices)}px` : null} {@attach park(!deskDashboard)}>
+  <div class="deskwrap" {@attach park(!deskDashboard)}>
   <div class="dstage">
-  <!-- Proposta 1 (Franz 03/11 13:30, app-pwa-master-tasti-03-11): home e master stanno insieme, la master sul bordo e la home
-       accanto; «Sposta» della master porta di lato tutte e due. Le frecce della home restano solo senza master. -->
+  <!-- Con la master la home sta a destra, sotto il suo foglio (app-posizioni-sistema-27-11 gruppo 4); le frecce della home restano solo
+       senza master. -->
   <Desk {cols} {shares} homeRight={master ? true : homeRight} tab={wco ? columnTab : null} onCols={dropCols} onShares={setShares} override={page ? deskPage : null} details={details && cols.length && !page ? inspector : null}
     onHomeSide={master ? null : () => smooth(() => { homeRight = !homeRight; save('cm.home_right', homeRight ? '1' : '0') })}>
-    {#snippet home()}{#if !stacked && !homeInRow}{@render homePane()}{/if}{/snippet}
+    {#snippet home()}{@render homePane()}{/snippet}
     <!-- app-colonne-strette-05-11 (scelta A): la colonna senza posto leggibile è una striscia; la X la toglie come quella della testata. -->
     {#snippet strip(name, open)}
       {@const ses = st.sessions.find(x => x.name === name)}
@@ -2596,15 +2140,9 @@
         onLaunch={(pr) => cmd(pr.name)('launch', pr.path)} />{/if}
     {/snippet}
   </Desk>
-  {#if legacyPlaces && master && !masterOpen && !cols.includes(MASTER)}{@render masterBar()}{/if}
   <!-- + e › nel bordo accanto a ogni sessione della home (app-sessione-sostituisci-03-11). -->
   {#if cols.length && !page}<SwapPills shown={cols} homeRight={master ? true : homeRight} onAdd={(n) => { if (!cols.includes(n)) setCols(add(cols, n)) }} onClose={(n) => setCols(cols.filter(c => c !== n))} />{/if}
   </div>
-  {#if legacyPlaces && master && masterOpen && !cols.includes(MASTER) && !stacked}<aside class="dpanel" class:wide={!masterHalf} style:view-transition-name="master-morph" style:width={masterW ? `${masterW}px` : null}><button class="wgrip" aria-label={t.masterWidthEdge} title={t.masterWidthEdge} onpointerdown={widthDown} onpointermove={widthMove} onpointerup={widthUp} onpointercancel={widthCancel}></button><button class="hgrip top" aria-label={t.masterGrab} title={t.masterGrab} onpointerdown={topDown}><i></i></button>{@render masterPanel('desk')}</aside>{/if}
-  <!-- La Home in riga, in fondo a tutta larghezza (app-home-riga-c1-13-11). -->
-  {#if homeInRow}<div class="hrowwrap"><HomeRow voices={homeVoices} {now} onOpen={openVoice} onHome={() => setHomeRow(false)} /></div>{/if}
-  <!-- Home sopra e master sotto, nel lato e nella larghezza della master (Franz 03/11 17:30 e 17:31). -->
-  {#if stacked}<aside class="dpanel stackcol" class:wide={!masterHalf} style:width={masterW ? `${masterW}px` : null}><button class="wgrip" aria-label={t.masterWidthEdge} title={t.masterWidthEdge} onpointerdown={widthDown} onpointermove={widthMove} onpointerup={widthUp} onpointercancel={widthCancel}></button><div class="hstack" data-h={stackH}><div class="hs-top" use:fadeEnd>{@render homePane()}</div><button class="grip" aria-label={t.masterStackStep} title={t.masterStackStep} onpointerdown={topDown}><i></i></button><div class="dpanel under" style:view-transition-name="master-morph" class:compact={stackH === 'compact'} class:nohead={stackH === 'half' && !stackHead}>{@render masterPanel('desk')}</div></div></aside>{/if}
   </div>
   </div>{/if}
   {#if master && !cols.includes(MASTER)}<div class="wslot"><div class="wslot" {@attach chatNode}>{@render chatOf(MASTER, true, true)}</div></div>{/if}
@@ -2663,7 +2201,6 @@
 {/if}
 
 <style>
-  .mquick { padding: 0 0 4px; }
   .phone { height: 100%; display: flex; flex-direction: column; max-width: 760px; margin: 0 auto; }
   .list { flex: 1; min-height: 0; }
   .strip { flex: 1; min-height: 0; display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; }
@@ -2720,7 +2257,7 @@
   .rbar b { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; }
   .rbar small { color: var(--text2); font: 500 12.5px/1 var(--mono); }
   .rclose { width: 40px; height: 40px; border-radius: 50%; background: var(--high); color: var(--text); }
-  /* La plancia (pwa2, 30/10): la barra della master in fondo, col campo accanto; il pannello a destra con la conversazione. */
+  /* La plancia con le sessioni aperte: le colonne, e la master nel foglio sopra la colonna della home (app-posizioni-sistema-27-11 gruppo 5). */
   .deskwrap { height: 100%; display: flex; min-height: 0; }
   /* Esiti chiuso in fondo a Tocca a te (J2): come i titoli dei gruppi; il tocco apre il foglio degli esiti. */
   /* Le stesse misure dei titoli dei gruppi (.sec della home: 18/700, icona a 8 px, numero 15/600; web-tocca-apribile-06-11):
@@ -2729,104 +2266,10 @@
   .cstrip { height: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 8px 0; cursor: pointer; background: var(--bg); min-height: 0; }
   .cstrip .sx { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 16px; color: var(--text2); }
   .cstrip .sname { writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; overflow: hidden; min-height: 0; font: 600 14px var(--display); color: var(--text); }
-  /* L'anteprima a fantasma (landingMorph.ts; scelta A, app-trascina-rifinitura-04-11): lo sfondo appena più scuro e la sagoma
-     gialla traslucida del posto d'arrivo, con l'etichetta piccola dentro, in alto. */
-  :global(.master-ghost-dim) { position: fixed; inset: 0; z-index: 70; pointer-events: none; background: rgb(0 0 0 / .22); }
-  :global(.master-ghost) { position: fixed; z-index: 71; pointer-events: none; box-sizing: border-box; border-radius: 14px; background: color-mix(in srgb, var(--wait) 16%, transparent); border: 2px solid color-mix(in srgb, var(--wait) 70%, transparent); }
-  :global(.master-ghost > span) { position: absolute; left: 50%; top: 10px; translate: -50% 0; max-width: calc(100% - 16px); overflow: hidden; text-overflow: clip; white-space: nowrap; padding: 3px 10px; border-radius: 10px; background: var(--s2); color: var(--tx); font: 600 13px var(--display); }
-  /* Le altre destinazioni (app-trascina-destinazioni-04-11): contorno tratteggiato giallo leggero, senza riempimento, con l'etichetta
-     piccola; la linea sottile a metà schermo, accesa quando il dito l'ha passata. */
-  :global(.master-ghost-hint) { position: fixed; z-index: 71; pointer-events: none; box-sizing: border-box; border-radius: 14px; border: 2px dashed color-mix(in srgb, var(--wait) 30%, transparent); }
-  :global(.master-ghost-hint.veil) { border: 0; background: color-mix(in srgb, var(--tx) 8%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tx) 16%, transparent); }
-  :global(.master-ghost-hint.veil > span) { display: none; }
-  :global(.master-ghost-hint > span) { position: absolute; left: 50%; top: 10px; translate: -50% 0; max-width: calc(100% - 16px); overflow: hidden; white-space: nowrap; padding: 3px 10px; border-radius: 10px; background: var(--s2); color: var(--tx2); font: 600 13px var(--display); }
-  :global(.master-ghost-mid) { position: fixed; z-index: 72; top: 0; bottom: 0; width: 0; margin-left: -1.5px; pointer-events: none; border-left: 3px dashed color-mix(in srgb, var(--wait) 55%, transparent); transition: border-color .12s; }
-  :global(.master-ghost-mid.crossed) { border-left-style: solid; border-color: var(--wait); filter: drop-shadow(0 0 6px color-mix(in srgb, var(--wait) 60%, transparent)); }
-  /* La pillola sulla linea, all'altezza del dito: «Oltre questa linea: a sinistra ←», passata «Rilascia: a sinistra». */
-  :global(.master-ghost-mid > b) { position: absolute; left: 0; translate: -50% -50%; white-space: nowrap; padding: 6px 12px; border-radius: 14px; background: var(--s2); border: 1px solid color-mix(in srgb, var(--wait) 55%, transparent); color: var(--tx); font: 600 14px var(--display); box-shadow: 0 6px 18px rgb(0 0 0 / .45); }
-  :global(.master-ghost-mid.crossed > b) { background: var(--wait); border-color: var(--wait); color: #1a1300; }
-  @media (prefers-reduced-motion: reduce) { :global(.master-ghost-mid) { transition: none; } }
-  /* Il bordo della master si trascina senza transizioni sotto: le colonne seguono il dito subito. */
-  .deskwrap.left { flex-direction: row-reverse; }
   .dstage { flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 0; }
   .dstage > :global(:first-child) { flex: 1; min-height: 0; }
-  .dpanel { flex: none; width: 420px; display: flex; flex-direction: column; min-height: 0; background: var(--s1); border-left: 1px solid var(--line); }
-  .dpanel.wide { width: 720px; }
-  .deskwrap.left .dpanel { border-left: 0; border-right: 1px solid var(--line); }
-  /* La corsia, una per tutte le posizioni della master come nell'app (app-tablet-barre-bordi-05-11): fra le sessioni e il
-     pannello 28 px con la linea a metà; la presa della larghezza è tutta la corsia. Nella pila la corsia è quella della plancia. */
-  .deskwrap > .dpanel { border-left: 0; border-right: 0; margin-left: 28px; }
-  .deskwrap.left > .dpanel { margin-left: 0; margin-right: 28px; }
-  .deskwrap > .dpanel.stackcol { margin: 0; }
-  /* I bordi della master (app-master-trascina-03-11): quello verso le sessioni allarga e stringe, quello in alto cambia l'altezza. */
-  .dpanel { position: relative; }
-  .wgrip { position: absolute; z-index: 5; top: 0; bottom: 0; left: -28px; width: 28px; cursor: ew-resize; touch-action: none; }
-  .deskwrap.left .wgrip, .wgrip.onleft { left: auto; right: -28px; }
-  .wgrip::before { content: ''; position: absolute; left: 13.5px; top: 0; bottom: 0; width: 1px; background: var(--line); }
-  .stackcol > .wgrip::before { display: none; }
-  .wgrip::after { content: ''; position: absolute; left: 12px; top: 50%; width: 4px; height: 48px; margin-top: -24px; border-radius: 2px; background: var(--tx3); opacity: .55; transition: opacity .15s, height .15s, margin-top .15s; }
-  .wgrip:hover::after, .wgrip:active::after { opacity: 1; height: 72px; margin-top: -36px; background: var(--tx2); }
-  .hgrip { position: absolute; z-index: 5; top: 0; left: 30%; right: 30%; height: 12px; display: grid; place-items: center; cursor: ns-resize; touch-action: none; }
-  .hgrip i { width: 48px; height: 4px; border-radius: 2px; background: var(--tx3); opacity: .55; transition: opacity .15s, width .15s; }
-  .hgrip:hover i, .hgrip:active i { opacity: 1; width: 72px; background: var(--tx2); }
-  /* ‹ ━ ›: la presa in alto e la maniglia della pila cambiano anche lato, di traverso (come TopGripMark nell'app). */
-  .hgrip.top, .hstack .grip { display: flex; align-items: center; justify-content: center; gap: 5px; cursor: move; }
-  /* Le frecce accanto alla maniglia non ci sono più (app-sposta-master-a-13-11): per spostare c'è il tasto tondo; la maniglia resta per trascinare. */
-  .dpanel.under .wgrip, .dpanel.under .hgrip { display: none; }
-  .hstack { height: 100%; display: flex; flex-direction: column; min-height: 0; }
-  .hs-top { flex: 1; min-height: 0; overflow: auto; }
-  /* La stessa sfumatura sopra la barra della master al telefono (app-sfumatura-master-home-06-11, Franz 06/11 12:52). */
-  .list :global(section.home.fade-end), .hs-top :global(section.home.fade-end) { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent); }
-  /* Con home e master nella colonna della master, la griglia delle sessioni non tiene più il posto della home. */
-  /* La maniglia della plancia resta: è la corsia fra le sessioni e la colonna della pila, col + e il filo delle schede. */
-  /* La Home in riga: la colonna della Home si chiude come sotto la master, e in fondo resta il posto della riga. */
-  .deskwrap.homerow { position: relative; padding-bottom: var(--hr, 64px); }
-  .hrowwrap { position: absolute; left: 0; right: 0; bottom: 0; z-index: 4; }
-  .deskwrap.homerow :global(.desk) { grid-template-columns: 0 28px minmax(0, 1fr); }
-  .deskwrap.homerow :global(.desk.right) { grid-template-columns: minmax(0, 1fr) 28px 0; }
-  .deskwrap.homerow :global(.desk.details) { grid-template-columns: 0 28px minmax(0, 1fr) 341px; }
-  .deskwrap.stacked :global(.desk) { grid-template-columns: 0 28px minmax(0, 1fr); }
-  .deskwrap.stacked :global(.desk.right) { grid-template-columns: minmax(0, 1fr) 28px 0; }
-  .deskwrap.stacked :global(.desk.details) { grid-template-columns: 0 28px minmax(0, 1fr) 341px; }
-  .deskwrap.stacked :global(.desk.right.details) { grid-template-columns: 341px minmax(0, 1fr) 28px 0; }
-  .deskwrap.stacked :global(.desk > .home) { display: none; }
-  .dpanel.stackcol { background: var(--bg); }
-  .hstack[data-h='compact'] > .dpanel.under { flex: none; }
-  .hstack .grip { flex: none; height: 14px; margin: -8px 0 -6px; display: grid; place-items: center; cursor: ns-resize; touch-action: none; }
-  .hstack .grip i { width: 48px; height: 4px; border-radius: 2px; background: var(--tx3); opacity: .55; transition: opacity .15s, width .15s; }
-  .hstack .grip:hover i, .hstack .grip:active i { opacity: 1; width: 72px; background: var(--tx2); }
-  /* Col dito le prese sottili si toccano su 28 px, il segno resta quello (app-tablet-barre-bordi-05-11). */
-  @media (pointer: coarse) {
-    .hgrip { height: 28px; }
-    .hstack .grip { height: 28px; margin: -15px 0 -13px; }
-  }
-  .dpanel.under.compact .mchat :global(section.chat > :not(.bar)) { display: none; }
-  .dpanel.under.compact .mchat { flex: none; }
-  /* Compatta: il testo della master si legge tutto scorrendo con la rotella, nelle due righe che occupa (Franz 03/11 22:01). */
-  .dpanel.under.compact :global(.dock .col > .hl) { display: block; -webkit-line-clamp: unset; line-clamp: none; max-height: 2.9em; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
-  /* A metà la riga di modello, modifiche e contesto è chiusa; si apre col tasto a fisarmonica (Franz 03/11 17:44). */
-  .dpanel.under.nohead .mchat :global(section.chat > header) { display: none; }
-  .headkey { display: flex; align-items: center; gap: 6px; margin: 0 12px; padding: 4px 8px; align-self: flex-start; border-radius: 12px; color: var(--text2); font: 400 12.5px var(--mono); }
-  .headkey:hover { background: var(--s2); }
-  /* Uno stacco netto fra home e master nella stessa colonna (app-master-tasti-compatti-03-11): un vuoto e la master come scheda. */
-  .hstack { gap: 12px; background: var(--bg); }
-  .dpanel.under { flex: 1; width: auto; border: 1px solid var(--line); border-radius: 18px 18px 0 0; box-shadow: 0 -8px 24px rgb(0 0 0 / .4); }
-  .mbar { flex: none; display: flex; align-items: center; gap: 12px; padding: 5px 12px; border-top: 1px solid var(--line); background: var(--s1); }
-  .mbar { position: relative; }
-  /* Il campo centrato in altezza con il testo della master e la freccia (Franz 03/11 18:01): niente margine in basso qui. */
-  .mbar .mquick { padding: 0; align-self: center; }
-  .mbar .mquick :global(.bar) { margin-top: 0; margin-bottom: 0; }
-  /* Più spazio alla risposta che al campo (Franz 04/11 11:11, app-master-riga-risposta-04-11): la risposta prende almeno il 60 %
-     e va su due righe; il campo resta stretto e si allarga quando ci si scrive (fuoco o testo dentro), poi torna stretto. */
-  .mbar > :global(.dock) { flex: 1 1 0; min-width: 60%; border-radius: 0; padding: 6px 4px 6px 8px; transition: min-width 200ms cubic-bezier(0.23, 1, 0.32, 1); }
-  .mbar > .mquick { flex: 0 1 clamp(240px, 26%, 380px); transition: flex-basis 200ms cubic-bezier(0.23, 1, 0.32, 1); }
-  .mbar:has(> .mquick:focus-within, > .mquick :global(textarea:not(:placeholder-shown))) > .mquick { flex: 1 1 60%; }
-  .mbar:has(> .mquick:focus-within, > .mquick :global(textarea:not(:placeholder-shown))) > :global(.dock) { min-width: 30%; }
-  @media (prefers-reduced-motion: reduce) { .mbar > .mquick, .mbar > :global(.dock) { transition: none; } }
-  /* La barra della plancia (pwa2): il campo è una pillola sola (il promemoria dei tasti non c'è più, app-posizioni-sistema-27-11 gruppo 3). */
-  .mbar :global(.bar) { padding: 0; }
-  .mbar :global(.field.master) { min-height: 52px; background: var(--s2); }
-  .mquick { flex: 1; min-width: 0; }
+  /* La sfumatura in fondo alla home che scorre (fadeEnd; app-sfumatura-master-home-06-11, Franz 06/11 12:52). */
+  .list :global(section.home.fade-end) { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent); }
   .mchat { flex: 1; min-height: 0; display: flex; flex-direction: column; }
   .wslot { display: contents; }
 </style>

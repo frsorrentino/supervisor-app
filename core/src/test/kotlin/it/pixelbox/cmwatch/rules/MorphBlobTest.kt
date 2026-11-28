@@ -5,7 +5,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Il blocco della master che cambia forma col dito (app-master-morph-m3-06-11); gli stessi casi di morphBlob.test.ts. */
+/** Il blocco della master che cambia forma col dito (app-master-morph-m3-06-11); i casi che aveva la web fino a app-posizioni-sistema-27-11 gruppo 5. */
 class MorphBlobTest {
     private val bar = Rect(0f, 900f, 1500f, 60f)
     private val col = Rect(1080f, 0f, 420f, 960f)

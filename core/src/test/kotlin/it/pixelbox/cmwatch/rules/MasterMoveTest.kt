@@ -15,7 +15,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Test
 
-/** Il tasto tondo della master (app-sposta-master-a-13-11): gli stessi casi di web/src/lib/masterKey.test.ts, dallo stesso file. */
+/** Il tasto tondo della master (app-sposta-master-a-13-11): i casi del file che leggeva anche la web, fino a app-posizioni-sistema-27-11 gruppo 5. */
 class MasterMoveTest {
     private val cases = Json.parseToJsonElement(javaClass.getResource("/master-key-cases.json")!!.readText()).jsonObject
     private fun s(o: JsonObject, k: String) = o[k]!!.jsonPrimitive.content

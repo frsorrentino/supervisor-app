@@ -4,9 +4,9 @@ import it.pixelbox.cmwatch.rules.MasterLanding.Rect
 
 /**
  * Il blocco della master che cambia forma mentre se ne cambia l'altezza col dito (app-master-morph-m3-06-11, Franz 06/11
- * 01:12-01:14, «ok m3»), come lib/morphBlob.ts nella web: posizione, misure e raggi vanno dal posto di partenza a quello
- * d'arrivo con l'avanzamento del dito; il bordo verso il dito si allunga a goccia; il contenuto sfuma mentre compare la presa.
- * Al rilascio la molla del cambio di lato completa la forma; annullato, torna indietro. Misure in dp.
+ * 01:12-01:14, «ok m3»), come la web prima di app-posizioni-sistema-27-11 gruppo 5: posizione, misure e raggi vanno dal posto di
+ * partenza a quello d'arrivo con l'avanzamento del dito; il bordo verso il dito si allunga a goccia; il contenuto sfuma mentre
+ * compare la presa. Al rilascio la molla del cambio di lato completa la forma; annullato, torna indietro. Misure in dp.
  */
 object MorphBlob {
     data class Shape(val x: Float, val y: Float, val w: Float, val h: Float, val rTop: Float, val rBottom: Float)

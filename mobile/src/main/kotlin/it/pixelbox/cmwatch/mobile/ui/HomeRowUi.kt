@@ -50,10 +50,10 @@ import it.pixelbox.cmwatch.rules.TiAspetta
  * La Home in riga (app-home-riga-c1-13-11, variante C1 dei mockup, scelta di Franz del 13/11 alle 09:32): in basso, mentre la master
  * occupa la colonna. Solo le sessioni che ti aspettano fuori schermo e le novità, una voce per cosa: il tocco su una voce apre la sua
  * sessione; il resto della riga, la maniglia o la riga tirata su riaprono la Home. Vuota resta la maniglia, alta 28 dp.
- * `tight` (telefono): chi ti aspetta col nome e da quanto, le novità contate in una voce sola.
+ * Solo sul tablet: la riga stretta del telefono è uscita con app-posizioni-sistema-27-11 gruppo 5.
  */
 @Composable
-fun HomeRowBar(voices: List<HomeRow.Voice>, now: Long, tight: Boolean, onOpen: (HomeRow.Voice) -> Unit, onHome: () -> Unit) {
+fun HomeRowBar(voices: List<HomeRow.Voice>, now: Long, onOpen: (HomeRow.Voice) -> Unit, onHome: () -> Unit) {
     val line = V3.Line
     val open = stringResource(R.string.home_row_open)
     BoxWithConstraints(
@@ -67,21 +67,20 @@ fun HomeRowBar(voices: List<HomeRow.Voice>, now: Long, tight: Boolean, onOpen: (
         Box(Modifier.align(if (voices.isEmpty()) Alignment.Center else Alignment.TopCenter).padding(top = if (voices.isEmpty()) 0.dp else 5.dp).width(44.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(V3.Tx3))
         if (voices.isEmpty()) return@BoxWithConstraints
         // In una riga stretta (tablet) restano il nome e da quanto.
-        val words = !tight && maxWidth >= 900.dp
+        val words = maxWidth >= 900.dp
         val waits = voices.filter { it.kind == HomeRow.Kind.WAIT }
         val news = voices.filter { it.kind == HomeRow.Kind.NEWS }
         Row(
-            Modifier.fillMaxSize().padding(start = if (tight) 10.dp else 14.dp, end = if (tight) 10.dp else 14.dp, top = 6.dp),
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(if (tight) 8.dp else 10.dp),
+            Modifier.fillMaxSize().padding(start = 14.dp, end = 14.dp, top = 6.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Icon(Icons.Rounded.Home, null, tint = V3.Tx2, modifier = Modifier.size(22.dp))
             // Le voci su una riga; quelle che non ci stanno si raggiungono scorrendo.
-            Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(if (tight) 8.dp else 10.dp)) {
+            Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 waits.forEach { v -> VoicePill(v, now, words, onOpen) }
-                if (tight && news.isNotEmpty()) NewsPill(news.size.toString(), null) { onOpen(news.first()) }
-                else news.forEach { v -> NewsPill(v.session, v.text.takeIf { words }) { onOpen(v) } }
+                news.forEach { v -> NewsPill(v.session, v.text.takeIf { words }) { onOpen(v) } }
             }
-            if (!tight) Box(Modifier.size(40.dp).clip(CircleShape).background(V3.S3), contentAlignment = Alignment.Center) { Icon(Icons.Rounded.ExpandLess, null, tint = V3.Tx, modifier = Modifier.size(22.dp)) }
+            Box(Modifier.size(40.dp).clip(CircleShape).background(V3.S3), contentAlignment = Alignment.Center) { Icon(Icons.Rounded.ExpandLess, null, tint = V3.Tx, modifier = Modifier.size(22.dp)) }
         }
     }
 }

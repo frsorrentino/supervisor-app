@@ -7,9 +7,9 @@ import kotlin.math.hypot
 
 /**
  * Spostare la master col suo tasto tondo (app-sposta-master-a-13-11; mockup app-mockup-sposta-master-12-11, giro E per il tasto e
- * giro F variante A per l'arrivo, scelta di Franz del 13/11 alle 12:07), gemella di web/src/lib/masterKey.ts. Col puntatore dentro
- * il tasto compare una freccia sola: quella della direzione possibile dalla parte del tasto dove sta il puntatore; al centro, e dove
- * non c'è una direzione possibile, resta il chevron che apre e chiude.
+ * giro F variante A per l'arrivo, scelta di Franz del 13/11 alle 12:07), per il tablet: la gemella web è uscita con
+ * app-posizioni-sistema-27-11 gruppo 5. Col puntatore dentro il tasto compare una freccia sola: quella della direzione possibile
+ * dalla parte del tasto dove sta il puntatore; al centro, e dove non c'è una direzione possibile, resta il chevron che apre e chiude.
  */
 object MasterMove {
     /** I gradi in senso orario da destra, come sullo schermo (giù = 90). */
@@ -24,8 +24,8 @@ object MasterMove {
 
     /**
      * Da dove sta la master, le direzioni possibili e il posto d'arrivo di ognuna; `sessionsOpen` = ci sono sessioni aperte accanto.
-     * «Dentro» è verso le sessioni, «fuori» verso il bordo dove sta la master. Le stesse regole e lo stesso ordine di `moves` in
-     * masterKey.ts.
+     * «Dentro» è verso le sessioni, «fuori» verso il bordo dove sta la master. Le stesse regole e lo stesso ordine che aveva la web
+     * prima del gruppo 5.
      */
     fun moves(now: Spot, sessionsOpen: Boolean): List<Move> {
         val inn = if (now.left) Dir.E else Dir.W

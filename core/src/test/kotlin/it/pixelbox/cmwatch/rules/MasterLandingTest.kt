@@ -7,7 +7,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** La master del tablet si sposta e si misura come nella PWA larga (masterLanding.test.ts, app-tablet-come-pwa-03-11). */
+/** La master del tablet si sposta e si misura come la PWA larga di prima (app-tablet-come-pwa-03-11; sulla web tolta con app-posizioni-sistema-27-11 gruppo 5). */
 class MasterLandingTest {
     @Test fun headerDroppedInAHalfChoosesTheSide() {
         assertEquals(Side.LEFT, MasterLanding.sideAt(1920f, 100f))

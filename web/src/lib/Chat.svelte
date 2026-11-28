@@ -51,7 +51,7 @@
   import { MINUS, pill as changesOf } from './diff'
   import RigaAzioni from './RigaAzioni.svelte'
   import { ctxChip, ringPct, rowShown } from './sessionBottom'
-  let { onNewer = null, onLatest = null, focus = null, onFocused = () => {}, resultsRow = null, perTe = null, onHeadsUp = null, onTask = null, menuMove = null, st, s, entries, mine, onSend, onBack, onPick, onAnswer, onCmd, wide, events, sent, read, onRead, onPromptTo, slots, onAttach, onFile, onFiles = () => {}, onHandoff, elsewhere = null, elsewhereAway = null, onElsewhere = () => {}, onElsewhereDismiss = () => {}, waitingSince = null, updating = false, onSendAt = null, onSendTo = null, inject = null, onInjected = () => {}, onUsage = () => {}, onOlder = null, onGo = null, onReopen = null, appMenu = null, onDiff = null, onChanges = null, onMine = null, sheet = false }: {
+  let { onNewer = null, onLatest = null, focus = null, onFocused = () => {}, resultsRow = null, perTe = null, onHeadsUp = null, onTask = null, st, s, entries, mine, onSend, onBack, onPick, onAnswer, onCmd, wide, events, sent, read, onRead, onPromptTo, slots, onAttach, onFile, onFiles = () => {}, onHandoff, elsewhere = null, elsewhereAway = null, onElsewhere = () => {}, onElsewhereDismiss = () => {}, waitingSince = null, updating = false, onSendAt = null, onSendTo = null, inject = null, onInjected = () => {}, onUsage = () => {}, onOlder = null, onGo = null, onReopen = null, appMenu = null, onDiff = null, onChanges = null, onMine = null, sheet = false }: {
     /**
      * app-posizioni-sistema-27-11 gruppo 4: la master nel suo foglio (MasterSheet). Tiene solo la conversazione: in fondo le Azioni in chip
      * e l'anellino del contesto come le sessioni; la riga dei dati e gli Avvisi vanno nel ⋮ della riga del foglio, niente pillole in cima.
@@ -98,7 +98,6 @@
     onDiff?: ((id: string) => Promise<Load<StepDiff>>) | null
     /** Contratto 1.72: la vista «Modifiche», op `changes` con `file` = il percorso relativo o null; null = il relay non la conosce. */
     onChanges?: ((file: string | null) => Promise<Load<ChangesView>>) | null
-    menuMove?: { label: string; onMove: () => void; on?: boolean; icon?: string }[] | null
     /** Il menu unico della sessione (app-menu-sessione-03-11): dove porta una voce di Tocca a te. */
     onMine?: ((kind: import('./sessionMenu').MenuKind) => void) | null
     events: Event[]; sent: Scheduled[]; read: Set<string>; onRead: (key: string) => void; onPromptTo: (session: string, text: string) => void
@@ -377,7 +376,7 @@
 <section class="chat" class:dragging class:master={s.name === MASTER} class:reading={s.name === MASTER && !atEnd} aria-label={s.name} bind:this={section} tabindex={tabsOn ? -1 : undefined}
   ondragover={(e) => { if (hasFiles(e)) { e.preventDefault(); dragN = e.dataTransfer?.items?.length ?? 0; hold.over() } }} ondragleave={(e) => hold.leave(leftColumn(e))} ondrop={onDrop}>
   {#if dragging}<DropZone n={dragN} to={s.name} />{/if}
-  <Header bind:this={header} {st} {s} wide={wide} {onBack} {onCmd} onPrompt={onSend} {onHandoff} {onUsage} {onGo} {onReopen} {appMenu} {menuMove} {onMine} onChanges={onChanges ? () => (changesOpen = true) : null} tabs={tabsOn ? tabsRow : null}
+  <Header bind:this={header} {st} {s} wide={wide} {onBack} {onCmd} onPrompt={onSend} {onHandoff} {onUsage} {onGo} {onReopen} {appMenu} {onMine} onChanges={onChanges ? () => (changesOpen = true) : null} tabs={tabsOn ? tabsRow : null}
     inSheet={sheet} sheetNotes={sheet && notesN ? notesBody : null} />
   <!-- Franz 24/10 18:58: la riga «Home» sopra la conversazione della master è tolta: l'intestazione resta più bassa. -->
 
