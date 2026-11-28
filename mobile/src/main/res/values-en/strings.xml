@@ -1777,7 +1777,7 @@ It starts at your last message to the master.</string>
     <string name="seguiti_last_aligned">Last aligned: %1$s</string>
     <string name="seguiti_never_aligned">Never aligned</string>
     <string name="seguiti_task">Task open: %1$s</string>
-    <string name="seguiti_align">Align</string>
+    <string name="seguiti_align">Resume</string>
     <string name="seguiti_accept">It\'s fine</string>
     <string name="seguiti_altrove">Same defect elsewhere</string>
     <string name="seguiti_altrove_empty">No search yet. The master proposes one when it closes a defect that may be elsewhere too.</string>

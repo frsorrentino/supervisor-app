@@ -30,8 +30,13 @@ object Seguiti {
     fun changedPaths(i: RimastoItem): Int? = i.why?.removePrefix("paths:")?.takeIf { i.why.startsWith("paths:") }?.toIntOrNull()
     /** Prima chi è indietro, poi chi non si può sapere, in fondo chi è allineato. */
     fun ordered(items: List<RimastoItem>): List<RimastoItem> = items.sortedBy { age(it).let { a -> if (a == Age.BEHIND) 0 else if (a == Age.UNKNOWN) 1 else 2 } }
-    /** Con un compito già aperto non se ne apre un altro. */
-    fun canAlign(i: RimastoItem) = i.stale != false && i.task == null
+    /**
+     * app-riprendi-tasto-28-11 (Franz 28/11 16:38: «non mostra un tasto per accettare la ripresa, ma mostra solo tasto va bene così»):
+     * «Riprendi» sta sempre accanto a «Va bene così», anche con un compito già aperto. Senza compito manda «allinea» (si apre il compito e
+     * la sessione parte); con un compito aperto, finché il relay non ha l'action «riprendi», porta a Lavori, dove c'è il compito.
+     */
+    fun canResume(i: RimastoItem) = i.stale != false
+    fun resumeOpensLavori(i: RimastoItem) = i.task != null
     fun canAccept(i: RimastoItem) = i.stale != false
 
     /** «Nessun altro caso» si dice solo a giro completo, senza errori e con qualcosa di controllato. */

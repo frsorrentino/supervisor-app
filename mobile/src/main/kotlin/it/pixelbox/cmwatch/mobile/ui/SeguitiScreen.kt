@@ -51,7 +51,7 @@ fun SeguitiBody(page: SeguitiPage?, failed: Boolean, onAction: (String, String?,
         if (page.rimasto.isEmpty()) Note(stringResource(R.string.seguiti_rimasto_empty))
         // Le voci come righe (app-richiede-te-righe-02-11): il tocco apre la scheda coi tasti.
         val rim = Seguiti.ordered(page.rimasto)
-        ItemList(rim.map { ItemRows.rimasto(it) }, "seguito") { r -> rim.firstOrNull { x -> ItemRows.rimasto(x).key == r.key }?.let { RimastoCard(it, onAction) } }
+        ItemList(rim.map { ItemRows.rimasto(it) }, "seguito") { r -> rim.firstOrNull { x -> ItemRows.rimasto(x).key == r.key }?.let { RimastoCard(it, onAction, onLavori) } }
         Heading(stringResource(R.string.seguiti_altrove))
         if (page.altrove.isEmpty()) Note(stringResource(R.string.seguiti_altrove_empty))
         ItemList(page.altrove.map { ItemRows.altrove(it) }, "altrove") { r -> page.altrove.firstOrNull { x -> "a-${x.id}" == r.key }?.let { AltroveCard(it, onLavori) } }
@@ -90,7 +90,7 @@ fun SeguitiBody(page: SeguitiPage?, failed: Boolean, onAction: (String, String?,
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun RimastoCard(i: RimastoItem, onAction: (String, String?, String) -> Unit) = Card {
+private fun RimastoCard(i: RimastoItem, onAction: (String, String?, String) -> Unit, onLavori: () -> Unit) = Card {
     Text(listOfNotNull(i.product, i.where?.takeIf { it.isNotBlank() }).joinToString(" · "), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
     Text(when (Seguiti.age(i)) {
         Seguiti.Age.ALIGNED -> stringResource(R.string.seguiti_aligned)
@@ -108,11 +108,14 @@ private fun RimastoCard(i: RimastoItem, onAction: (String, String?, String) -> U
     }, style = MaterialTheme.typography.bodyMedium, color = Cm.text)
     Text(if (i.alignedVersion != null || i.alignedAt != null) stringResource(R.string.seguiti_last_aligned, listOfNotNull(i.alignedVersion, i.alignedAt?.let { Seguiti.whenText(it) }).joinToString(", ")) else stringResource(R.string.seguiti_never_aligned), style = MaterialTheme.typography.bodyMedium, color = Cm.text2)
     i.task?.let { Text(stringResource(R.string.seguiti_task, it), style = MaterialTheme.typography.bodyMedium, color = Cm.text2) }
-    if (Seguiti.canAccept(i) || Seguiti.canAlign(i)) FlowRow(Modifier.align(Alignment.End), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    if (Seguiti.canAccept(i) || Seguiti.canResume(i)) FlowRow(Modifier.align(Alignment.End), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         // Franz 02/11 15:38 (app-feedback-azioni-02-11): il tasto toccato diventa la conferma finché la scheda cambia.
         var tapped by androidx.compose.runtime.remember(i.product, i.key, i.alignedAt, i.task) { androidx.compose.runtime.mutableStateOf<String?>(null) }
         if (Seguiti.canAccept(i)) ConfirmButton(stringResource(R.string.seguiti_accept), confirmed = tapped == "ok", enabled = tapped == null, faded = tapped == "allinea", outlined = true) { tapped = "ok"; onAction("ok", i.product, i.key) }
-        if (Seguiti.canAlign(i)) ConfirmButton(stringResource(R.string.seguiti_align), confirmed = tapped == "allinea", enabled = tapped == null, faded = tapped == "ok") { tapped = "allinea"; onAction("allinea", i.product, i.key) }
+        // app-riprendi-tasto-28-11: «Riprendi» sempre; con un compito già aperto porta a Lavori (Seguiti.resumeOpensLavori).
+        if (Seguiti.canResume(i)) ConfirmButton(stringResource(R.string.seguiti_align), confirmed = tapped == "allinea", enabled = tapped == null, faded = tapped == "ok") {
+            if (Seguiti.resumeOpensLavori(i)) onLavori() else { tapped = "allinea"; onAction("allinea", i.product, i.key) }
+        }
     }
 }
 

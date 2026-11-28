@@ -27,14 +27,16 @@ class SeguitiTest {
         assertEquals(Seguiti.Age.UNKNOWN, Seguiti.age(unknown)); assertEquals(Seguiti.Why.NO_GIT, Seguiti.why(unknown)); assertNull(Seguiti.changedPaths(unknown))
         assertEquals(Seguiti.Why.CHECK_TIMEOUT, Seguiti.why(unknown.copy(why = "check_timeout")))
         assertEquals(Seguiti.Why.NO_PROJECT, Seguiti.why(unknown.copy(why = "no_project")))
-        assertTrue(Seguiti.canAlign(unknown)); assertTrue(Seguiti.canAccept(unknown))
+        assertTrue(Seguiti.canResume(unknown)); assertTrue(Seguiti.canAccept(unknown))
     }
 
     @Test fun rimasto_indietro_actionsAndOrder() {
-        assertTrue(Seguiti.canAlign(item)); assertTrue(Seguiti.canAccept(item))
-        assertFalse("un compito aperto non se ne apre un altro", Seguiti.canAlign(item.copy(task = "allinea-1")))
+        assertTrue(Seguiti.canResume(item)); assertTrue(Seguiti.canAccept(item)); assertFalse(Seguiti.resumeOpensLavori(item))
+        // app-riprendi-tasto-28-11: con un compito già aperto «Riprendi» resta, e porta a Lavori invece di aprirne un altro.
+        assertTrue("con un compito aperto Riprendi resta", Seguiti.canResume(item.copy(task = "allinea-1")))
+        assertTrue(Seguiti.resumeOpensLavori(item.copy(task = "allinea-1")))
         val fresh = item.copy(key = "f", stale = false, why = null)
-        assertFalse(Seguiti.canAlign(fresh)); assertFalse(Seguiti.canAccept(fresh))
+        assertFalse(Seguiti.canResume(fresh)); assertFalse(Seguiti.canAccept(fresh))
         val unknown = item.copy(key = "u", stale = null, why = "no_git")
         assertEquals(listOf("demo", "u", "f"), Seguiti.ordered(listOf(fresh, unknown, item)).map { it.key })
     }

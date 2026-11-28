@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { decodeSeguiti } from './decideDecode'
 import { decodeState } from './contract'
-import { age, canAccept, canAlign, changedPaths, clean, fired, ordered, total, whenText } from './seguiti'
+import { age, canAccept, canResume, changedPaths, clean, fired, ordered, resumeOpensLavori, total, whenText } from './seguiti'
 import { known } from './suggestions'
 import { STRONG } from './strongAlert'
 import { newCmd } from './transport'
@@ -27,13 +27,16 @@ describe('rimasto_indietro', () => {
     const u = { ...item, stale: null, why: 'no_git' }
     expect(age(u)).toBe('unknown')
     expect(changedPaths(u)).toBeNull()
-    expect(canAlign(u) && canAccept(u)).toBe(true)
+    expect(canResume(u) && canAccept(u)).toBe(true)
   })
   it('rimasto_indietro: tasti e ordine', () => {
-    expect(canAlign(item) && canAccept(item)).toBe(true)
-    expect(canAlign({ ...item, task: 'allinea-1' })).toBe(false)
+    expect(canResume(item) && canAccept(item)).toBe(true)
+    expect(resumeOpensLavori(item)).toBe(false)
+    // app-riprendi-tasto-28-11: con un compito già aperto «Riprendi» resta, e porta a Lavori invece di aprirne un altro.
+    expect(canResume({ ...item, task: 'allinea-1' })).toBe(true)
+    expect(resumeOpensLavori({ ...item, task: 'allinea-1' })).toBe(true)
     const fresh = { ...item, key: 'f', stale: false, why: null }
-    expect(canAlign(fresh) || canAccept(fresh)).toBe(false)
+    expect(canResume(fresh) || canAccept(fresh)).toBe(false)
     const u = { ...item, key: 'u', stale: null, why: 'no_git' }
     expect(ordered([fresh, u, item]).map(x => x.key)).toEqual(['demo', 'u', 'f'])
   })

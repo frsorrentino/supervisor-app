@@ -8,8 +8,13 @@ export const age = (i: RimastoItem): Age => (i.stale === true ? 'behind' : i.sta
 export const changedPaths = (i: RimastoItem): number | null => { const m = /^paths:(\d+)$/.exec(i.why ?? ''); return m ? Number(m[1]) : null }
 /** Prima chi è indietro, poi chi non si può sapere, in fondo chi è allineato. */
 export const ordered = (items: RimastoItem[]) => { const r: Record<Age, number> = { behind: 0, unknown: 1, aligned: 2 }; return [...items].sort((a, b) => r[age(a)] - r[age(b)]) }
-/** Con un compito già aperto non se ne apre un altro. */
-export const canAlign = (i: RimastoItem) => i.stale !== false && !i.task
+/**
+ * app-riprendi-tasto-28-11 (Franz 28/11 16:38: «non mostra un tasto per accettare la ripresa, ma mostra solo tasto va bene così»): «Riprendi»
+ * sta sempre accanto a «Va bene così», anche con un compito già aperto. Senza compito manda «allinea» (si apre il compito e la sessione
+ * parte); con un compito aperto, finché il relay non ha l'action «riprendi», porta a Lavori, dove c'è il compito.
+ */
+export const canResume = (i: RimastoItem) => i.stale !== false
+export const resumeOpensLavori = (i: RimastoItem) => !!i.task
 export const canAccept = (i: RimastoItem) => i.stale !== false
 /** «Nessun altro caso» si dice solo a giro completo, senza errori e con qualcosa di controllato. */
 export const clean = (r: AltroveRun) => r.complete && r.total > 0 && r.positive.length === 0 && r.errors.length === 0

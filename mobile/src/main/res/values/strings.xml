@@ -1821,7 +1821,7 @@ Parte dal tuo ultimo messaggio alla master.</string>
     <string name="seguiti_last_aligned">Ultimo allineamento: %1$s</string>
     <string name="seguiti_never_aligned">Mai allineata</string>
     <string name="seguiti_task">Compito aperto: %1$s</string>
-    <string name="seguiti_align">Allinea</string>
+    <string name="seguiti_align">Riprendi</string>
     <string name="seguiti_accept">Va bene così</string>
     <string name="seguiti_altrove">Stesso difetto altrove</string>
     <string name="seguiti_altrove_empty">Nessuna ricerca. La master la propone quando chiude un difetto che può esserci anche altrove.</string>

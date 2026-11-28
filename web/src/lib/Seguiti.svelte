@@ -3,7 +3,7 @@
   import { altrove as altroveRow, promemoria as promemoriaRow, rimasto as rimastoRow } from './itemRows'
   import type { CmdResult, RimastoItem, SeguitiPage, SeguitiSummary } from './contract'
   import { decodeSeguiti } from './decideDecode'
-  import { age, canAccept, canAlign, changedPaths, clean, fired, ordered, whenText } from './seguiti'
+  import { age, canAccept, canResume, changedPaths, clean, fired, ordered, resumeOpensLavori, whenText } from './seguiti'
   import { newCmd } from './transport'
   import { t } from './t'
   import LongText from './LongText.svelte'
@@ -62,9 +62,10 @@
         <p>{ageText(i)}</p>
         <p class="m">{alignedText(i)}</p>
         {#if i.task}<p class="m">{t.seguitiTask(i.task)}</p>{/if}
-        {#if canAccept(i) || canAlign(i)}<div class="ac"><span class="sp"></span>
+        {#if canAccept(i) || canResume(i)}<div class="ac"><span class="sp"></span>
           {#if canAccept(i)}<button class="out" class:done={picked[i.product + i.key] === 'ok'} disabled={!!picked[i.product + i.key]} onclick={() => act('ok', i.product, i.key)}>{#if picked[i.product + i.key] === 'ok'}✓ {/if}{t.seguitiAccept}</button>{/if}
-          {#if canAlign(i)}<button class="tonal" class:done={picked[i.product + i.key] === 'allinea'} disabled={!!picked[i.product + i.key]} onclick={() => act('allinea', i.product, i.key)}>{#if picked[i.product + i.key] === 'allinea'}✓ {/if}{t.seguitiAlign}</button>{/if}
+          <!-- app-riprendi-tasto-28-11: «Riprendi» sempre; con un compito già aperto porta a Lavori (resumeOpensLavori). -->
+          {#if canResume(i)}<button class="tonal" class:done={picked[i.product + i.key] === 'allinea'} disabled={!!picked[i.product + i.key]} onclick={() => resumeOpensLavori(i) ? onLavori() : act('allinea', i.product, i.key)}>{#if picked[i.product + i.key] === 'allinea'}✓ {/if}{t.seguitiAlign}</button>{/if}
         </div>{/if}
       </div>{/if}{/snippet}</ItemList>
     <h3>{t.seguitiAltrove}</h3>
