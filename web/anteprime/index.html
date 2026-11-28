@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Anteprima</title>
+</head>
+<body>
+<script>
+// app-visore-web-script-28-11 (Franz 28/11 16:35): il sito delle anteprime del visore HTML della web, un'origine a parte con una CSP
+// sua (web/firebase.json, site supervisor-anteprime). Gli script inline e i font delle pagine girano; richieste di rete no
+// (connect-src 'none'), e i dati dell'app stanno su un'altra origine. L'app incornicia questa pagina, aspetta «pronta» e le manda
+// l'HTML; la pagina lo apre come documento nuovo, suo, da un URL blob che eredita questa CSP. Accetta solo le origini dell'app, le
+// stesse di frame-ancestors: web/src/lib/anteprime.test.ts lo controlla.
+(() => {
+  const APP = ['https://supervisor.francescosorrentino.com', 'https://supervisor-francescosorrentino.web.app', 'https://supervisor-francescosorrentino.firebaseapp.com']
+  let done = false
+  addEventListener('message', (e) => {
+    if (done || e.source !== parent || !APP.includes(e.origin) || !e.data || typeof e.data.html !== 'string') return
+    done = true
+    location.replace(URL.createObjectURL(new Blob([e.data.html], { type: 'text/html' })))
+  })
+  if (parent !== window) parent.postMessage({ anteprima: 'pronta' }, '*')
+})()
+</script>
+</body>
+</html>

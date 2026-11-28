@@ -107,7 +107,7 @@ export function needsHomeScreen(ua: string, standalone: boolean, touchPoints: nu
 
 /** L'indirizzo pubblico della web app (Franz, 13/10 12:33); i nomi di Firebase del sito rinviano qui. */
 export const CANONICAL = 'https://supervisor.francescosorrentino.com'
-const FIREBASE_HOSTS = ['supervisor-francescosorrentino.web.app', 'supervisor-francescosorrentino.firebaseapp.com']
+export const FIREBASE_HOSTS = ['supervisor-francescosorrentino.web.app', 'supervisor-francescosorrentino.firebaseapp.com']
 
 /**
  * Dove rinviare un browser arrivato su un nome di Firebase del sito, o null. Chi è già collegato lì resta: su iPhone

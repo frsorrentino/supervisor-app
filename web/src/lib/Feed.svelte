@@ -28,7 +28,8 @@
   import ReadAlong from './ReadAlong.svelte'
   import type { IconName } from './icons'
   import { t } from './t'
-  import { canCopy, canShare, pageDoc, PAGE_SANDBOX, type FileAct } from './fileActions'
+  import { canCopy, canShare, pageDoc, type FileAct } from './fileActions'
+  import PageFrame from './PageFrame.svelte'
   import { autoPreview, canPreview, fileKey, isImage, isVideo, pageHeight, previewKind } from './media'
   import AnteprimaAnimata from './AnteprimaAnimata.svelte'
   import PaginaIntera from './PaginaIntera.svelte'
@@ -364,8 +365,9 @@
              fermi col ▶ con le animazioni ridotte (app-anteprime-webp-27-11); con la loro bozza accanto il tocco la apre dal vivo. -->
         {#if url && (isImage(f.mime) || kind === 'pdf')}<button class="fthumb" class:pdf={kind === 'pdf'} aria-label={kind === 'pdf' ? t.fileOpen : dr ? t.animDraft(fname) : moving[key] && movimento.ridotto ? t.animPlay(fname) : t.fileOpen} onclick={() => { if (kind === 'pdf') onFile(f.path, 'open', key); else if (dr) { openDraft(dr); onFile(f.path, 'seen', key) } else { zoomed = { src: url, name: fname }; onFile(f.path, 'seen', key) } }}>{#if kind === 'pdf'}<img src={url} alt="" />{:else}<AnteprimaAnimata src={url} blob={moving[key]} fill={false} fit="cover" />{/if}</button>{/if}
         {#if pages[key] && !code[key]}
-          <!-- Franz, 16/10 11:18: HTML e SVG come pagina, in un riquadro isolato (PAGE_SANDBOX: origine opaca, niente token). -->
-          {#if !(kind === 'page' && lightOf(f, fs))}<iframe class="fpage" style="height:{pageHeight(vh)}px" title={f.path.split('/').pop()} sandbox={PAGE_SANDBOX} referrerpolicy="no-referrer" srcdoc={pageDoc(pages[key].mime, pages[key].text)}></iframe>{/if}
+          <!-- Franz, 16/10 11:18: HTML e SVG come pagina, in un riquadro isolato; da app-visore-web-script-28-11 sul sito delle anteprime,
+               dove gli script della pagina girano (PageFrame). -->
+          {#if !(kind === 'page' && lightOf(f, fs))}<PageFrame doc={pageDoc(pages[key].mime, pages[key].text)} title={f.path.split('/').pop() ?? ''} height={pageHeight(vh)} />{/if}
         {:else if texts[key]}<button class="ftext" class:cut={texts[key].more} aria-label={t.fileOpen} onclick={() => onFile(f.path, 'open', key)}><pre>{texts[key].lines}</pre></button>{/if}
         {#if pages[key]}<span class="fbtns"><button class="fshow" aria-pressed={!!code[key]} onclick={() => (code[key] = !code[key])}>{code[key] ? t.filePage : t.fileCode}</button><button class="fshow" onclick={() => (full = { key, name: fname, path: f.path })}>{t.filePageFull}</button></span>{/if}
         {#if !url && !texts[key] && !failed[key] && !coming[key] && missed[key]}
@@ -562,7 +564,6 @@
   .ftext pre { margin: 0; font: 12.5px/1.5 var(--mono); color: var(--text); white-space: pre-wrap; word-break: break-word; }
   /* Un testo più lungo delle righe mostrate sfuma in fondo, senza puntini. */
   .ftext.cut pre { mask-image: linear-gradient(#000 70%, transparent); -webkit-mask-image: linear-gradient(#000 70%, transparent); }
-  .fpage { display: block; width: 100%; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
   .fcoming { align-self: flex-start; padding: 2px 2px 4px; font-size: 13.5px; color: var(--text2); font-variant-numeric: tabular-nums; }
   .fmiss { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; font-size: 13.5px; color: var(--text2); }
   .fshow { align-self: flex-start; padding: 8px 14px; border-radius: 999px; background: var(--high); color: var(--icon); font-size: 14px; font-weight: 500; }
